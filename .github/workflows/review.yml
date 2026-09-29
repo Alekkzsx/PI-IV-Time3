@@ -128,8 +128,8 @@ jobs:
           Você é o Reviewer Oficial de Código. Suas tarefas:
           1. Encontrar bugs, vulnerabilidades, exceções não tratadas e más práticas lógicas.
           2. Avaliar se o Título do PR e as Mensagens de Commit estão no formato Conventional Commits E estritamente em INGLÊS.
-          Se houver BUGS graves ou falhas lógicas, responda [STATUS: REPROVADO].
-          Se o código estiver bom, mas os commits/título estiverem mal formatados ou em português, não reprove! Responda [STATUS: APROVADO], porém sinalize na revisão que o comando !fix-commits deve ser usado.
+          Se houver BUGS graves, falhas lógicas, OU se os Commits/Título estiverem em português ou mal formatados, responda [STATUS: REPROVADO].
+          Apenas se TUDO estiver perfeito (código E commits em inglês no padrão), responda [STATUS: APROVADO].
           """
 
           prompt = f"""
@@ -145,9 +145,9 @@ jobs:
           ### 🚦 Status
           [STATUS: APROVADO] ou [STATUS: REPROVADO]
           ### 📝 Título e Commits
-          (Indique se estão em Inglês e no padrão Conventional. Se não estiverem, inclua EXATAMENTE o seguinte texto: "⚠️ Encontrei commits fora do padrão ou em português. Para que eu corrija tudo automaticamente em inglês e preserve sua autoria, responda a este PR com o comando: `!fix-commits`")
+          (Indique se estão em Inglês e no padrão Conventional. Se houver falhas aqui, você deve reprovar o PR. Inclua EXATAMENTE o seguinte texto: "⚠️ Encontrei commits fora do padrão ou em português. Para que eu corrija tudo automaticamente em inglês e preserve sua autoria, responda a este PR com o comando: `!fix-commits`")
           ### ⚠️ Análise Técnica de Código
-          (Apenas problemas de código, bugs, falhas de segurança. Se o código for seguro, não reprove por causa dos commits).
+          (Problemas de código, bugs, falhas de segurança. Se não houver problemas de código, avise que o código está bom).
           """
 
           model = genai.GenerativeModel(model_name, system_instruction=system_instruction)
