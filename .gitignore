@@ -1,0 +1,130 @@
+# =============================================================================
+# .gitignore — Padrão de Projeto Robusto e Seguro
+# =============================================================================
+
+# ─── 1. Segredos e Variáveis de Ambiente (CRÍTICO: NUNCA COMMITAR) ───
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+secrets/
+
+# Permitir template de exemplo de variáveis de ambiente
+!.env.example
+!.env.template
+
+# ─── 2. Dependências e Pacotes ───
+# Node.js / Frontend
+node_modules/
+jspm_packages/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+target/
+.gradle/
+build/
+
+# C# / .NET
+bin/
+obj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ─── 3. Builds, Bundles e Saídas de Compilação ───
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.terraform/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# ─── 4. Logs e Arquivos Temporários ───
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# ─── 5. Arquivos de Sistema Operacional ───
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ─── 6. Configurações de IDE e Editores ───
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# VS Code (ignora histórico e workspace local, mantém configurações compartilhadas se desejado)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# ─── 7. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
+!.github/
