@@ -97,7 +97,7 @@ jobs:
               diff_entries.append(f"Arquivo: {f.filename}\nPatch:\n{sanitize_untrusted_text(patch)}")
           diff_text = "\n\n".join(diff_entries)[:60000]
 
-          # 3. GEMINI API (FALLBACK DINÂMICO DE MODELOS 3.X)
+          # 3. GEMINI API (FALLBACK DINÂMICO APENAS MODELOS FLASH)
           genai.configure(api_key=gemini_key)
           
           try:
@@ -110,10 +110,10 @@ jobs:
               'models/gemini-3.8-flash',
               'models/gemini-3.7-flash',
               'models/gemini-3.5-flash',
-              'models/gemini-3.1-pro',
               'models/gemini-3.0-flash',
               'models/gemini-2.5-flash',
-              'models/gemini-2.0-flash'
+              'models/gemini-2.0-flash',
+              'models/gemini-1.5-flash'
           ]
           
           model_name = 'models/gemini-2.5-flash' # fallback absoluto
