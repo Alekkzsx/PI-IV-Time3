@@ -1,0 +1,1 @@
+Este é apenas um arquivo de teste para acionar o bot de CI/CD.
