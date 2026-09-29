@@ -93,7 +93,26 @@ jobs:
               })
 
           genai.configure(api_key=gemini_key)
-          model = genai.GenerativeModel('models/gemini-3.1-pro')
+          
+          try:
+              available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+          except Exception:
+              available_models = []
+              
+          preferred_order = [
+              'models/gemini-3.8-flash', 'models/gemini-3.7-flash',
+              'models/gemini-3.5-flash', 'models/gemini-3.1-pro',
+              'models/gemini-3.0-flash', 'models/gemini-2.5-flash'
+          ]
+          
+          model_name = 'models/gemini-2.5-flash'
+          for pref in preferred_order:
+              if pref in available_models or pref.replace('models/', '') in available_models:
+                  model_name = pref
+                  break
+                  
+          print(f"✅ Usando o modelo: {model_name}")
+          model = genai.GenerativeModel(model_name)
           
           prompt = f"""
           Você receberá o Título atual do Pull Request e uma lista de mensagens de commit.
