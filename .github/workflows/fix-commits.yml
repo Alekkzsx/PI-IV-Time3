@@ -131,9 +131,25 @@ jobs:
           }}
           """
 
-          response = model.generate_content(prompt)
+          import time
+          max_retries = 3
+          response_text = ""
+          
+          for attempt in range(max_retries):
+              try:
+                  response = model.generate_content(prompt)
+                  response_text = response.text
+                  break
+              except Exception as e:
+                  print(f"Erro no Gemini (tentativa {attempt + 1}/{max_retries}): {e}")
+                  if "429" in str(e) and attempt < max_retries - 1:
+                      print("⏳ Limite de taxa (Rate Limit) atingido. Aguardando 60 segundos antes de tentar novamente...")
+                      time.sleep(60)
+                  else:
+                      sys.exit(1)
+
           try:
-              clean_json = response.text.strip()
+              clean_json = response_text.strip()
               if clean_json.startswith("```json"):
                   clean_json = clean_json[7:-3].strip()
               elif clean_json.startswith("```"):
