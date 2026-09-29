@@ -1,6 +1,6 @@
 # Regra de Propriedade de Código Nativa do GitHub
-# Apenas a pasta .github (regras de CI/CD e governança) é restrita aos administradores.
-# O restante do código pode ser revisado por qualquer colaborador.
+# Os usuários @Alekkzsx e @GuilhermeMoreira07 são os proprietários oficiais do repositório, Reviewer e CI/CD.
 
+* @Alekkzsx @GuilhermeMoreira07
 .github/workflows/ @Alekkzsx @GuilhermeMoreira07
 .github/CODEOWNERS @Alekkzsx @GuilhermeMoreira07
