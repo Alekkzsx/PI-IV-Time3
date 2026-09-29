@@ -1,0 +1,19 @@
+name: Restrict PRs to main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if source is develop
+        if: github.head_ref != 'develop'
+        run: |
+          echo "ERROR: A branch main so aceita Pull Requests vindo da branch develop!"
+          exit 1
+      - name: Success
+        if: github.head_ref == 'develop'
+        run: echo "Branch origem é develop. Permitido!"
