@@ -1,0 +1,19 @@
+.../backend/src
+
+javac ServidorHttpNativo.java
+java ServidorHttpNativo
+
+1. Teste de Extração de Tipos Primitivos (Parse dos dados):
+curl -X POST http://localhost:8080/api/teste-tipos -d "texto=Calculo1&inteiro=42&flutuante=7.5&duplo=99.99&caractere=A"
+
+1. Teste de Presença na Aula Online (75% = Presença):
+curl.exe -X POST http://localhost:8080/api/presenca -d "minutosAssistidos=50&duracaoTotal=60"
+
+2. Teste de Desconto por Atraso (1 Dia de Atraso = 20% Desconto):
+curl.exe -X POST http://localhost:8080/api/tarefas/calcular-nota -d "diasAtraso=1&notaBase=10.0"
+
+3. Teste da Média Ponderada do Boletim:
+curl.exe -X POST http://localhost:8080/api/notas/boletim -d "p1=8.0&peso1=0.4&p2=6.0&peso2=0.4&trabalho=10.0&pesoTrabalho=0.2"
+
+TESTES VIA CMD/TERMINAL MESMO, SOMENTE PARA VISUALIZAÇÃO DOS METODOS POST/GETS ATUAIS DO SERVIDOR.
+PRECISA TER JAVA 17+ INSTALADO, E ADICIONAR NAS VARIAVEIS DE AMBIENTE !
