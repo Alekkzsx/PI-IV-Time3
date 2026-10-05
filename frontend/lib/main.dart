@@ -35,7 +35,7 @@ class PortalAvaApp extends StatelessWidget {
       title: 'AGMRM - Portal Acadêmico',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/reset-password',
+      initialRoute: '/',
       routes: {
         '/': (context) => RecoverPasswordPage(controller: controller),
         '/reset-password': (context) => const ResetPasswordPage(),
