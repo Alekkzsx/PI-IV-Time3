@@ -117,6 +117,7 @@ desktop.ini
 *.sublime-workspace
 .project
 .classpath
+.agents
 .settings/
 
 # VS Code (ignora histórico e workspace local, mantém configurações compartilhadas se desejado)
