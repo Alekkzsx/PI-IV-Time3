@@ -20,6 +20,6 @@ O ecossistema é estruturado em três níveis de usuários:
 
 ## **Tecnologias e Arquitetura**
 O projeto adota o formato Monorepo, separando a interface da lógica de servidor:
-- **Frontend:** Flutter (Aplicação Web)
+- **Frontend:** Flutter (Aplicação Web organizada em Clean Architecture - veja detalhes em [ARCHITECTURE.md](ARCHITECTURE.md))
 - **Backend:** Java (Servidor HTTP nativo `com.sun.net.httpserver`, sem frameworks)
-- **Banco de Dados:** MongoDB
+- **Banco de Dados:** MongoDB
