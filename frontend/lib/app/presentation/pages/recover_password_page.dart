@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../controllers/recover_password_controller.dart';
 import '../widgets/primary_action_button.dart';
+import '../widgets/profile_selector_tabs.dart';
 import '../widgets/recovery_footer_links.dart';
 import '../widgets/recovery_input_field.dart';
 import '../widgets/security_alert_banner.dart';
@@ -23,6 +24,7 @@ class RecoverPasswordPage extends StatefulWidget {
 
 class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   late final RecoverPasswordController _controller;
+  UserProfile _selectedProfile = UserProfile.aluno;
 
   @override
   void initState() {
@@ -41,6 +43,39 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
     setState(() {});
   }
 
+  String _getInputTitle() {
+    switch (_selectedProfile) {
+      case UserProfile.aluno:
+        return 'R.A. do Aluno ou E-mail Acadêmico';
+      case UserProfile.docente:
+        return 'Matrícula do Docente ou E-mail Institucional';
+      case UserProfile.admin:
+        return 'Identificador ou E-mail Administrativo';
+    }
+  }
+
+  String _getInputExample() {
+    switch (_selectedProfile) {
+      case UserProfile.aluno:
+        return 'ex: 2024.1.00892';
+      case UserProfile.docente:
+        return 'ex: DOC-40892';
+      case UserProfile.admin:
+        return 'ex: ADM-90812';
+    }
+  }
+
+  String _getInputPlaceholder() {
+    switch (_selectedProfile) {
+      case UserProfile.aluno:
+        return 'Digite seu R.A. ou nome@aluno.universidade.edu.br';
+      case UserProfile.docente:
+        return 'Digite sua matrícula ou e-mail institucional';
+      case UserProfile.admin:
+        return 'Digite seu identificador administrativo';
+    }
+  }
+
   void _handleSubmit() async {
     final success = await _controller.submit();
     if (success && mounted) {
@@ -52,7 +87,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Instruções enviadas com sucesso! Verifique sua caixa de entrada.',
+                  'Instruções enviadas com sucesso! Redirecionando para definição de senha...',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -63,9 +98,14 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 2),
         ),
       );
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          Navigator.of(context).pushNamed('/reset-password');
+        }
+      });
     }
   }
 
@@ -115,10 +155,24 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
 
-                        // Campo de entrada com Rótulo Duplo (Fluxo Unificado Genérico)
+                        // Seletor de Perfil (Aluno, Docente, Admin)
+                        ProfileSelectorTabs(
+                          selectedProfile: _selectedProfile,
+                          onProfileChanged: (profile) {
+                            setState(() {
+                              _selectedProfile = profile;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Campo de entrada com Rótulo Duplo (Dinâmico por perfil)
                         RecoveryInputField(
+                          inputTitle: _getInputTitle(),
+                          example: _getInputExample(),
+                          placeholder: _getInputPlaceholder(),
                           errorMessage: _controller.errorMessage,
                           onChanged: _controller.setIdentity,
                           onSubmitted: _handleSubmit,

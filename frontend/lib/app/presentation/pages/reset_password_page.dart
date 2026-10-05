@@ -247,11 +247,21 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Senha redefinida com sucesso! Redirecionando para o login...',
+                                    'Senha redefinida com sucesso! Retornando...',
                                   ),
                                   backgroundColor: Color(0xFF10B981),
+                                  duration: Duration(seconds: 2),
                                 ),
                               );
+                              Future.delayed(const Duration(milliseconds: 600), () {
+                                if (mounted) {
+                                  if (Navigator.canPop(context)) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    Navigator.pushReplacementNamed(context, '/');
+                                  }
+                                }
+                              });
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF64748B), // Slate acinzentado do design
@@ -261,12 +271,23 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text(
-                              'Salvar Nova Senha e Voltar para Login',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  'Salvar Nova Senha e Voltar para Login',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(
+                                  Icons.arrow_forward,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ],
                             ),
                           ),
                         ),
