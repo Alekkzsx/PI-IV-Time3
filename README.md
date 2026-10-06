@@ -22,13 +22,13 @@ The platform addresses the fragmentation of educational tools by consolidating a
 
 ## Team
 
-| Full name | Student ID (RA) | Role / Focus Area |
-|---|---|---|
-| *Alex Gabriel Soares Sousa* | *24802449* | Architecture, Frontend Flutter & Monorepo Governance |
-| *Guilherme Moreira* | *25006702* | Native Java Backend, Server Infrastructure & Business Logic |
-| *Marcelo Zarpelon* | *25015323* | Requirements Analysis & Academic Domain Modeling |
-| *Murillo Caravita* | *—* | Quality Assurance, Integration Testing & Validation |
-| *Rafael Henrique Inácio* | *25009719* | Information Security, Policies & Compliance |
+| Full name | Student ID (RA) |
+|---|---|
+| *Alex Gabriel Soares Sousa* | *24802449* |
+| *Guilherme Moreira* | *25006702* | 
+| *Marcelo Zarpelon* | *25015323* | 
+| *Murillo Caravita* | *25014012* |
+| *Rafael Henrique Inácio* | *25009719* | 
 
 ---
 
@@ -37,9 +37,8 @@ The platform addresses the fragmentation of educational tools by consolidating a
 | Layer | Technology |
 |---|---|
 | App (Frontend) | Flutter + Dart (Clean Architecture) |
-| Backend | Java SE 17+ (Native HTTP Server) |
+| Native Server | Java SE 17+ (Native HTTP Server built from scratch) |
 | Server Runtime | Native Sockets + Scripts (Batch / Shell) |
-| Security & Governance | STRIDE / DREAD Threat Modeling, CORS, GitHub Actions |
 | Version control | Git + GitHub |
 
 ---
@@ -50,9 +49,13 @@ The platform addresses the fragmentation of educational tools by consolidating a
 PI-IV-Time3/
 ├── .github/                  # CI/CD workflows, CODEOWNERS, and branch protection policies
 ├── frontend/                 # Multi-platform Flutter app (Clean Architecture: Presentation, Domain, Data)
-├── backend/                  # Domain services and business logic (Java SE native HTTP server)
-├── server/                   # Server runtime scripts, socket configuration (port 8080), and cURL test suite
-└── security/                 # Institutional cybersecurity governance, CORS configuration, and threat modeling
+├── server/                   # Autonomous native Java HTTP server (built from scratch, no frameworks)
+│   ├── src/                  # Java sources: ServidorHttpNativo, handlers, and HttpUtils
+│   ├── bin/                  # Compiled Java bytecode
+│   ├── server.properties     # Port 8080, socket tuning, and CORS configuration
+│   └── *.bat / *.sh          # Compilation, runtime, and automated cURL test scripts
+├── backend/                  # Reserved for future application backend services (.gitkeep)
+└── security/                 # Reserved for global application security policies (.gitkeep)
 ```
 
 ---
