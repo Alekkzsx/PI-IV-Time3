@@ -7,7 +7,7 @@ echo ===========================================================================
 
 set "SERVER_DIR=%~dp0"
 set "BIN_DIR=%SERVER_DIR%bin"
-set "SRC_FILE=%SERVER_DIR%..\backend\src\ServidorHttpNativo.java"
+set "SRC_DIR=%SERVER_DIR%..\backend\src"
 
 echo [1/3] Validating Java Development Kit (JDK 17+) environment...
 where javac >nul 2>&1
@@ -32,13 +32,13 @@ if not exist "%BIN_DIR%" (
     echo [2/3] Using output directory: "%BIN_DIR%"
 )
 
-if not exist "%SRC_FILE%" (
-    echo [ERROR] Source file not found at: "%SRC_FILE%"
+if not exist "%SRC_DIR%\ServidorHttpNativo.java" (
+    echo [ERROR] Source file not found at: "%SRC_DIR%\ServidorHttpNativo.java"
     exit /b 1
 )
 
-echo [3/3] Compiling ServidorHttpNativo.java with UTF-8 encoding...
-javac -encoding UTF-8 -d "%BIN_DIR%" "%SRC_FILE%"
+echo [3/3] Compiling Java backend sources with UTF-8 encoding...
+javac -encoding UTF-8 -d "%BIN_DIR%" "%SRC_DIR%\*.java"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Compilation failed with error code %ERRORLEVEL%.
     exit /b %ERRORLEVEL%

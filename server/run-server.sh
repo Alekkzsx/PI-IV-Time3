@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="${SCRIPT_DIR}/bin"
-SRC_FILE="${SCRIPT_DIR}/../backend/src/ServidorHttpNativo.java"
+SRC_DIR="${SCRIPT_DIR}/../backend/src"
 
 echo "=============================================================================="
 echo "       AGMRM - Academic Portal: Native Java HTTP Server (Port 8080)"
@@ -26,16 +26,16 @@ if ! command -v java >/dev/null 2>&1; then
     exit 1
 fi
 
-if [[ ! -f "${SRC_FILE}" ]]; then
-    echo "[ERROR] Source file not found at: ${SRC_FILE}" >&2
+if [[ ! -f "${SRC_DIR}/ServidorHttpNativo.java" ]]; then
+    echo "[ERROR] Main source file not found at: ${SRC_DIR}/ServidorHttpNativo.java" >&2
     exit 1
 fi
 
 echo "[2/3] Preparing output directory: ${BIN_DIR}..."
 mkdir -p "${BIN_DIR}"
 
-echo "[3/3] Compiling ServidorHttpNativo.java with UTF-8 encoding..."
-javac -encoding UTF-8 -d "${BIN_DIR}" "${SRC_FILE}"
+echo "[3/3] Compiling Java backend sources with UTF-8 encoding..."
+javac -encoding UTF-8 -d "${BIN_DIR}" "${SRC_DIR}/"*.java
 
 echo ""
 echo "=============================================================================="

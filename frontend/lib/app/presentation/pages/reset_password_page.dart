@@ -3,9 +3,12 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../widgets/academic_identity_card.dart';
+import '../widgets/password_reset_field.dart';
 import '../widgets/password_strength_indicator.dart';
+import '../widgets/recovery_footer_links.dart';
 import '../widgets/top_header_bar.dart';
 
+/// Página de redefinição de senha após confirmação de identidade acadêmica.
 class ResetPasswordPage extends StatefulWidget {
   final VoidCallback? onBackToLogin;
 
@@ -43,68 +46,44 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
-  Widget _buildFieldLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
-          letterSpacing: 0.6,
+  void _handleSavePassword() {
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A senha deve ter pelo menos 6 caracteres.'),
+          backgroundColor: Color(0xFFDC2626),
         ),
-      ),
-    );
-  }
+      );
+      return;
+    }
 
-  Widget _buildPasswordField({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData prefixIcon,
-    required bool isObscured,
-    required VoidCallback onToggleVisibility,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: isObscured,
-        style: const TextStyle(
-          fontSize: 14,
-          color: AppColors.textPrimary,
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('As senhas não coincidem.'),
+          backgroundColor: Color(0xFFDC2626),
         ),
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textMuted,
-          ),
-          prefixIcon: Icon(
-            prefixIcon,
-            size: 18,
-            color: AppColors.textSecondary,
-          ),
-          suffixIcon: IconButton(
-            icon: Icon(
-              isObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-            onPressed: onToggleVisibility,
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Senha redefinida com sucesso! Retornando...'),
+        backgroundColor: Color(0xFF10B981),
+        duration: Duration(seconds: 2),
       ),
     );
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pushReplacementNamed(context, '/');
+        }
+      }
+    });
   }
 
   @override
@@ -114,7 +93,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Barra superior de navegação
             TopHeaderBar(
               onBackTap: widget.onBackToLogin ??
                   () {
@@ -130,7 +108,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     }
                   },
             ),
-            // Conteúdo central rolável
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -139,22 +116,19 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     vertical: 24,
                   ),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
+                    constraints: const BoxConstraints(maxWidth: 520),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Badge de Saudação
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9), // slate-100
+                            color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFFE2E8F0),
-                            ),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: const Text(
                             'Olá, Gabriel Martins 👋',
@@ -166,8 +140,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                         ),
                         const SizedBox(height: 18),
-
-                        // Título Principal
                         const Text(
                           'Crie sua nova senha de acesso ao\nPortal AVA',
                           textAlign: TextAlign.center,
@@ -179,8 +151,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-
-                        // Subtítulo
                         const Text(
                           'Sua identidade acadêmica foi confirmada. Escolha e confirme sua nova senha de acesso para restabelecer a conta no Portal AVA.',
                           textAlign: TextAlign.center,
@@ -191,18 +161,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                         ),
                         const SizedBox(height: 24),
-
-                        // Card com Informações do Estudante
                         const AcademicIdentityCard(),
                         const SizedBox(height: 24),
-
-                        // Campo: Nova Senha
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: _buildFieldLabel('NOVA SENHA'),
-                        ),
-                        _buildPasswordField(
+                        PasswordResetField(
                           controller: _passwordController,
+                          label: 'NOVA SENHA',
                           hintText: 'Digite sua nova senha segura',
                           prefixIcon: Icons.lock_outline,
                           isObscured: _obscurePassword,
@@ -213,20 +176,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           },
                         ),
                         const SizedBox(height: 14),
-
-                        // Indicador de Força de Senha
-                        PasswordStrengthIndicator(
-                          password: _currentPassword,
-                        ),
+                        PasswordStrengthIndicator(password: _currentPassword),
                         const SizedBox(height: 20),
-
-                        // Campo: Confirmar Nova Senha
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: _buildFieldLabel('CONFIRMAR NOVA SENHA'),
-                        ),
-                        _buildPasswordField(
+                        PasswordResetField(
                           controller: _confirmPasswordController,
+                          label: 'CONFIRMAR NOVA SENHA',
                           hintText: 'Repita a nova senha',
                           prefixIcon: Icons.shield_outlined,
                           isObscured: _obscureConfirmPassword,
@@ -237,43 +191,22 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           },
                         ),
                         const SizedBox(height: 28),
-
-                        // Botão Principal de Ação
                         SizedBox(
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Senha redefinida com sucesso! Retornando...',
-                                  ),
-                                  backgroundColor: Color(0xFF10B981),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                              Future.delayed(const Duration(milliseconds: 600), () {
-                                if (mounted) {
-                                  if (Navigator.canPop(context)) {
-                                    Navigator.pop(context);
-                                  } else {
-                                    Navigator.pushReplacementNamed(context, '/');
-                                  }
-                                }
-                              });
-                            },
+                            onPressed: _handleSavePassword,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF64748B), // Slate acinzentado do design
+                              backgroundColor: const Color(0xFF64748B),
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text(
                                   'Salvar Nova Senha e Voltar para Login',
                                   style: TextStyle(
@@ -292,57 +225,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           ),
                         ),
                         const SizedBox(height: 32),
-
-                        // Rodapé de Suporte e Ajuda
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                            ),
-                            children: [
-                              TextSpan(text: 'Precisa de ajuda com sua conta? '),
-                              TextSpan(
-                                text: 'Fale com a Secretaria Acadêmica',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text(
-                              'Central de Ajuda',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                '•',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Perguntas Frequentes',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
+                        const RecoveryFooterLinks(),
                       ],
                     ),
                   ),
@@ -355,4 +238,3 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     );
   }
 }
-
