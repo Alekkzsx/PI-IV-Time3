@@ -146,18 +146,17 @@ frontend/
 ├── android/
 │   ├── app/
 │   ├── gradle/
-│   ├── build.gradle
+│   ├── build.gradle.kts
 │   ├── gradle.properties
-│   └── settings.gradle
+│   └── settings.gradle.kts
 ├── ios/
 │   ├── Flutter/
 │   ├── Runner/
 │   └── Runner.xcodeproj
 ├── linux/
 │   ├── flutter/
-│   ├── CMakeLists.txt
-│   ├── main.cc
-│   └── my_application.cc
+│   ├── runner/
+│   └── CMakeLists.txt
 ├── macos/
 │   ├── Flutter/
 │   ├── Runner/
