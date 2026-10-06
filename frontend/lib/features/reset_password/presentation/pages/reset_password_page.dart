@@ -92,11 +92,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        } else {
-          Navigator.pushReplacementNamed(context, '/');
-        }
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     });
   }
@@ -114,11 +110,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     if (Navigator.canPop(context)) {
                       Navigator.pop(context);
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Retornando para a tela de Login...'),
-                          duration: Duration(seconds: 1),
-                        ),
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/',
+                        (route) => false,
                       );
                     }
                   },
