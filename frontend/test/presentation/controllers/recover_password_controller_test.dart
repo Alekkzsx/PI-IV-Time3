@@ -16,6 +16,13 @@ class FakeAuthRepository implements AuthRepository {
       throw Exception('Erro de servidor');
     }
   }
+
+  @override
+  Future<void> login({
+    required String identity,
+    required String password,
+    required String profile,
+  }) async {}
 }
 
 void main() {

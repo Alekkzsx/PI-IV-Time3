@@ -119,12 +119,11 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
             // Top Navigation & Branding Header
             TopHeaderBar(
               onBackTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Navegando de volta para a tela de Login...'),
-                    duration: Duration(seconds: 1),
-                  ),
-                );
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/');
+                }
               },
             ),
             // Central Content Area

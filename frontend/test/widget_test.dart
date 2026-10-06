@@ -19,6 +19,8 @@ void main() {
     await tester.pumpWidget(PortalAvaApp(controller: controller));
 
     expect(find.text('Acesse seu AVA'), findsOneWidget);
+    expect(find.text('Identificação Administrativa ou E-mail Corporativo'), findsOneWidget);
+    expect(find.text('ex: ADM-00123'), findsOneWidget);
     expect(find.text('Entrar no AVA'), findsOneWidget);
   });
 
@@ -37,5 +39,25 @@ void main() {
 
     expect(find.text('Esqueceu sua senha?'), findsOneWidget);
     expect(find.text('Enviar Instruções de Recuperação'), findsOneWidget);
+  });
+
+  testWidgets('Clica em Voltar ao Login e retorna para a tela de Login', (WidgetTester tester) async {
+    final remoteDataSource = AuthRemoteDataSourceImpl();
+    final repository = AuthRepositoryImpl(remoteDataSource);
+    final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
+    final controller = RecoverPasswordController(
+      recoverPasswordUseCase: recoverPasswordUseCase,
+    );
+
+    await tester.pumpWidget(PortalAvaApp(
+      controller: controller,
+      initialRoute: '/recover-password',
+    ));
+
+    expect(find.text('Voltar ao Login'), findsOneWidget);
+    await tester.tap(find.text('Voltar ao Login'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Acesse seu AVA'), findsOneWidget);
   });
 }

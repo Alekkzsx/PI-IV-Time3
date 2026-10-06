@@ -1,14 +1,21 @@
 // Desenvolvido por Murilo (Murillo Caravita)
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../controllers/login_controller.dart';
 import '../widgets/brand_panel.dart';
 import '../widgets/login_profile_tabs.dart';
 
 /// Página principal de autenticação de usuários no portal acadêmico.
 /// Suporta layouts responsivos (desktop e compacto/mobile).
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final LoginController? controller;
+
+  const LoginPage({
+    super.key,
+    this.controller,
+  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -20,18 +27,33 @@ class _LoginPageState extends State<LoginPage> {
   final _identityController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  UserProfile _selectedProfile = UserProfile.aluno;
+  UserProfile _selectedProfile = UserProfile.admin;
 
   bool _obscurePassword = true;
   bool _rememberCredential = true;
-  bool _isLoading = false;
+  bool _localLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addListener(_onControllerChanged);
+  }
 
   @override
   void dispose() {
+    widget.controller?.removeListener(_onControllerChanged);
     _identityController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
+
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  bool get _isLoading => widget.controller?.isLoading ?? _localLoading;
 
   String get _identityLabel {
     switch (_selectedProfile) {
@@ -40,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
       case UserProfile.docente:
         return 'Matrícula do Docente ou E-mail Institucional';
       case UserProfile.admin:
-        return 'Identificador ou E-mail Administrativo';
+        return 'Identificação Administrativa ou E-mail Corporativo';
     }
   }
 
@@ -51,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
       case UserProfile.docente:
         return 'ex: DOC-40892';
       case UserProfile.admin:
-        return 'ex: ADM-90812';
+        return 'ex: ADM-00123';
     }
   }
 
@@ -62,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
       case UserProfile.docente:
         return 'Digite sua matrícula ou e-mail institucional';
       case UserProfile.admin:
-        return 'Digite seu identificador administrativo';
+        return 'Digite seu login ou admin@universidade.edu.br';
     }
   }
 
@@ -73,45 +95,114 @@ class _LoginPageState extends State<LoginPage> {
 
     FocusScope.of(context).unfocus();
 
-    setState(() {
-      _isLoading = true;
-    });
+    final identity = _identityController.text.trim();
+    final password = _passwordController.text;
+    final profileName = _selectedProfile.name;
 
-    // Simulação temporária de requisição de login.
-    await Future.delayed(const Duration(seconds: 1));
+    if (widget.controller != null) {
+      final success = await widget.controller!.login(
+        identity: identity,
+        password: password,
+        profile: profileName,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF059669),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        content: const Row(
-          children: [
-            Icon(
-              Icons.check_circle_outline_rounded,
-              color: Colors.white,
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF059669),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Login realizado com sucesso!',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Login realizado com sucesso! Bem-vindo ao AVA.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFFDC2626),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.controller!.errorMessage ?? 'Falha ao autenticar.',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } else {
+      setState(() {
+        _localLoading = true;
+      });
+
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return;
+
+      setState(() {
+        _localLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF059669),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          content: const Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline_rounded,
+                color: Colors.white,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Login realizado com sucesso! Bem-vindo ao AVA.',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   void _handleForgotPassword() {
@@ -121,7 +212,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.background, // #F8FAFC
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 900;
@@ -134,9 +225,11 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildDesktopLayout() {
     return Row(
       children: [
+        // Coluna Esquerda: Painel Hero Cósmico (50% largura)
         const Expanded(
           child: BrandPanel(compact: false),
         ),
+        // Coluna Direita: Área do Formulário de Login (50% largura)
         Expanded(
           child: _buildLoginContent(),
         ),
@@ -150,7 +243,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           children: [
             const SizedBox(
-              height: 300,
+              height: 520, // min-h-[520px]
               width: double.infinity,
               child: BrandPanel(compact: true),
             ),
@@ -162,45 +255,68 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLoginContent({bool isCompact = false}) {
+    final errorMessage = widget.controller?.errorMessage;
+
     return Container(
       width: double.infinity,
-      color: AppColors.cardBackground,
+      color: Colors.white,
       child: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isCompact ? 24 : 48,
-            vertical: isCompact ? 36 : 48,
+            vertical: isCompact ? 32 : 48,
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 380),
+            constraints: const BoxConstraints(maxWidth: 440), // max-w-[440px]
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Cabeçalho do Formulário
                   Text(
                     'Acesse seu AVA',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppColors.textPrimary,
+                      fontSize: isCompact ? 24 : 30, // text-2xl sm:text-3xl
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Entre com seu R.A., Matrícula ou E-mail Institucional\n'
-                    '(@universidade.edu.br)',
+                  RichText(
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 12,
-                          color: AppColors.textMuted,
+                    text: TextSpan(
+                      style: GoogleFonts.plusJakartaSans(
+                        color: AppColors.textSecondary,
+                        fontSize: isCompact ? 12 : 13.5, // text-xs sm:text-sm
+                        height: 1.5,
+                      ),
+                      children: const [
+                        TextSpan(
+                          text: 'Entre com seu R.A., Matrícula ou E-mail Institucional\n',
                         ),
+                        TextSpan(
+                          text: '(@universidade.edu.br)',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 30),
-                  const Text(
+                  const SizedBox(height: 28),
+
+                  // Label do Seletor de Perfil
+                  Text(
                     'SELECIONE SEU PERFIL',
-                    style: TextStyle(
+                    style: GoogleFonts.plusJakartaSans(
                       color: AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.4,
+                      fontSize: 11, // text-[11px]
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -210,16 +326,31 @@ class _LoginPageState extends State<LoginPage> {
                       setState(() {
                         _selectedProfile = profile;
                         _identityController.clear();
+                        widget.controller?.clearError();
                       });
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
+                  // 1. Campo de Identificador
                   _buildIdentityInput(),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
+
+                  // 2. Campo de Senha
                   _buildPasswordInput(),
                   const SizedBox(height: 14),
+
+                  // 3. Linha do Checkbox e Link Esqueceu a Senha
                   _buildCredentialRow(),
-                  const SizedBox(height: 24),
+
+                  // 4. Caixa de Alerta de Erro (Condicional)
+                  if (errorMessage != null && errorMessage.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _buildErrorAlertBox(errorMessage),
+                  ],
+
+                  // 5. Botão de Ação Primária: "Entrar no AVA"
+                  const SizedBox(height: 20),
                   _buildLoginButton(),
                 ],
               ),
@@ -235,39 +366,46 @@ class _LoginPageState extends State<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Text(
                 _identityLabel,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.slate800,
+                  fontSize: 12, // text-xs font-semibold text-slate-800
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             Text(
               _identityExample,
               style: const TextStyle(
+                fontFamily: 'monospace',
                 color: AppColors.textMuted,
-                fontSize: 10,
+                fontSize: 11, // text-[11px] font-mono text-slate-400
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: _identityController,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13.5,
+            color: AppColors.textPrimary,
+          ),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
-              return 'Informe seu identificador.';
+              return 'Informe seu identificador de acesso.';
             }
             return null;
           },
           decoration: _inputDecoration(
             hintText: _identityPlaceholder,
-            prefixIcon: Icons.badge_outlined,
+            prefixIcon: Icons.assignment_ind_outlined,
           ),
         ),
       ],
@@ -280,17 +418,22 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         Text(
           'Senha de Acesso',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+          style: GoogleFonts.plusJakartaSans(
+            color: AppColors.slate800,
+            fontSize: 12, // text-xs font-semibold text-slate-800
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: _passwordController,
           obscureText: _obscurePassword,
           textInputAction: TextInputAction.done,
           onFieldSubmitted: (_) => _handleLogin(),
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13.5,
+            color: AppColors.textPrimary,
+          ),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Informe sua senha.';
@@ -316,7 +459,7 @@ class _LoginPageState extends State<LoginPage> {
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
                 color: AppColors.textMuted,
-                size: 19,
+                size: 17,
               ),
             ),
           ),
@@ -327,96 +470,183 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildCredentialRow() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SizedBox(
-          width: 18,
-          height: 18,
-          child: Checkbox(
-            value: _rememberCredential,
-            activeColor: AppColors.buttonDark,
-            side: const BorderSide(
-              color: AppColors.borderLight,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _rememberCredential = value ?? false;
-              });
-            },
-          ),
-        ),
-        const SizedBox(width: 7),
         Expanded(
-          child: Text(
-            'Lembrar credencial neste computador confiável',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontSize: 10,
-                  color: AppColors.textSecondary,
-                ),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _rememberCredential = !_rememberCredential;
+                });
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 16, // w-4 h-4
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: _rememberCredential
+                          ? AppColors.buttonPrimary
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: _rememberCredential
+                            ? AppColors.buttonPrimary
+                            : const Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: _rememberCredential
+                        ? const Icon(
+                            Icons.check,
+                            size: 11,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Lembrar credencial neste computador confiável',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12, // text-xs text-slate-700
+                        color: AppColors.slate700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        TextButton(
-          onPressed: _handleForgotPassword,
-          style: TextButton.styleFrom(
-            minimumSize: Size.zero,
-            padding: EdgeInsets.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text(
-            'Esqueceu a senha?',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: _handleForgotPassword,
+            child: Text(
+              'Esqueceu a senha?',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12, // text-xs font-semibold text-slate-900
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
+  Widget _buildErrorAlertBox(String errorMessage) {
+    return Container(
+      padding: const EdgeInsets.all(12), // p-3
+      decoration: BoxDecoration(
+        color: AppColors.roseBackground, // bg-rose-50
+        borderRadius: BorderRadius.circular(8), // rounded-lg
+        border: Border.all(
+          color: AppColors.roseBorder, // border-rose-200
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.roseIcon, // rose-600
+            size: 16, // w-4 h-4
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              errorMessage,
+              style: GoogleFonts.plusJakartaSans(
+                color: AppColors.roseText, // text-rose-700
+                fontSize: 12, // text-xs
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoginButton() {
     return SizedBox(
-      height: 44,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handleLogin,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.buttonDark,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.textMuted,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+      height: 48, // py-3.5
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12), // rounded-xl
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1F0B1325), // shadow-md
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
-        child: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.2,
-                ),
-              )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Entrar no AVA',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _handleLogin,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.buttonPrimary, // #0B1325
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.buttonPrimary.withValues(alpha: 0.75),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: _isLoading
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 18,
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Autenticando...',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Entrar no AVA',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -427,20 +657,20 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(
+      hintStyle: GoogleFonts.plusJakartaSans(
         color: AppColors.textMuted,
-        fontSize: 11,
+        fontSize: 13,
       ),
       prefixIcon: Icon(
         prefixIcon,
         color: AppColors.textMuted,
-        size: 18,
+        size: 16, // w-4 h-4
       ),
       filled: true,
-      fillColor: AppColors.cardBackground,
+      fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 14,
-        vertical: 14,
+        vertical: 12,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -453,18 +683,18 @@ class _LoginPageState extends State<LoginPage> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(
-          color: AppColors.borderFocused,
+          color: AppColors.slate800,
           width: 1.4,
         ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFDC2626)),
+        borderSide: const BorderSide(color: AppColors.roseIcon),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(
-          color: Color(0xFFDC2626),
+          color: AppColors.roseIcon,
           width: 1.4,
         ),
       ),

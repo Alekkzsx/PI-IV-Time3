@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_theme.dart';
 
-/// Painel institucional exibido ao lado ou no topo do formulário de autenticação.
-/// Apresenta a marca do portal AGMRM, arte de fundo cósmica e descrição institucional.
+/// Painel institucional Hero exibido ao lado ou no topo do formulário de autenticação.
+/// Apresenta a marca do portal AGMRM, arte cósmica com gradientes de contraste e descrição.
 class BrandPanel extends StatelessWidget {
   final bool compact;
 
@@ -16,25 +18,70 @@ class BrandPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF020305),
+      color: AppColors.heroBackground, // #05070B
       child: Stack(
         fit: StackFit.expand,
         children: [
-          SvgPicture.asset(
-            'images/cosmic-stars-bg.svg',
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
+          // 1. Imagem de Fundo Estrelado
+          Positioned.fill(
+            child: SvgPicture.asset(
+              'images/cosmic-stars-bg.svg',
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
           ),
-          Positioned(
-            top: compact ? 28 : 48,
-            left: compact ? 28 : 48,
-            child: const PortalLogo(),
+
+          // 2. Gradiente vertical para contraste (from-[#030509]/75 via-[#030509]/35 to-[#030509]/85)
+          Positioned.fill(
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xBF030509), // 75%
+                    Color(0x59030509), // 35%
+                    Color(0xD9030509), // 85%
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
           ),
-          Positioned(
-            left: compact ? 28 : 48,
-            right: compact ? 28 : 48,
-            bottom: compact ? 28 : 72,
-            child: _brandDescription(context),
+
+          // 3. Gradiente horizontal suave (from-[#030509]/60 via-transparent to-[#030509]/40)
+          Positioned.fill(
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0x99030509), // 60%
+                    Colors.transparent,
+                    Color(0x66030509), // 40%
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Conteúdo: Topo (Logo) e Centro (Headline + Descrição)
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 28 : 48,
+              vertical: compact ? 32 : 48,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                PortalLogo(compact: compact),
+                const Spacer(flex: 2),
+                _brandDescription(context),
+                const Spacer(flex: 3),
+              ],
+            ),
           ),
         ],
       ),
@@ -42,63 +89,99 @@ class BrandPanel extends StatelessWidget {
   }
 
   Widget _brandDescription(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Sua jornada\nuniversitária, interativa\ne sem limites.',
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                color: Colors.white,
-                fontSize: compact ? 26 : 36,
-                height: 1.15,
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        SizedBox(height: compact ? 12 : 20),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Text(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 512), // max-w-lg
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sua jornada\nuniversitária, interativa\ne sem limites.',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.white,
+              fontSize: compact ? 28 : 42, // text-3xl sm:text-4xl lg:text-[44px]
+              height: 1.16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.8,
+              shadows: const [
+                Shadow(
+                  color: Color(0xD9000000), // drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]
+                  blurRadius: 12,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: compact ? 14 : 24),
+          Text(
             'Aulas síncronas, biblioteca digital com mais de 80 mil títulos, '
             'acompanhamento contínuo de notas e entregas de atividades com '
             'inteligência acadêmica integrada.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFFCBD5E1),
-                  fontSize: compact ? 11 : 12.5,
-                  height: 1.55,
+            style: GoogleFonts.plusJakartaSans(
+              color: const Color(0xE6E2E8F0), // text-slate-200/90
+              fontSize: compact ? 13 : 15, // text-sm sm:text-[15px]
+              height: 1.6, // leading-relaxed
+              fontWeight: FontWeight.normal,
+              shadows: const [
+                Shadow(
+                  color: Color(0xD9000000), // drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]
+                  blurRadius: 8,
+                  offset: Offset(0, 1),
                 ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// Logotipo institucional do portal AGMRM.
 class PortalLogo extends StatelessWidget {
-  const PortalLogo({super.key});
+  final bool compact;
+
+  const PortalLogo({
+    super.key,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'AGMRM',
-          style: TextStyle(
+          style: GoogleFonts.plusJakartaSans(
             color: Colors.white,
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.7,
+            fontSize: compact ? 20 : 24, // text-xl sm:text-2xl
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+            shadows: const [
+              Shadow(
+                color: Color(0xCC000000), // drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 2),
+        const SizedBox(height: 2),
         Text(
           'Portal Acadêmico Integrado',
-          style: TextStyle(
-            color: Color(0xFFCBD5E1),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+          style: GoogleFonts.plusJakartaSans(
+            color: AppColors.slate300, // text-slate-300
+            fontSize: compact ? 11 : 13, // text-xs sm:text-[13px]
+            fontWeight: FontWeight.normal,
+            letterSpacing: 0.2,
+            shadows: const [
+              Shadow(
+                color: Color(0xCC000000), // drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]
+                blurRadius: 4,
+                offset: Offset(0, 1),
+              ),
+            ],
           ),
         ),
       ],
