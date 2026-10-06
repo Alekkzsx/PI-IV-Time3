@@ -120,7 +120,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
       );
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) {
-          Navigator.of(context).pushNamed(
+          Navigator.of(context).pushReplacementNamed(
             '/verify-code',
             arguments: _controller.identity,
           );

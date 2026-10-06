@@ -278,107 +278,117 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLoginContent({bool isCompact = false}) {
     final errorMessage = widget.controller?.errorMessage;
 
-    return Container(
-      width: double.infinity,
-      color: Colors.white,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 24 : 48,
-            vertical: isCompact ? 32 : 48,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440), // max-w-[440px]
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Cabeçalho do Formulário
-                  Text(
-                    'Acesse seu AVA',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppColors.textPrimary,
-                      fontSize: isCompact ? 24 : 30, // text-2xl sm:text-3xl
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: GoogleFonts.plusJakartaSans(
-                        color: AppColors.textSecondary,
-                        fontSize: isCompact ? 12 : 13.5, // text-xs sm:text-sm
-                        height: 1.5,
-                      ),
-                      children: const [
-                        TextSpan(
-                          text: 'Entre com seu R.A., Matrícula ou E-mail Institucional\n',
-                        ),
-                        TextSpan(
-                          text: '(@universidade.edu.br)',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Label do Seletor de Perfil
-                  Text(
-                    'SELECIONE SEU PERFIL',
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppColors.textSecondary,
-                      fontSize: 11, // text-[11px]
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  LoginProfileTabs(
-                    selectedProfile: _selectedProfile,
-                    onProfileChanged: (profile) {
-                      setState(() {
-                        _selectedProfile = profile;
-                        _identityController.clear();
-                        widget.controller?.clearError();
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 1. Campo de Identificador
-                  _buildIdentityInput(),
-                  const SizedBox(height: 16),
-
-                  // 2. Campo de Senha
-                  _buildPasswordInput(),
-                  const SizedBox(height: 14),
-
-                  // 3. Linha do Checkbox e Link Esqueceu a Senha
-                  _buildCredentialRow(),
-
-                  // 4. Caixa de Alerta de Erro (Condicional)
-                  if (errorMessage != null && errorMessage.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildErrorAlertBox(errorMessage),
-                  ],
-
-                  // 5. Botão de Ação Primária: "Entrar no AVA"
-                  const SizedBox(height: 20),
-                  _buildLoginButton(),
-                ],
+    final formContent = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440), // max-w-[440px]
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Cabeçalho do Formulário
+              Text(
+                'Acesse seu AVA',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.textPrimary,
+                  fontSize: isCompact ? 24 : 30, // text-2xl sm:text-3xl
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: GoogleFonts.plusJakartaSans(
+                    color: AppColors.textSecondary,
+                    fontSize: isCompact ? 12 : 13.5, // text-xs sm:text-sm
+                    height: 1.5,
+                  ),
+                  children: const [
+                    TextSpan(
+                      text: 'Entre com seu R.A., Matrícula ou E-mail Institucional\n',
+                    ),
+                    TextSpan(
+                      text: '(@universidade.edu.br)',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Label do Seletor de Perfil
+              Text(
+                'SELECIONE SEU PERFIL',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppColors.textSecondary,
+                  fontSize: 11, // text-[11px]
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              LoginProfileTabs(
+                selectedProfile: _selectedProfile,
+                onProfileChanged: (profile) {
+                  setState(() {
+                    _selectedProfile = profile;
+                    _identityController.clear();
+                    widget.controller?.clearError();
+                  });
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // 1. Campo de Identificador
+              _buildIdentityInput(),
+              const SizedBox(height: 16),
+
+              // 2. Campo de Senha
+              _buildPasswordInput(),
+              const SizedBox(height: 14),
+
+              // 3. Linha do Checkbox e Link Esqueceu a Senha
+              _buildCredentialRow(),
+
+              // 4. Caixa de Alerta de Erro (Condicional)
+              if (errorMessage != null && errorMessage.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildErrorAlertBox(errorMessage),
+              ],
+
+              // 5. Botão de Ação Primária: "Entrar no AVA"
+              const SizedBox(height: 20),
+              _buildLoginButton(),
+            ],
           ),
         ),
       ),
+    );
+
+    return Container(
+      width: double.infinity,
+      color: Colors.white,
+      child: isCompact
+          ? Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 32,
+              ),
+              child: formContent,
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 48,
+                vertical: 48,
+              ),
+              child: formContent,
+            ),
     );
   }
 
