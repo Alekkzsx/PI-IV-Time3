@@ -1,19 +1,31 @@
-// Desenvolvido por Murilo (Murillo Caravita)
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 
 /// Perfis de usuário aceitos no fluxo de autenticação do portal.
 enum UserProfile {
+  /// Perfil discente: autenticação via R.A. ou e-mail de aluno.
   aluno,
+
+  /// Perfil docente: autenticação via Matrícula ou e-mail institucional.
   docente,
+
+  /// Perfil administrativo: autenticação via credencial de administração.
   admin,
 }
 
 /// Seletor de perfis de acesso em abas estilizadas (Aluno, Docente, Admin).
+///
+/// Renderiza uma barra segmentada permitindo que o usuário escolha seu perfil de acesso,
+/// adaptando visualmente as dicas e validações da tela de login.
 class LoginProfileTabs extends StatelessWidget {
+  /// Perfil atualmente selecionado.
   final UserProfile selectedProfile;
+
+  /// Callback disparado quando o usuário seleciona um novo perfil.
   final ValueChanged<UserProfile> onProfileChanged;
 
+  /// Construtor de [LoginProfileTabs].
   const LoginProfileTabs({
     super.key,
     required this.selectedProfile,
@@ -61,12 +73,23 @@ class LoginProfileTabs extends StatelessWidget {
   }
 }
 
+/// Item individual de aba no seletor de perfis.
+///
+/// Suporta estados de foco, seleção e hover com animação de transição suave.
 class _ProfileTab extends StatefulWidget {
+  /// Texto descritivo exibido na aba.
   final String label;
+
+  /// Ícone representativo da categoria de perfil.
   final IconData icon;
+
+  /// Indica se esta aba está atualmente selecionada.
   final bool selected;
+
+  /// Callback acionado no evento de clique do usuário.
   final VoidCallback onTap;
 
+  /// Cria uma instância da aba de perfil [_ProfileTab].
   const _ProfileTab({
     required this.label,
     required this.icon,
@@ -78,6 +101,7 @@ class _ProfileTab extends StatefulWidget {
   State<_ProfileTab> createState() => _ProfileTabState();
 }
 
+/// Estado reativo de [_ProfileTab] responsável pelo gerenciamento de hover.
 class _ProfileTabState extends State<_ProfileTab> {
   bool _isHovered = false;
 

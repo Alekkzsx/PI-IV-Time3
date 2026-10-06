@@ -1,13 +1,20 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
+/// Componente de rodapé compartilhado com links de suporte institucional e ajuda acadêmica.
 class RecoveryFooterLinks extends StatelessWidget {
+  /// Callback acionado ao clicar no link de suporte da Secretaria Acadêmica.
   final VoidCallback? onSuporteTap;
+
+  /// Callback acionado ao clicar no link da Central de Ajuda.
   final VoidCallback? onHelpCenterTap;
+
+  /// Callback acionado ao clicar no link de Perguntas Frequentes (FAQ).
   final VoidCallback? onFaqTap;
 
+  /// Cria o rodapé com links de recuperação de acesso e suporte acadêmico.
   const RecoveryFooterLinks({
     super.key,
     this.onSuporteTap,

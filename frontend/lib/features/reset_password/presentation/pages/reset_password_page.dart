@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -8,10 +8,20 @@ import '../widgets/academic_identity_card.dart';
 import '../widgets/password_reset_field.dart';
 import '../widgets/password_strength_indicator.dart';
 
-/// Página de redefinição de senha após confirmação de identidade acadêmica.
+/// Tela de redefinição e cadastro de nova senha de acesso ao Portal AVA.
+///
+/// Exibida após a validação bem-sucedida da identidade ou token de recuperação,
+/// permitindo ao discente cadastrar uma nova senha segura, acompanhar o medidor
+/// de entropia em tempo real ([PasswordStrengthIndicator]), confirmar a correspondência
+/// entre os campos e retornar à tela de Login.
 class ResetPasswordPage extends StatefulWidget {
+  /// Callback opcional executado quando o usuário aciona o botão de voltar no cabeçalho.
   final VoidCallback? onBackToLogin;
 
+  /// Cria uma instância da tela [ResetPasswordPage].
+  ///
+  /// Parâmetros:
+  /// - [onBackToLogin]: Callback de navegação reversa opcional.
   const ResetPasswordPage({
     super.key,
     this.onBackToLogin,
@@ -22,6 +32,9 @@ class ResetPasswordPage extends StatefulWidget {
 }
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
+  /// Comprimento mínimo exigido para a nova senha.
+  static const int _minPasswordLength = 6;
+
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
@@ -46,8 +59,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
+  /// Valida as regras de negócio de nova senha (tamanho mínimo de 6 dígitos e
+  /// correspondência exata com a confirmação) e redireciona para a tela de Login.
   void _handleSavePassword() {
-    if (_passwordController.text.length < 6) {
+    if (_passwordController.text.length < _minPasswordLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('A senha deve ter pelo menos 6 caracteres.'),

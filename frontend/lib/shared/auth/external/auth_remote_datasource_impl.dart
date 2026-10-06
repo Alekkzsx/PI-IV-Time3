@@ -1,7 +1,8 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../data/auth_remote_datasource.dart';
 
+/// Implementação simulada (mock) de [AuthRemoteDataSource] com delays de latência e validações de teste.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> sendPasswordResetInstructions({

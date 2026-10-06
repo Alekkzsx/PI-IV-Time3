@@ -1,4 +1,4 @@
-// Desenvolvido por Murilo (Murillo Caravita)
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,8 +8,10 @@ import '../../../../core/theme/app_theme.dart';
 /// Painel institucional Hero exibido ao lado ou no topo do formulário de autenticação.
 /// Apresenta a marca do portal AGMRM, arte cósmica com gradientes de contraste e descrição.
 class BrandPanel extends StatelessWidget {
+  /// Define se o layout é compacto (para telas menores/mobile) ou expandido (desktop).
   final bool compact;
 
+  /// Cria uma instância de [BrandPanel].
   const BrandPanel({
     super.key,
     required this.compact,
@@ -88,6 +90,7 @@ class BrandPanel extends StatelessWidget {
     );
   }
 
+  /// Constrói o bloco de headline e texto institucional descritivo com tipografia escalável.
   Widget _brandDescription(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 512), // max-w-lg
@@ -138,9 +141,13 @@ class BrandPanel extends StatelessWidget {
 }
 
 /// Logotipo institucional do portal AGMRM.
+///
+/// Exibe a marca textual do portal com variações para modo compacto ou expandido.
 class PortalLogo extends StatelessWidget {
+  /// Define se o logotipo é exibido em tamanho compacto.
   final bool compact;
 
+  /// Cria uma instância de [PortalLogo].
   const PortalLogo({
     super.key,
     this.compact = false,
