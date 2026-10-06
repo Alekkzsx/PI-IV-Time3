@@ -17,6 +17,21 @@ class AppColors {
   // Primary Action Button
   static const Color buttonDark = Color(0xFF0B132B); // Dark Navy / Slate
   static const Color buttonDarkHover = Color(0xFF1E293B);
+  static const Color buttonPrimary = Color(0xFF0B1325); // #0B1325 (Azul marinho ultra-escuro)
+
+  // Hero & Dark Canvas
+  static const Color heroBackground = Color(0xFF05070B); // #05070B (Preto cósmico profundo)
+
+  // Slate Scale
+  static const Color slate800 = Color(0xFF1E293B);
+  static const Color slate700 = Color(0xFF334155);
+  static const Color slate300 = Color(0xFFCBD5E1);
+
+  // Rose Error Alert (bg-rose-50, border-rose-200, text-rose-700)
+  static const Color roseBackground = Color(0xFFFFF1F2); // bg-rose-50
+  static const Color roseBorder = Color(0xFFFECDD3); // border-rose-200
+  static const Color roseText = Color(0xFFBE123C); // text-rose-700
+  static const Color roseIcon = Color(0xFFE11D48); // rose-600
 
   // Amber Security Alert
   static const Color alertBackground = Color(0xFFFFFBEB); // amber-50
@@ -39,8 +54,7 @@ class AppTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.buttonDark,
-        background: AppColors.background,
+        seedColor: AppColors.buttonPrimary,
         surface: AppColors.cardBackground,
       ),
       textTheme: baseTextTheme.copyWith(

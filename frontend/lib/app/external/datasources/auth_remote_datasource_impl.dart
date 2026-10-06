@@ -14,4 +14,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw Exception('Identificador não encontrado nos registros do portal.');
     }
   }
+
+  @override
+  Future<void> authenticateUser({
+    required String identity,
+    required String password,
+    required String profile,
+  }) async {
+    // Simula comunicação remota (HTTP / Backend)
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (identity.toLowerCase().contains('invalid') || password == 'errada') {
+      throw Exception('Credenciais inválidas. Verifique seu identificador e senha.');
+    }
+  }
 }

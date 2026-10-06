@@ -1,7 +1,6 @@
 // Desenvolvido por Murilo (Murillo Caravita)
 
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
 
 /// Perfis de usuário aceitos no fluxo de autenticação do portal.
 enum UserProfile {
@@ -23,12 +22,16 @@ class LoginProfileTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Container externo: bg-[#F1F5F9] p-1 rounded-xl flex items-center gap-1 border border-slate-200/70
     return Container(
-      height: 42,
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4), // p-1 (4px)
       decoration: BoxDecoration(
-        color: AppColors.tabBackground,
-        borderRadius: BorderRadius.circular(9),
+        color: const Color(0xFFF1F5F9), // bg-[#F1F5F9]
+        borderRadius: BorderRadius.circular(12), // rounded-xl (12px)
+        border: Border.all(
+          color: const Color(0xB3E2E8F0), // border-slate-200/70
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -38,12 +41,14 @@ class LoginProfileTabs extends StatelessWidget {
             selected: selectedProfile == UserProfile.aluno,
             onTap: () => onProfileChanged(UserProfile.aluno),
           ),
+          const SizedBox(width: 4), // gap-1 (4px)
           _ProfileTab(
             label: 'Docente',
-            icon: Icons.badge_outlined,
+            icon: Icons.assignment_ind_outlined,
             selected: selectedProfile == UserProfile.docente,
             onTap: () => onProfileChanged(UserProfile.docente),
           ),
+          const SizedBox(width: 4), // gap-1 (4px)
           _ProfileTab(
             label: 'Admin',
             icon: Icons.verified_user_outlined,
@@ -56,7 +61,7 @@ class LoginProfileTabs extends StatelessWidget {
   }
 }
 
-class _ProfileTab extends StatelessWidget {
+class _ProfileTab extends StatefulWidget {
   final String label;
   final IconData icon;
   final bool selected;
@@ -70,50 +75,80 @@ class _ProfileTab extends StatelessWidget {
   });
 
   @override
+  State<_ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<_ProfileTab> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    // Paleta de cores Slate baseada na especificação Tailwind CSS
+    const slate900 = Color(0xFF0F172A);
+    const slate700 = Color(0xFF334155);
+    const slate600 = Color(0xFF475569);
+    const slate200Border80 = Color(0xCCE2E8F0); // border-slate-200/80
+
+    final textColor = widget.selected
+        ? slate900
+        : (_isHovered ? slate900 : slate600);
+
+    final iconColor = widget.selected
+        ? slate700
+        : (_isHovered ? slate700 : slate600);
+
+    final textWeight = widget.selected ? FontWeight.w600 : FontWeight.w500;
+
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(7),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.tabSelectedBackground
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: selected
-                    ? AppColors.tabSelectedText
-                    : AppColors.tabUnselectedText,
-                size: 15,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), // py-2 px-3
+            decoration: BoxDecoration(
+              color: widget.selected ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(8), // rounded-lg (8px)
+              border: Border.all(
+                color: widget.selected ? slate200Border80 : Colors.transparent,
+                width: 1,
               ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected
-                      ? AppColors.tabSelectedText
-                      : AppColors.tabUnselectedText,
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              boxShadow: widget.selected
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x0D000000), // shadow-sm (0 1px 2px 0 rgb(0 0 0 / 0.05))
+                        blurRadius: 2,
+                        offset: Offset(0, 1),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.icon,
+                  color: iconColor,
+                  size: 16, // w-4 h-4 (16px)
                 ),
-              ),
-            ],
+                const SizedBox(width: 8), // gap-2 (8px)
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 13, // text-xs sm:text-sm
+                      fontWeight: textWeight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

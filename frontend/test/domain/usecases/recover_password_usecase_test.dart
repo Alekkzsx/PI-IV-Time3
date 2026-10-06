@@ -17,6 +17,13 @@ class MockAuthRepository implements AuthRepository {
     }
     lastIdentity = identity;
   }
+
+  @override
+  Future<void> login({
+    required String identity,
+    required String password,
+    required String profile,
+  }) async {}
 }
 
 void main() {
