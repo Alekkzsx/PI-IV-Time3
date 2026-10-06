@@ -228,7 +228,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background, // #F8FAFC
+      backgroundColor: Colors.white,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 900;
@@ -241,6 +241,7 @@ class _LoginPageState extends State<LoginPage> {
   /// Constrói o layout de visualização desktop em duas colunas complementares.
   Widget _buildDesktopLayout() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Coluna Esquerda: Painel Hero Cósmico (50% largura)
         const Expanded(
@@ -248,7 +249,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         // Coluna Direita: Área do Formulário de Login (50% largura)
         Expanded(
-          child: _buildLoginContent(),
+          child: _buildLoginContent(isCompact: false),
         ),
       ],
     );
@@ -373,6 +374,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Container(
       width: double.infinity,
+      height: isCompact ? null : double.infinity,
       color: Colors.white,
       child: isCompact
           ? Padding(
@@ -382,12 +384,14 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: formContent,
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 48,
-                vertical: 48,
+          : Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48,
+                  vertical: 48,
+                ),
+                child: formContent,
               ),
-              child: formContent,
             ),
     );
   }
