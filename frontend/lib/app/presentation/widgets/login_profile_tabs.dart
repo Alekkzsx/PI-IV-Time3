@@ -1,4 +1,4 @@
-// Desenvolvido por Murillo Caravita
+// Desenvolvido por Murilo (Murillo Caravita)
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
@@ -85,7 +85,7 @@ class _ProfileTab extends StatelessWidget {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 5,
                       offset: const Offset(0, 2),
                     ),
