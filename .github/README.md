@@ -1,132 +1,142 @@
-# Diretório de Governança e CI/CD — `.github`
+# Governance & CI/CD Automation — `.github`
 
-Bem-vindo à documentação central de governança, automação e integração contínua do repositório **Plataforma Educacional Integrada (AGMRM — PI-IV Time 3)**.
-
-Este diretório estabelece os padrões institucionais de qualidade de código, controle de acesso a ramificações (branches), fluxos de trabalho do GitHub Actions e governança de propriedade intelectual e revisões.
+The `.github` directory establishes repository governance, automated CI/CD guardrails, Gitflow branch management policies, and code review ownership rules for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
 
 ---
 
-## 1. Visão Geral da Governança
+## 🏛️ Governance & Automation Overview
 
-O repositório é gerenciado por uma política rigorosa de integração contínua e revisão por pares (*peer review*), garantindo que nenhum código seja mesclado à ramificação de produção sem validação automatizada e aprovação explícita dos mantenedores designados.
+To guarantee enterprise software quality and maintain production release integrity, all contributions across the repository are governed by automated GitHub Actions workflows and mandatory peer reviews. Direct pushes to production branches are prohibited, and pull requests are subject to automated origin-branch validation.
 
 ```
 .github/
-├── CODEOWNERS                      # Política de propriedade e revisores obrigatórios
-├── README.md                       # Documentação de governança, CI/CD e PRs (este arquivo)
-├── SECURITY.md                     # Diretrizes de segurança do pipeline GitHub Actions
+├── CODEOWNERS                      # Mandatory reviewers and code ownership policy
+├── README.md                       # Governance and CI/CD documentation (this file)
 └── workflows/
-    └── restrict-main.yml           # Bloqueio de PRs diretos para a branch main
+    └── restrict-main.yml           # Automated gatekeeper workflow protecting main branch
 ```
 
 ---
 
-## 2. Política de Branching e Fluxo de Pull Requests
+## 🛡️ Main Branch Protection Workflow (`restrict-main.yml`)
 
-Adotamos uma variação padronizada do modelo **Gitflow**, separando estritamente desenvolvimento ativo, integração contínua e lançamentos de produção.
+The GitHub Actions workflow located at `.github/workflows/restrict-main.yml` acts as an automated pipeline gatekeeper, enforcing that the stable `main` branch accepts pull requests **strictly and exclusively** from the `develop` integration branch.
 
-### 2.1 Estrutura de Ramificações (Branches)
+```yaml
+name: Restrict PRs to main
 
-| Branch | Propósito | Proteção / Acesso | Origem Permitida para PR |
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if source is develop
+        if: github.head_ref != 'develop'
+        run: |
+          echo "ERROR: A branch main so aceita Pull Requests vindo da branch develop!"
+          exit 1
+      - name: Success
+        if: github.head_ref == 'develop'
+        run: echo "Branch origem é develop. Permitido!"
+```
+
+### Technical Workflow Mechanics
+1. **Trigger Condition (`on.pull_request`)**:
+   - The workflow activates automatically whenever a pull request is opened, reopened, synchronized, or targeted against the `main` branch.
+2. **Execution Environment (`runs-on: ubuntu-latest`)**:
+   - Runs in an isolated Linux container using the GitHub Actions runner infrastructure.
+3. **Branch Origin Evaluation (`github.head_ref`)**:
+   - **Unauthorized Source Branch (`github.head_ref != 'develop'`)**:
+     If a developer attempts to open a PR into `main` from a personal branch, a `feature/*` branch, or a bug fix branch, the step executes, prints an error message, and exits with non-zero exit code `1`. This blocks the PR merge in the GitHub interface.
+   - **Authorized Integration Branch (`github.head_ref == 'develop'`)**:
+     If the pull request originates from `develop`, the success step executes with exit code `0`, allowing peer review and status checks to proceed.
+
+---
+
+## 🌿 Gitflow Branching Strategy
+
+The repository follows a standardized **Gitflow** branching lifecycle:
+
+```
+[Developer Task]
+       │
+       ▼
+feature/new-feature ────────► PR to develop ────────► CODEOWNERS Peer Review
+                                    │                           │
+                                    ▼                           ▼
+                            Merge to develop ◄────────── Approved & Tested
+                                    │
+                                    ▼
+                           develop ───► PR to main
+                                             │
+                                             ▼
+                                 restrict-main.yml (Pass)
+                                             │
+                                             ▼
+                                Final CODEOWNERS Approval
+                                             │
+                                             ▼
+                                   Merge to main (Release)
+```
+
+### Branch Hierarchy & Permissions
+
+| Branch | Purpose & Lifecycle | Protection Policy | Permitted PR Sources |
 |---|---|---|---|
-| `main` | Código de produção estável, auditado e liberado para implantação. | **Rigorosamente Restrita** | **Exclusivamente `develop`** |
-| `develop` | Branch de integração de novas funcionalidades e correções aprovadas. | Protegida contra push direto | `feature/*`, `fix/*`, `refactor/*` |
-| `feature/*` | Desenvolvimento de novas funcionalidades ou módulos. | Branch de trabalho | Ramificada a partir de `develop` |
-| `fix/*` | Correção de defeitos identificados em desenvolvimento ou QA. | Branch de trabalho | Ramificada a partir de `develop` |
-| `hotfix/*` | Correção urgente de incidentes críticos em produção. | Branch de emergência | Ramificada a partir de `main` |
+| **`main`** | Production-ready, stable, and release-tagged codebase. | **Strictly Protected**: Direct pushes disabled; status checks required. | **Exclusively `develop`** |
+| **`develop`** | Integration branch where verified features, fixes, and refactors converge. | **Protected**: Direct pushes disabled; requires PR and passing tests. | `feature/*`, `fix/*`, `refactor/*` |
+| **`feature/*`** | Isolated development of new capabilities or modules. | Working branch; short-lived. | Branched from `develop` |
+| **`fix/*`** | Resolution of bugs identified in QA or integration. | Working branch; short-lived. | Branched from `develop` |
+| **`hotfix/*`** | Emergency resolution of critical production defects. | Emergency branch. | Branched from `main`; merges to both `main` & `develop` |
 
 ---
 
-## 3. Workflow de Restrição da Branch `main` (`restrict-main.yml`)
+## 👥 Repository Ownership (`CODEOWNERS`)
 
-O workflow `.github/workflows/restrict-main.yml` atua como uma barreira automatizada de proteção (*gatekeeper*) para garantir que a ramificação `main` receba alterações **unicamente** provenientes da branch `develop`.
-
-### 3.1 Comportamento da Automação
-
-1. **Gatilho de Execução (`on.pull_request`):** O workflow é acionado automaticamente em qualquer solicitação de Pull Request cujo alvo (*target branch*) seja a `main`.
-2. **Validação da Origem (`github.head_ref`):**
-   - Se `github.head_ref == 'develop'`: A validação é bem-sucedida (`exit 0`), permitindo que as verificações subsequentes e revisões de código prossigam.
-   - Se `github.head_ref != 'develop'`: A execução falha imediatamente com o erro:
-     ```text
-     ERROR: A branch main so aceita Pull Requests vindo da branch develop!
-     ```
-     O Pull Request é bloqueado pelo GitHub Actions, impedindo a mesclagem (*merge*).
-
-### 3.2 Diagrama do Ciclo de Vida de um Pull Request
-
-```
-[Desenvolvedor]
-      │
-      ▼
-feature/nova-tela ───────► PR para develop ───────► Revisão CODEOWNERS
-                                │                          │
-                                ▼                          ▼
-                        Merge em develop ◄──────── Aprovado & Testado
-                                │
-                                ▼
-                       develop ───► PR para main
-                                         │
-                                         ▼
-                             restrict-main.yml (Pass)
-                                         │
-                                         ▼
-                            Revisão Final CODEOWNERS
-                                         │
-                                         ▼
-                                  Merge em main (Release)
-```
-
----
-
-## 4. Política de Propriedade de Código (`CODEOWNERS`)
-
-O arquivo `.github/CODEOWNERS` define a responsabilidade técnica formal sobre todas as áreas do repositório:
+Code ownership and mandatory review assignments are declared in `.github/CODEOWNERS`:
 
 ```text
 * @Alekkzsx @GuilhermeMoreira07
 ```
 
-### 4.1 Responsabilidades dos Code Owners
-
-- **@Alekkzsx (Alex Gabriel):** Arquitetura geral, consolidação do Frontend Flutter, integração e governança do repositório.
-- **@GuilhermeMoreira07 (Guilherme Moreira):** Arquitetura e implementação do Backend Java Nativo, infraestrutura de execução e cálculo de regras de negócio.
-
-### 4.2 Regras de Aprovação
-
-- **Revisão Obrigatória:** Qualquer Pull Request aberto no repositório solicitará automaticamente a revisão de ambos os mantenedores.
-- **Merge Bloqueado:** O merge só pode ser concluído após pelo menos uma aprovação formal sem pedidos de alteração pendentes.
-- **Preservação de Integridade:** Modificações em arquivos sensíveis de segurança, configurações de rede ou regras de negócio exigem auditoria detalhada.
+### Ownership Policy & Governance
+- **Universal Scope (`*`)**: The wildcard selector assigns complete repository ownership across all directories (`frontend/`, `backend/`, `server/`, `security/`, and `.github/`) to the designated maintainers.
+- **Designated Maintainers**:
+  - **@Alekkzsx** (Alex Gabriel Soares Sousa — `RA: 24802449`): Overall system architecture, repository governance, and Flutter frontend consolidation.
+  - **@GuilhermeMoreira07** (Guilherme Henrique Moreira — `RA: 25006702`): Native Java server architecture, calculation algorithms, and backend execution engine.
+- **Mandatory Review Gate**: Every pull request requires mandatory review and formal approval from designated owners before it can be merged into protected branches.
 
 ---
 
-## 5. Diretrizes para Envio de Contribuições (PR Guidelines)
+## 📝 Contribution & Pull Request Guidelines
 
-Para garantir rastreabilidade e consistência histórica, todos os contribuidores devem seguir as diretrizes abaixo:
+Contributors must follow standardized contribution practices to maintain high commit hygiene and traceability:
 
-### 5.1 Padrão de Mensagens de Commit (Conventional Commits)
+### 1. Conventional Commits Standard
+Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+- `feat:` Introduces a new feature or functionality (e.g. `feat(frontend): implement password strength meter`).
+- `fix:` Patches a defect or bug (e.g. `fix(server): correct weighted average rounding`).
+- `docs:` Modifies documentation (e.g. `docs(security): update threat model matrix`).
+- `refactor:` Code changes that neither fix a bug nor add a feature.
+- `test:` Adds or refactors unit or integration tests (e.g. `test(frontend): add recover controller unit test`).
+- `ci:` Changes to GitHub Actions workflows or pipeline configuration.
 
-Utilize prefixos semânticos padronizados:
-
-- `feat:` Nova funcionalidade (ex: `feat(frontend): adiciona validacao de email no login`).
-- `fix:` Correção de bug (ex: `fix(backend): corrige arredondamento no calculo de presenca`).
-- `docs:` Alterações em documentação (ex: `docs(security): adiciona matriz de headers HTTP`).
-- `refactor:` Refatoração de código sem alteração comportamental externa.
-- `test:` Adição ou aprimoramento de suítes de testes unitários ou de integração.
-- `ci:` Modificações em workflows do GitHub Actions ou configurações de automação.
-
-### 5.2 Checklist Pré-Submissão de PR
-
-Antes de abrir um Pull Request, certifique-se de que:
-
-- [ ] O código segue as convenções de estilo e padrões de arquitetura (Clean Architecture no Frontend, POJO no Backend).
-- [ ] A branch de origem está atualizada em relação à `develop` (`git merge develop` ou `git rebase develop`).
-- [ ] O código compila localmente sem erros (`server/run-server.bat` ou `flutter run`).
-- [ ] Os testes automatizados foram executados com sucesso (`flutter test` e `server/test-server.bat`).
-- [ ] Nenhuma credencial, token ou arquivo confidencial (`.env`, certificados) foi incluído no commit.
-- [ ] O título do Pull Request descreve claramente o objetivo da alteração e faz referência à respectiva issue.
+### 2. Pre-Submission Checklist
+Prior to submitting a Pull Request for review:
+- [ ] Code strictly follows architectural boundaries (Clean Architecture in `frontend/`, native POJO in `server/`).
+- [ ] Source branch is up-to-date with `develop` (`git merge develop` or `git rebase develop`).
+- [ ] Automated tests pass locally (`flutter test` in `frontend/` and cURL test suite in `server/tests/`).
+- [ ] Code formatting and static analysis pass (`flutter analyze`).
+- [ ] No credentials, API tokens, or private `.env` files are included in the commit.
+- [ ] The PR description references the relevant issue or milestone.
 
 ---
 
-## 6. Políticas de Segurança e Gestão de Segredos
+## 🔒 Security Governance Alignment
 
-Para diretrizes detalhadas sobre a segurança do pipeline de integração contínua, permissões de tokens do GitHub e gestão de vulnerabilidades em actions, consulte [.github/SECURITY.md](SECURITY.md).
+- Workflow security configurations, runner token permissions, and secret management adhere to the organization standards documented in [`security/`](../security/README.md).
+- To report sensitive vulnerabilities in CI/CD automation or project code, follow the responsible disclosure guidelines outlined in the security module.
