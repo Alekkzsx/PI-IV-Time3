@@ -1,6 +1,6 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
-import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpExchange; //não pode usar biblioteca httpserver
 
 import java.io.BufferedReader;
 import java.io.IOException;
