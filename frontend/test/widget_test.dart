@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +8,7 @@ import 'package:pi_iv_time3/shared/auth/data/auth_repository_impl.dart';
 import 'package:pi_iv_time3/shared/auth/external/auth_remote_datasource_impl.dart';
 import 'package:pi_iv_time3/main.dart';
 
+/// Suíte de testes de widgets e integração de fluxo visual do Portal AVA.
 void main() {
   testWidgets('Renderiza a tela de Login (Acesse seu AVA) por padrão', (WidgetTester tester) async {
     final remoteDataSource = AuthRemoteDataSourceImpl();

@@ -1,23 +1,49 @@
-// Desenvolvido por Rafael Henrique Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
+/// Indicador visual reativo da força e entropia da senha informada.
+///
+/// Avalia em tempo real a aderência aos padrões de segurança acadêmicos:
+/// - Comprimento mínimo de 8 caracteres.
+/// - Presença simultânea de caracteres em caixa alta e caixa baixa.
+/// - Inclusão de dígitos numéricos ou caracteres especiais.
+///
+/// Apresenta o resultado através de 4 barras horizontais com graduação de cores
+/// (vermelho, âmbar, azul e verde) e uma lista de critérios com ícones de validação.
 class PasswordStrengthIndicator extends StatelessWidget {
+  /// Expressões regulares cacheadas para otimização de performance durante digitação contínua.
+  static final RegExp _upperCaseRegex = RegExp(r'[A-Z]');
+  static final RegExp _lowerCaseRegex = RegExp(r'[a-z]');
+  static final RegExp _digitRegex = RegExp(r'[0-9]');
+  static final RegExp _specialCharRegex = RegExp(r'[!@#$%^&*(),.?":{}|<>]');
+
+  /// Conteúdo textual atual da senha em avaliação.
   final String password;
 
+  /// Cria um indicador de força de senha [PasswordStrengthIndicator].
+  ///
+  /// Parâmetros:
+  /// - [password]: Texto da senha sendo avaliada (padrão: `''`).
   const PasswordStrengthIndicator({
     super.key,
     this.password = '',
   });
 
+  /// Indica se a senha atinge o comprimento mínimo de 8 caracteres.
   bool get hasMinLength => password.length >= 8;
-  bool get hasUpperAndLower =>
-      password.contains(RegExp(r'[A-Z]')) && password.contains(RegExp(r'[a-z]'));
-  bool get hasDigitOrSpecial =>
-      password.contains(RegExp(r'[0-9]')) ||
-      password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
+  /// Indica se a senha contém concomitantemente caracteres maiúsculos e minúsculos.
+  bool get hasUpperAndLower =>
+      password.contains(_upperCaseRegex) && password.contains(_lowerCaseRegex);
+
+  /// Indica se a senha contém ao menos um número ou símbolo especial.
+  bool get hasDigitOrSpecial =>
+      password.contains(_digitRegex) ||
+      password.contains(_specialCharRegex);
+
+  /// Calcula a pontuação agregada de entropia da senha em uma escala de 0 a 4.
   int get strengthScore {
     int score = 0;
     if (password.isNotEmpty) score++;
@@ -27,6 +53,8 @@ class PasswordStrengthIndicator extends StatelessWidget {
     return score;
   }
 
+
+  /// Determina a cor visual da barra de entropia conforme o score calculado.
   Color _getBarColor(int index) {
     if (index >= strengthScore) {
       return const Color(0xFFE2E8F0); // slate-200 inativo
@@ -37,6 +65,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
     return const Color(0xFF10B981); // green-500
   }
 
+  /// Constrói o item de requisito da senha com texto e ícone de checkmark colorido.
   Widget _buildCheckItem(String label, bool isSatisfied) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

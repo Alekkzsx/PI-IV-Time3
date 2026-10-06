@@ -1,26 +1,51 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
-enum UserProfile { aluno, docente, admin }
+/// Categorias de perfis de usuário suportadas pelo fluxo institucional de autenticação e recuperação.
+enum UserProfile {
+  /// Aluno de graduação, pós-graduação ou extensão institucional.
+  aluno,
 
+  /// Professor ou orientador com vínculo acadêmico formal.
+  docente,
+
+  /// Funcionário técnico-administrativo ou gestor de sistemas.
+  admin,
+}
+
+/// Seletor segmentado em abas horizontais que permite alternar o perfil
+/// do usuário acadêmico ([UserProfile]) durante a recuperação de credenciais.
+///
+/// Cada aba exibe um ícone e título correspondente, animando a transição de seleção
+/// via [AnimatedContainer] com duração de 180 milissegundos para resposta tátil suave.
 class ProfileSelectorTabs extends StatelessWidget {
+  /// Perfil acadêmico atualmente selecionado.
   final UserProfile selectedProfile;
+
+  /// Callback acionado sempre que o usuário seleciona uma aba de perfil distinta.
   final ValueChanged<UserProfile> onProfileChanged;
 
+  /// Cria um componente de seleção de abas de perfil acadêmico.
+  ///
+  /// Parâmetros:
+  /// - [selectedProfile]: Perfil inicialmente ativo.
+  /// - [onProfileChanged]: Notificador de alteração de seleção.
   const ProfileSelectorTabs({
     super.key,
     required this.selectedProfile,
     required this.onProfileChanged,
   });
 
+  /// Constrói o item individual de aba com animação de seleção, sombra e ícone temático.
   Widget _buildTabItem({
     required BuildContext context,
     required String label,
     required IconData icon,
     required UserProfile profile,
   }) {
+
     final isSelected = selectedProfile == profile;
 
     return Expanded(

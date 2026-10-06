@@ -1,17 +1,41 @@
-// Desenvolvido por Rafael Henrique Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
-/// Campo de entrada de senha customizado para o fluxo de redefinição de credencial.
+/// Campo de formulário customizado para digitação e confirmação de senhas.
+///
+/// Apresenta um rótulo superior estilizado em caixa alta com espaçamento entre letras,
+/// ícone temático inicial configurável, alternância visual entre texto ofuscado e visível
+/// por meio do botão sufixo de olho, e bordas arredondadas institucionais.
 class PasswordResetField extends StatelessWidget {
+  /// Controlador de texto vinculado ao campo de senha.
   final TextEditingController controller;
+
+  /// Rótulo superior exibido acima do campo de entrada (ex: 'NOVA SENHA').
   final String label;
+
+  /// Texto indicativo exibido quando o campo estiver desprovido de texto (hint).
   final String hintText;
+
+  /// Ícone decorativo posicionado à esquerda do campo de entrada.
   final IconData prefixIcon;
+
+  /// Determina se o texto do campo deve ser ocultado com caracteres de ofuscação.
   final bool isObscured;
+
+  /// Ação disparada quando o usuário toca no botão de alternância de visibilidade.
   final VoidCallback onToggleVisibility;
 
+  /// Cria uma nova instância de [PasswordResetField].
+  ///
+  /// Parâmetros:
+  /// - [controller]: Controlador do [TextField].
+  /// - [label]: Título superior do campo.
+  /// - [hintText]: Texto sugestivo de preenchimento.
+  /// - [prefixIcon]: Ícone exibido no início do campo.
+  /// - [isObscured]: Se a senha deve ser ofuscada.
+  /// - [onToggleVisibility]: Callback para alternar a exibição da senha.
   const PasswordResetField({
     super.key,
     required this.controller,
@@ -21,6 +45,7 @@ class PasswordResetField extends StatelessWidget {
     required this.isObscured,
     required this.onToggleVisibility,
   });
+
 
   @override
   Widget build(BuildContext context) {

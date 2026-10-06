@@ -1,10 +1,17 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
+/// Banner de alerta visual em tom âmbar para notificação de segurança.
+///
+/// Ressalta a política de segurança da instituição acadêmica informando
+/// que o token de recuperação temporário possui validade estrita de 5 minutos,
+/// assegurando conformidade contra tentativas prolongadas de acesso indevido.
 class SecurityAlertBanner extends StatelessWidget {
+  /// Cria uma nova instância de [SecurityAlertBanner].
   const SecurityAlertBanner({super.key});
+
 
   @override
   Widget build(BuildContext context) {

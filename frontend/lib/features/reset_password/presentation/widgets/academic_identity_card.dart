@@ -1,19 +1,36 @@
-// Desenvolvido por Rafael Henrique Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
+/// Card informativo que atesta a identidade acadêmica confirmada do discente.
+///
+/// Exibe um distintivo circular de capelo universitário, o nome do aluno,
+/// o número de registro acadêmico (R.A.), o e-mail institucional e um
+/// selo circular de verificação verde (`Icons.check`).
 class AcademicIdentityCard extends StatelessWidget {
+  /// Nome completo do discente verificado.
   final String studentName;
+
+  /// Número de registro acadêmico formatado (ex: `R.A. 2024.1.00892`).
   final String academicRegistration;
+
+  /// E-mail institucional do discente associado à credencial.
   final String studentEmail;
 
+  /// Cria uma nova instância de [AcademicIdentityCard].
+  ///
+  /// Parâmetros:
+  /// - [studentName]: Nome do aluno (padrão: `'Gabriel Martins'`).
+  /// - [academicRegistration]: Registro acadêmico (padrão: `'R.A. 2024.1.00892'`).
+  /// - [studentEmail]: E-mail acadêmico (padrão: `'gabriel.martins@aluno.universidade.edu.br'`).
   const AcademicIdentityCard({
     super.key,
     this.studentName = 'Gabriel Martins',
     this.academicRegistration = 'R.A. 2024.1.00892',
     this.studentEmail = 'gabriel.martins@aluno.universidade.edu.br',
   });
+
 
   @override
   Widget build(BuildContext context) {

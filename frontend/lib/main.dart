@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon, Murilo (Murillo Caravita - Tela de Login) e Alex Gabriel Soares Sousa (RA: 24802449 - Verificação de E-mail)
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
@@ -13,6 +13,10 @@ import 'features/verify_code/presentation/pages/verify_code_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
 
+/// Ponto de entrada da aplicação Flutter.
+///
+/// Inicializa e injeta as dependências de Clean Architecture (DataSources, Repositories,
+/// UseCases e Controllers) e inicia a execução do [PortalAvaApp].
 void main() {
   // Inicialização da injeção de dependências (Clean Architecture)
   final remoteDataSource = AuthRemoteDataSourceImpl();
@@ -34,11 +38,18 @@ void main() {
   ));
 }
 
+/// Widget raiz da aplicação Portal Acadêmico AVA.
 class PortalAvaApp extends StatelessWidget {
+  /// Controlador de recuperação de senha compartilhado com a rota correspondente.
   final RecoverPasswordController controller;
+
+  /// Controlador de autenticação compartilhado com a página de login.
   final LoginController? loginController;
+
+  /// Rota inicial da aplicação (padrão: '/').
   final String initialRoute;
 
+  /// Cria uma instância da aplicação configurando seus controladores e rota inicial.
   const PortalAvaApp({
     super.key,
     required this.controller,
@@ -62,3 +73,4 @@ class PortalAvaApp extends StatelessWidget {
     );
   }
 }
+

@@ -1,11 +1,14 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/forgot_password/domain/usecases/recover_password_usecase.dart';
 import 'package:pi_iv_time3/features/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'package:pi_iv_time3/shared/auth/domain/auth_repository.dart';
 
+/// Repositório dublê (Fake) implementando o contrato [AuthRepository]
+/// para testes de unidade do [RecoverPasswordController].
 class FakeAuthRepository implements AuthRepository {
+  /// Define se o método assíncrono deve simular um lançamento de exceção.
   bool shouldThrow = false;
 
   @override
@@ -25,7 +28,9 @@ class FakeAuthRepository implements AuthRepository {
   }) async {}
 }
 
+/// Suíte de testes unitários para o [RecoverPasswordController].
 void main() {
+
   late FakeAuthRepository repository;
   late RecoverPasswordUseCase useCase;
   late RecoverPasswordController controller;

@@ -1,11 +1,14 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
+/// Barra de cabeçalho superior contendo ação de retorno e identidade visual do portal.
 class TopHeaderBar extends StatelessWidget {
+  /// Ação de retorno disparada ao pressionar o botão 'Voltar ao Login'.
   final VoidCallback? onBackTap;
 
+  /// Cria uma barra de cabeçalho superior com callback de retorno opcional.
   const TopHeaderBar({
     super.key,
     this.onBackTap,

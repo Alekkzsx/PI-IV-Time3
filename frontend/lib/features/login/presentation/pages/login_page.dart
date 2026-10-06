@@ -1,4 +1,4 @@
-// Desenvolvido por Murilo (Murillo Caravita)
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,8 +10,13 @@ import '../widgets/login_profile_tabs.dart';
 /// Página principal de autenticação de usuários no portal acadêmico.
 /// Suporta layouts responsivos (desktop e compacto/mobile).
 class LoginPage extends StatefulWidget {
+  /// Controlador reativo opcional que orquestra as regras de negócio de login.
+  ///
+  /// Caso seja omitido (`null`), a tela operará em modo autônomo com simulação
+  /// assíncrona local para prototipagem e visualização de interface.
   final LoginController? controller;
 
+  /// Construtor de [LoginPage].
   const LoginPage({
     super.key,
     this.controller,
@@ -21,6 +26,10 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+/// Estado da tela de autenticação [LoginPage].
+///
+/// Gerencia os controladores de texto do formulário, seleção de perfil dinâmico,
+/// visibilidade da senha e submissão das credenciais.
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
@@ -47,14 +56,17 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  /// Notifica a interface sobre atualizações de estado emitidas pelo [LoginController].
   void _onControllerChanged() {
     if (mounted) {
       setState(() {});
     }
   }
 
+  /// Indica se a interface está em estado de processamento/carregamento.
   bool get _isLoading => widget.controller?.isLoading ?? _localLoading;
 
+  /// Retorna o rótulo do campo identificador adaptado ao perfil acadêmico selecionado.
   String get _identityLabel {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -66,6 +78,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Retorna um formato ou exemplo de credencial de acordo com o perfil ativo.
   String get _identityExample {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -77,6 +90,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Retorna o texto informativo (placeholder) do campo de identificação do perfil.
   String get _identityPlaceholder {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -88,6 +102,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Executa o fluxo de validação e submissão da tentativa de autenticação.
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -205,6 +220,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// Redireciona para o fluxo institucional de recuperação de senha acadêmica.
   void _handleForgotPassword() {
     Navigator.of(context).pushNamed('/recover-password');
   }
@@ -222,6 +238,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói o layout de visualização desktop em duas colunas complementares.
   Widget _buildDesktopLayout() {
     return Row(
       children: [
@@ -237,6 +254,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói o layout compacto responsivo para telas móveis ou janelas menores que 900px.
   Widget _buildCompactLayout() {
     return SafeArea(
       child: SingleChildScrollView(
@@ -254,6 +272,9 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói a área central com o formulário de login e seus controles interativos.
+  ///
+  /// O parâmetro [isCompact] adapta os paddings horizontais e verticais conforme a tela.
   Widget _buildLoginContent({bool isCompact = false}) {
     final errorMessage = widget.controller?.errorMessage;
 
@@ -361,6 +382,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói o campo de identificador (R.A., matrícula ou e-mail corporativo) com dica contextual.
   Widget _buildIdentityInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,6 +434,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói o campo de entrada de senha com controle de visibilidade (mostrar/ocultar senha).
   Widget _buildPasswordInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,6 +491,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói a linha contendo o checkbox "Lembrar credencial" e a navegação "Esqueceu a senha?".
   Widget _buildCredentialRow() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -543,6 +567,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói o quadro de aviso e alerta visual de erros retornados pela autenticação.
   Widget _buildErrorAlertBox(String errorMessage) {
     return Container(
       padding: const EdgeInsets.all(12), // p-3
@@ -579,6 +604,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Constrói o botão de ação principal "Entrar no AVA" com feedback de carregamento reativo.
   Widget _buildLoginButton() {
     return SizedBox(
       height: 48, // py-3.5
@@ -651,6 +677,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  /// Retorna a estilização e decoração visual padronizada dos campos de texto do formulário.
   InputDecoration _inputDecoration({
     required String hintText,
     required IconData prefixIcon,

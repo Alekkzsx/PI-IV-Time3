@@ -5,9 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../shared/widgets/top_header_bar.dart';
 
+/// Tela de conferência de token de segurança OTP (One-Time Password) de 6 dígitos.
+///
+/// Permite ao discente ou colaborador validar o código numérico enviado para seu
+/// e-mail institucional antes de receber a permissão de redefinição de senha.
+/// Possui suporte a foco automático, avanço de cursor entre dígitos, colagem
+/// de código completo e recuo suave via tecla Backspace.
 class VerifyCodePage extends StatefulWidget {
+  /// Identificador do discente ou e-mail alvo para exibição no cabeçalho informativo.
   final String? identity;
 
+  /// Cria uma instância da tela [VerifyCodePage].
+  ///
+  /// Parâmetros:
+  /// - [identity]: E-mail ou matrícula acadêmica associada à recuperação.
   const VerifyCodePage({
     super.key,
     this.identity,
@@ -18,11 +29,20 @@ class VerifyCodePage extends StatefulWidget {
 }
 
 class _VerifyCodePageState extends State<VerifyCodePage> {
+  /// Quantidade de dígitos numéricos exigidos no código OTP.
   static const int _codeLength = 6;
+
+  /// Token numérico fixo aceito para validação em ambiente de demonstração acadêmica.
+  static const String _mockDemoCode = '123456';
+
+  /// Identificador acadêmico de contingência utilizado quando nenhum argumento de rota for fornecido.
+  static const String _defaultFallbackIdentity = '2314';
+
   final List<TextEditingController> _controllers =
       List.generate(_codeLength, (_) => TextEditingController());
   final List<FocusNode> _focusNodes =
       List.generate(_codeLength, (_) => FocusNode());
+
 
   bool _isHovered = false;
   String? _errorMessage;
@@ -49,14 +69,21 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     super.dispose();
   }
 
+  /// Retorna o código agregado concatenando os caracteres dos 6 controladores.
   String get _currentCode {
     return _controllers.map((c) => c.text).join();
   }
 
+  /// Verifica se todos os 6 dígitos do código OTP foram preenchidos.
   bool get _isCodeComplete {
     return _currentCode.length == _codeLength;
   }
 
+  /// Trata a alteração de conteúdo em cada um dos 6 campos de dígito.
+  ///
+  /// Suporta inserção individual avançando o foco para o próximo campo,
+  /// bem como operação de colagem (paste) distribuindo sequencialmente
+  /// os dígitos recebidos nos campos subsequentes.
   void _onFieldChanged(String value, int index) {
     setState(() {
       _errorMessage = null;
@@ -83,6 +110,8 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     }
   }
 
+  /// Intercepta a tecla Backspace para limpar o campo anterior e recuar o foco
+  /// quando o campo atual já estiver sem conteúdo.
   void _onKey(KeyEvent event, int index) {
     if (event is KeyDownEvent &&
         event.logicalKey == LogicalKeyboardKey.backspace) {
@@ -96,11 +125,16 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     }
   }
 
+  /// Executa a validação do token OTP digitado contra a credencial esperada.
+  ///
+  /// Em caso de sucesso ([_mockDemoCode]), exibe notificação flutuante de sucesso
+  /// e navega o usuário para a tela de redefinição (`/reset-password`).
+  /// Caso contrário, exibe feedback visual com SnackBar vermelho e mensagem descritiva.
   void _handleConfirm() {
     final code = _currentCode;
     if (code.length != _codeLength) return;
 
-    if (code == '123456') {
+    if (code == _mockDemoCode) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -131,18 +165,18 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       });
     } else {
       setState(() {
-        _errorMessage = 'Código incorreto. Utilize o código de demonstração 123456.';
+        _errorMessage = 'Código incorreto. Utilize o código de demonstração $_mockDemoCode.';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
-            children: const [
-              Icon(Icons.error_outline, color: Colors.white),
-              SizedBox(width: 12),
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Código inválido! Utilize 123456 para teste.',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  'Código inválido! Utilize $_mockDemoCode para teste.',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -158,6 +192,8 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     }
   }
 
+  /// Restaura os 6 campos para vazio, reposiciona o foco no primeiro dígito
+  /// e simula o reenvio de um novo token para o e-mail cadastrado.
   void _handleResendCode() {
     for (final controller in _controllers) {
       controller.clear();
@@ -197,7 +233,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     final routeArgs = ModalRoute.of(context)?.settings.arguments;
     final displayIdentity = (widget.identity != null && widget.identity!.isNotEmpty)
         ? widget.identity!
-        : (routeArgs is String && routeArgs.isNotEmpty ? routeArgs : '2314');
+        : (routeArgs is String && routeArgs.isNotEmpty ? routeArgs : _defaultFallbackIdentity);
 
     final isComplete = _isCodeComplete;
 
@@ -378,11 +414,11 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
                               fontSize: 12,
                               color: const Color(0xFF64748B),
                             ),
-                            children: const [
-                              TextSpan(text: 'Dica de demonstração: use o código '),
+                            children: [
+                              const TextSpan(text: 'Dica de demonstração: use o código '),
                               TextSpan(
-                                text: '123456',
-                                style: TextStyle(
+                                text: _mockDemoCode,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF334155),
                                 ),

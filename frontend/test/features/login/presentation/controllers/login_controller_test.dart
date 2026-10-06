@@ -5,7 +5,11 @@ import 'package:pi_iv_time3/features/login/domain/usecases/login_usecase.dart';
 import 'package:pi_iv_time3/features/login/presentation/controllers/login_controller.dart';
 import 'package:pi_iv_time3/shared/auth/domain/auth_repository.dart';
 
+/// Dublê de teste (Fake/Stub) para [AuthRepository].
+///
+/// Permite simular respostas bem-sucedidas ou falhas com exceções na camada de repositório.
 class FakeAuthRepository implements AuthRepository {
+  /// Flag de controle para simular erro no servidor durante a chamada de login.
   bool shouldThrow = false;
 
   @override
@@ -35,18 +39,21 @@ void main() {
   });
 
   test('Estado inicial deve ser sem erros e sem loading', () {
+    // Assert
     expect(controller.isLoading, false);
     expect(controller.errorMessage, null);
     expect(controller.isSuccess, false);
   });
 
   test('Deve realizar login com sucesso para credenciais válidas', () async {
+    // Act
     final result = await controller.login(
       identity: 'ADM-00123',
       password: 'password123',
       profile: 'admin',
     );
 
+    // Assert
     expect(result, true);
     expect(controller.isSuccess, true);
     expect(controller.isLoading, false);
@@ -54,12 +61,14 @@ void main() {
   });
 
   test('Deve capturar e expor erro quando usecase falhar', () async {
+    // Act
     final result = await controller.login(
       identity: '   ',
       password: '123',
       profile: 'admin',
     );
 
+    // Assert
     expect(result, false);
     expect(controller.isSuccess, false);
     expect(controller.isLoading, false);
@@ -67,20 +76,24 @@ void main() {
   });
 
   test('Deve capturar e expor erro quando repositório lançar exceção', () async {
+    // Arrange
     repository.shouldThrow = true;
 
+    // Act
     final result = await controller.login(
       identity: 'ADM-00123',
       password: 'password123',
       profile: 'admin',
     );
 
+    // Assert
     expect(result, false);
     expect(controller.isSuccess, false);
     expect(controller.errorMessage, contains('Credenciais inválidas no servidor.'));
   });
 
   test('clearError deve resetar mensagem de erro', () async {
+    // Arrange
     await controller.login(
       identity: '',
       password: '',
@@ -88,7 +101,10 @@ void main() {
     );
     expect(controller.errorMessage, isNotNull);
 
+    // Act
     controller.clearError();
+
+    // Assert
     expect(controller.errorMessage, null);
   });
 }

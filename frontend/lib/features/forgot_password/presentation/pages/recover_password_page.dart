@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon. RA 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -10,9 +10,19 @@ import '../widgets/profile_selector_tabs.dart';
 import '../widgets/recovery_input_field.dart';
 import '../widgets/security_alert_banner.dart';
 
+/// Tela institucional de recuperação de credenciais acadêmicas e corporativas.
+///
+/// Permite ao discente, docente ou colaborador administrativo selecionar seu
+/// perfil acadêmico ([UserProfile]), informar seu identificador (RA, matrícula ou
+/// e-mail institucional) e solicitar instruções de restauração de credencial.
+///
+/// Integra-se com o [RecoverPasswordController] para coordenar o fluxo assíncrono
+/// e despachar o usuário à tela de verificação de código (`/verify-code`).
 class RecoverPasswordPage extends StatefulWidget {
+  /// Controlador reativo que gerencia o estado e as chamadas assíncronas da tela.
   final RecoverPasswordController controller;
 
+  /// Cria uma instância da tela [RecoverPasswordPage] recebendo o [controller].
   const RecoverPasswordPage({
     super.key,
     required this.controller,
@@ -21,6 +31,7 @@ class RecoverPasswordPage extends StatefulWidget {
   @override
   State<RecoverPasswordPage> createState() => _RecoverPasswordPageState();
 }
+
 
 class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   late final RecoverPasswordController _controller;
@@ -39,10 +50,12 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
     super.dispose();
   }
 
+  /// Atualiza o estado da tela sempre que o controller notificar mudanças.
   void _onControllerChanged() {
     setState(() {});
   }
 
+  /// Retorna o título descritivo do campo de entrada de acordo com o [UserProfile] selecionado.
   String _getInputTitle() {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -54,6 +67,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
     }
   }
 
+  /// Retorna a máscara ou exemplo de preenchimento para orientar o usuário conforme o perfil selecionado.
   String _getInputExample() {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -65,6 +79,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
     }
   }
 
+  /// Retorna o texto sugestivo (placeholder) exibido no campo para o perfil ativo.
   String _getInputPlaceholder() {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -76,6 +91,8 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
     }
   }
 
+  /// Submete o formulário via controller, apresenta SnackBar de confirmação e agenda
+  /// a navegação para `/verify-code` com atraso de 600ms para feedback visual fluido.
   void _handleSubmit() async {
     final success = await _controller.submit();
     if (success && mounted) {
