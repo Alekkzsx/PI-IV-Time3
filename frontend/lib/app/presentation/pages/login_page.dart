@@ -2,13 +2,11 @@
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../widgets/brand_panel.dart';
+import '../widgets/login_profile_tabs.dart';
 
-enum UserProfile {
-  aluno,
-  docente,
-  admin,
-}
-
+/// Página principal de autenticação de usuários no portal acadêmico.
+/// Suporta layouts responsivos (desktop e compacto/mobile).
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -39,10 +37,8 @@ class _LoginPageState extends State<LoginPage> {
     switch (_selectedProfile) {
       case UserProfile.aluno:
         return 'R.A. do Aluno ou E-mail Acadêmico';
-
       case UserProfile.docente:
         return 'Matrícula do Docente ou E-mail Institucional';
-
       case UserProfile.admin:
         return 'Identificador ou E-mail Administrativo';
     }
@@ -52,10 +48,8 @@ class _LoginPageState extends State<LoginPage> {
     switch (_selectedProfile) {
       case UserProfile.aluno:
         return 'ex: 2024.1.00892';
-
       case UserProfile.docente:
         return 'ex: DOC-40892';
-
       case UserProfile.admin:
         return 'ex: ADM-90812';
     }
@@ -65,10 +59,8 @@ class _LoginPageState extends State<LoginPage> {
     switch (_selectedProfile) {
       case UserProfile.aluno:
         return 'Digite seu R.A. ou nome@aluno.universidade.edu.br';
-
       case UserProfile.docente:
         return 'Digite sua matrícula ou e-mail institucional';
-
       case UserProfile.admin:
         return 'Digite seu identificador administrativo';
     }
@@ -85,7 +77,7 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
 
-    // Simulação temporária de uma chamada para API/Firebase.
+    // Simulação temporária de requisição de login.
     await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
@@ -123,14 +115,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleForgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Navegação para recuperação de senha será adicionada.'),
-      ),
-    );
-
-    // Quando criar a página de recuperação:
-    // Navigator.of(context).pushNamed('/recover-password');
+    Navigator.of(context).pushNamed('/recover-password');
   }
 
   @override
@@ -140,12 +125,7 @@ class _LoginPageState extends State<LoginPage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 900;
-
-          if (isCompact) {
-            return _buildCompactLayout();
-          }
-
-          return _buildDesktopLayout();
+          return isCompact ? _buildCompactLayout() : _buildDesktopLayout();
         },
       ),
     );
@@ -154,11 +134,9 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        Expanded(
+        const Expanded(
           flex: 11,
-          child: _BrandPanel(
-            compact: false,
-          ),
+          child: BrandPanel(compact: false),
         ),
         Expanded(
           flex: 9,
@@ -173,25 +151,19 @@ class _LoginPageState extends State<LoginPage> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(
+            const SizedBox(
               height: 300,
               width: double.infinity,
-              child: _BrandPanel(
-                compact: true,
-              ),
+              child: BrandPanel(compact: true),
             ),
-            _buildLoginContent(
-              isCompact: true,
-            ),
+            _buildLoginContent(isCompact: true),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLoginContent({
-    bool isCompact = false,
-  }) {
+  Widget _buildLoginContent({bool isCompact = false}) {
     return Container(
       width: double.infinity,
       color: AppColors.cardBackground,
@@ -202,9 +174,7 @@ class _LoginPageState extends State<LoginPage> {
             vertical: isCompact ? 36 : 48,
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 380,
-            ),
+            constraints: const BoxConstraints(maxWidth: 380),
             child: Form(
               key: _formKey,
               child: Column(
@@ -226,87 +196,38 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                   ),
                   const SizedBox(height: 30),
-
-                  _buildProfileLabel(),
+                  const Text(
+                    'SELECIONE SEU PERFIL',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  _buildProfileTabs(),
+                  LoginProfileTabs(
+                    selectedProfile: _selectedProfile,
+                    onProfileChanged: (profile) {
+                      setState(() {
+                        _selectedProfile = profile;
+                        _identityController.clear();
+                      });
+                    },
+                  ),
                   const SizedBox(height: 24),
-
                   _buildIdentityInput(),
                   const SizedBox(height: 18),
-
                   _buildPasswordInput(),
                   const SizedBox(height: 14),
-
                   _buildCredentialRow(),
                   const SizedBox(height: 24),
-
                   _buildLoginButton(),
                 ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileLabel() {
-    return const Text(
-      'SELECIONE SEU PERFIL',
-      style: TextStyle(
-        color: AppColors.textSecondary,
-        fontSize: 10,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.4,
-      ),
-    );
-  }
-
-  Widget _buildProfileTabs() {
-    return Container(
-      height: 42,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.tabBackground,
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Row(
-        children: [
-          _ProfileTab(
-            label: 'Aluno',
-            icon: Icons.school_outlined,
-            selected: _selectedProfile == UserProfile.aluno,
-            onTap: () {
-              setState(() {
-                _selectedProfile = UserProfile.aluno;
-                _identityController.clear();
-              });
-            },
-          ),
-          _ProfileTab(
-            label: 'Docente',
-            icon: Icons.badge_outlined,
-            selected: _selectedProfile == UserProfile.docente,
-            onTap: () {
-              setState(() {
-                _selectedProfile = UserProfile.docente;
-                _identityController.clear();
-              });
-            },
-          ),
-          _ProfileTab(
-            label: 'Admin',
-            icon: Icons.verified_user_outlined,
-            selected: _selectedProfile == UserProfile.admin,
-            onTap: () {
-              setState(() {
-                _selectedProfile = UserProfile.admin;
-                _identityController.clear();
-              });
-            },
-          ),
-        ],
       ),
     );
   }
@@ -344,7 +265,6 @@ class _LoginPageState extends State<LoginPage> {
             if (value == null || value.trim().isEmpty) {
               return 'Informe seu identificador.';
             }
-
             return null;
           },
           decoration: _inputDecoration(
@@ -377,11 +297,9 @@ class _LoginPageState extends State<LoginPage> {
             if (value == null || value.isEmpty) {
               return 'Informe sua senha.';
             }
-
             if (value.length < 6) {
               return 'A senha precisa ter pelo menos 6 caracteres.';
             }
-
             return null;
           },
           decoration: _inputDecoration(
@@ -528,15 +446,11 @@ class _LoginPageState extends State<LoginPage> {
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: AppColors.borderLight,
-        ),
+        borderSide: const BorderSide(color: AppColors.borderLight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: AppColors.borderLight,
-        ),
+        borderSide: const BorderSide(color: AppColors.borderLight),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -547,9 +461,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: Color(0xFFDC2626),
-        ),
+        borderSide: const BorderSide(color: Color(0xFFDC2626)),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -558,246 +470,6 @@ class _LoginPageState extends State<LoginPage> {
           width: 1.4,
         ),
       ),
-    );
-  }
-}
-
-class _ProfileTab extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ProfileTab({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(7),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.tabSelectedBackground
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: selected
-                    ? AppColors.tabSelectedText
-                    : AppColors.tabUnselectedText,
-                size: 15,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected
-                      ? AppColors.tabSelectedText
-                      : AppColors.tabUnselectedText,
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BrandPanel extends StatelessWidget {
-  final bool compact;
-
-  const _BrandPanel({
-    required this.compact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.buttonDark,
-      child: Stack(
-        children: [
-          _backgroundGradient(),
-          _decorations(),
-
-          Positioned(
-            top: compact ? 28 : 56,
-            left: compact ? 28 : 54,
-            child: const _PortalLogo(),
-          ),
-
-          Positioned(
-            left: compact ? 28 : 54,
-            right: compact ? 28 : 54,
-            bottom: compact ? 32 : 130,
-            child: _brandDescription(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _backgroundGradient() {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(-0.1, 0.2),
-          radius: 1.2,
-          colors: [
-            Color(0xFF172554),
-            Color(0xFF0B132B),
-            Color(0xFF050B1D),
-          ],
-          stops: [0, 0.55, 1],
-        ),
-      ),
-    );
-  }
-
-  Widget _decorations() {
-    return Stack(
-      children: [
-        Positioned(
-          top: 22,
-          right: 96,
-          child: _dot(
-            size: 18,
-            color: Colors.white.withOpacity(0.18),
-          ),
-        ),
-        Positioned(
-          top: 92,
-          left: 155,
-          child: _dot(
-            size: 10,
-            color: const Color(0xFFC38A17).withOpacity(0.55),
-          ),
-        ),
-        Positioned(
-          top: 155,
-          right: 72,
-          child: _dot(
-            size: 7,
-            color: const Color(0xFFEAB308).withOpacity(0.65),
-          ),
-        ),
-        Positioned(
-          bottom: 150,
-          right: 112,
-          child: _dot(
-            size: 15,
-            color: Colors.white.withOpacity(0.30),
-          ),
-        ),
-        Positioned(
-          bottom: 82,
-          left: 72,
-          child: _dot(
-            size: 9,
-            color: Colors.white.withOpacity(0.18),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _dot({
-    required double size,
-    required Color color,
-  }) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-
-  Widget _brandDescription(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Sua jornada\nuniversitária, interativa\ne sem limites.',
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                color: Colors.white,
-                fontSize: compact ? 27 : 38,
-                height: 1.12,
-                fontWeight: FontWeight.w800,
-              ),
-        ),
-        SizedBox(height: compact ? 14 : 24),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 470),
-          child: Text(
-            'Aulas síncronas, biblioteca digital com mais de 80 mil títulos, '
-            'acompanhamento contínuo de notas e entregas de atividades com '
-            'inteligência acadêmica integrada.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFFCBD5E1),
-                  fontSize: compact ? 11 : 13,
-                  height: 1.6,
-                ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PortalLogo extends StatelessWidget {
-  const _PortalLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'AGMRM',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.7,
-          ),
-        ),
-        SizedBox(height: 2),
-        Text(
-          'Portal Acadêmico Integrado',
-          style: TextStyle(
-            color: Color(0xFFCBD5E1),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }
