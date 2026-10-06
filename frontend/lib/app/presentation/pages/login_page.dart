@@ -1,4 +1,4 @@
-// Desenvolvido por Murillo Caravita
+// Desenvolvido por Murilo (Murillo Caravita)
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
@@ -135,11 +135,9 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       children: [
         const Expanded(
-          flex: 11,
           child: BrandPanel(compact: false),
         ),
         Expanded(
-          flex: 9,
           child: _buildLoginContent(),
         ),
       ],
