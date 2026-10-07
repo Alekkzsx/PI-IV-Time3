@@ -1,75 +1,138 @@
-# Módulo de Segurança Cibernética (Security Domain Module)
+# Security — Enterprise Defense Architecture & Governance
 
-## 1. Visão Geral e Arquitetura do Módulo
-
-O módulo **`security/`** consolida o domínio de governança de segurança cibernética, conformidade regulatória, modelagem de ameaças e políticas de proteção de dados para o repositório monorepo **Portal Acadêmico AGMRM** (`PI-IV-Time3`).
-
-Este módulo atua como a espinha dorsal de conformidade do projeto, definindo as regras, contratos e requisitos que devem ser observados e implementados pelos demais módulos:
-- **`frontend/`**: Aplicação Flutter Web (interface do aluno, professor e gestor).
-- **`backend/`**: Serviços de lógica acadêmica em Java (cálculo de notas, presença, conversão de tipos).
-- **`server/`**: Infraestrutura e runtime de execução do servidor nativo na porta `8080`.
-- **`.github/`**: Governança de integração contínua e controle de acesso a ramificações de código.
+The `security` module centralizes cybersecurity policies, defensive controls, threat models, and environment hardening guidelines for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
 
 ---
 
-## 2. Mapa Estrutural do Módulo `security/`
+## 🛡️ Architectural Purpose & Scope
+
+Information security in AGMRM is designed as a foundational cross-cutting concern rather than an isolated perimeter. This module provides institutional standards and architectural guardrails spanning every tier of the ecosystem:
+1. **Client-Side Defense**: Guarding user credentials, mitigating credential stuffing, and enforcing session boundaries in the Flutter client (`frontend/`).
+2. **Server-Side Hardening**: Enforcing request boundaries, sanitization, input size constraints, and header hygiene in the native Java server (`server/`) and enterprise backend (`backend/`).
+3. **Pipeline & Governance Security**: Enforcing branch protection, code ownership reviews, and automated gatekeeping via GitHub Actions (`.github/`).
+4. **Secrets & Environment Governance**: Zero credential leakage across version control via enterprise-grade `.gitignore` rules.
+
+---
+
+## 📂 Current Repository State & Structural Reservation
+
+On disk, the `security` directory currently contains a versioned placeholder:
 
 ```
 security/
-├── .env.example                        # Modelo oficial de variáveis de ambiente e segredos
-├── README.md                           # Documentação central do domínio de segurança
-├── SECURITY.md                         # Política de reporte de vulnerabilidades, SLA e contatos
-├── cors/
-│   ├── CORS_GUIDELINES.md              # Diretrizes operacionais de CORS para dev, staging e prod
-│   └── cors_config.json                # Especificação formal em JSON para proxies e gateways
-├── headers/
-│   └── security_headers_guidelines.md  # Especificação técnica de CSP, HSTS, X-Frame-Options, etc.
-├── policies/
-│   ├── access_control_policy.md        # Política RBAC (Aluno, Professor, Instituição/Admin)
-│   ├── password_and_token_policy.md    # Requisitos de senha e regra institucional de token (5 min)
-│   └── data_protection_policy.md       # Conformidade com a LGPD e privacidade de dados acadêmicos
-└── threat_modeling/
-    └── threat_model.md                 # Modelagem formal de ameaças STRIDE + DREAD
+├── .gitkeep                      # Git placeholder maintaining directory structure
+└── README.md                     # Security architecture documentation (this file)
+```
+
+### Why is `.gitkeep` Present?
+In the initial development phase:
+- Security mechanisms are embedded directly into active components (e.g. `SecurityAlertBanner` and `InputValidators` in the Flutter client; exception containment and CORS headers in `HttpUtils.java`).
+- The `security/` directory is versioned via `.gitkeep` to serve as the designated home for dedicated, standalone institutional artifacts (such as environment configuration templates `.env.example`, formal vulnerability disclosure policies, audit logs, and compliance attestations) as the platform scales toward production deployment.
+
+---
+
+## 🧱 Defense-in-Depth Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TIER 1: CLIENT DEFENSE                          │
+│                           (Flutter Client)                             │
+│  • 5-Minute Token TTL (SecurityAlertBanner)                            │
+│  • 4-Factor Password Scoring (PasswordStrengthIndicator)               │
+│  • Pre-flight Format & RFC Email Sanitization (InputValidators)        │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ TLS 1.3 / HTTPS
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TIER 2: NETWORK & GATEWAY                       │
+│                           (Reverse Proxy / CORS)                       │
+│  • CORS Header Controls (Access-Control-Allow-*)                       │
+│  • Rate Limiting & Anti-Brute-Force Throttling                         │
+│  • Connection Isolation & Request Size Limits (Max 64KB)               │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Internal Dispatch
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TIER 3: SERVER & APPLICATION                    │
+│                      (Native Java & Future Backend)                    │
+│  • Thread Exception Isolation (Try-Catch per Request)                  │
+│  • Strict Type Casting & Integer Range Bounds                          │
+│  • Parameterized SQL Queries / ORM Protection against SQL Injection    │
+│  • Role-Based Access Control (RBAC: Aluno, Docente, Admin)             │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Encrypted Storage
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TIER 4: SECRETS & REPOSITORY                    │
+│                       (GitHub & Environment Policy)                    │
+│  • Zero Hardcoded Secrets (Enforced via .gitignore)                    │
+│  • Branch Protection: PR to main restricted to develop                 │
+│  • Mandatory Code Owner Reviews (CODEOWNERS: @Alekkzsx & @Guilherme)   │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Navegação e Índice de Ativos
+## 🔒 Layered Defensive Controls
 
-| Ativo / Subdiretório | Função Primária | Público / Módulos Impactados |
-|---|---|---|
-| [`.env.example`](./.env.example) | Template de configuração com valores padrão seguros, limites de DoS (64KB) e segredos institucionais. | Todos os desenvolvedores, `backend/`, `server/`. |
-| [`cors/`](./cors/) | Especificações de Cross-Origin Resource Sharing, restringindo origens para prevenir exploração indevida da API Java a partir de páginas web de terceiros. | `frontend/`, `server/`, gateways de borda. |
-| [`headers/`](./headers/) | Definições de cabeçalhos de segurança HTTP, incluindo CSP compatível com Flutter Web Wasm/CanvasKit e Google Fonts. | `server/`, proxies reversos (Nginx/Traefik). |
-| [`policies/`](./policies/) | Diretrizes formais de autorização (RBAC), governança de credenciais (regra de 5 minutos para recuperação de senha) e adequação à LGPD. | Equipes de produto, compliance e desenvolvedores. |
-| [`threat_modeling/`](./threat_modeling/) | Mapeamento detalhado de vulnerabilidades da aplicação (ex: fraude de presença, manipulação de notas por atraso, esgotamento de memória heap). | Engenheiros de software, auditores e QA. |
-| [`SECURITY.md`](./SECURITY.md) | Procedimentos de divulgação responsável (*Responsible Disclosure*), matriz de SLA para correção e canais de contato de segurança. | Comunidade, pesquisadores de segurança e usuários. |
+### 1. Client-Side Defensive Controls (`frontend/`)
+- **Strict Recovery Token Lifetime**: Recovery tokens and security PINs enforce a strict **5-minute Time-To-Live (TTL)**. This window is visually signaled to the student through `SecurityAlertBanner` to counter link hijacking and credential interception.
+- **Dynamic Credential Complexity**: Implemented via `PasswordStrengthIndicator`, validating passwords across four distinct vectors:
+  1. Minimum length of 8 characters.
+  2. Mixed-case alphabetic characters (both uppercase and lowercase).
+  3. Numeric digits ($0-9$).
+  4. Special characters and symbols (`!@#$%^&*()_+-=[]{}|;:,.<>?`).
+- **Input Sanitization**: Pre-flight validation executed by `InputValidators` verifies that student IDs (RA/Matrícula) meet character constraints and emails match RFC standard patterns before triggering network round-trips, preventing malformed payload amplification.
+
+### 2. Server-Side Defensive Controls (`server/` & `backend/`)
+- **CORS Hardening**: Centralized in `HttpUtils.aplicarHeadersCors()`. Outgoing HTTP responses explicitly declare allowed origins and methods (`GET, POST, PUT, DELETE, OPTIONS`), preventing unauthorized cross-origin browser interactions.
+- **Thread & Exception Isolation**: All parsing operations across `TesteTiposHandler`, `PresencaHandler`, `TarefasHandler`, and `BoletimHandler` execute inside isolated `try-catch` blocks. Malformed payloads trigger an HTTP `400 Bad Request` without propagating uncaught runtime exceptions or terminating the server thread.
+- **Denial of Service (DoS) Mitigation**:
+  - Request body buffering with maximum byte threshold limits (64 KB ceiling).
+  - Explicit read timeouts (30-second ceiling) to mitigate slowloris connection-holding attacks.
+- **SQL Injection Prevention**: Future backend data persistence layers will enforce 100% parameterized queries via JPA/Hibernate or raw prepared statements; string concatenation in SQL execution is strictly forbidden.
+
+### 3. Secrets & Configuration Governance
+- **Zero Hardcoded Credentials**: No database passwords, private encryption keys, API tokens, or credentials may be committed to version control.
+- **`.gitignore` Hardening**: Root `.gitignore` explicitly excludes:
+  - `.env`, `.env.local`, `.env.*.local`, `.env.production`
+  - Java `.class` files, `.jar`, `.war`, and build artifacts
+  - Private IDE settings and OS cache files
+- **Safe Template Specification**: Environment variables must be documented exclusively via sanitized template files (e.g. `.env.example`) containing dummy placeholders:
+  ```properties
+  # AGMRM Environment Template (.env.example)
+  SERVER_PORT=8080
+  DATABASE_URL=jdbc:postgresql://localhost:5432/agmrm_db
+  DATABASE_USER=agmrm_app
+  DATABASE_PASSWORD=CHANGE_ME_IN_PRODUCTION
+  JWT_SECRET=MINIMUM_32_CHARACTERS_HEX_SECRET_KEY
+  TOKEN_TTL_MINUTES=5
+  ```
 
 ---
 
-## 4. Linha de Base de Segurança e Regras Críticas do Domínio
+## 🎯 Threat Modeling & Risk Analysis
 
-### 4.1 Validade Temporal de Tokens de Redefinição (Regra dos 5 Minutos)
-Conforme informado no componente de interface `SecurityAlertBanner` (`lib/app/presentation/widgets/security_alert_banner.dart`), todo token de redefinição emitido pelo portal possui **validade estrita e improrrogável de 5 minutos (300 segundos)**. Qualquer submissão posterior é terminantemente rejeitada pelo sistema.
+The platform security model is assessed using the **STRIDE** methodology:
 
-### 4.2 Restrição de CORS em Ambientes Produtivos
-O uso de coringa `Access-Control-Allow-Origin: *` presente no protótipo nativo (`ServidorHttpNativo.java:58`) é **proibido em produção**. O tráfego deve ser restrito exclusivamente a origens autorizadas da instituição (`https://portal.agmrm.edu.br`).
-
-### 4.3 Sanitização e Validação de Limites de Entrada
-Os manipuladores de rotas devem aplicar validação estrita:
-- `/api/presenca`: Impedir divisão por zero (`duracaoTotal > 0`) e bloquear injeção não autenticada de `statusManual`.
-- `/api/tarefas/calcular-nota`: Bloquear valores negativos para `diasAtraso` (mitigando inflação fraudulenta de notas).
-- `/api/notas/boletim`: Bloquear notas negativas e garantir soma de pesos consistente.
-
-### 4.4 Defesa contra DoS no Servidor Java Nativo
-O método de leitura de requisições deve impor um teto máximo de processamento em memória de **64 KB (65.536 bytes)**, prevenindo o esgotamento da memória heap da JVM.
+| Threat Category | Potential Attack Vector | AGMRM Defensive Countermeasure | Risk Severity |
+|---|---|---|---|
+| **S — Spoofing** | Attacker impersonates student or teacher during login. | Multi-role authentication tabs, validated academic registration (RA), password complexity enforcement, planned JWT authentication. | High |
+| **T — Tampering** | Tampering with grade values or attendance percentages via HTTP requests. | Strict server-side recalculation in `BoletimHandler` and `PresencaHandler`; inputs are bounded and validated regardless of client claims. | Critical |
+| **R — Repudiation** | User denies performing an action (e.g. submitting assignment or altering attendance). | Server logs with timestamps, explicit teacher override tags (`Ajuste Manual do Professor`), immutable audit trails planned in backend. | Medium |
+| **I — Information Disclosure** | Leaking sensitive student data, passwords, or stack traces in responses. | Generic error messages (`400 Bad Request`, `Dados invalidos`) without raw JVM stack traces; obscured password fields in UI. | High |
+| **D — Denial of Service** | Flooding native server with malformed payloads or large bodies. | Connection isolation, minimal memory footprint of native Java server, 64KB body caps, CORS pre-flight handling. | Medium |
+| **E — Elevation of Privilege** | Student attempting to execute teacher manual attendance overrides. | Role-based separation between Student, Faculty, and Admin in UI; future backend token role claims validation. | Critical |
 
 ---
 
-## 5. Checklist de Conformidade Regulatória e Institucional
+## 📋 Vulnerability Management Policy
 
-- [x] **LGPD (Lei nº 13.709/2018)**: Mapeamento de bases legais para dados escolares e prazo de retenção definido em política.
-- [x] **Marco Civil da Internet (Lei nº 12.965/2014)**: Guarda obrigatória de registros de conexão por no mínimo 6 meses.
-- [x] **Diretrizes do MEC / LDB**: Integridade dos cálculos de frequência mínima (75%) e fórmulas de boletim escolar.
-- [x] **OWASP Top 10**: Mitigações formais documentadas para Broken Access Control, Cryptographic Failures e Injection.
-- [x] **Mascaramento de Segredos**: Arquivos `.env` protegidos no `.gitignore`, preservando apenas o template auditável `.env.example`.
+### Reporting Security Issues
+If a security vulnerability or sensitive flaw is identified within any module of this repository:
+1. **Do NOT open a public GitHub Issue.**
+2. Privately notify the repository maintainers:
+   - Alex Gabriel Soares Sousa (`@Alekkzsx`)
+   - Guilherme Henrique Moreira (`@GuilhermeMoreira07`)
+3. Provide full reproduction steps, payload samples, and affected component paths.
+4. Maintainers will triage, test a patch in a private branch, and release a fix via the standard Gitflow pipeline (`develop` $\rightarrow$ `main`).
