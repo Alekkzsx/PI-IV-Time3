@@ -47,7 +47,7 @@ The platform addresses the fragmentation of educational tools by consolidating a
 
 ```
 PI-IV-Time3/
-├── .github/                  # CI/CD workflows, CODEOWNERS, and branch protection policies
+├── .github/                  # CI/CD workflows, CODEOWNERS, and branch protection policies (see [.github/GOVERNANCE.md](.github/GOVERNANCE.md))
 ├── frontend/                 # Multi-platform Flutter app (Clean Architecture: Presentation, Domain, Data)
 ├── server/                   # Autonomous native Java HTTP server (built from scratch, no frameworks)
 │   ├── src/                  # Java sources: ServidorHttpNativo, handlers, and HttpUtils
