@@ -43,7 +43,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Permitir diretório lib/ do Flutter
+!lib/
+!lib/**
 lib64/
 parts/
 sdist/
@@ -115,6 +117,7 @@ desktop.ini
 *.sublime-workspace
 .project
 .classpath
+.agents
 .settings/
 
 # VS Code (ignora histórico e workspace local, mantém configurações compartilhadas se desejado)
