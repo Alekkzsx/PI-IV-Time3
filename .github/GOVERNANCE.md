@@ -11,7 +11,7 @@ To guarantee enterprise software quality and maintain production release integri
 ```
 .github/
 ├── CODEOWNERS                      # Mandatory reviewers and code ownership policy
-├── README.md                       # Governance and CI/CD documentation (this file)
+├── GOVERNANCE.md                   # Governance and CI/CD documentation (this file)
 └── workflows/
     └── restrict-main.yml           # Automated gatekeeper workflow protecting main branch
 ```
