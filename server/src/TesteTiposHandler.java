@@ -1,8 +1,5 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-
 import java.io.IOException;
 import java.util.Map;
 
@@ -10,19 +7,19 @@ import java.util.Map;
  * Handler responsável por receber e validar a conversão de múltiplos tipos primitivos via POST.
  * Endpoint: /api/teste-tipos
  */
-public class TesteTiposHandler implements HttpHandler {
+public class TesteTiposHandler implements ManipuladorHttp {
 
     @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        HttpUtils.aplicarHeadersCors(exchange);
+    public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+        HttpUtils.aplicarHeadersCors(resposta);
 
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            HttpUtils.enviarResposta(exchange, 204, "");
+        if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
+            HttpUtils.enviarResposta(resposta, 204, "");
             return;
         }
 
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            String body = HttpUtils.lerCorpoRequisicao(exchange);
+        if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
+            String body = HttpUtils.lerCorpoRequisicao(requisicao);
             System.out.println("\n[LOG] POST /api/teste-tipos - Corpo bruto: " + body);
 
             Map<String, String> params = HttpUtils.parseFormUrlEncoded(body);
@@ -44,19 +41,19 @@ public class TesteTiposHandler implements HttpHandler {
                 System.out.println("char    (caractere) : " + caractereFinal);
                 System.out.println("---------------------------------------");
 
-                String resposta = "OK - Tipos Processados: [" + textoFinal + ", "
+                String mensagem = "OK - Tipos Processados: [" + textoFinal + ", "
                         + inteiroFinal + ", " + flutuanteFinal + ", "
                         + duploFinal + ", " + caractereFinal + "]";
 
-                HttpUtils.enviarResposta(exchange, 200, resposta);
+                HttpUtils.enviarResposta(resposta, 200, mensagem);
 
             } catch (Exception e) {
                 System.err.println("[ERRO] Erro na conversao: " + e.getMessage());
-                HttpUtils.enviarResposta(exchange, 400, "Erro de Conversao: " + e.getMessage());
+                HttpUtils.enviarResposta(resposta, 400, "Erro de Conversao: " + e.getMessage());
             }
 
         } else {
-            HttpUtils.enviarResposta(exchange, 405, "Metodo nao permitido. Use POST.");
+            HttpUtils.enviarResposta(resposta, 405, "Metodo nao permitido. Use POST.");
         }
     }
 }
