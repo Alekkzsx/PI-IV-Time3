@@ -1,22 +1,25 @@
+// Desenvolvido por Guilherme Henrique Moreira
 import 'package:flutter/material.dart';
 
+// Tela principal do painel geral da secretaria
 class PainelGeralPage extends StatelessWidget {
   const PainelGeralPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Permite rolar a tela quando o conteúdo ultrapassar o espaço disponível
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Conteúdo Principal (Esquerda)
+          // Área principal do painel, localizada à esquerda
           Expanded(
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cabeçalho com Título e Botão de Ação
+                // Cabeçalho com título, descrição e botão de comunicado
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,6 +46,8 @@ class PainelGeralPage extends StatelessWidget {
                         ),
                       ],
                     ),
+
+                    // Botão para emitir comunicados institucionais
                     ElevatedButton.icon(
                       onPressed: () {},
                       icon: const Icon(Icons.campaign, size: 18),
@@ -63,7 +68,7 @@ class PainelGeralPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Cards de Estatísticas
+                // Exibe os principais indicadores acadêmicos em cards
                 Row(
                   children: [
                     _buildStatCard(
@@ -101,7 +106,7 @@ class PainelGeralPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // Seção: Alertas da Secretaria
+                // Título da seção de alertas e data de referência
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -123,26 +128,35 @@ class PainelGeralPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+
+                // Exibe os alertas em dois cards lado a lado
                 Row(
                   children: [
                     Expanded(
                       child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border(
-                          top: BorderSide(color: Colors.grey[300]!),
-                          right: BorderSide(color: Colors.grey[300]!),
-                          bottom: BorderSide(color: Colors.grey[300]!),
-                          left: const BorderSide(color: Colors.black, width: 4), // Borda esquerda destacada
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+
+                          // Destaca o lado esquerdo do card com uma borda preta
+                          border: Border(
+                            top: BorderSide(color: Colors.grey[300]!),
+                            right: BorderSide(color: Colors.grey[300]!),
+                            bottom: BorderSide(color: Colors.grey[300]!),
+                            left: const BorderSide(
+                              color: Colors.black,
+                              width: 4,
+                            ),
+                          ),
                         ),
-                      ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Identifica a categoria e a quantidade de pendências
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -184,6 +198,8 @@ class PainelGeralPage extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 12),
+
+                            // Título e descrição dos requerimentos pendentes
                             const Text(
                               'Requerimentos Discentes',
                               style: TextStyle(
@@ -214,6 +230,8 @@ class PainelGeralPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
+
+                    // Card com o alerta de fechamento do período letivo
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(20),
@@ -228,6 +246,7 @@ class PainelGeralPage extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Ícone que representa um prazo
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -262,7 +281,7 @@ class PainelGeralPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // Seção: Cursos & Matrizes Ativas
+                // Cabeçalho da seção de cursos e matrizes curriculares
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -273,6 +292,8 @@ class PainelGeralPage extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
+                    // Botão para acessar a lista completa de cursos
                     TextButton(
                       onPressed: () {},
                       child: const Text(
@@ -287,7 +308,7 @@ class PainelGeralPage extends StatelessWidget {
           ),
           const SizedBox(width: 24),
 
-          // Painel Lateral: Prazos Regimentais (Direita)
+          // Painel lateral com os prazos acadêmicos importantes
           Expanded(
             flex: 1,
             child: Container(
@@ -300,6 +321,7 @@ class PainelGeralPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Título e quantidade de prazos cadastrados
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -332,6 +354,8 @@ class PainelGeralPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Divider(height: 1),
+
+                  // Primeiro prazo: fechamento das notas N1
                   _buildPrazoItem(
                     'Fechamento de Prazos N1',
                     'Prazo final para digitação de notas e frequências',
@@ -339,6 +363,8 @@ class PainelGeralPage extends StatelessWidget {
                     Icons.access_time,
                   ),
                   const Divider(height: 1),
+
+                  // Segundo prazo: validação de horas complementares
                   _buildPrazoItem(
                     'Validação de Horas Complementares',
                     'Período para submissão de certificados externos',
@@ -346,6 +372,8 @@ class PainelGeralPage extends StatelessWidget {
                     Icons.access_time,
                   ),
                   const Divider(height: 1),
+
+                  // Terceiro prazo: renovação de matrículas
                   _buildPrazoItem(
                     'Renovação de Matrículas 2027/1',
                     'Abertura da grade horária e pré-matrícula',
@@ -361,7 +389,7 @@ class PainelGeralPage extends StatelessWidget {
     );
   }
 
-  // Widget auxiliar para os Cards de Estatísticas com layout otimizado
+  // Cria um card reutilizável para apresentar estatísticas
   Widget _buildStatCard(
     String title,
     String mainValue,
@@ -380,6 +408,7 @@ class PainelGeralPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Nome do indicador
             Text(
               title,
               style: TextStyle(
@@ -389,6 +418,8 @@ class PainelGeralPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+
+            // Valor principal e descrição complementar
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -413,6 +444,8 @@ class PainelGeralPage extends StatelessWidget {
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
+
+            // Informações adicionais exibidas no rodapé do card
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -436,7 +469,7 @@ class PainelGeralPage extends StatelessWidget {
     );
   }
 
-  // Widget auxiliar para os itens da lista lateral de Prazos Regimentais
+  // Cria um item reutilizável para apresentar cada prazo
   Widget _buildPrazoItem(
     String title,
     String subtitle,
@@ -444,20 +477,26 @@ class PainelGeralPage extends StatelessWidget {
     IconData icon,
   ) {
     return Padding(
+      // Adiciona espaço acima e abaixo de cada prazo
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Nome do prazo
           Text(
             title,
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
+
+          // Descrição do prazo
           Text(
             subtitle,
             style: TextStyle(fontSize: 11, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
+
+          // Ícone e data limite
           Row(
             children: [
               Icon(icon, size: 13, color: Colors.grey[600]),

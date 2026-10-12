@@ -1,4 +1,6 @@
+// Desenvolvido por Guilherme Henrique Moreira
 import 'package:flutter/material.dart';
+// Importações das diferentes páginas/módulos gerenciados pelo menu lateral (shell)
 import '../../../admin_panel/presentation/pages/panel_geral_page.dart';
 import '../../../users/presentations/pages/users_page.dart';
 import '../../../course/presentation/pages/courses_page.dart';
@@ -7,6 +9,7 @@ import '../../../secretary/presentation/pages/secretary_page.dart';
 import '../../../calendar/presentation/pages/calendar_page.dart';
 import '../../../audit/presentation/pages/audit_page.dart';
 
+// Declaração do painel principal (Shell/Layout base) como um StatefulWidget, pois ele controla o estado da página atualmente selecionada
 class AdminShellPage extends StatefulWidget {
   const AdminShellPage({Key? key}) : super(key: key);
 
@@ -15,31 +18,35 @@ class AdminShellPage extends StatefulWidget {
 }
 
 class _AdminShellPageState extends State<AdminShellPage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Índice da página ativa no momento (inicializa na página 0: Painel Geral)
 
+  // Lista contendo todas as instâncias das telas do painel administrativo
   final List<Widget> _pages = [
-    const PainelGeralPage(),
-    const UsersPage(),
-    const CoursesPage(),
-    const ClassesPage(),
-    const SecretaryPage(),
-    const CalendarPage(),
-    const AuditPage(),
+    const PainelGeralPage(), // Índice 0
+    const UsersPage(),       // Índice 1
+    const CoursesPage(),     // Índice 2
+    const ClassesPage(),     // Índice 3
+    const SecretaryPage(),   // Índice 4
+    const CalendarPage(),    // Índice 5
+    const AuditPage(),       // Índice 6
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Estrutura principal dividida horizontalmente em duas partes: Menu Lateral e Conteúdo
       body: Row(
         children: [
-          // Sidebar / Menu Lateral
+          // -----------------------------------------------------------------
+          // 1. SIDEBAR / MENU LATERAL DE NAVEGAÇÃO
+          // -----------------------------------------------------------------
           Container(
-            width: 260,
+            width: 260, // Largura fixa padrão para barras laterais de painéis web/desktop
             color: Colors.white,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Logo Header
+                // Cabeçalho da Marca / Logotipo na Sidebar
                 Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -66,8 +73,9 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     ],
                   ),
                 ),
-                const Divider(height: 1),
-                // Itens do Menu
+                const Divider(height: 1), // Linha divisória sutil abaixo do logotipo
+                
+                // Lista de Itens do Menu Lateral (Expandida para ocupar o espaço vertical disponível)
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -82,11 +90,13 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: 1), // Divisório acima do botão de saída
+                
+                // Botão de Logout / Sair localizado na base da barra lateral
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextButton.icon(
-                    onPressed: () {},
+                    onPressed: () {}, // Ação de encerramento de sessão (atualmente vazia)
                     icon: const Icon(Icons.logout, color: Colors.redAccent),
                     label: const Text('Sair', style: TextStyle(color: Colors.redAccent)),
                   ),
@@ -94,11 +104,14 @@ class _AdminShellPageState extends State<AdminShellPage> {
               ],
             ),
           ),
-          // Conteúdo Dinâmico da Tela Selecionada
+          
+          // -----------------------------------------------------------------
+          // 2. CONTEÚDO DINÂMICO DA TELA SELECIONADA (ÁREA PRINCIPAL)
+          // -----------------------------------------------------------------
           Expanded(
             child: Column(
               children: [
-                // Barra Superior
+                // Barra Superior (App Bar customizada)
                 Container(
                   height: 64,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -107,7 +120,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.end, // Alinha os ícones à direita
                     children: [
                       IconButton(icon: const Icon(Icons.schedule), onPressed: () {}),
                       const SizedBox(width: 12),
@@ -115,10 +128,12 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     ],
                   ),
                 ),
+                
+                // Área onde a página correspondente ao índice selecionado é renderizada
                 Expanded(
                   child: Container(
-                    color: const Color(0xFFF8FAFC),
-                    child: _pages[_selectedIndex],
+                    color: const Color(0xFFF8FAFC), // Fundo levemente acinzentado/azulado para contraste moderno
+                    child: _pages[_selectedIndex], // Exibe a tela ativa com base no índice atual
                   ),
                 ),
               ],
@@ -129,15 +144,18 @@ class _AdminShellPageState extends State<AdminShellPage> {
     );
   }
 
+  // Método auxiliar para construir cada item do menu com destaque visual condicional
   Widget _buildMenuItem(int index, IconData icon, String title) {
-    final isSelected = _selectedIndex == index;
+    final isSelected = _selectedIndex == index; // Verifica se este item está selecionado
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
+        // Adiciona um fundo sutil escuro se o item estiver selecionado, senão fica transparente
         color: isSelected ? Colors.black.withOpacity(0.05) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
+        // Altera a cor do ícone dependendo se o item está selecionado ou não
         leading: Icon(icon, color: isSelected ? Colors.black : Colors.grey[700]),
         title: Text(
           title,
@@ -146,6 +164,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
             color: isSelected ? Colors.black : Colors.grey[800],
           ),
         ),
+        // Ao tocar no item, atualiza o estado alterando o índice ativo e redesenhando a tela
         onTap: () => setState(() => _selectedIndex = index),
       ),
     );
