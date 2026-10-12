@@ -1,7 +1,10 @@
 // Desenvolvido por Guilherme Henrique Moreira
+package academico.controllers;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
+import server.HttpUtils;
+import server.ManipuladorHttp;
+import server.RequisicaoHttp;
+import server.RespostaHttp;
 
 import java.io.IOException;
 import java.util.Map;
@@ -10,22 +13,22 @@ import java.util.Map;
  * Handler responsável pelo cálculo de média ponderada do boletim acadêmico e status final.
  * Endpoint: /api/notas/boletim
  */
-public class BoletimHandler implements HttpHandler {
+public class BoletimHandler implements ManipuladorHttp {
 
     private static final double NOTA_APROVACAO = 7.0;
     private static final double NOTA_RECUPERACAO = 5.0;
 
     @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        HttpUtils.aplicarHeadersCors(exchange);
+    public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+        HttpUtils.aplicarHeadersCors(resposta);
 
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            HttpUtils.enviarResposta(exchange, 204, "");
+        if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
+            HttpUtils.enviarResposta(resposta, 204, "");
             return;
         }
 
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            String body = HttpUtils.lerCorpoRequisicao(exchange);
+        if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
+            String body = HttpUtils.lerCorpoRequisicao(requisicao);
             Map<String, String> params = HttpUtils.parseFormUrlEncoded(body);
 
             try {
@@ -54,14 +57,14 @@ public class BoletimHandler implements HttpHandler {
                 }
 
                 System.out.println("[LOG] Calculo Boletim -> Media: " + media + " | Status: " + status);
-                HttpUtils.enviarResposta(exchange, 200, "Media Final: " + media + " | Status: " + status);
+                HttpUtils.enviarResposta(resposta, 200, "Media Final: " + media + " | Status: " + status);
 
             } catch (Exception e) {
-                HttpUtils.enviarResposta(exchange, 400, "Dados invalidos: " + e.getMessage());
+                HttpUtils.enviarResposta(resposta, 400, "Dados invalidos: " + e.getMessage());
             }
 
         } else {
-            HttpUtils.enviarResposta(exchange, 405, "Use POST.");
+            HttpUtils.enviarResposta(resposta, 405, "Use POST.");
         }
     }
 }

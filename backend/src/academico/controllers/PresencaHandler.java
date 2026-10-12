@@ -1,7 +1,10 @@
 // Desenvolvido por Guilherme Henrique Moreira
+package academico.controllers;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
+import server.HttpUtils;
+import server.ManipuladorHttp;
+import server.RequisicaoHttp;
+import server.RespostaHttp;
 
 import java.io.IOException;
 import java.util.Map;
@@ -10,19 +13,19 @@ import java.util.Map;
  * Handler responsável pelo cálculo de frequência acadêmica e validação de ajustes manuais.
  * Endpoint: /api/presenca
  */
-public class PresencaHandler implements HttpHandler {
+public class PresencaHandler implements ManipuladorHttp {
 
     @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        HttpUtils.aplicarHeadersCors(exchange);
+    public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+        HttpUtils.aplicarHeadersCors(resposta);
 
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            HttpUtils.enviarResposta(exchange, 204, "");
+        if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
+            HttpUtils.enviarResposta(resposta, 204, "");
             return;
         }
 
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            String body = HttpUtils.lerCorpoRequisicao(exchange);
+        if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
+            String body = HttpUtils.lerCorpoRequisicao(requisicao);
             Map<String, String> params = HttpUtils.parseFormUrlEncoded(body);
 
             try {
@@ -47,14 +50,14 @@ public class PresencaHandler implements HttpHandler {
                 }
 
                 System.out.println("[LOG] Calculo de Presenca: " + resultado);
-                HttpUtils.enviarResposta(exchange, 200, "Resultado Presenca: " + resultado);
+                HttpUtils.enviarResposta(resposta, 200, "Resultado Presenca: " + resultado);
 
             } catch (Exception e) {
-                HttpUtils.enviarResposta(exchange, 400, "Dados invalidos: " + e.getMessage());
+                HttpUtils.enviarResposta(resposta, 400, "Dados invalidos: " + e.getMessage());
             }
 
         } else {
-            HttpUtils.enviarResposta(exchange, 405, "Use POST.");
+            HttpUtils.enviarResposta(resposta, 405, "Use POST.");
         }
     }
 }
