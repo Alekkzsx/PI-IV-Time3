@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 // Tela responsável por exibir o calendário acadêmico.
 class CalendarPage extends StatelessWidget {
-  const CalendarPage({Key? key}) : super(key: key);
+  const CalendarPage({super.key});
 
   @override
   Widget build(BuildContext context) {
