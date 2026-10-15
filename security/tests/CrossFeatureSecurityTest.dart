@@ -8,7 +8,7 @@ import 'rate_limiter_test.dart';
 import 'token_lifecycle_test.dart';
 import 'input_sanitizer_test.dart';
 import 'password_entropy_test.dart';
-import 'generic_feedback_test.dart';
+import '../lib/policies/generic_feedback_policy.dart';
 import 'timing_attack_test.dart';
 
 void assertTrue(bool condition, String message) {
