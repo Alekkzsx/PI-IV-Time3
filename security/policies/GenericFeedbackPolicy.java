@@ -60,6 +60,9 @@ public final class GenericFeedbackPolicy {
     public static final String INTERNAL_SERVER_ERROR_MESSAGE =
         "Ocorreu um erro no processamento da solicitação. Tente novamente mais tarde.";
 
+    public static final String ACCOUNT_LOCKED_MESSAGE =
+        "Acesso temporariamente bloqueado por excesso de tentativas.";
+
     // ─── DYNAMIC FORMATTING HELPERS ───
 
     /**
@@ -67,7 +70,8 @@ public final class GenericFeedbackPolicy {
      */
     public static String getLockoutMessage(int remainingSeconds) {
         int sanitized = Math.max(0, remainingSeconds);
-        return "Muitas tentativas incorretas. Tente novamente em " + sanitized + " segundos.";
+        String unit = (sanitized == 1) ? "segundo" : "segundos";
+        return "Muitas tentativas incorretas. Tente novamente em " + sanitized + " " + unit + ".";
     }
 
     /**
@@ -99,30 +103,73 @@ public final class GenericFeedbackPolicy {
 
     /**
      * Sanitizes an incoming error string to prevent leaking internal details.
+     * Standardizes output into opaque, anti-enumeration categories.
      */
     public static String sanitizeErrorMessage(String error) {
         if (error == null) {
             return AUTH_FAILURE_MESSAGE;
         }
-        String message = error.toLowerCase();
-
-        if (message.contains("lockout") || message.contains("bloque")) {
-            return "Acesso temporariamente bloqueado por excesso de tentativas.";
+        String raw = error.trim();
+        if (raw.isEmpty()) {
+            return AUTH_FAILURE_MESSAGE;
         }
+        String message = raw.toLowerCase();
+
+        // 1. Account Lockout & Login Rate Limiting (Authentication Context)
+        if (message.contains("bloque") ||
+            message.contains("lockout") ||
+            message.contains("temporariamente") ||
+            message.contains("cooldown") ||
+            message.contains("limite de tentativas de login") ||
+            message.contains("excesso de tentativas de login") ||
+            ((message.contains("login") || message.contains("autentica")) &&
+                (message.contains("excesso") || message.contains("limite")))) {
+            return ACCOUNT_LOCKED_MESSAGE;
+        }
+
+        // 2. Ephemeral Token Expiration (Recovery Context)
         if (message.contains("expir")) {
             return TOKEN_EXPIRED_MESSAGE;
         }
-        if (message.contains("revog") || message.contains("tentativas")) {
+
+        // 3. Verification Code / OTP Attempts & Session Revocation (Recovery Context)
+        // Context-scoped: requires verification/OTP keywords together with attempt/exhaustion keywords,
+        // or explicit revocation terms. Never leaks into pure authentication/login workflows.
+        boolean hasOtpContext = message.contains("codigo") ||
+            message.contains("código") ||
+            message.contains("otp") ||
+            message.contains("verificacao") ||
+            message.contains("verificação");
+        boolean hasAttemptContext = message.contains("tentativa") ||
+            message.contains("exced") ||
+            message.contains("limite") ||
+            message.contains("esgotad");
+
+        if (message.contains("revog") || (hasOtpContext && hasAttemptContext)) {
             return TOKEN_REVOKED_MESSAGE;
         }
-        if (message.contains("senha") && (message.contains("fraca") || message.contains("entropia") || message.contains("weak"))) {
+
+        // 4. Password Entropy & Minimum Complexity (Password Context)
+        if (message.contains("senha") &&
+            (message.contains("fraca") ||
+             message.contains("fraco") ||
+             message.contains("entropia") ||
+             message.contains("weak") ||
+             message.contains("requisito") ||
+             message.contains("complexidade"))) {
             return PASSWORD_TOO_WEAK_MESSAGE;
         }
-        if (message.contains("tamanho") || message.contains("payload") || message.contains("64") || message.contains("413")) {
+
+        // 5. Payload Bounds & Size Limits (Transport / Middleware Context)
+        if (message.contains("tamanho") ||
+            message.contains("payload") ||
+            message.contains("64") ||
+            message.contains("413") ||
+            message.contains("corpo da requisi")) {
             return INVALID_PAYLOAD_MESSAGE;
         }
 
-        // Default catch-all anti-enumeration fallback
+        // 6. Default catch-all anti-enumeration fallback
         return AUTH_FAILURE_MESSAGE;
     }
 }

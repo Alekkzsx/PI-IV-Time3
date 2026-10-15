@@ -35,7 +35,7 @@ void main() {
       );
       expect(
         GenericFeedbackPolicy.lockoutMessage(1),
-        equals('Muitas tentativas incorretas. Tente novamente em 1 segundos.'),
+        equals('Muitas tentativas incorretas. Tente novamente em 1 segundo.'),
       );
       expect(
         GenericFeedbackPolicy.lockoutMessage(0),
