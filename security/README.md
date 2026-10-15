@@ -1,138 +1,218 @@
-# Security — Enterprise Defense Architecture & Governance
+# Security — Enterprise Defense Architecture & Governance (AGMRM)
 
-The `security` module centralizes cybersecurity policies, defensive controls, threat models, and environment hardening guidelines for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
-
----
-
-## 🛡️ Architectural Purpose & Scope
-
-Information security in AGMRM is designed as a foundational cross-cutting concern rather than an isolated perimeter. This module provides institutional standards and architectural guardrails spanning every tier of the ecosystem:
-1. **Client-Side Defense**: Guarding user credentials, mitigating credential stuffing, and enforcing session boundaries in the Flutter client (`frontend/`).
-2. **Server-Side Hardening**: Enforcing request boundaries, sanitization, input size constraints, and header hygiene in the native Java server (`server/`) and enterprise backend (`backend/`).
-3. **Pipeline & Governance Security**: Enforcing branch protection, code ownership reviews, and automated gatekeeping via GitHub Actions (`.github/`).
-4. **Secrets & Environment Governance**: Zero credential leakage across version control via enterprise-grade `.gitignore` rules.
+> **Central Security Module**: `security/`  
+> **Ecosystem**: AGMRM Integrated Educational Platform (*Plataforma Educacional Integrada* — PI-IV Time 3)  
+> **Engineering Standards**: Clean Architecture, SOLID Principles, Zero Unnecessary External Dependencies  
 
 ---
 
-## 📂 Current Repository State & Structural Reservation
+## 1. Architectural Purpose & Overview
 
-On disk, the `security` directory currently contains a versioned placeholder:
+The `security/` module centralizes the enterprise **Defense-in-Depth** architecture and cybersecurity governance policies for the AGMRM Integrated Educational Platform. This module is engineered to protect critical authentication (**Login**) and credential recovery (**Forgot / Reset Password**) workflows against hostile cyber threats, including:
+
+- Automated brute-force attacks and credential stuffing.
+- Cross-Site Scripting (XSS) and SQL injection (SQLi) attempts.
+- Side-channel timing attacks on identity validation.
+- User and academic identity enumeration attacks.
+- Ephemeral recovery token tampering, replay, and session hijacking.
+- Denial of Service (DoS) and memory exhaustion attacks via oversized payloads.
+
+All defense components, governance policies, input sanitizers, HTTP control middlewares, configuration templates, and automated test suites reside strictly in a self-contained structure within the `security/` directory.
+
+---
+
+## 2. Modular Subpackage Architecture
+
+The `security/` ecosystem is structured into clean, modular subpackages featuring symmetrical and interoperable implementations across the client (Dart/Flutter) and server (Native Java SE with zero third-party framework overhead):
 
 ```
 security/
-├── .gitkeep                      # Git placeholder maintaining directory structure
-└── README.md                     # Security architecture documentation (this file)
+├── .env.example                               # Secure environment configuration template
+├── README.md                                  # Architecture and governance manual (this file)
+├── pubspec.yaml                               # Dart/Flutter package manifest for client-side integration
+├── analysis_options.yaml                      # Dart static analysis and linter configuration
+├── lib/                                       # Client-side defense implementations (Dart)
+│   ├── security.dart                          # Unified export barrel for client security package
+│   ├── policies/                              # Governance policies and immutable constants
+│   │   ├── security_constants.dart            # Immutable parameters (TTL, thresholds, retry limits)
+│   │   └── generic_feedback_policy.dart       # Opaque response messages preventing user enumeration
+│   ├── validators/                            # Client-side input and complexity validators
+│   │   ├── input_sanitizer.dart               # Sanitizer neutralizing XSS, SQLi, and null bytes
+│   │   └── password_entropy_validator.dart    # 4-factor password entropy evaluator (score >= 3 threshold)
+│   ├── auth/                                  # Authentication state machines and token controllers
+│   │   ├── rate_limiter.dart                  # Client rate limiter (5 failed attempts -> 30s lockout)
+│   │   ├── lockout_state.dart                 # Immutable lockout state model
+│   │   ├── timing_attack_mitigation.dart      # Artificial latency normalizer and cryptographic work
+│   │   └── token_lifecycle_manager.dart       # 300s TTL token tracker with 3-attempt OTP invalidation
+│   └── widgets/                               # Security-focused presentation widgets (Flutter)
+│       ├── lockout_countdown_banner.dart      # Interactive lockout banner with real-time countdown
+│       └── token_timer_widget.dart            # Visual indicator tracking recovery token expiration
+├── auth/                                      # Server-side native authentication guards (Java SE)
+│   ├── AccountLockoutManager.java             # Thread-safe in-memory brute-force lockout tracker
+│   ├── ConstantTimeComparator.java            # Constant-time byte comparison (MessageDigest.isEqual)
+│   └── EphemeralRecoveryTokenManager.java     # Ephemeral token lifecycle manager (5-minute TTL)
+├── middleware/                                # Native HTTP server filters and middlewares (Java SE)
+│   ├── SecurityHeadersFilter.java             # Injects nosniff, DENY, CSP, and CORS headers
+│   ├── BoundedBodyReader.java                 # Strict 64 KB request payload ceiling (HTTP 413)
+│   └── ServerErrorSanitizer.java              # Suppresses JVM stack traces and internal paths
+├── validators/                                # Server-side input sanitizers (Java SE)
+│   ├── ServerInputSanitizer.java              # Sanitization for RA, email, password, and null bytes
+│   └── ServerPasswordEntropyValidator.java    # Server-side password entropy evaluator (0 to 4 score)
+├── policies/                                  # Server-side security governance and constants (Java SE)
+│   ├── SecurityConstants.java                 # Numerical invariants and HTTP header specifications
+│   ├── GenericFeedbackPolicy.java             # Uniform opaque response generator
+│   └── SecurityConfig.java                    # Environment configuration loader with secure fallbacks
+└── tests/                                     # Comprehensive automated test suites (Tiers 1 to 4)
+    ├── security_constants_test.dart           # Unit tests for security invariants
+    ├── generic_feedback_test.dart             # Anti-user enumeration verification suite
+    ├── rate_limiter_test.dart                 # Rate limiter unit and state machine tests
+    ├── token_lifecycle_test.dart              # Token expiration and revocation test suite
+    ├── input_sanitizer_test.dart              # Malicious payload sanitization test suite
+    ├── password_entropy_test.dart             # Password strength calculation test suite
+    ├── timing_attack_test.dart                # Timing attack latency equalization tests
+    ├── CrossFeatureSecurityTest.dart          # Cross-tier integration test suite (Tier 3)
+    ├── RealWorldAttackWorkloadTest.dart       # High-throughput attack simulation suite (Tier 4)
+    ├── SecurityServerTestSuite.java           # Native Java test runner for server guards
+    └── run_all_tests.sh                       # Master bash runner executing all test suites
 ```
-
-### Why is `.gitkeep` Present?
-In the initial development phase:
-- Security mechanisms are embedded directly into active components (e.g. `SecurityAlertBanner` and `InputValidators` in the Flutter client; exception containment and CORS headers in `HttpUtils.java`).
-- The `security/` directory is versioned via `.gitkeep` to serve as the designated home for dedicated, standalone institutional artifacts (such as environment configuration templates `.env.example`, formal vulnerability disclosure policies, audit logs, and compliance attestations) as the platform scales toward production deployment.
 
 ---
 
-## 🧱 Defense-in-Depth Architecture
+## 3. Defense-in-Depth Architecture (4 Tiers)
+
+Platform security operates across four complementary, interconnected defensive tiers:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        TIER 1: CLIENT DEFENSE                          │
-│                           (Flutter Client)                             │
-│  • 5-Minute Token TTL (SecurityAlertBanner)                            │
-│  • 4-Factor Password Scoring (PasswordStrengthIndicator)               │
-│  • Pre-flight Format & RFC Email Sanitization (InputValidators)        │
+│                    (Flutter Client / security/lib/)                    │
+│  • Interactive 30-second lockout countdown banner                      │
+│  • Real-time 4-factor password entropy validation (Score >= 3)         │
+│  • Synchronous 300s TTL recovery token countdown indicator             │
+│  • Pre-flight input sanitization on academic IDs (RA) and emails       │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ TLS 1.3 / HTTPS
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        TIER 2: NETWORK & GATEWAY                       │
-│                           (Reverse Proxy / CORS)                       │
-│  • CORS Header Controls (Access-Control-Allow-*)                       │
-│  • Rate Limiting & Anti-Brute-Force Throttling                         │
-│  • Connection Isolation & Request Size Limits (Max 64KB)               │
+│               TIER 2: NETWORK & DEFENSIVE MIDDLEWARE                   │
+│                     (security/middleware/)                             │
+│  • Security response headers (nosniff, DENY, CSP, HSTS)                │
+│  • Strict 64 KB request body ceiling (65,536 bytes -> HTTP 413)        │
+│  • Zero JVM stack trace leakage in JSON error responses                │
+│  • Hardened CORS header governance                                     │
 └───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Internal Dispatch
+                                    │ Filtered Request
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        TIER 3: SERVER & APPLICATION                    │
-│                      (Native Java & Future Backend)                    │
-│  • Thread Exception Isolation (Try-Catch per Request)                  │
-│  • Strict Type Casting & Integer Range Bounds                          │
-│  • Parameterized SQL Queries / ORM Protection against SQL Injection    │
-│  • Role-Based Access Control (RBAC: Aluno, Docente, Admin)             │
+│             TIER 3: AUTHENTICATION & RECOVERY GUARDS                   │
+│                  (security/auth/ & validators/)                        │
+│  • Brute-force mitigation: 5 failed attempts -> 30s lockout cooldown   │
+│  • Token lifecycle: strict 5-minute (300s) TTL expiration              │
+│  • Automatic recovery session revocation after 3 invalid OTP attempts  │
+│  • Anti-user enumeration via identical opaque feedback responses       │
+│  • Side-channel protection via constant-time comparison and jitter     │
+│  • Input sanitization stripping <script>, SQL escapes, and null bytes  │
 └───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Encrypted Storage
+                                    │ Governance
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        TIER 4: SECRETS & REPOSITORY                    │
-│                       (GitHub & Environment Policy)                    │
-│  • Zero Hardcoded Secrets (Enforced via .gitignore)                    │
-│  • Branch Protection: PR to main restricted to develop                 │
-│  • Mandatory Code Owner Reviews (CODEOWNERS: @Alekkzsx & @Guilherme)   │
+│             TIER 4: SECRETS, CONFIGURATION & POLICIES                  │
+│                     (security/policies/ & .env)                        │
+│  • Strict environment variable governance via .env.example             │
+│  • Zero hardcoded credentials, private keys, or secrets in git         │
+│  • Centralized branch protection and CODEOWNERS code review policies   │
+│  • Immutable constants and timeout thresholds                          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔒 Layered Defensive Controls
+## 4. Threat Modeling Matrix (STRIDE & Mitigations)
 
-### 1. Client-Side Defensive Controls (`frontend/`)
-- **Strict Recovery Token Lifetime**: Recovery tokens and security PINs enforce a strict **5-minute Time-To-Live (TTL)**. This window is visually signaled to the student through `SecurityAlertBanner` to counter link hijacking and credential interception.
-- **Dynamic Credential Complexity**: Implemented via `PasswordStrengthIndicator`, validating passwords across four distinct vectors:
-  1. Minimum length of 8 characters.
-  2. Mixed-case alphabetic characters (both uppercase and lowercase).
-  3. Numeric digits ($0-9$).
-  4. Special characters and symbols (`!@#$%^&*()_+-=[]{}|;:,.<>?`).
-- **Input Sanitization**: Pre-flight validation executed by `InputValidators` verifies that student IDs (RA/Matrícula) meet character constraints and emails match RFC standard patterns before triggering network round-trips, preventing malformed payload amplification.
+Risk assessment following the **STRIDE** methodology maps attack vectors to the defensive controls implemented across `security/`:
 
-### 2. Server-Side Defensive Controls (`server/` & `backend/`)
-- **CORS Hardening**: Centralized in `HttpUtils.aplicarHeadersCors()`. Outgoing HTTP responses explicitly declare allowed origins and methods (`GET, POST, PUT, DELETE, OPTIONS`), preventing unauthorized cross-origin browser interactions.
-- **Thread & Exception Isolation**: All parsing operations across `TesteTiposHandler`, `PresencaHandler`, `TarefasHandler`, and `BoletimHandler` execute inside isolated `try-catch` blocks. Malformed payloads trigger an HTTP `400 Bad Request` without propagating uncaught runtime exceptions or terminating the server thread.
-- **Denial of Service (DoS) Mitigation**:
-  - Request body buffering with maximum byte threshold limits (64 KB ceiling).
-  - Explicit read timeouts (30-second ceiling) to mitigate slowloris connection-holding attacks.
-- **SQL Injection Prevention**: Future backend data persistence layers will enforce 100% parameterized queries via JPA/Hibernate or raw prepared statements; string concatenation in SQL execution is strictly forbidden.
-
-### 3. Secrets & Configuration Governance
-- **Zero Hardcoded Credentials**: No database passwords, private encryption keys, API tokens, or credentials may be committed to version control.
-- **`.gitignore` Hardening**: Root `.gitignore` explicitly excludes:
-  - `.env`, `.env.local`, `.env.*.local`, `.env.production`
-  - Java `.class` files, `.jar`, `.war`, and build artifacts
-  - Private IDE settings and OS cache files
-- **Safe Template Specification**: Environment variables must be documented exclusively via sanitized template files (e.g. `.env.example`) containing dummy placeholders:
-  ```properties
-  # AGMRM Environment Template (.env.example)
-  SERVER_PORT=8080
-  DATABASE_URL=jdbc:postgresql://localhost:5432/agmrm_db
-  DATABASE_USER=agmrm_app
-  DATABASE_PASSWORD=CHANGE_ME_IN_PRODUCTION
-  JWT_SECRET=MINIMUM_32_CHARACTERS_HEX_SECRET_KEY
-  TOKEN_TTL_MINUTES=5
-  ```
-
----
-
-## 🎯 Threat Modeling & Risk Analysis
-
-The platform security model is assessed using the **STRIDE** methodology:
-
-| Threat Category | Potential Attack Vector | AGMRM Defensive Countermeasure | Risk Severity |
+| STRIDE Category | Threat Vector in Educational Context | Defensive Component | Countermeasure & Defensive Behavior |
 |---|---|---|---|
-| **S — Spoofing** | Attacker impersonates student or teacher during login. | Multi-role authentication tabs, validated academic registration (RA), password complexity enforcement, planned JWT authentication. | High |
-| **T — Tampering** | Tampering with grade values or attendance percentages via HTTP requests. | Strict server-side recalculation in `BoletimHandler` and `PresencaHandler`; inputs are bounded and validated regardless of client claims. | Critical |
-| **R — Repudiation** | User denies performing an action (e.g. submitting assignment or altering attendance). | Server logs with timestamps, explicit teacher override tags (`Ajuste Manual do Professor`), immutable audit trails planned in backend. | Medium |
-| **I — Information Disclosure** | Leaking sensitive student data, passwords, or stack traces in responses. | Generic error messages (`400 Bad Request`, `Dados invalidos`) without raw JVM stack traces; obscured password fields in UI. | High |
-| **D — Denial of Service** | Flooding native server with malformed payloads or large bodies. | Connection isolation, minimal memory footprint of native Java server, 64KB body caps, CORS pre-flight handling. | Medium |
-| **E — Elevation of Privilege** | Student attempting to execute teacher manual attendance overrides. | Role-based separation between Student, Faculty, and Admin in UI; future backend token role claims validation. | Critical |
+| **S — Spoofing** | Attacker attempts to guess student or faculty credentials using automated brute force or credential stuffing. | `security/auth/AccountLockoutManager.java` & `rate_limiter.dart` | Immediate 30-second lockout after 5 consecutive failed attempts. Immediate rejection of new attempts with HTTP 429 during cooldown. |
+| **S — Spoofing** | Brute force of the 6-digit recovery PIN/OTP code ($10^6$ combinations). | `security/auth/EphemeralRecoveryTokenManager.java` & `token_lifecycle_manager.dart` | Immediate session revocation and token invalidation after 3 incorrect verification attempts. |
+| **T — Tampering** | Injection of `<script>` tags, SQL meta-characters, or control characters into RA, email, or password fields. | `security/validators/ServerInputSanitizer.java` & `input_sanitizer.dart` | Neutralization of HTML tags, SQL comment/quote sequences, and complete removal of null bytes (`\0`, `%00`). |
+| **T — Tampering** | Reuse or modification of expired password reset tokens to hijack credentials. | `security/auth/EphemeralRecoveryTokenManager.java` | Strict 300-second (5-minute) TTL; unconditional rejection of tokens submitted after expiry. |
+| **R — Repudiation** | User denies performing administrative actions, password resets, or authentication attempts. | `security/policies/SecurityConfig.java` & Structured Logging | Immutable audit logging with timestamps, client IP hashing, and attempt counters. |
+| **I — Information Disclosure** | User enumeration: attacker queries endpoints to discover registered RAs and emails based on error message differences. | `security/lib/policies/generic_feedback_policy.dart` & `GenericFeedbackPolicy.java` | Identical opaque responses returned for both registered and unregistered identifiers. |
+| **I — Information Disclosure** | Side-channel timing attack: attacker analyzes response latency to deduce account existence or credential correctness. | `security/auth/ConstantTimeComparator.java` & `timing_attack_mitigation.dart` | Constant-time evaluation using `MessageDigest.isEqual` combined with latency normalization jitter. |
+| **I — Information Disclosure** | Leaking JVM internal stack traces, file paths, or class names through unhandled runtime exceptions. | `security/middleware/ServerErrorSanitizer.java` | Global exception containment; standardized RFC 7807 JSON error responses without stack traces. |
+| **D — Denial of Service** | Flooding native server sockets with multi-megabyte request bodies to exhaust JVM heap memory. | `security/middleware/BoundedBodyReader.java` | Content-Length validation and stream cutoff at exactly 64 KB (65,536 bytes). Early abort with HTTP 413. |
+| **E — Elevation of Privilege** | Setting weak or trivial passwords ("123456", "admin") to facilitate account compromise. | `security/validators/ServerPasswordEntropyValidator.java` & `password_entropy_validator.dart` | Mandatory 4-factor password scoring (length, uppercase, lowercase, numbers/symbols); rejection if score < 3. |
 
 ---
 
-## 📋 Vulnerability Management Policy
+## 5. Environment Configuration & Governance (`.env.example`)
 
-### Reporting Security Issues
-If a security vulnerability or sensitive flaw is identified within any module of this repository:
-1. **Do NOT open a public GitHub Issue.**
-2. Privately notify the repository maintainers:
-   - Alex Gabriel Soares Sousa (`@Alekkzsx`)
-   - Guilherme Henrique Moreira (`@GuilhermeMoreira07`)
-3. Provide full reproduction steps, payload samples, and affected component paths.
-4. Maintainers will triage, test a patch in a private branch, and release a fix via the standard Gitflow pipeline (`develop` $\rightarrow$ `main`).
+Standardized security environment parameters are defined in `security/.env.example`:
+
+```properties
+# Native HTTP Server Configuration
+SERVER_PORT=8080
+SERVER_HOST=0.0.0.0
+REQUEST_TIMEOUT_SECONDS=30
+
+# Request Body Size Ceiling (64 KB = 65,536 bytes)
+MAX_REQUEST_BODY_SIZE_BYTES=65536
+
+# CORS Governance
+ALLOWED_ORIGINS=*
+CORS_ALLOWED_METHODS=GET, POST, PUT, DELETE, OPTIONS
+
+# Brute-Force & Account Lockout Mitigation
+MAX_FAILED_LOGIN_ATTEMPTS=5
+LOCKOUT_DURATION_SECONDS=30
+
+# Ephemeral Recovery Token Lifecycle (5 minutes TTL)
+RECOVERY_TOKEN_TTL_SECONDS=300
+MAX_VERIFICATION_ATTEMPTS=3
+
+# Timing Attack Mitigation
+STANDARDIZED_AUTH_LATENCY_MS=1000
+STANDARDIZED_AUTH_JITTER_MS=25
+
+# Password Complexity Policies
+PASSWORD_MIN_LENGTH=8
+PASSWORD_MIN_ENTROPY_SCORE=3
+
+# Cryptographic Keys (RFC 7519)
+JWT_SECRET=super_secret_high_entropy_signing_key_at_least_32_chars_2026
+```
+
+---
+
+## 6. Build, Test, and Verification Procedures
+
+### 6.1 Running Client-Side Dart / Flutter Test Suites
+To verify unit and integration tests for client components:
+```bash
+cd /home/alekkzsx/Documents/Github/PI-IV-Time3/security
+flutter pub get
+flutter analyze
+flutter test tests/
+```
+
+### 6.2 Compiling and Running Server-Side Java Tests
+Native Java components adhere strictly to the zero-external-dependency rule (compilable using standard JDK):
+```bash
+cd /home/alekkzsx/Documents/Github/PI-IV-Time3/security
+javac policies/*.java auth/*.java middleware/*.java validators/*.java
+```
+
+### 6.3 Unified Test Suite Execution
+To execute the comprehensive end-to-end verification script:
+```bash
+bash /home/alekkzsx/Documents/Github/PI-IV-Time3/security/tests/run_all_tests.sh
+```
+
+---
+
+## 7. Standards & Compliance Alignment
+
+- **OWASP Top 10 API Security Risks (2023)**: Mitigations for Broken Object Level Authorization (API1), Broken Authentication (API2), Unrestricted Resource Consumption (API4), and Security Misconfiguration (API8).
+- **STRIDE Threat Modeling Framework**: Systematic risk assessment applied across all platform surfaces.
+- **Academic Integrity Standards**: Source code files include appropriate developer attribution comments in compliance with institutional guidelines, while architecture and governance documentation remains platform-centric.
