@@ -4,7 +4,7 @@
 ///
 /// Centralizes security policies, authentication guards, input sanitizers,
 /// password entropy evaluators, and security UI widgets.
-library agmrm_security;
+library;
 
 // Policies & Invariants (Milestone 1)
 export 'policies/security_constants.dart';
