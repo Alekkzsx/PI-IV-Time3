@@ -88,7 +88,7 @@ void main() {
 
       expect(sanitized, equals(GenericFeedbackPolicy.authFailureMessage));
       expect(sanitized.contains('NullPointerException'), isFalse);
-      expect(sanitized.contains('AccountLockoutManager'), isFalse: true);
+      expect(sanitized.contains('AccountLockoutManager'), isFalse);
       expect(sanitized.contains('/home/alekkzsx'), isFalse);
       expect(sanitized.contains('SecretModule.java:42'), isFalse);
       expect(sanitized.contains('catalina'), isFalse);
@@ -120,7 +120,7 @@ void main() {
     });
 
     test('Oversized 100 KB Hostile Exception String does not cause memory exhaustion', () {
-      final hostileOversized = 'FatalCrash: ' + ('A' * 100000) + ' [end of log]';
+      final hostileOversized = 'FatalCrash: ${'A' * 100000} [end of log]';
       final stopwatch = Stopwatch()..start();
       final sanitized = GenericFeedbackPolicy.sanitizeErrorMessage(hostileOversized);
       stopwatch.stop();
