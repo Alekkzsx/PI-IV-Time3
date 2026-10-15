@@ -73,6 +73,34 @@ void main() async {
     workload.main();
   });
 
+  // Java Server Middleware & Auth Suite
+  await runSuite('Java Server Security Middleware & Governance Suite (Features 22-24, 3, 4)', () async {
+    final tempDir = Directory.systemTemp.createTempSync('sectest');
+    try {
+      final javac = await Process.run('javac', [
+        '-d',
+        tempDir.path,
+        'security/tests/SecurityServerTestSuite.java',
+      ]);
+      if (javac.exitCode != 0) {
+        throw Exception('javac compilation failed:\n${javac.stderr}');
+      }
+      final java = await Process.run('java', [
+        '-cp',
+        tempDir.path,
+        'security.tests.SecurityServerTestSuite',
+      ]);
+      stdout.write(java.stdout);
+      if (java.exitCode != 0) {
+        throw Exception('Java suite failed with exit code ${java.exitCode}:\n${java.stderr}');
+      }
+    } finally {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    }
+  });
+
   stopwatch.stop();
 
   print('==========================================================================');
