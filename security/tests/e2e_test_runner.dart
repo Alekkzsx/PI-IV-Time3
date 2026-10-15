@@ -1,14 +1,13 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Master E2E Security Test Suite Runner
-/// Orchestrates execution across all Dart test tiers and validates Feature 25.
+/// Orchestrates execution across all Dart and Java test tiers and validates Feature 25.
 
 import 'dart:io';
 import 'rate_limiter_test.dart' as rate_limiter;
 import 'token_lifecycle_test.dart' as token_lifecycle;
 import 'input_sanitizer_test.dart' as input_sanitizer;
 import 'password_entropy_test.dart' as password_entropy;
-import 'generic_feedback_test.dart' as generic_feedback;
 import 'timing_attack_test.dart' as timing_attack;
 import 'CrossFeatureSecurityTest.dart' as cross_feature;
 import 'RealWorldAttackWorkloadTest.dart' as workload;
@@ -38,42 +37,68 @@ void main() async {
     }
   }
 
-  // Tier 1 & 2 Suites
+  // Tier 1 & 2: Rate Limiting
   await runSuite('Rate Limiter & Brute-Force Suite (Features 12-15)', () async {
     rate_limiter.main();
   });
 
+  // Tier 1 & 2: Token Lifecycle
   await runSuite('Token Lifecycle & OTP Revocation Suite (Features 19-21)', () async {
     token_lifecycle.main();
   });
 
+  // Tier 1 & 2: Input Sanitization
   await runSuite('Input Sanitization & Attack Neutralization Suite (Features 6-9)', () async {
     input_sanitizer.main();
   });
 
+  // Tier 1 & 2: Password Entropy
   await runSuite('Password Entropy & Complexity Suite (Features 10-11)', () async {
     password_entropy.main();
   });
 
-  await runSuite('Anti-Enumeration & Generic Feedback Suite (Features 16, 18)', () async {
-    generic_feedback.main();
-  });
-
+  // Tier 1 & 2: Side-Channel Timing Defense
   await runSuite('Side-Channel Timing Mitigation Suite (Feature 17)', () async {
     await timing_attack.main();
   });
 
-  // Tier 3 Suite
+  // Tier 1 & 2: Anti-Enumeration & Generic Feedback (Flutter Test Runner)
+  await runSuite('Anti-Enumeration & Generic Feedback Suite (Features 16, 18)', () async {
+    final res = await Process.run(
+      'flutter',
+      ['test', 'tests/generic_feedback_test.dart'],
+      workingDirectory: '/home/alekkzsx/Documents/Github/PI-IV-Time3/security',
+    );
+    stdout.write(res.stdout);
+    if (res.exitCode != 0) {
+      throw Exception('Flutter test failed with exit code ${res.exitCode}:\n${res.stderr}');
+    }
+  });
+
+  // Tier 1 & 2: Institutional Security Constants (Flutter Test Runner)
+  await runSuite('Security Constants & Invariants Suite (Features 1-3)', () async {
+    final res = await Process.run(
+      'flutter',
+      ['test', 'tests/security_constants_test.dart'],
+      workingDirectory: '/home/alekkzsx/Documents/Github/PI-IV-Time3/security',
+    );
+    stdout.write(res.stdout);
+    if (res.exitCode != 0) {
+      throw Exception('Flutter test failed with exit code ${res.exitCode}:\n${res.stderr}');
+    }
+  });
+
+  // Tier 3: Pairwise Combinations
   await runSuite('Cross-Feature Pairwise Security Suite (Tier 3)', () async {
     await cross_feature.main();
   });
 
-  // Tier 4 Suite
+  // Tier 4: Real-World Workloads & Governance
   await runSuite('Real-World Adversarial Attack Workloads & Governance Suite (Tier 4)', () async {
     workload.main();
   });
 
-  // Java Server Middleware & Auth Suite
+  // Server Middleware & Java Security Suite
   await runSuite('Java Server Security Middleware & Governance Suite (Features 22-24, 3, 4)', () async {
     final tempDir = Directory.systemTemp.createTempSync('sectest');
     try {
@@ -119,7 +144,7 @@ void main() async {
     }
     exit(1);
   } else {
-    print('ALL DART E2E TEST SUITES PASSED WITH 100% SUCCESS RATE.');
+    print('ALL E2E TEST SUITES PASSED WITH 100% SUCCESS RATE.');
     exit(0);
   }
 }
