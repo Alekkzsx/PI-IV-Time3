@@ -8,7 +8,17 @@ import 'rate_limiter_test.dart';
 import 'token_lifecycle_test.dart';
 import 'input_sanitizer_test.dart';
 import 'password_entropy_test.dart';
-import 'generic_feedback_test.dart';
+import '../lib/policies/generic_feedback_policy.dart';
+
+class MockAuthService {
+  Map<String, dynamic> handlePasswordRecovery(String identity) {
+    return {
+      'status': 'INSTRUCTIONS_SENT',
+      'expiresInSeconds': 300,
+      'message': GenericFeedbackPolicy.passwordResetRequestedMessage,
+    };
+  }
+}
 
 void assertTrue(bool condition, String message) {
   if (!condition) throw Exception('Assertion failed: $message');
