@@ -173,5 +173,45 @@ void main() {
         equals(GenericFeedbackPolicy.invalidPayloadMessage),
       );
     });
+
+    test('Sanitização impede vazamento de revogação de OTP em contexto de autenticação', () {
+      // Mensagens de tentativas de login NÃO podem retornar revogação de sessão de recuperação
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Erro ao decrementar tentativas de login'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Falha de autenticação após 3 tentativas'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Tentativas restantes: 2'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+
+      // Lockout / Rate limiting legítimo mapeia para bloqueio temporário
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Limite de tentativas de login excedido'),
+        equals(GenericFeedbackPolicy.accountLockedMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Acesso temporariamente bloqueado por cooldown'),
+        equals(GenericFeedbackPolicy.accountLockedMessage),
+      );
+
+      // Revogação de OTP legítima requer contexto de código/verificação
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Código de verificação: limite de 3 tentativas excedido'),
+        equals(GenericFeedbackPolicy.tokenRevokedMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Número máximo de tentativas do código OTP excedido'),
+        equals(GenericFeedbackPolicy.tokenRevokedMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Sessão revogada por excesso de tentativas'),
+        equals(GenericFeedbackPolicy.tokenRevokedMessage),
+      );
+    });
   });
 }
