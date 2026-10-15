@@ -1,6 +1,5 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 2>/dev/null || :
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 #!/usr/bin/env bash
-set -e
 
 # =============================================================================
 # Enterprise Defense-in-Depth Security Test Suite Master Runner
@@ -8,7 +7,6 @@ set -e
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 echo "================================================================================"
 echo "Starting Enterprise Security Architecture End-to-End Verification"

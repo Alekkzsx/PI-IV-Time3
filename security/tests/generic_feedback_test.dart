@@ -1,157 +1,176 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 1 & Tier 2: Anti-Enumeration & Generic Feedback Test Suite
-/// Tests Features 16, 18 and Acceptance Criteria AC-04, AC-06.
-
-import 'dart:convert';
-
-class GenericFeedbackPolicy {
-  static const String genericAuthFailureMessage =
-      'Credenciais inválidas. Verifique seu identificador e senha.';
-
-  static const String genericRecoveryMessage =
-      'Se o identificador estiver cadastrado, as instruções foram enviadas.';
-
-  static const int recoveryTtlSeconds = 300;
-
-  static Map<String, dynamic> createAuthFailureResponse() {
-    return {
-      'statusCode': 401,
-      'error': 'Unauthorized',
-      'message': genericAuthFailureMessage,
-    };
-  }
-
-  static Map<String, dynamic> createRecoveryResponse({required String identifier}) {
-    // Identity is explicitly NOT reflected back, and whether it exists is hidden
-    return {
-      'status': 'INSTRUCTIONS_SENT',
-      'expiresInSeconds': recoveryTtlSeconds,
-      'message': genericRecoveryMessage,
-    };
-  }
-}
-
-// Simulated Authentication Service with Anti-Enumeration
-class MockAuthService {
-  final Set<String> _registeredUsers = {'24802449', 'aluno123', 'admin'};
-
-  Map<String, dynamic> handleLogin(String identity, String password) {
-    // Opaque evaluation: whether user exists or not, wrong credentials yield the EXACT same error
-    if (!_registeredUsers.contains(identity) || password != 'ValidPass123!') {
-      return GenericFeedbackPolicy.createAuthFailureResponse();
-    }
-    return {'statusCode': 200, 'message': 'Authenticated'};
-  }
-
-  Map<String, dynamic> handlePasswordRecovery(String identity) {
-    // Anti-enumeration: returns identical response regardless of membership in _registeredUsers
-    return GenericFeedbackPolicy.createRecoveryResponse(identifier: identity);
-  }
-}
-
-// Assertion Helpers
-void assertTrue(bool condition, String message) {
-  if (!condition) throw Exception('Assertion failed: $message');
-}
-
-void assertFalse(bool condition, String message) {
-  if (condition) throw Exception('Assertion failed (expected false): $message');
-}
-
-void assertEqual(dynamic actual, dynamic expected, String message) {
-  if (actual != expected) {
-    throw Exception('$message — expected: $expected, got: $actual');
-  }
-}
-
-int passedTests = 0;
-int totalTests = 0;
-
-void runTest(String name, void Function() testFn) {
-  totalTests++;
-  try {
-    testFn();
-    passedTests++;
-    print('  [PASS] $name');
-  } catch (e) {
-    print('  [FAIL] $name: $e');
-  }
-}
+import 'package:agmrm_security/security.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  print('===============================================================');
-  print('Running Anti-Enumeration & Generic Feedback Tests (Features 16, 18)');
-  print('===============================================================');
+  group('GenericFeedbackPolicy - Defesa Anti-Enumeração e Sanitização (M1)', () {
+    test('Mensagem de falha de autenticação não revela existência de conta (R2)', () {
+      expect(
+        GenericFeedbackPolicy.authFailureMessage,
+        equals('Credenciais inválidas. Verifique seu identificador e senha.'),
+      );
+    });
 
-  final authService = MockAuthService();
+    test('Mensagens de recuperação são estritamente neutras e anti-enumeração (R3)', () {
+      expect(
+        GenericFeedbackPolicy.passwordResetRequestedMessage,
+        equals(
+          'Se o identificador informado estiver cadastrado em nosso sistema, as instruções de recuperação foram enviadas.',
+        ),
+      );
+      expect(
+        GenericFeedbackPolicy.recoveryRequestSuccessMessage,
+        equals(
+          'Se o identificador informado estiver cadastrado no sistema, as instruções e o código de verificação foram enviados para o e-mail institucional.',
+        ),
+      );
+    });
 
-  // -------------------------------------------------------------
-  // TIER 1: FEATURE COVERAGE
-  // -------------------------------------------------------------
-  runTest('T1-01: Authentication failure returns generic message (Feature 16)', () {
-    final response = GenericFeedbackPolicy.createAuthFailureResponse();
-    assertEqual(response['statusCode'], 401, 'Status code must be 401');
-    assertEqual(
-      response['message'],
-      'Credenciais inválidas. Verifique seu identificador e senha.',
-      'Message must match generic anti-enumeration policy',
-    );
+    test('Formatação da contagem regressiva de lockout (R2)', () {
+      expect(
+        GenericFeedbackPolicy.lockoutMessage(30),
+        equals('Muitas tentativas incorretas. Tente novamente em 30 segundos.'),
+      );
+      expect(
+        GenericFeedbackPolicy.lockoutMessage(1),
+        equals('Muitas tentativas incorretas. Tente novamente em 1 segundos.'),
+      );
+      expect(
+        GenericFeedbackPolicy.lockoutMessage(0),
+        equals('Muitas tentativas incorretas. Tente novamente em 0 segundos.'),
+      );
+      expect(
+        GenericFeedbackPolicy.lockoutMessage(-5),
+        equals('Muitas tentativas incorretas. Tente novamente em 0 segundos.'),
+      );
+
+      // Countdown banner variant
+      expect(
+        GenericFeedbackPolicy.lockoutCountdownMessage(30),
+        equals('Muitas tentativas incorretas. Acesso temporariamente bloqueado. Aguarde 30 segundos.'),
+      );
+      expect(
+        GenericFeedbackPolicy.lockoutCountdownMessage(0),
+        equals('Muitas tentativas incorretas. Acesso temporariamente bloqueado. Aguarde 0 segundos.'),
+      );
+    });
+
+    test('Formatação de tentativas inválidas de código OTP (R3)', () {
+      expect(
+        GenericFeedbackPolicy.invalidOtpCodeMessage(2),
+        equals('Código de verificação incorreto. Tentativas restantes: 2.'),
+      );
+      expect(
+        GenericFeedbackPolicy.invalidOtpCodeMessage(1),
+        equals('Código de verificação incorreto. Tentativas restantes: 1.'),
+      );
+      expect(
+        GenericFeedbackPolicy.invalidOtpCodeMessage(0),
+        equals('Código de verificação incorreto. Tentativas restantes: 0.'),
+      );
+    });
+
+    test('Mensagens estáticas de expiração e revogação de tokens (R3)', () {
+      expect(
+        GenericFeedbackPolicy.expiredTokenMessage,
+        equals('Código de verificação expirado. Solicite um novo código.'),
+      );
+      expect(
+        GenericFeedbackPolicy.tokenExpiredMessage,
+        equals('O código de verificação expirou. Solicite um novo código para continuar.'),
+      );
+      expect(
+        GenericFeedbackPolicy.revokedSessionMessage,
+        equals('Sessão de recuperação revogada por excesso de tentativas. Solicite um novo código.'),
+      );
+      expect(
+        GenericFeedbackPolicy.tokenRevokedMessage,
+        equals(
+          'Número máximo de tentativas incorretas excedido. Por segurança, a sessão foi cancelada. Solicite uma nova recuperação.',
+        ),
+      );
+    });
+
+    test('Mensagens de complexidade de senha e sucesso de redefinição (R3)', () {
+      expect(
+        GenericFeedbackPolicy.weakPasswordMessage,
+        contains('A nova senha não atende aos requisitos mínimos de segurança'),
+      );
+      expect(
+        GenericFeedbackPolicy.passwordTooWeakMessage,
+        contains('pontuação mínima: 3/4'),
+      );
+      expect(
+        GenericFeedbackPolicy.passwordResetSuccessMessage,
+        equals('Senha redefinida com sucesso. Faça login com a nova senha.'),
+      );
+    });
+
+    test('Mensagens de payload e limites do servidor (R4)', () {
+      expect(
+        GenericFeedbackPolicy.badRequestPayloadMessage,
+        equals('Dados da requisição inválidos.'),
+      );
+      expect(
+        GenericFeedbackPolicy.invalidPayloadMessage,
+        equals('Dados de requisição inválidos ou fora do formato permitido.'),
+      );
+      expect(
+        GenericFeedbackPolicy.payloadTooLargeMessage,
+        equals('Tamanho da requisição excede o limite permitido de 64 KB.'),
+      );
+      expect(
+        GenericFeedbackPolicy.internalErrorMessage,
+        equals('Ocorreu um erro interno ao processar a solicitação. Tente novamente mais tarde.'),
+      );
+      expect(
+        GenericFeedbackPolicy.internalServerErrorMessage,
+        equals('Ocorreu um erro no processamento da solicitação. Tente novamente mais tarde.'),
+      );
+    });
+
+    test('Sanitização de exceções brutas impede vazamento de detalhes internos (R4)', () {
+      // Exceções com termos de usuário inexistente devem ser mascaradas como falha genérica
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Exception: Usuário não encontrado no banco de dados'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('SQLException: relation "users" does not exist'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('NullPointerException at com.agmrm.auth.AuthService.login:42'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage(null),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+    });
+
+    test('Sanitização categoriza mensagens operacionais de segurança corretamente', () {
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Lockout ativo - conta bloqueada'),
+        equals('Acesso temporariamente bloqueado por excesso de tentativas.'),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Token expirado após 300 segundos'),
+        equals(GenericFeedbackPolicy.tokenExpiredMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Sessão revogada por 3 tentativas inválidas'),
+        equals(GenericFeedbackPolicy.tokenRevokedMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Senha fraca - entropia insuficiente'),
+        equals(GenericFeedbackPolicy.passwordTooWeakMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Payload excedeu 64KB'),
+        equals(GenericFeedbackPolicy.invalidPayloadMessage),
+      );
+    });
   });
-
-  runTest('T1-02: Recovery request returns generic confirmation (Feature 18)', () {
-    final response = GenericFeedbackPolicy.createRecoveryResponse(identifier: 'any_user');
-    assertEqual(response['status'], 'INSTRUCTIONS_SENT', 'Status must be INSTRUCTIONS_SENT');
-    assertEqual(response['expiresInSeconds'], 300, 'TTL must be 300 seconds');
-    assertEqual(
-      response['message'],
-      'Se o identificador estiver cadastrado, as instruções foram enviadas.',
-      'Message must match generic recovery policy',
-    );
-  });
-
-  // -------------------------------------------------------------
-  // TIER 2: BOUNDARY & CORNER CASES
-  // -------------------------------------------------------------
-  runTest('T2-01: Login failure response is byte-identical for existing vs non-existing user (AC-04)', () {
-    // Existing user with wrong password
-    final resExisting = authService.handleLogin('24802449', 'wrong_pass');
-    // Non-existing user
-    final resMissing = authService.handleLogin('99999999', 'wrong_pass');
-
-    final jsonExisting = jsonEncode(resExisting);
-    final jsonMissing = jsonEncode(resMissing);
-
-    assertEqual(
-      jsonExisting,
-      jsonMissing,
-      'Login failure response MUST be byte-for-byte identical to prevent enumeration',
-    );
-  });
-
-  runTest('T2-02: Recovery response is byte-identical for registered vs fictional RA (AC-06)', () {
-    // Registered student
-    final resRegistered = authService.handlePasswordRecovery('24802449');
-    // Unmapped / fictional RA
-    final resFictional = authService.handlePasswordRecovery('00000000');
-
-    final jsonReg = jsonEncode(resRegistered);
-    final jsonFic = jsonEncode(resFictional);
-
-    assertEqual(
-      jsonReg,
-      jsonFic,
-      'Recovery response MUST be byte-for-byte identical regardless of user existence',
-    );
-    assertFalse(
-      jsonReg.contains('24802449'),
-      'Response must never echo or leak identifier status',
-    );
-  });
-
-  print('---------------------------------------------------------------');
-  print('Generic Feedback Tests: $passedTests / $totalTests passed.');
-  if (passedTests != totalTests) {
-    throw Exception('Some tests failed in generic_feedback_test.dart');
-  }
 }
