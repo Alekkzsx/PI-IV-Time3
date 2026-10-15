@@ -83,12 +83,17 @@ abstract final class GenericFeedbackPolicy {
     };
   }
 
+  /// Standardized generic error returned upon account lockout / rate limit cooldown.
+  static const String accountLockedMessage =
+      'Acesso temporariamente bloqueado por excesso de tentativas.';
+
   // ─── DYNAMIC FORMATTED MESSAGES ───
 
   /// Returns the standardized lockout message with the exact remaining seconds.
   static String lockoutMessage(int remainingSeconds) {
     final sanitizedSeconds = remainingSeconds > 0 ? remainingSeconds : 0;
-    return 'Muitas tentativas incorretas. Tente novamente em $sanitizedSeconds segundos.';
+    final unit = sanitizedSeconds == 1 ? 'segundo' : 'segundos';
+    return 'Muitas tentativas incorretas. Tente novamente em $sanitizedSeconds $unit.';
   }
 
   /// Returns the standardized countdown message displayed during active lockout banner.
@@ -104,28 +109,71 @@ abstract final class GenericFeedbackPolicy {
   }
 
   /// Sanitizes an incoming error or exception object to prevent leaking
-  /// internal database errors, missing user exceptions, or JVM stack traces to the UI.
+  /// internal database errors, missing user exceptions, or JVM/Dart stack traces to the UI.
+  /// Standardizes output into opaque, anti-enumeration categories.
   static String sanitizeErrorMessage(dynamic error) {
     if (error == null) return authFailureMessage;
-    final message = error.toString().toLowerCase();
+    final raw = error.toString().trim();
+    if (raw.isEmpty) return authFailureMessage;
+    final message = raw.toLowerCase();
 
-    if (message.contains('lockout') || message.contains('bloque')) {
-      return 'Acesso temporariamente bloqueado por excesso de tentativas.';
+    // 1. Account Lockout & Login Rate Limiting (Authentication Context)
+    if (message.contains('bloque') ||
+        message.contains('lockout') ||
+        message.contains('temporariamente') ||
+        message.contains('cooldown') ||
+        message.contains('limite de tentativas de login') ||
+        message.contains('excesso de tentativas de login') ||
+        ((message.contains('login') || message.contains('autentica')) &&
+            (message.contains('excesso') || message.contains('limite')))) {
+      return accountLockedMessage;
     }
+
+    // 2. Ephemeral Token Expiration (Recovery Context)
     if (message.contains('expir')) {
       return tokenExpiredMessage;
     }
-    if (message.contains('revog') || message.contains('tentativas')) {
+
+    // 3. Verification Code / OTP Attempts & Session Revocation (Recovery Context)
+    // Context-scoped: requires verification/OTP keywords together with attempt/exhaustion keywords,
+    // or explicit revocation terms. Never leaks into pure authentication/login workflows.
+    final hasOtpContext = message.contains('codigo') ||
+        message.contains('código') ||
+        message.contains('otp') ||
+        message.contains('verificacao') ||
+        message.contains('verificação');
+    final hasAttemptContext = message.contains('tentativa') ||
+        message.contains('exced') ||
+        message.contains('limite') ||
+        message.contains('esgotad');
+
+    if (message.contains('revog') || (hasOtpContext && hasAttemptContext)) {
       return tokenRevokedMessage;
     }
-    if (message.contains('senha') && (message.contains('fraca') || message.contains('entropia') || message.contains('weak'))) {
+
+    // 4. Password Entropy & Minimum Complexity (Password Context)
+    if (message.contains('senha') &&
+        (message.contains('fraca') ||
+            message.contains('fraco') ||
+            message.contains('entropia') ||
+            message.contains('weak') ||
+            message.contains('requisito') ||
+            message.contains('complexidade'))) {
       return passwordTooWeakMessage;
     }
-    if (message.contains('tamanho') || message.contains('payload') || message.contains('64') || message.contains('413')) {
+
+    // 5. Payload Bounds & Size Limits (Transport / Middleware Context)
+    if (message.contains('tamanho') ||
+        message.contains('payload') ||
+        message.contains('64') ||
+        message.contains('413') ||
+        message.contains('corpo da requisi')) {
       return invalidPayloadMessage;
     }
 
-    // Default catch-all anti-enumeration fallback
+    // 6. Default catch-all anti-enumeration fallback
+    // Safely swallows raw SQL queries, stack traces, missing account exceptions,
+    // database connection failures, and internal attempt decrement errors.
     return authFailureMessage;
   }
 }
