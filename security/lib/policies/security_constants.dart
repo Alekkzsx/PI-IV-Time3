@@ -22,6 +22,9 @@ abstract final class SecurityConstants {
   /// Time-To-Live (TTL) for ephemeral password recovery tokens in seconds (5 minutes).
   static const int recoveryTokenTtlSeconds = 300;
 
+  /// Default token TTL alias.
+  static const int defaultTokenTtlSeconds = recoveryTokenTtlSeconds;
+
   /// Recovery token TTL in minutes.
   static const int recoveryTokenTtlMinutes = 5;
 
@@ -33,6 +36,9 @@ abstract final class SecurityConstants {
 
   /// Maximum invalid OTP verification attempts (alias for consistency across specs).
   static const int maxInvalidVerificationAttempts = 3;
+
+  /// Maximum OTP verification attempts alias.
+  static const int maxOtpVerificationAttempts = maxVerificationAttempts;
 
   /// Length of the numeric OTP verification code.
   static const int otpCodeLength = 6;
