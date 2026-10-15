@@ -183,7 +183,16 @@ void main() {
   // GOVERNANCE AUDIT: Attribution & Directory Isolation Check
   // -------------------------------------------------------------
   runTest('GOV-01: Line 1 author attribution verified across all test files', () {
-    final testsDir = Directory('/home/alekkzsx/Documents/Github/PI-IV-Time3/security/tests');
+    var testsDir = Directory('/home/alekkzsx/Documents/Github/PI-IV-Time3/security/tests');
+    if (!testsDir.existsSync()) {
+      testsDir = Directory(Platform.script.resolve('.').toFilePath());
+    }
+    if (!testsDir.existsSync()) {
+      testsDir = Directory('security/tests');
+    }
+    if (!testsDir.existsSync()) {
+      testsDir = Directory('tests');
+    }
     assertTrue(testsDir.existsSync(), 'security/tests directory must exist');
 
     final testFiles = testsDir
