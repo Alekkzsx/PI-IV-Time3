@@ -58,7 +58,7 @@ Future<void> runAsyncTest(String name, Future<void> Function() testFn) async {
   }
 }
 
-void main() async {
+Future<void> main() async {
   print('===============================================================');
   print('Running Side-Channel Timing Attack Tests (Feature 17)');
   print('===============================================================');
