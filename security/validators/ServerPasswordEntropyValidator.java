@@ -56,3 +56,4 @@ public final class ServerPasswordEntropyValidator {
         return calculateScore(password) >= SecurityConstants.MIN_REQUIRED_ENTROPY_SCORE;
     }
 }
+

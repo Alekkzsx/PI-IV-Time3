@@ -43,3 +43,4 @@ class TimingAttackMitigation {
     return stopwatch.elapsedMilliseconds;
   }
 }
+

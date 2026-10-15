@@ -23,3 +23,4 @@ public class ServerErrorSanitizer {
         return "{\"status\": 500, \"error\": \"Internal Server Error\", \"message\": \"Ocorreu um erro interno\"}";
     }
 }
+

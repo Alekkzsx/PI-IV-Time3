@@ -48,3 +48,4 @@ class PasswordEntropyValidator {
     return score >= minScore;
   }
 }
+

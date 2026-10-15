@@ -98,3 +98,4 @@ public final class ServerInputSanitizer {
         return cleaned;
     }
 }
+
