@@ -13,6 +13,40 @@ import 'CrossFeatureSecurityTest.dart' as cross_feature;
 import 'RealWorldAttackWorkloadTest.dart' as workload;
 
 void main() async {
+  // Dynamically resolve testsDir and securityDir relative to Platform.script
+  final Uri scriptUri = Platform.script;
+  final Directory testsDir;
+  final Directory securityDir;
+
+  if (scriptUri.scheme == 'file') {
+    final scriptFile = File(scriptUri.toFilePath());
+    testsDir = scriptFile.parent;
+    securityDir = testsDir.parent;
+  } else {
+    // Fallback for compiled or snapshot environments
+    final cwd = Directory.current;
+    if (File('${cwd.path}/pubspec.yaml').existsSync() && cwd.path.endsWith('security')) {
+      securityDir = cwd;
+      testsDir = Directory('${securityDir.path}/tests');
+    } else if (Directory('${cwd.path}/security').existsSync()) {
+      securityDir = Directory('${cwd.path}/security');
+      testsDir = Directory('${securityDir.path}/tests');
+    } else {
+      securityDir = Directory('/home/alekkzsx/Documents/Github/PI-IV-Time3/security');
+      testsDir = Directory('${securityDir.path}/tests');
+    }
+  }
+
+  // Dynamic absolute path to SecurityServerTestSuite.java
+  final File javaSuiteFile = File('${testsDir.path}/SecurityServerTestSuite.java');
+  final String javaSuitePath = javaSuiteFile.existsSync()
+      ? javaSuiteFile.path
+      : (File('security/tests/SecurityServerTestSuite.java').existsSync()
+          ? File('security/tests/SecurityServerTestSuite.java').absolute.path
+          : (File('tests/SecurityServerTestSuite.java').existsSync()
+              ? File('tests/SecurityServerTestSuite.java').absolute.path
+              : 'tests/SecurityServerTestSuite.java'));
+
   print('╔══════════════════════════════════════════════════════════════════════════╗');
   print('║ AGMRM Educational Platform — Unified E2E Security Test Suite Runner       ║');
   print('║ Author: Alex Gabriel Soares Sousa — RA: 24802449                         ║');
@@ -67,7 +101,7 @@ void main() async {
     final res = await Process.run(
       'flutter',
       ['test', 'tests/generic_feedback_test.dart'],
-      workingDirectory: '/home/alekkzsx/Documents/Github/PI-IV-Time3/security',
+      workingDirectory: securityDir.path,
     );
     stdout.write(res.stdout);
     if (res.exitCode != 0) {
@@ -80,7 +114,7 @@ void main() async {
     final res = await Process.run(
       'flutter',
       ['test', 'tests/security_constants_test.dart'],
-      workingDirectory: '/home/alekkzsx/Documents/Github/PI-IV-Time3/security',
+      workingDirectory: securityDir.path,
     );
     stdout.write(res.stdout);
     if (res.exitCode != 0) {
@@ -105,7 +139,7 @@ void main() async {
       final javac = await Process.run('javac', [
         '-d',
         tempDir.path,
-        'security/tests/SecurityServerTestSuite.java',
+        javaSuitePath,
       ]);
       if (javac.exitCode != 0) {
         throw Exception('javac compilation failed:\n${javac.stderr}');
