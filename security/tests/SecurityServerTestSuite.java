@@ -184,6 +184,12 @@ public class SecurityServerTestSuite {
         // -------------------------------------------------------------
         runTest("GOV-01 (Feature 4): Line 1 attribution verified on all Java and Dart files", () -> {
             Path testsDir = Paths.get("/home/alekkzsx/Documents/Github/PI-IV-Time3/security/tests");
+            if (!Files.exists(testsDir)) {
+                testsDir = Paths.get("security/tests");
+            }
+            if (!Files.exists(testsDir)) {
+                testsDir = Paths.get("tests");
+            }
             assertTrue(Files.exists(testsDir), "security/tests must exist");
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir)) {
