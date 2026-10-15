@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:agmrm_security/security.dart';
+export 'package:agmrm_security/security.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
