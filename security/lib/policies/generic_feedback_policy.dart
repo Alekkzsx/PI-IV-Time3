@@ -72,6 +72,17 @@ abstract final class GenericFeedbackPolicy {
   static const String internalServerErrorMessage =
       'Ocorreu um erro no processamento da solicitação. Tente novamente mais tarde.';
 
+  // ─── RESPONSE STRUCTURING HELPERS ───
+
+  /// Creates a standardized auth failure response map with status 401 and generic message.
+  static Map<String, dynamic> createAuthFailureResponse() {
+    return <String, dynamic>{
+      'statusCode': 401,
+      'error': 'Unauthorized',
+      'message': authFailureMessage,
+    };
+  }
+
   // ─── DYNAMIC FORMATTED MESSAGES ───
 
   /// Returns the standardized lockout message with the exact remaining seconds.
