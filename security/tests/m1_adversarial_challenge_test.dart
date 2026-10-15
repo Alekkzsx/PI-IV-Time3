@@ -189,7 +189,7 @@ void main() {
       // Immediate boundary: 1 second
       expect(
         GenericFeedbackPolicy.lockoutMessage(1),
-        equals('Muitas tentativas incorretas. Tente novamente em 1 segundos.'),
+        equals('Muitas tentativas incorretas. Tente novamente em 1 segundo.'),
       );
       // Zero boundary: 0 seconds
       expect(

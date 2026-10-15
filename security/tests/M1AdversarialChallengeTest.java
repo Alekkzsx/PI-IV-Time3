@@ -166,7 +166,7 @@ public final class M1AdversarialChallengeTest {
             assertEquals(GenericFeedbackPolicy.getLockoutMessage(30),
                 "Muitas tentativas incorretas. Tente novamente em 30 segundos.", "Standard 30s");
             assertEquals(GenericFeedbackPolicy.getLockoutMessage(1),
-                "Muitas tentativas incorretas. Tente novamente em 1 segundos.", "Boundary 1s");
+                "Muitas tentativas incorretas. Tente novamente em 1 segundo.", "Boundary 1s");
             assertEquals(GenericFeedbackPolicy.getLockoutMessage(0),
                 "Muitas tentativas incorretas. Tente novamente em 0 segundos.", "Zero boundary");
             assertEquals(GenericFeedbackPolicy.getLockoutMessage(-1),
@@ -278,6 +278,26 @@ public final class M1AdversarialChallengeTest {
                 assertTrue(!sanitized.contains(secretToken),
                     "Attacker-controlled secret token must NEVER be reflected in sanitized output");
             }
+        });
+
+        runTest("ADV-14: Auth failure attempt messages never leak recovery token revocation", () -> {
+            // Must NOT trigger TOKEN_REVOKED_MESSAGE
+            assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Erro ao decrementar tentativas de login"),
+                GenericFeedbackPolicy.AUTH_FAILURE_MESSAGE, "Login attempts decrement must map to generic auth failure");
+            assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Falha de autenticação após 3 tentativas"),
+                GenericFeedbackPolicy.AUTH_FAILURE_MESSAGE, "Auth failure with attempt count must map to generic failure");
+
+            // Legitimate lockout
+            assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Limite de tentativas de login excedido"),
+                GenericFeedbackPolicy.ACCOUNT_LOCKED_MESSAGE, "Login attempts limit must map to account locked");
+            assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Cooldown ativo para o usuário"),
+                GenericFeedbackPolicy.ACCOUNT_LOCKED_MESSAGE, "Cooldown must map to account locked");
+
+            // Legitimate OTP revocation
+            assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Código de verificação: limite de 3 tentativas excedido"),
+                GenericFeedbackPolicy.TOKEN_REVOKED_MESSAGE, "OTP attempt limit must map to token revoked");
+            assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Tentativas de código OTP esgotadas"),
+                GenericFeedbackPolicy.TOKEN_REVOKED_MESSAGE, "OTP exhausted must map to token revoked");
         });
 
         System.out.println("===============================================================");
