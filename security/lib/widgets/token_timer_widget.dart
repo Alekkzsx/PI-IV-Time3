@@ -50,7 +50,7 @@ class TokenTimerWidget extends StatelessWidget {
         color: badgeColor,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: textColor.withOpacity(0.3),
+          color: textColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),

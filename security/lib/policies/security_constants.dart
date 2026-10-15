@@ -71,6 +71,9 @@ abstract final class SecurityConstants {
   /// Maximum length for academic identity (RA / Matrícula / ADM).
   static const int maxIdentityLength = 32;
 
+  /// RA maximum length alias.
+  static const int maxRaLength = maxIdentityLength;
+
   /// Maximum RFC-compliant email length (RFC 5321).
   static const int maxEmailLength = 254;
 
@@ -91,6 +94,9 @@ abstract final class SecurityConstants {
   /// Standardized artificial delay duration alias (milliseconds).
   static const int standardAuthLatencyMs = 1000;
 
+  /// Default auth latency alias (milliseconds).
+  static const int defaultAuthLatencyMs = standardizedAuthLatencyMs;
+
   /// Standardized artificial delay as a typed Duration.
   static const Duration standardizedAuthLatency = Duration(milliseconds: standardizedAuthLatencyMs);
 
@@ -99,6 +105,9 @@ abstract final class SecurityConstants {
 
   /// Timing jitter tolerance in milliseconds.
   static const int timingJitterToleranceMs = 50;
+
+  /// Default auth jitter tolerance alias.
+  static const int defaultAuthJitterMs = timingJitterToleranceMs;
 
   /// Minimum dummy work iterations for constant-time simulation on non-existent identities.
   static const int minDummyWorkIterations = 10000;
