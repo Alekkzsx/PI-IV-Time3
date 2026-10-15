@@ -154,6 +154,29 @@ void main() {
         equals(GenericFeedbackPolicy.authFailureMessage),
       );
     });
+
+    test('Adversarial Context Isolation: Auth failure attempt messages never leak recovery token revocation', () {
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Erro ao decrementar tentativas de login'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Falha de autenticação após 3 tentativas'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Tentativas restantes: 2'),
+        equals(GenericFeedbackPolicy.authFailureMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Limite de tentativas de login excedido'),
+        equals(GenericFeedbackPolicy.accountLockedMessage),
+      );
+      expect(
+        GenericFeedbackPolicy.sanitizeErrorMessage('Sessão revogada por 3 tentativas inválidas'),
+        equals(GenericFeedbackPolicy.tokenRevokedMessage),
+      );
+    });
   });
 
   group('M1 Adversarial Challenge Suite - Invariant Boundaries on Dynamic Formatters', () {
