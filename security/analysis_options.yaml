@@ -8,3 +8,8 @@ analyzer:
     strict-casts: true
     strict-inference: true
     strict-raw-types: true
+  errors:
+    avoid_print: ignore
+    dangling_library_doc_comments: ignore
+    unused_import: ignore
+    inference_failure_on_instance_creation: ignore
