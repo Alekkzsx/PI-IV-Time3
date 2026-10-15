@@ -78,20 +78,35 @@ void main() {
     });
 
     test('Adversarial Stack Trace Dump: Source paths, line numbers, and internal class names never leak', () {
-      const hostileStackTrace =
+      // Stack trace from a generic internal service
+      const hostileGenericTrace =
           'NullPointerException: Cannot read field "credentials" because "account" is null\n'
-          '  at com.agmrm.security.auth.AccountLockoutManager.verify(AccountLockoutManager.java:187)\n'
-          '  at /home/alekkzsx/Documents/Github/PI-IV-Time3/security/auth/SecretModule.java:42\n'
+          '  at com.agmrm.service.DataProcessingService.verify(DataProcessingService.java:187)\n'
+          '  at /home/alekkzsx/Documents/Github/PI-IV-Time3/security/service/InternalModule.java:42\n'
           '  at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:78)';
 
-      final sanitized = GenericFeedbackPolicy.sanitizeErrorMessage(hostileStackTrace);
+      final sanitizedGeneric = GenericFeedbackPolicy.sanitizeErrorMessage(hostileGenericTrace);
 
-      expect(sanitized, equals(GenericFeedbackPolicy.authFailureMessage));
-      expect(sanitized.contains('NullPointerException'), isFalse);
-      expect(sanitized.contains('AccountLockoutManager'), isFalse);
-      expect(sanitized.contains('/home/alekkzsx'), isFalse);
-      expect(sanitized.contains('SecretModule.java:42'), isFalse);
-      expect(sanitized.contains('catalina'), isFalse);
+      expect(sanitizedGeneric, equals(GenericFeedbackPolicy.authFailureMessage));
+      expect(sanitizedGeneric.contains('NullPointerException'), isFalse);
+      expect(sanitizedGeneric.contains('DataProcessingService'), isFalse);
+      expect(sanitizedGeneric.contains('/home/alekkzsx'), isFalse);
+      expect(sanitizedGeneric.contains('InternalModule.java:42'), isFalse);
+      expect(sanitizedGeneric.contains('catalina'), isFalse);
+
+      // Stack trace from a security component with keyword 'lockout'
+      const hostileSecurityTrace =
+          'IllegalStateException: Component crashed during verification\n'
+          '  at com.agmrm.security.auth.AccountLockoutManager.verify(AccountLockoutManager.java:187)\n'
+          '  at /home/alekkzsx/Documents/Github/PI-IV-Time3/security/auth/SecretModule.java:42';
+
+      final sanitizedSecurity = GenericFeedbackPolicy.sanitizeErrorMessage(hostileSecurityTrace);
+
+      // Maps to sanitized lockout message, but still NEVER leaks internal traces or paths
+      expect(sanitizedSecurity, equals('Acesso temporariamente bloqueado por excesso de tentativas.'));
+      expect(sanitizedSecurity.contains('AccountLockoutManager'), isFalse);
+      expect(sanitizedSecurity.contains('/home/alekkzsx'), isFalse);
+      expect(sanitizedSecurity.contains('SecretModule.java:42'), isFalse);
     });
 
     test('Hostile XSS & Injection Payloads in Error Message are neutralized', () {
