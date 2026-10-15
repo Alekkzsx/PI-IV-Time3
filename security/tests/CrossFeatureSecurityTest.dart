@@ -50,7 +50,7 @@ Future<void> runAsyncTest(String name, Future<void> Function() testFn) async {
   }
 }
 
-void main() async {
+Future<void> main() async {
   print('===============================================================');
   print('Running Tier 3: Cross-Feature Pairwise Security Tests');
   print('===============================================================');
