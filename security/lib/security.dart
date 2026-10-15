@@ -9,3 +9,17 @@ library;
 // Policies & Invariants (Milestone 1)
 export 'policies/security_constants.dart';
 export 'policies/generic_feedback_policy.dart';
+
+// Validators & Sanitizers (Milestone 2)
+export 'validators/input_sanitizer.dart';
+export 'validators/password_entropy_validator.dart';
+
+// Authentication & Token Lifecycles (Milestones 3 & 4)
+export 'auth/lockout_state.dart';
+export 'auth/rate_limiter.dart';
+export 'auth/timing_attack_mitigation.dart';
+export 'auth/token_lifecycle_manager.dart';
+
+// Presentation Widgets
+export 'widgets/lockout_countdown_banner.dart';
+export 'widgets/token_timer_widget.dart';
