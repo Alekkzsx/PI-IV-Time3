@@ -2,16 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'features/forgot_password/domain/usecases/recover_password_usecase.dart';
-import 'features/forgot_password/presentation/controllers/recover_password_controller.dart';
-import 'features/forgot_password/presentation/pages/recover_password_page.dart';
-import 'features/login/domain/usecases/login_usecase.dart';
-import 'features/login/presentation/controllers/login_controller.dart';
-import 'features/login/presentation/pages/login_page.dart';
-import 'features/reset_password/presentation/pages/reset_password_page.dart';
-import 'features/student_messages/presentation/pages/student_messages_page.dart';
-import 'features/student_secretariat/presentation/pages/student_secretariat_page.dart';
-import 'features/verify_code/presentation/pages/verify_code_page.dart';
+import 'features/auth_view/forgot_password/domain/usecases/recover_password_usecase.dart';
+import 'features/auth_view/forgot_password/presentation/controllers/recover_password_controller.dart';
+import 'features/auth_view/forgot_password/presentation/pages/recover_password_page.dart';
+import 'features/auth_view/login/domain/usecases/login_usecase.dart';
+import 'features/auth_view/login/presentation/controllers/login_controller.dart';
+import 'features/auth_view/login/presentation/pages/login_page.dart';
+import 'features/auth_view/reset_password/presentation/pages/reset_password_page.dart';
+import 'features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
+import 'features/student_view/student_messages/presentation/pages/student_messages_page.dart';
+import 'features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
 
