@@ -79,29 +79,26 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                           constraints: BoxConstraints(
                             minHeight: constraints.maxHeight,
                           ),
-                          child: IntrinsicHeight(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: Center(
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 1120,
-                                      ),
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: isDesktop ? 48 : 20,
-                                          vertical: isDesktop ? 36 : 24,
-                                        ),
-                                        child: widget.child,
-                                      ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 1120,
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isDesktop ? 48 : 20,
+                                      vertical: isDesktop ? 36 : 24,
                                     ),
+                                    child: widget.child,
                                   ),
                                 ),
-                                _buildFooter(isDesktop: isDesktop),
-                              ],
-                            ),
+                              ),
+                              _buildFooter(isDesktop: isDesktop),
+                            ],
                           ),
                         ),
                       );
