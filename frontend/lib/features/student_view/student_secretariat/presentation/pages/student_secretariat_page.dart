@@ -1,8 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
-import '../../../../shared/student_layout/student_portal_shell.dart';
-import '../../../../shared/student_layout/student_sidebar.dart';
+import '../../../../../shared/student_layout/student_portal_shell.dart';
+import '../../../../../shared/student_layout/student_sidebar.dart';
 import '../../domain/entities/protocol_request.dart';
 import '../controllers/student_secretariat_controller.dart';
 import '../widgets/academic_record_card.dart';
@@ -174,7 +174,7 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: selectedType,
+                  initialValue: selectedType,
                   items: const [
                     DropdownMenuItem(
                       value: 'Horas Complementares',
