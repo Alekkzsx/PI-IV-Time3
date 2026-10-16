@@ -12,10 +12,11 @@ The platform addresses the fragmentation of educational tools by consolidating a
 
 ### Key features
 
+- **Student Academic Portal (`student_view`)** — dedicated student workspace with official **Messages & Announcements** (`student_messages`) and **Virtual Secretariat & Protocol Requests** (`student_secretariat`)
 - **Academic Report & Grades** — real-time query of report cards (`/api/notas/boletim`) with exams (P1, P2), assignments, custom weights, and automatic pass/recovery status
 - **Attendance Tracking** — automated attendance calculation (`/api/presenca`) with thresholds for full attendance ($\ge 75\%$), half attendance ($\ge 50\%$), absence, and instructor manual overrides
 - **Assignment Submissions** — automated late penalty calculation (`/api/tarefas/calcular-nota`) deducting 20% of base grade per late day down to zero
-- **Security & Authentication** — password recovery with strict 5-minute token TTL, role-based access control (Student, Professor, Admin), input validation, and STRIDE/DREAD threat modeling
+- **Security & Authentication (`auth_view` & `security/`)** — multi-layer defense-in-depth architecture featuring brute-force rate limiting (5 attempts $\rightarrow$ 30s lockout), password recovery with strict 5-minute token TTL and 3-attempt OTP revocation, anti-enumeration generic responses, constant-time comparison, input sanitization, and HTTP security headers
 - **Type Processing API** — endpoint (`/api/teste-tipos`) demonstrating multi-type data parsing and type validation over HTTP
 
 ---
@@ -36,8 +37,9 @@ The platform addresses the fragmentation of educational tools by consolidating a
 
 | Layer | Technology |
 |---|---|
-| App (Frontend) | Flutter + Dart (Clean Architecture) |
+| App (Frontend) | Flutter + Dart (Feature-First Clean Architecture) |
 | Native Server | Java SE 17+ (Native HTTP Server built from scratch) |
+| Security Module | Dart/Flutter Client Guards + Native Java SE Server Guards |
 | Server Runtime | Native Sockets + Scripts (Batch / Shell) |
 | Version control | Git + GitHub |
 
@@ -48,14 +50,26 @@ The platform addresses the fragmentation of educational tools by consolidating a
 ```
 PI-IV-Time3/
 ├── .github/                  # CI/CD workflows, CODEOWNERS, and branch protection policies (see [.github/GOVERNANCE.md](.github/GOVERNANCE.md))
-├── frontend/                 # Multi-platform Flutter app (Clean Architecture: Presentation, Domain, Data)
+├── frontend/                 # Multi-platform Flutter app (Feature-First Clean Architecture)
+│   ├── lib/
+│   │   ├── core/             # Shared theme tokens, failure models, and input validators
+│   │   ├── features/
+│   │   │   ├── auth_view/    # Login, Forgot Password, Verify OTP Code, and Reset Password
+│   │   │   └── student_view/ # Student Portal: Messages & Announcements, Virtual Secretariat
+│   │   └── shared/           # Shared auth repository, student sidebar/shell layout, and widgets
+│   └── test/                 # Unit and widget tests mirroring auth_view and student_view
 ├── server/                   # Autonomous native Java HTTP server (built from scratch, no frameworks)
 │   ├── src/                  # Java sources: ServidorHttpNativo, handlers, and HttpUtils
-│   ├── bin/                  # Compiled Java bytecode
-│   ├── server.properties     # Port 8080, socket tuning, and CORS configuration
-│   └── *.bat / *.sh          # Compilation, runtime, and automated cURL test scripts
-├── backend/                  # Reserved for future application backend services (.gitkeep)
-└── security/                 # Reserved for global application security policies (.gitkeep)
+│   └── tests/                # Compilation and automated cURL verification suite
+├── security/                 # Enterprise defense-in-depth security module (Dart & Native Java SE)
+│   ├── lib/                  # Client-side rate limiters, token lifecycle, sanitizers, and widgets
+│   ├── auth/                 # Server-side lockout manager, constant-time comparator, and token TTL
+│   ├── middleware/           # Security HTTP headers, 64 KB body ceiling, and error sanitizer
+│   ├── validators/           # Server-side input sanitization and password entropy evaluation
+│   ├── policies/             # Immutable security constants, generic feedback, and config loader
+│   ├── tests/                # End-to-end Dart and Java security verification suites
+│   └── .env.example          # Standardized security and server environment template
+└── backend/                  # Target architecture for enterprise backend services & persistence
 ```
 
 ---
@@ -91,9 +105,13 @@ cp security/.env.example security/.env
 | Variable | Description | Default value |
 |---|---|---|
 | `SERVER_PORT` | HTTP server port | `8080` |
-| `CORS_ORIGIN` | Allowed CORS origin | `http://localhost` |
 | `REQUEST_TIMEOUT_SECONDS` | Request timeout for DoS mitigation | `30` |
-| `MAX_BODY_SIZE_KB` | Maximum request body size | `64` |
+| `MAX_REQUEST_BODY_SIZE_BYTES` | Maximum request body size (64 KB) | `65536` |
+| `MAX_FAILED_LOGIN_ATTEMPTS` | Failed logins before temporary lockout | `5` |
+| `LOCKOUT_DURATION_SECONDS` | Account lockout cooldown duration | `30` |
+| `RECOVERY_TOKEN_TTL_SECONDS` | Ephemeral recovery token expiration (5 min) | `300` |
+| `MAX_VERIFICATION_ATTEMPTS` | Max OTP attempts before token revocation | `3` |
+| `PASSWORD_MIN_ENTROPY_SCORE` | Minimum required password strength score | `3` |
 
 ---
 

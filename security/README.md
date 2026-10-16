@@ -8,7 +8,7 @@
 
 ## 1. Architectural Purpose & Overview
 
-The `security/` module centralizes the enterprise **Defense-in-Depth** architecture and cybersecurity governance policies for the AGMRM Integrated Educational Platform. This module is engineered to protect critical authentication (**Login**) and credential recovery (**Forgot / Reset Password**) workflows against hostile cyber threats, including:
+The `security/` module centralizes the enterprise **Defense-in-Depth** architecture and cybersecurity governance policies for the AGMRM Integrated Educational Platform. This module is engineered to protect critical authentication and credential recovery workflows (`frontend/lib/features/auth_view/` — `login`, `forgot_password`, `verify_code`, and `reset_password`) as well as backend HTTP endpoints (`server/`) against hostile cyber threats, including:
 
 - Automated brute-force attacks and credential stuffing.
 - Cross-Site Scripting (XSS) and SQL injection (SQLi) attempts.
