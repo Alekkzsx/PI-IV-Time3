@@ -9,6 +9,8 @@ import 'features/login/domain/usecases/login_usecase.dart';
 import 'features/login/presentation/controllers/login_controller.dart';
 import 'features/login/presentation/pages/login_page.dart';
 import 'features/reset_password/presentation/pages/reset_password_page.dart';
+import 'features/student_messages/presentation/pages/student_messages_page.dart';
+import 'features/student_secretariat/presentation/pages/student_secretariat_page.dart';
 import 'features/verify_code/presentation/pages/verify_code_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
@@ -69,6 +71,8 @@ class PortalAvaApp extends StatelessWidget {
         '/recover-password': (context) => RecoverPasswordPage(controller: controller),
         '/verify-code': (context) => const VerifyCodePage(),
         '/reset-password': (context) => const ResetPasswordPage(),
+        '/student/messages': (context) => const StudentMessagesPage(),
+        '/student/secretaria': (context) => const StudentSecretariatPage(),
       },
     );
   }
