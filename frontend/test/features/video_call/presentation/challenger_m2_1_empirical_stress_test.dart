@@ -1,5 +1,6 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/video_call/data/channel/in_memory_signaling_bus.dart';
@@ -12,7 +13,67 @@ import 'package:pi_iv_time3/features/video_call/presentation/controllers/video_c
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/audio_level_meter.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/dynamic_video_grid.dart';
+import 'package:pi_iv_time3/features/video_call/domain/entities/chat_message.dart';
+import 'package:pi_iv_time3/features/video_call/domain/entities/emoji_reaction.dart';
+import 'package:pi_iv_time3/features/video_call/domain/entities/hand_raise_item.dart';
+import 'package:pi_iv_time3/features/video_call/domain/entities/media_state_update.dart';
+import 'package:pi_iv_time3/features/video_call/domain/entities/recording_state.dart';
+import 'package:pi_iv_time3/features/video_call/domain/repositories/video_call_repository.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/participant_video_tile.dart';
+
+class FakeChallengerRepository implements VideoCallRepository {
+  final joinedCtrl = StreamController<Participant>.broadcast(sync: true);
+  final leftCtrl = StreamController<String>.broadcast(sync: true);
+  final chatCtrl = StreamController<ChatMessage>.broadcast(sync: true);
+  final reactionCtrl = StreamController<EmojiReaction>.broadcast(sync: true);
+  final handRaiseCtrl = StreamController<HandRaiseItem>.broadcast(sync: true);
+  final mediaCtrl = StreamController<MediaStateUpdate>.broadcast(sync: true);
+  final recordingCtrl = StreamController<RecordingState>.broadcast(sync: true);
+
+  @override
+  Stream<Participant> get participantJoinedStream => joinedCtrl.stream;
+  @override
+  Stream<String> get participantLeftStream => leftCtrl.stream;
+  @override
+  Stream<ChatMessage> get chatMessageStream => chatCtrl.stream;
+  @override
+  Stream<EmojiReaction> get emojiReactionStream => reactionCtrl.stream;
+  @override
+  Stream<HandRaiseItem> get handRaiseStream => handRaiseCtrl.stream;
+  @override
+  Stream<MediaStateUpdate> get mediaStateStream => mediaCtrl.stream;
+  @override
+  Stream<RecordingState> get recordingStateStream => recordingCtrl.stream;
+
+  void emitParticipantJoined(Participant p) => joinedCtrl.add(p);
+  void emitParticipantLeft(String peerId) => leftCtrl.add(peerId);
+
+  @override
+  Future<void> joinRoom(MeetingRoom room, Participant localParticipant) async {}
+  @override
+  Future<void> leaveRoom(String roomId, String peerId) async => leftCtrl.add(peerId);
+  @override
+  Future<void> sendChatMessage(String roomId, ChatMessage message) async => chatCtrl.add(message);
+  @override
+  Future<void> sendEmojiReaction(String roomId, EmojiReaction reaction) async => reactionCtrl.add(reaction);
+  @override
+  Future<void> toggleHandRaise(String roomId, String peerId, bool isRaised) async {}
+  @override
+  Future<void> updateMediaState(String roomId, String peerId, {bool? isAudioMuted, bool? isVideoOff, bool? isScreenSharing, double? audioLevel}) async {}
+  @override
+  Future<void> updateRecordingState(String roomId, RecordingState state) async => recordingCtrl.add(state);
+
+  @override
+  Future<void> dispose() async {
+    await joinedCtrl.close();
+    await leftCtrl.close();
+    await chatCtrl.close();
+    await reactionCtrl.close();
+    await handRaiseCtrl.close();
+    await mediaCtrl.close();
+    await recordingCtrl.close();
+  }
+}
 
 void main() {
   group('Challenger M2-1 Empirical Stress Test Suite: Lobby, Grid & Speaker Detection', () {
@@ -686,6 +747,155 @@ void main() {
         cB.dispose();
         await fixture.repoA.dispose();
         await fixture.repoB.dispose();
+      });
+
+      test('Remote peer hysteresis vs immediate audioLevel broadcast investigation', () async {
+        final fixture = await createDualControllers(roomCode: 'HYS-REMOTE-CHECK');
+        final cA = fixture.controllerA;
+        final cB = fixture.controllerB;
+
+        // Peer A speaks
+        cA.setAudioLevel(0.75);
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+
+        expect(cA.localParticipant.isSpeaking, isTrue);
+        final peerAInBStart = cB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
+        expect(peerAInBStart.isSpeaking, isTrue);
+
+        // Peer A stops speaking -> drops to 0.04
+        cA.setAudioLevel(0.04);
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+
+        // On Peer A (local): 800ms cooldown timer is active
+        expect(cA.localParticipant.isSpeaking, isTrue, reason: 'Local peer A must have 800ms hysteresis');
+
+        // On Peer B (remote): inspect remote speaking state
+        final peerAInBCooldown = cB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
+        debugPrint('Empirical finding - Remote Peer B view of Peer A isSpeaking during cooldown: ${peerAInBCooldown.isSpeaking}');
+
+        cA.dispose();
+        cB.dispose();
+        await fixture.repoA.dispose();
+        await fixture.repoB.dispose();
+      });
+
+      testWidgets('Simultaneous active speakers: Dual emerald halo borders rendered', (tester) async {
+        final speaker1 = Participant(
+          id: 'p_spk_1',
+          name: 'Professor Alex',
+          ra: '24802449',
+          isSpeaking: true,
+          audioLevel: 0.70,
+        );
+        final speaker2 = Participant(
+          id: 'p_spk_2',
+          name: 'Aluna Beatriz',
+          ra: '24801122',
+          isSpeaking: true,
+          audioLevel: 0.55,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Column(
+                children: [
+                  Expanded(child: ParticipantVideoTile(participant: speaker1)),
+                  Expanded(child: ParticipantVideoTile(participant: speaker2)),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final tile1 = tester.widget<Container>(find.byKey(const Key('participant_tile_p_spk_1')));
+        final tile2 = tester.widget<Container>(find.byKey(const Key('participant_tile_p_spk_2')));
+
+        final border1 = (tile1.decoration as BoxDecoration).border as Border;
+        final border2 = (tile2.decoration as BoxDecoration).border as Border;
+
+        expect(border1.top.color, Colors.greenAccent);
+        expect(border2.top.color, Colors.greenAccent);
+        expect(border1.top.width, 3.0);
+        expect(border2.top.width, 3.0);
+      });
+    });
+
+    // =========================================================================
+    // 4. LARGE-SCALE DYNAMIC GRID STRESS & ADVERSARIAL INPUT TESTS
+    // =========================================================================
+    group('4. Large-Scale Multi-Peer & Adversarial Input Stress', () {
+      test('Multi-Peer Scaling (N=1 to N=10) and bulk peer leave pruning', () async {
+        final local = Participant(id: 'local_host', name: 'Host', ra: '0001', isLocal: true);
+        final fakeRepo = FakeChallengerRepository();
+        final room = MeetingRoom(id: 'SCALE-10', code: 'SCALE-10', title: 'Sala');
+        final controller = VideoCallController(
+          repository: fakeRepo,
+          room: room,
+          localParticipant: local,
+        );
+
+        expect(controller.allParticipants.length, 1);
+
+        // Sequentially register 9 remote participants (N=10 total)
+        for (int i = 1; i <= 9; i++) {
+          controller.registerRemoteParticipant(
+            Participant(id: 'peer_$i', name: 'Aluno $i', ra: '100$i'),
+          );
+        }
+
+        expect(controller.allParticipants.length, 10);
+        expect(controller.remoteParticipants.length, 9);
+
+        // Prune 5 peers via leave event
+        for (int i = 1; i <= 5; i++) {
+          fakeRepo.emitParticipantLeft('peer_$i');
+        }
+
+        expect(controller.allParticipants.length, 5);
+        expect(controller.remoteParticipants.length, 4);
+
+        // Prune remaining 4 remote peers
+        for (int i = 6; i <= 9; i++) {
+          fakeRepo.emitParticipantLeft('peer_$i');
+        }
+
+        expect(controller.allParticipants.length, 1);
+        expect(controller.remoteParticipants, isEmpty);
+        expect(controller.allParticipants.first.id, 'local_host');
+
+        controller.dispose();
+        await fakeRepo.dispose();
+      });
+
+      test('Adversarial room codes: Rejects emojis, unicode accents and punctuation', () {
+        final lobbyCtrl = VideoCallLobbyController();
+
+        expect(lobbyCtrl.validateRoomCode('SALA-101-🔥'), 'Código da sala inválido');
+        expect(lobbyCtrl.validateRoomCode('SALÃO-101'), 'Código da sala inválido');
+        expect(lobbyCtrl.validateRoomCode('SALA?101'), 'Código da sala inválido');
+        expect(lobbyCtrl.validateRoomCode('SALA:101'), 'Código da sala inválido');
+        expect(lobbyCtrl.validateRoomCode('SALA/101'), 'Código da sala inválido');
+        expect(lobbyCtrl.validateRoomCode('SALA=101'), 'Código da sala inválido');
+
+        lobbyCtrl.dispose();
+      });
+
+      test('Hardware Rapid Toggle Stress: 10 consecutive toggles preserve state integrity', () {
+        final lobbyCtrl = VideoCallLobbyController();
+
+        for (int i = 0; i < 10; i++) {
+          lobbyCtrl.toggleAudio();
+          lobbyCtrl.toggleVideo();
+        }
+
+        // Even number of toggles -> restores original false state
+        expect(lobbyCtrl.isAudioMuted, isFalse);
+        expect(lobbyCtrl.isVideoOff, isFalse);
+        expect(lobbyCtrl.audioLevel, 0.05);
+
+        lobbyCtrl.dispose();
       });
     });
   });
