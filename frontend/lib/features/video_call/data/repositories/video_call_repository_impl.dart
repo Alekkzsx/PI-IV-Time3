@@ -18,7 +18,8 @@ import '../models/recording_state_model.dart';
 /// Implementação do repositório de videoconferência aderente ao Clean Architecture.
 ///
 /// Faz a ponte entre as fontes de dados de sinalização P2P e a camada de domínio.
-class VideoCallRepositoryImpl implements VideoCallRepository {
+class VideoCallRepositoryImpl
+    implements VideoCallRepository, WebRtcSignalingRepository {
   final IVideoCallSignalingDataSource _dataSource;
   Participant? _localParticipant;
 
@@ -124,15 +125,23 @@ class VideoCallRepositoryImpl implements VideoCallRepository {
   }
 
   @override
-  Stream<Map<String, dynamic>> get webRtcSignalStream =>
-      _dataSource.onWebRtcSignal;
+  Stream<Map<String, dynamic>> get webRtcSignalStream {
+    final ds = _dataSource;
+    if (ds is IWebRtcSignalingDataSource) {
+      return ds.onWebRtcSignal;
+    }
+    return const Stream.empty();
+  }
 
   @override
   Future<void> sendWebRtcSignal(
     String roomId,
     Map<String, dynamic> signalData,
   ) async {
-    await _dataSource.broadcastWebRtcSignal(roomId, signalData);
+    final ds = _dataSource;
+    if (ds is IWebRtcSignalingDataSource) {
+      await ds.broadcastWebRtcSignal(roomId, signalData);
+    }
   }
 
   @override

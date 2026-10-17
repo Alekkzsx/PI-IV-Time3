@@ -59,15 +59,18 @@ abstract class VideoCallRepository {
   /// Transmite alteração no estado global de gravação para sincronização entre todos os peers.
   Future<void> updateRecordingState(String roomId, RecordingState state);
 
+  /// Libera canais, timers e stream controllers.
+  Future<void> dispose();
+}
+
+/// Extensão do contrato de repositório com suporte a troca de sinais WebRTC P2P (SDP/ICE).
+abstract class WebRtcSignalingRepository implements VideoCallRepository {
   /// Stream de sinais WebRTC (SDP Offer/Answer e candidatos ICE) recebidos de pares remotos.
-  Stream<Map<String, dynamic>> get webRtcSignalStream => const Stream.empty();
+  Stream<Map<String, dynamic>> get webRtcSignalStream;
 
   /// Transmite sinal WebRTC (Offer, Answer ou ICE Candidate) no canal da sala.
   Future<void> sendWebRtcSignal(
     String roomId,
     Map<String, dynamic> signalData,
-  ) async {}
-
-  /// Libera canais, timers e stream controllers.
-  Future<void> dispose();
+  );
 }

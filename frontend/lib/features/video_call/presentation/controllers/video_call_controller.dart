@@ -143,9 +143,12 @@ class VideoCallController extends ChangeNotifier {
     _subscriptions.add(
       repository.recordingStateStream.listen(_onRecordingStateReceived),
     );
-    _subscriptions.add(
-      repository.webRtcSignalStream.listen(_onWebRtcSignalReceived),
-    );
+    final repo = repository;
+    if (repo is WebRtcSignalingRepository) {
+      _subscriptions.add(
+        repo.webRtcSignalStream.listen(_onWebRtcSignalReceived),
+      );
+    }
 
     // Conecta streams do motor de mídia real (Microfone RMS, WebRTC e Tela)
     _subscriptions.add(
@@ -172,8 +175,8 @@ class VideoCallController extends ChangeNotifier {
     );
     _subscriptions.add(
       mediaEngine.onOutboundWebRtcSignal.listen((signalData) {
-        if (!_isDisposed) {
-          repository.sendWebRtcSignal(room.code, signalData);
+        if (!_isDisposed && repo is WebRtcSignalingRepository) {
+          repo.sendWebRtcSignal(room.code, signalData);
         }
       }),
     );
