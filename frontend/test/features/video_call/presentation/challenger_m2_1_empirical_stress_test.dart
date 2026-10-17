@@ -696,17 +696,17 @@ void main() {
         expect(silentBorder.top.color, Colors.transparent);
         expect((silentTile.decoration as BoxDecoration).boxShadow, isNull);
 
-        // 2. Speaking participant container decoration (Emerald Halo Border & Glow)
+        // 2. Speaking participant container decoration (Monochrome White Halo Border & Glow)
         final speakingTile = tester.widget<Container>(
           find.byKey(const Key('participant_tile_user_speaking')),
         );
         final speakingBorder = (speakingTile.decoration as BoxDecoration).border as Border;
-        expect(speakingBorder.top.color, Colors.greenAccent);
+        expect(speakingBorder.top.color, Colors.white);
         expect(speakingBorder.top.width, 3.0);
         expect((speakingTile.decoration as BoxDecoration).boxShadow, isNotNull);
 
         final boxShadow = (speakingTile.decoration as BoxDecoration).boxShadow!.first;
-        expect(boxShadow.color, const Color(0xFF10B981).withValues(alpha: 0.35));
+        expect(boxShadow.color, Colors.white.withValues(alpha: 0.25));
         expect(boxShadow.blurRadius, 12);
 
         // 3. Audio level meter widget presence and verification
@@ -718,7 +718,7 @@ void main() {
         final hasGraphicEqIcon = find.byIcon(Icons.graphic_eq).evaluate().isNotEmpty;
         debugPrint('Empirical finding - Icons.equalizer present: $hasEqualizerIcon, Icons.graphic_eq present: $hasGraphicEqIcon, AudioLevelMeter present: true');
 
-        // Note: The UI architecture uses the dynamic AudioLevelMeter bar (color transitioning to greenAccent when speaking)
+        // Note: The UI architecture uses the dynamic AudioLevelMeter bar (color transitioning to white when speaking)
         // rather than a static equalizer icon.
       });
 
@@ -779,7 +779,7 @@ void main() {
         await fixture.repoB.dispose();
       });
 
-      testWidgets('Simultaneous active speakers: Dual emerald halo borders rendered', (tester) async {
+      testWidgets('Simultaneous active speakers: Dual monochrome white halo borders rendered', (tester) async {
         final speaker1 = Participant(
           id: 'p_spk_1',
           name: 'Professor Alex',
@@ -815,8 +815,8 @@ void main() {
         final border1 = (tile1.decoration as BoxDecoration).border as Border;
         final border2 = (tile2.decoration as BoxDecoration).border as Border;
 
-        expect(border1.top.color, Colors.greenAccent);
-        expect(border2.top.color, Colors.greenAccent);
+        expect(border1.top.color, Colors.white);
+        expect(border2.top.color, Colors.white);
         expect(border1.top.width, 3.0);
         expect(border2.top.width, 3.0);
       });
