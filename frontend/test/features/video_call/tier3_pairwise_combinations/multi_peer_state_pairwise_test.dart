@@ -29,6 +29,9 @@ void main() {
       // 3. Peer A starts recording
       harness.peerA.toggleRecording();
 
+      // Flush microtasks across in-memory bus
+      await pumpEventQueue();
+
       await tester.pumpWidget(
         MaterialApp(
           home: VideoCallRoomPage(controller: harness.peerA),
