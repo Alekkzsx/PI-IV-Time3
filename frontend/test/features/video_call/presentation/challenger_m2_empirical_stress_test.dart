@@ -16,7 +16,6 @@ import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_ro
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/floating_reactions_overlay.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/in_call_chat_drawer.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/meeting_controls_toolbar.dart';
-import 'package:pi_iv_time3/features/video_call/presentation/widgets/raised_hands_banner.dart';
 
 /// Test repository that interconnects two peer controllers synchronously in memory.
 class LinkedDomainVideoCallRepository implements VideoCallRepository {

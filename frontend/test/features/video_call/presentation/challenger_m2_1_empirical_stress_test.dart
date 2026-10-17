@@ -1,6 +1,5 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/video_call/data/channel/in_memory_signaling_bus.dart';
