@@ -163,6 +163,12 @@ Implements the authenticated student workspace (*Visão do Aluno* — Portal AVA
   - `StudentSecretariatController`: Manages the student's academic summary and registered protocol requests.
   - `StudentSecretariatPage`, `AcademicRecordCard`, and `ProtocolRequestsTable`: Displays the *Prontuário Acadêmico Regular* (R.A., course, CR, curriculum completion percentage, active enrollment badge), interactive modals for issuing digital enrollment declarations and submitting new requests, and the registered protocols table with official opinion viewer (*Ver Parecer*).
 
+### 5. P2P Real-Time Video Call (`lib/features/video_call/`)
+Decoupled, zero-backend, zero-bot video conferencing (Teams/Meet style):
+- **Lobby & Room Pages**: `VideoCallLobbyPage` (mic/cam preview & room creation) and `VideoCallRoomPage` (dynamic multi-peer conference).
+- **Zero-Bot Invariant**: Strictly displays genuine participants connected to the room via P2P BroadcastChannel signaling.
+- **Collaborative Controls**: Dynamic video grid, active speaker highlighting, screen share spotlight, live chat drawer, rising animated emoji reactions, raised hands queue, and meeting recording with downloadable session export.
+
 ---
 
 ## 🧭 Application Routes (`lib/main.dart`)
@@ -175,6 +181,7 @@ Implements the authenticated student workspace (*Visão do Aluno* — Portal AVA
 | `/reset-password` | `ResetPasswordPage` | `auth_view` | New password creation with strength meter |
 | `/student/messages` | `StudentMessagesPage` | `student_view` | Student Messages & Official Announcements Center |
 | `/student/secretaria` | `StudentSecretariatPage` | `student_view` | Virtual Secretariat, Academic Record & Protocols |
+| `/video-call` | `VideoCallLobbyPage` | `video_call` | P2P Video Conferencing, Screen Share & Live Chat |
 
 ---
 
