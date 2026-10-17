@@ -88,6 +88,10 @@ class VideoCallTestController extends ChangeNotifier {
     repository.joinRoom(room, _localParticipant);
   }
 
+  void registerRemoteParticipant(Participant peer) {
+    _onParticipantJoined(peer);
+  }
+
   void _onParticipantJoined(Participant peer) {
     if (peer.id != _localParticipant.id) {
       _remoteParticipants[peer.id] = peer;
