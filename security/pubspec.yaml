@@ -1,0 +1,20 @@
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+name: agmrm_security
+description: "Enterprise defense-in-depth security architecture for AGMRM platform."
+version: 1.0.0
+publish_to: "none"
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
