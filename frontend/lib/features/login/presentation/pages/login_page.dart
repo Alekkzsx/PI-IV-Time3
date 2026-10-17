@@ -150,6 +150,9 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         );
+
+        // Redireciona para o painel correspondente após login bem-sucedido
+        _redirectAfterLogin();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -217,6 +220,19 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       );
+
+      // Redireciona para o painel correspondente (modo simulação local)
+      _redirectAfterLogin();
+    }
+  }
+
+  /// Gerencia o redirecionamento de acordo com o perfil logado.
+  void _redirectAfterLogin() {
+    if (_selectedProfile == UserProfile.admin) {
+      // Redireciona para a página principal do shell administrativo (shell_admin)
+      Navigator.of(context).pushReplacementNamed('/admin-shell');
+    } else {
+      // Outros perfis (aluno/docente) podem ser direcionados para suas respectivas rotas futuramente
     }
   }
 
@@ -274,8 +290,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// Constrói a área central com o formulário de login e seus controles interativos.
-  ///
-  /// O parâmetro [isCompact] adapta os paddings horizontais e verticais conforme a tela.
   Widget _buildLoginContent({bool isCompact = false}) {
     final errorMessage = widget.controller?.errorMessage;
 
@@ -396,7 +410,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// Constrói o campo de identificador (R.A., matrícula ou e-mail corporativo) com dica contextual.
+  /// Constrói o campo de identificador com dica contextual.
   Widget _buildIdentityInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,7 +423,7 @@ class _LoginPageState extends State<LoginPage> {
                 _identityLabel,
                 style: GoogleFonts.plusJakartaSans(
                   color: AppColors.slate800,
-                  fontSize: 12, // text-xs font-semibold text-slate-800
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -419,7 +433,7 @@ class _LoginPageState extends State<LoginPage> {
               style: const TextStyle(
                 fontFamily: 'monospace',
                 color: AppColors.textMuted,
-                fontSize: 11, // text-[11px] font-mono text-slate-400
+                fontSize: 11,
               ),
             ),
           ],
@@ -448,7 +462,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// Constrói o campo de entrada de senha com controle de visibilidade (mostrar/ocultar senha).
+  /// Constrói o campo de entrada de senha com controle de visibilidade.
   Widget _buildPasswordInput() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,7 +471,7 @@ class _LoginPageState extends State<LoginPage> {
           'Senha de Acesso',
           style: GoogleFonts.plusJakartaSans(
             color: AppColors.slate800,
-            fontSize: 12, // text-xs font-semibold text-slate-800
+            fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -525,7 +539,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    width: 16, // w-4 h-4
+                    width: 16,
                     height: 16,
                     decoration: BoxDecoration(
                       color: _rememberCredential
@@ -552,7 +566,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Text(
                       'Lembrar credencial neste computador confiável',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12, // text-xs text-slate-700
+                        fontSize: 12,
                         color: AppColors.slate700,
                       ),
                     ),
@@ -570,7 +584,7 @@ class _LoginPageState extends State<LoginPage> {
             child: Text(
               'Esqueceu a senha?',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 12, // text-xs font-semibold text-slate-900
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
@@ -584,12 +598,12 @@ class _LoginPageState extends State<LoginPage> {
   /// Constrói o quadro de aviso e alerta visual de erros retornados pela autenticação.
   Widget _buildErrorAlertBox(String errorMessage) {
     return Container(
-      padding: const EdgeInsets.all(12), // p-3
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.roseBackground, // bg-rose-50
-        borderRadius: BorderRadius.circular(8), // rounded-lg
+        color: AppColors.roseBackground,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.roseBorder, // border-rose-200
+          color: AppColors.roseBorder,
           width: 1,
         ),
       ),
@@ -598,16 +612,16 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           const Icon(
             Icons.error_outline_rounded,
-            color: AppColors.roseIcon, // rose-600
-            size: 16, // w-4 h-4
+            color: AppColors.roseIcon,
+            size: 16,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               errorMessage,
               style: GoogleFonts.plusJakartaSans(
-                color: AppColors.roseText, // text-rose-700
-                fontSize: 12, // text-xs
+                color: AppColors.roseText,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 height: 1.4,
               ),
@@ -621,13 +635,13 @@ class _LoginPageState extends State<LoginPage> {
   /// Constrói o botão de ação principal "Entrar no AVA" com feedback de carregamento reativo.
   Widget _buildLoginButton() {
     return SizedBox(
-      height: 48, // py-3.5
+      height: 48,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12), // rounded-xl
+          borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1F0B1325), // shadow-md
+              color: Color(0x1F0B1325),
               blurRadius: 6,
               offset: Offset(0, 3),
             ),
@@ -636,7 +650,7 @@ class _LoginPageState extends State<LoginPage> {
         child: ElevatedButton(
           onPressed: _isLoading ? null : _handleLogin,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonPrimary, // #0B1325
+            backgroundColor: AppColors.buttonPrimary,
             foregroundColor: Colors.white,
             disabledBackgroundColor: AppColors.buttonPrimary.withValues(alpha: 0.75),
             elevation: 0,
@@ -705,7 +719,7 @@ class _LoginPageState extends State<LoginPage> {
       prefixIcon: Icon(
         prefixIcon,
         color: AppColors.textMuted,
-        size: 16, // w-4 h-4
+        size: 16,
       ),
       filled: true,
       fillColor: Colors.white,
