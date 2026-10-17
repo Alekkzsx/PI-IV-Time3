@@ -156,7 +156,7 @@ void main() {
         () async {
       // Toggle video off
       harness.peerA.toggleVideo();
-      await Future<void>.delayed(const Duration(milliseconds: 15));
+      await pumpEventQueue();
 
       final peerAOnRemote = harness.peerB.remoteParticipants.firstWhere(
         (p) => p.id == 'peer_a_id',
@@ -165,7 +165,7 @@ void main() {
 
       // Toggle audio off
       harness.peerA.toggleAudio();
-      await Future<void>.delayed(const Duration(milliseconds: 15));
+      await pumpEventQueue();
 
       final peerAOnRemote2 = harness.peerB.remoteParticipants.firstWhere(
         (p) => p.id == 'peer_a_id',
@@ -174,7 +174,7 @@ void main() {
 
       // Toggle screen share
       harness.peerA.toggleScreenShare();
-      await Future<void>.delayed(const Duration(milliseconds: 15));
+      await pumpEventQueue();
 
       final peerAOnRemote3 = harness.peerB.remoteParticipants.firstWhere(
         (p) => p.id == 'peer_a_id',
