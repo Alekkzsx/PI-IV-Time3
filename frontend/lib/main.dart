@@ -12,6 +12,7 @@ import 'features/auth_view/reset_password/presentation/pages/reset_password_page
 import 'features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
 import 'features/student_view/student_messages/presentation/pages/student_messages_page.dart';
 import 'features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
+import 'features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
 
@@ -20,6 +21,8 @@ import 'shared/auth/external/auth_remote_datasource_impl.dart';
 /// Inicializa e injeta as dependências de Clean Architecture (DataSources, Repositories,
 /// UseCases e Controllers) e inicia a execução do [PortalAvaApp].
 void main() {
+  const initialRoute = String.fromEnvironment('INITIAL_ROUTE', defaultValue: '/');
+
   // Inicialização da injeção de dependências (Clean Architecture)
   final remoteDataSource = AuthRemoteDataSourceImpl();
   final repository = AuthRepositoryImpl(remoteDataSource);
@@ -37,6 +40,7 @@ void main() {
   runApp(PortalAvaApp(
     controller: recoverController,
     loginController: loginController,
+    initialRoute: initialRoute,
   ));
 }
 
@@ -73,6 +77,7 @@ class PortalAvaApp extends StatelessWidget {
         '/reset-password': (context) => const ResetPasswordPage(),
         '/student/messages': (context) => const StudentMessagesPage(),
         '/student/secretaria': (context) => const StudentSecretariatPage(),
+        '/video-call': (context) => const VideoCallLobbyPage(),
       },
     );
   }
