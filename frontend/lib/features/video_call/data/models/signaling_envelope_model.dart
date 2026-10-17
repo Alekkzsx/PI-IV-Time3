@@ -13,6 +13,7 @@ class SignalingEnvelopeType {
   static const String handRaise = 'hand_raise';
   static const String mediaState = 'media_state';
   static const String recordingState = 'recording_state';
+  static const String webrtcSignal = 'webrtc_signal';
 
   static const List<String> values = [
     join,
@@ -24,6 +25,7 @@ class SignalingEnvelopeType {
     handRaise,
     mediaState,
     recordingState,
+    webrtcSignal,
   ];
 
   /// Normaliza strings de tipo para comparação case-insensitive.

@@ -20,6 +20,7 @@ abstract class IVideoCallSignalingDataSource {
   Stream<HandRaiseItem> get onHandRaise;
   Stream<MediaStateUpdate> get onMediaStateUpdate;
   Stream<RecordingStateModel> get onRecordingState;
+  Stream<Map<String, dynamic>> get onWebRtcSignal => const Stream.empty();
 
   Future<void> connect({
     required String roomId,
@@ -51,6 +52,11 @@ abstract class IVideoCallSignalingDataSource {
   });
 
   Future<void> broadcastRecordingState(String roomId, RecordingStateModel state);
+
+  Future<void> broadcastWebRtcSignal(
+    String roomId,
+    Map<String, dynamic> signalData,
+  ) async {}
 
   void updateLocalAudioLevel(double level);
 
@@ -93,6 +99,8 @@ class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
       StreamController<MediaStateUpdate>.broadcast();
   final StreamController<RecordingStateModel> _onRecordingStateController =
       StreamController<RecordingStateModel>.broadcast();
+  final StreamController<Map<String, dynamic>> _onWebRtcSignalController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   VideoCallSignalingDataSource({
     ISignalingChannel Function(String channelName)? channelFactory,
@@ -122,6 +130,10 @@ class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
   @override
   Stream<RecordingStateModel> get onRecordingState =>
       _onRecordingStateController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get onWebRtcSignal =>
+      _onWebRtcSignalController.stream;
 
   /// Retorna a lista imutável dos participantes remotos atualmente descobertos.
   List<ParticipantModel> get remoteParticipants =>
