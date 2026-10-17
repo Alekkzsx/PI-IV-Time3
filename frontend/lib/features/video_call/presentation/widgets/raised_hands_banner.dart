@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/hand_raise_item.dart';
+import '../theme/video_call_theme.dart';
 
-/// Banner superior exibindo a fila ordenada FIFO de participantes com a mão levantada.
+/// Banner superior exibindo a fila ordenada FIFO de participantes com a mão levantada (Estética Preto, Cinza e Branco).
 ///
 /// Permite ao anfitrião e aos demais participantes identificar quem solicitou
 /// a palavra, respeitando a ordem cronológica estrita de manifestação.
@@ -19,13 +20,18 @@ class RaisedHandsBanner extends StatelessWidget {
     return Container(
       key: const Key('raised_hands_banner'),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.amber.shade900.withValues(alpha: 0.9),
+      decoration: const BoxDecoration(
+        color: VideoCallColors.surfaceElevated,
+        border: Border(
+          bottom: BorderSide(color: VideoCallColors.border, width: 1),
+        ),
+      ),
       child: Row(
         children: [
           const Text(
             '✋ Mãos Levantadas: ',
             style: TextStyle(
-              color: Colors.white,
+              color: VideoCallColors.accentWhite,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -38,7 +44,15 @@ class RaisedHandsBanner extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 8.0),
                     child: Chip(
                       key: Key('queue_item_${item.peerId}'),
-                      label: Text('${item.name} (${item.ra})'),
+                      backgroundColor: VideoCallColors.surface,
+                      side: const BorderSide(color: VideoCallColors.borderStrong),
+                      label: Text(
+                        '${item.name} (${item.ra})',
+                        style: const TextStyle(
+                          color: VideoCallColors.textPrimary,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   );
                 }).toList(),
