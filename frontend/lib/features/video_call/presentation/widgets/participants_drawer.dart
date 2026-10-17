@@ -53,8 +53,10 @@ class ParticipantsDrawer extends StatelessWidget {
           ),
           const Divider(color: VideoCallColors.border, height: 1),
           Expanded(
-            child: ListView.separated(
-              itemCount: participants.length,
+            child: Material(
+              color: Colors.transparent,
+              child: ListView.separated(
+                itemCount: participants.length,
               separatorBuilder: (context, index) =>
                   const Divider(color: VideoCallColors.border, height: 1),
               itemBuilder: (context, index) {
@@ -152,6 +154,7 @@ class ParticipantsDrawer extends StatelessWidget {
                   ),
                 );
               },
+            ),
             ),
           ),
         ],

@@ -33,8 +33,8 @@ void main() {
       expect(decoded, equals(envelope));
     });
 
-    test('validates all 9 envelope types in SignalingEnvelopeType', () {
-      expect(SignalingEnvelopeType.values.length, equals(9));
+    test('validates all 10 envelope types in SignalingEnvelopeType', () {
+      expect(SignalingEnvelopeType.values.length, equals(10));
       expect(SignalingEnvelopeType.matches('JOIN', SignalingEnvelopeType.join), isTrue);
       expect(SignalingEnvelopeType.matches('presence_sync', SignalingEnvelopeType.presenceSync), isTrue);
       expect(SignalingEnvelopeType.matches('HEARTBEAT', SignalingEnvelopeType.heartbeat), isTrue);
@@ -44,6 +44,7 @@ void main() {
       expect(SignalingEnvelopeType.matches('hand_raise', SignalingEnvelopeType.handRaise), isTrue);
       expect(SignalingEnvelopeType.matches('media_state', SignalingEnvelopeType.mediaState), isTrue);
       expect(SignalingEnvelopeType.matches('recording_state', SignalingEnvelopeType.recordingState), isTrue);
+      expect(SignalingEnvelopeType.matches('webrtc_signal', SignalingEnvelopeType.webrtcSignal), isTrue);
     });
   });
 

@@ -272,20 +272,19 @@ class VideoCallController extends ChangeNotifier {
     if (item.peerId == _localParticipant.id) return;
     final existingIndex =
         _raisedHandsQueue.indexWhere((h) => h.peerId == item.peerId);
-    if (!item.isRaised) {
+    final bool shouldLower = !item.isRaised || existingIndex >= 0;
+    if (shouldLower) {
       if (existingIndex >= 0) {
         _raisedHandsQueue.removeAt(existingIndex);
       }
     } else {
-      if (existingIndex < 0) {
-        _raisedHandsQueue.add(item);
-      }
+      _raisedHandsQueue.add(item);
     }
 
     if (_remoteParticipants.containsKey(item.peerId)) {
       final p = _remoteParticipants[item.peerId]!;
       _remoteParticipants[item.peerId] = p.copyWith(
-        isHandRaised: item.isRaised,
+        isHandRaised: !shouldLower,
       );
     }
     notifyListeners();
@@ -363,24 +362,42 @@ class VideoCallController extends ChangeNotifier {
   }
 
   /// Alterna o modo de compartilhamento de tela local (`getDisplayMedia`).
-  Future<void> toggleScreenShare() async {
+  void toggleScreenShare() {
     if (_isScreenSharing) {
       _isScreenSharing = false;
-      await mediaEngine.stopScreenShare();
+      _localParticipant =
+          _localParticipant.copyWith(isScreenSharing: false);
+      repository.updateMediaState(
+        room.code,
+        _localParticipant.id,
+        isScreenSharing: false,
+      );
+      notifyListeners();
+      mediaEngine.stopScreenShare();
     } else {
-      final started = await mediaEngine.startScreenShare();
-      if (!started) return;
       _isScreenSharing = true;
+      _localParticipant =
+          _localParticipant.copyWith(isScreenSharing: true);
+      repository.updateMediaState(
+        room.code,
+        _localParticipant.id,
+        isScreenSharing: true,
+      );
+      notifyListeners();
+      mediaEngine.startScreenShare().then((started) {
+        if (!started && !_isDisposed && _isScreenSharing) {
+          _isScreenSharing = false;
+          _localParticipant =
+              _localParticipant.copyWith(isScreenSharing: false);
+          repository.updateMediaState(
+            room.code,
+            _localParticipant.id,
+            isScreenSharing: false,
+          );
+          notifyListeners();
+        }
+      });
     }
-
-    _localParticipant =
-        _localParticipant.copyWith(isScreenSharing: _isScreenSharing);
-    repository.updateMediaState(
-      room.code,
-      _localParticipant.id,
-      isScreenSharing: _isScreenSharing,
-    );
-    notifyListeners();
   }
 
   /// Fixa ou desafixa um participante em destaque (Pin / Spotlight).
@@ -504,7 +521,7 @@ class VideoCallController extends ChangeNotifier {
   }
 
   /// Alterna a gravação real da reunião (`MediaRecorder`) e propaga o estado aos peers.
-  Future<void> toggleRecording() async {
+  void toggleRecording() {
     if (_recordingState.isRecording) {
       _recordingTimer?.cancel();
       _recordingTimer = null;
@@ -512,12 +529,17 @@ class VideoCallController extends ChangeNotifier {
       _recordingState = stoppedState;
       repository.updateRecordingState(room.code, stoppedState);
       _generateSessionExport();
-      if (_lastSessionExport != null) {
-        _lastDownloadedFileName =
-            await mediaEngine.stopRecordingAndDownload(_lastSessionExport!);
+      notifyListeners();
+      final exportSnap = _lastSessionExport;
+      if (exportSnap != null) {
+        mediaEngine.stopRecordingAndDownload(exportSnap).then((fileName) {
+          if (!_isDisposed) {
+            _lastDownloadedFileName = fileName;
+            notifyListeners();
+          }
+        });
       }
     } else {
-      await mediaEngine.startRecording();
       final startedState = RecordingState(
         isRecording: true,
         startedAt: DateTime.now(),
@@ -537,8 +559,9 @@ class VideoCallController extends ChangeNotifier {
         }
       });
       repository.updateRecordingState(room.code, startedState);
+      notifyListeners();
+      mediaEngine.startRecording();
     }
-    notifyListeners();
   }
 
   void _generateSessionExport() {
