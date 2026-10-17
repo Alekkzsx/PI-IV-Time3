@@ -6,8 +6,6 @@ import 'package:pi_iv_time3/features/video_call/data/models/emoji_reaction_model
 import 'package:pi_iv_time3/features/video_call/data/models/participant_model.dart';
 import 'package:pi_iv_time3/features/video_call/data/models/recording_state_model.dart';
 import 'package:pi_iv_time3/features/video_call/data/models/signaling_envelope_model.dart';
-import 'package:pi_iv_time3/features/video_call/domain/entities/chat_message.dart';
-import 'package:pi_iv_time3/features/video_call/domain/entities/emoji_reaction.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/participant.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/recording_state.dart';
 

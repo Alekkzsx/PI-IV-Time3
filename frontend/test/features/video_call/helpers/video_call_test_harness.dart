@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'dart:async';
+import 'package:flutter_test/flutter_test.dart';
 import 'in_memory_signaling_bus.dart';
 import 'mock_video_call_repository.dart';
 import 'video_call_contracts.dart';
