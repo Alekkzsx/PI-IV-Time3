@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
@@ -6,23 +6,22 @@ import '../theme/video_call_theme.dart';
 import 'audio_level_meter.dart';
 import 'real_video_renderer.dart';
 
-/// Tile individual de exibição de vídeo/avatar de um participante real da conferência.
+/// Individual video/avatar display tile for a real conference participant.
 ///
-/// Apresenta o stream de câmera HTML5 real via [RealVideoRenderer] ou avatar com
-/// gradiente monocromático e iniciais, insígnia institucional com nome e RA, badges de
-/// silenciamento, compartilhamento de tela e mão levantada, além da moldura luminosa
-/// branca de alto-falante ativo (Estética Preto, Cinza e Branco).
+/// Renders real HTML5 camera stream via [RealVideoRenderer] or fallback avatar with
+/// monochromatic gradient and initials, institutional name and RA badge, mute indicators,
+/// screen sharing badge, hand-raise icon, and active speaker spotlight border.
 class ParticipantVideoTile extends StatelessWidget {
-  /// Entidade do participante real a ser renderizada.
+  /// Real participant entity to be rendered.
   final Participant participant;
 
-  /// Identificador opcional da view HTML5 `<video>` registrada no `platformViewRegistry`.
+  /// Optional identifier of the HTML5 `<video>` view registered in `platformViewRegistry`.
   final String? videoViewType;
 
-  /// Indica se este participante está fixado (pin/spotlight) na grade.
+  /// Indicates whether this participant is pinned (spotlight) in the grid.
   final bool isPinned;
 
-  /// Callback opcional ao clicar/tocar no quadro do participante (para destaque/pin).
+  /// Optional callback when clicking/tapping the participant tile (for spotlight/pin).
   final VoidCallback? onTap;
 
   const ParticipantVideoTile({
