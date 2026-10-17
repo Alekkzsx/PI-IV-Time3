@@ -92,6 +92,9 @@ void main() {
 
       expect(harness.peerA.activeReactions.any((r) => r.emoji == '👏'), isTrue);
 
+      // Allow reaction 2500ms duration to expire cleanly
+      await tester.pump(const Duration(milliseconds: 2600));
+
       // 8. Professor stops recording and concludes session
       harness.peerA.toggleRecording();
       await tester.pump();

@@ -29,7 +29,9 @@ class VideoCallTestController extends ChangeNotifier {
   Timer? _callDurationTimer;
   Timer? _recordingTimer;
   Timer? _speakingHysteresisTimer;
+  final List<Timer> _reactionTimers = [];
   final List<StreamSubscription> _subscriptions = [];
+  bool _isDisposed = false;
 
   VideoCallTestController({
     required this.repository,
@@ -119,10 +121,13 @@ class VideoCallTestController extends ChangeNotifier {
     _activeReactions.add(reaction);
     notifyListeners();
     // Auto-remove reaction after 2500ms ascent duration
-    Timer(const Duration(milliseconds: 2500), () {
-      _activeReactions.remove(reaction);
-      notifyListeners();
+    final timer = Timer(const Duration(milliseconds: 2500), () {
+      if (!_isDisposed) {
+        _activeReactions.remove(reaction);
+        notifyListeners();
+      }
     });
+    _reactionTimers.add(timer);
   }
 
   void _onHandRaiseReceived(HandRaiseItem item) {
@@ -277,10 +282,13 @@ class VideoCallTestController extends ChangeNotifier {
     repository.sendEmojiReaction(room.code, reaction);
     notifyListeners();
 
-    Timer(const Duration(milliseconds: 2500), () {
-      _activeReactions.remove(reaction);
-      notifyListeners();
+    final timer = Timer(const Duration(milliseconds: 2500), () {
+      if (!_isDisposed) {
+        _activeReactions.remove(reaction);
+        notifyListeners();
+      }
     });
+    _reactionTimers.add(timer);
   }
 
   void sendChatMessage(String text) {
@@ -366,11 +374,22 @@ class VideoCallTestController extends ChangeNotifier {
     dispose();
   }
 
+  void updateCallDuration(Duration duration) {
+    _callDuration = duration;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
     _callDurationTimer?.cancel();
     _recordingTimer?.cancel();
     _speakingHysteresisTimer?.cancel();
+    for (final timer in _reactionTimers) {
+      timer.cancel();
+    }
+    _reactionTimers.clear();
     for (final sub in _subscriptions) {
       sub.cancel();
     }

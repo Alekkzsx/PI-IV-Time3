@@ -62,8 +62,20 @@ void main() {
       await tester.pump();
 
       expect(harness.peerA.activeReactions.length, 2);
-      expect(find.text('🎉'), findsOneWidget);
-      expect(find.text('❤️'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(FloatingReactionsOverlay),
+          matching: find.text('🎉'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(FloatingReactionsOverlay),
+          matching: find.text('❤️'),
+        ),
+        findsOneWidget,
+      );
 
       // 4. Collaborative chat study notes exchange
       harness.peerA.sendChatMessage('Resumo do capítulo 3 finalizado');
@@ -75,6 +87,9 @@ void main() {
 
       expect(find.text('Resumo do capítulo 3 finalizado'), findsOneWidget);
       expect(find.text('Perfeito, vou anexar o diagrama'), findsOneWidget);
+
+      // Allow 2500ms reaction and 800ms hysteresis timers to complete cleanly
+      await tester.pump(const Duration(milliseconds: 2600));
     });
   });
 }
