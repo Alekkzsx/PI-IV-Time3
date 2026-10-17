@@ -388,7 +388,12 @@ void main() {
           ),
         );
         expect(find.byType(ParticipantVideoTile), findsNWidgets(2));
-        expect(find.byType(Row), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is Row && w.children.length == 2 && w.children.every((c) => c is Expanded),
+          ),
+          findsOneWidget,
+        );
 
         // 4. N = 3: GridView layout
         await tester.pumpWidget(
@@ -613,8 +618,8 @@ void main() {
             home: Scaffold(
               body: Column(
                 children: [
-                  ParticipantVideoTile(participant: silentUser),
-                  ParticipantVideoTile(participant: speakingUser),
+                  Expanded(child: ParticipantVideoTile(participant: silentUser)),
+                  Expanded(child: ParticipantVideoTile(participant: speakingUser)),
                 ],
               ),
             ),

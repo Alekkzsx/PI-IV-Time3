@@ -271,12 +271,12 @@ void main() {
         final cA = VideoCallController(
           repository: rA,
           room: room,
-          localParticipant: const Participant(id: 'peer_a', name: 'Alex', ra: '24802449'),
+          localParticipant: Participant(id: 'peer_a', name: 'Alex', ra: '24802449'),
         );
         final cB = VideoCallController(
           repository: rB,
           room: room,
-          localParticipant: const Participant(id: 'peer_b', name: 'Beatriz', ra: '24801122'),
+          localParticipant: Participant(id: 'peer_b', name: 'Beatriz', ra: '24801122'),
         );
 
         expect(cA.activeReactions, isEmpty);
