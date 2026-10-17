@@ -64,6 +64,9 @@ class VideoCallTestHarness {
       localParticipant: participantB,
     );
 
+    // Flush initial handshake signaling envelopes across in-memory bus
+    await pumpEventQueue();
+
     return VideoCallTestHarness._(
       roomCode: roomCode,
       room: room,

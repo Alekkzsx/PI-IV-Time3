@@ -10,7 +10,6 @@ import 'package:pi_iv_time3/features/video_call/domain/entities/meeting_room.dar
 import 'package:pi_iv_time3/features/video_call/domain/entities/participant.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/recording_state.dart';
 import 'package:pi_iv_time3/features/video_call/domain/errors/video_call_failures.dart';
-import 'package:pi_iv_time3/features/video_call/domain/repositories/media_repository.dart';
 import 'package:pi_iv_time3/features/video_call/domain/repositories/recording_repository.dart';
 import 'package:pi_iv_time3/features/video_call/domain/repositories/video_call_repository.dart';
 import 'package:pi_iv_time3/features/video_call/domain/usecases/join_room_usecase.dart';
