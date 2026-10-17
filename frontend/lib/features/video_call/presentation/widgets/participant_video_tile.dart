@@ -65,9 +65,9 @@ class ParticipantVideoTile extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // Feed de câmera real ou Avatar monocromático com iniciais
-            Center(
-              child: participant.isVideoOff
-                  ? CircleAvatar(
+            participant.isVideoOff
+                ? Center(
+                    child: CircleAvatar(
                       key: Key('avatar_${participant.id}'),
                       radius: 36,
                       backgroundColor: VideoCallColors.background,
@@ -102,8 +102,10 @@ class ParticipantVideoTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                    )
-                  : Container(
+                    ),
+                  )
+                : SizedBox.expand(
+                    child: Container(
                       key: Key('camera_feed_${participant.id}'),
                       decoration: BoxDecoration(
                         color: VideoCallColors.background,
@@ -114,7 +116,7 @@ class ParticipantVideoTile extends StatelessWidget {
                         fallbackIcon: Icons.videocam,
                       ),
                     ),
-            ),
+                  ),
 
             // Barra inferior com Nome, RA, Papel e Medidor de Áudio
             Positioned(

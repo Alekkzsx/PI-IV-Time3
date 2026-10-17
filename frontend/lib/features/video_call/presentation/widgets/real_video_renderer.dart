@@ -26,10 +26,12 @@ class RealVideoRenderer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb && viewType != null && viewType!.isNotEmpty) {
-      return ClipRect(
-        child: HtmlElementView(
-          key: ValueKey('html_video_$viewType'),
-          viewType: viewType!,
+      return SizedBox.expand(
+        child: ClipRect(
+          child: HtmlElementView(
+            key: ValueKey('html_video_$viewType'),
+            viewType: viewType!,
+          ),
         ),
       );
     }

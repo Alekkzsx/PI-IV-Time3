@@ -4,7 +4,6 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:js' as js;
-import 'dart:math' as math;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/services.dart';
 import '../../domain/entities/session_export.dart';
@@ -15,12 +14,10 @@ ICallMediaEngine createCallMediaEngine() => WebCallMediaEngine();
 
 /// Motor de mídia e WebRTC real para navegador Web.
 ///
-/// Integra:
-/// - `navigator.mediaDevices.getUserMedia` para câmera e microfone físicos.
-/// - Web Audio API (`AudioContext` + `AnalyserNode`) para leitura em tempo real da voz no microfone.
-/// - `navigator.mediaDevices.getDisplayMedia` via ponte JS nativa para compartilhamento de tela real.
-/// - `RTCPeerConnection` para streaming P2P de vídeo e áudio entre abas/usuários reais.
-/// - `MediaRecorder` + download automático de `.webm` e ata `.txt` da sessão.
+/// Executa toda a manipulação de `MediaStream`, `HTMLVideoElement.srcObject`,
+/// `AudioContext` + `AnalyserNode`, `getDisplayMedia`, `RTCPeerConnection` e
+/// `MediaRecorder` diretamente na ponte nativa JavaScript (`window.__agmrmMediaBridge`),
+/// eliminando falhas de empacotamento `DartObject` entre `dart:html` e `dart:js`.
 class WebCallMediaEngine implements ICallMediaEngine {
   static int _viewSequence = 0;
   static bool _bridgeInitialized = false;
@@ -34,87 +31,123 @@ class WebCallMediaEngine implements ICallMediaEngine {
   final StreamController<String> _videoStreamUpdatedController =
       StreamController<String>.broadcast();
 
-  html.MediaStream? _localStream;
-  Object? _screenStreamObj;
-  final Map<String, html.MediaStream> _remoteStreams = {};
-  final Map<String, html.RtcPeerConnection> _peerConnections = {};
-  final Map<String, List<html.VideoElement>> _videoElementsByKey = {};
   final Map<String, String> _registeredViewTypes = {};
-
-  js.JsObject? _audioContext;
-  js.JsObject? _analyserNode;
-  Timer? _audioMeterTimer;
   Timer? _videoPlaybackWatchdog;
 
-  html.MediaRecorder? _mediaRecorder;
-  final List<html.Blob> _recordedChunks = [];
-  Completer<void>? _recorderStopCompleter;
-
+  bool _isInitialized = false;
   bool _isAudioMuted = false;
   bool _isVideoOff = false;
   bool _isDisposed = false;
+  Future<bool>? _initFuture;
 
   WebCallMediaEngine() {
     _ensureJsBridge();
+    _bindBridgeCallbacks();
     _startVideoPlaybackWatchdog();
   }
 
-  /// Inicializa uma ponte JavaScript nativa em `window.__agmrmMediaBridge`
-  /// para garantir reprodução contínua de `<video>` (sem congelar ao trocar de rota)
-  /// e suporte direto a `navigator.mediaDevices.getDisplayMedia`.
+  /// Inicializa a ponte JavaScript nativa `window.__agmrmMediaBridge` no navegador.
   static void _ensureJsBridge() {
     if (_bridgeInitialized) return;
     _bridgeInitialized = true;
     try {
-      js.context.callMethod('eval', [
-        '''
+      js.context.callMethod('eval', [_bridgeScriptSource]);
+    } catch (_) {}
+    try {
+      if (js.context['__agmrmMediaBridge'] == null) {
+        final script = html.ScriptElement()
+          ..type = 'text/javascript'
+          ..text = _bridgeScriptSource;
+        (html.document.head ?? html.document.body)?.append(script);
+      }
+    } catch (_) {}
+  }
+
+  static const String _bridgeScriptSource = r'''
         (function() {
           if (window.__agmrmMediaBridge) return;
+
+          function unwrap(obj) {
+            if (!obj) return obj;
+            if (obj.o && typeof obj.o === 'object') return obj.o;
+            return obj;
+          }
+
           window.__agmrmMediaBridge = {
             streams: {},
-            setStream: function(key, stream) {
-              this.streams[key] = stream;
-            },
-            getStream: function(key) {
-              return this.streams[key] || null;
-            },
-            clearStream: function(key) {
-              var s = this.streams[key];
-              if (s && s.getTracks) {
-                try {
-                  s.getTracks().forEach(function(t) { t.stop(); });
-                } catch (e) {}
-              }
-              delete this.streams[key];
-            },
-            attachStreamToElement: function(videoEl, key, muted) {
-              var self = this;
-              if (!videoEl) return;
-              videoEl.muted = !!muted;
-              videoEl.defaultMuted = !!muted;
-              videoEl.autoplay = true;
-              videoEl.playsInline = true;
+            peers: {},
+            audioCtx: null,
+            analyser: null,
+            audioTimer: null,
+            audioMuted: false,
+            videoOff: false,
+            mediaRecorder: null,
+            recordedChunks: [],
+            onAudioLevelCb: null,
+            onRemoteStreamCb: null,
+            onOutboundSignalCb: null,
 
-              var ensurePlaying = function() {
-                var s = self.streams[key];
-                if (!s) return;
-                if (videoEl.srcObject !== s) {
-                  videoEl.srcObject = s;
+            findVideosByKey: function(key) {
+              var result = [];
+              function scan(root) {
+                if (!root || !root.querySelectorAll) return;
+                var selector = key
+                  ? 'video[data-agmrm-key="' + key + '"]'
+                  : 'video[data-agmrm-key]';
+                var matches = root.querySelectorAll(selector);
+                for (var i = 0; i < matches.length; i++) {
+                  result.push(matches[i]);
                 }
-                videoEl.muted = !!muted;
-                if (videoEl.paused) {
-                  var p = videoEl.play();
-                  if (p && p.catch) {
-                    p.catch(function() {});
+                var all = root.querySelectorAll('*');
+                for (var j = 0; j < all.length; j++) {
+                  if (all[j].shadowRoot) {
+                    scan(all[j].shadowRoot);
                   }
                 }
+              }
+              scan(document);
+              return result;
+            },
+
+            attachStreamToElement: function(rawVideoEl, key, muted) {
+              var self = this;
+              var videoEl = unwrap(rawVideoEl);
+              if (!videoEl) return;
+
+              try {
+                videoEl.muted = !!muted;
+                videoEl.defaultMuted = !!muted;
+                videoEl.autoplay = true;
+                videoEl.playsInline = true;
+                videoEl.setAttribute('playsinline', 'true');
+                videoEl.setAttribute('webkit-playsinline', 'true');
+                if (muted) {
+                  videoEl.setAttribute('muted', 'true');
+                }
+              } catch (e) {}
+
+              var ensurePlaying = function() {
+                try {
+                  var s = unwrap(self.streams[key]);
+                  if (!s) return;
+                  if (videoEl.srcObject !== s) {
+                    videoEl.srcObject = s;
+                  }
+                  videoEl.muted = !!muted;
+                  if (videoEl.paused) {
+                    var p = videoEl.play();
+                    if (p && p.catch) {
+                      p.catch(function() {});
+                    }
+                  }
+                } catch (e) {}
               };
 
               videoEl.addEventListener('loadedmetadata', ensurePlaying);
               videoEl.addEventListener('loadeddata', ensurePlaying);
               videoEl.addEventListener('canplay', ensurePlaying);
               videoEl.addEventListener('pause', function() {
-                setTimeout(ensurePlaying, 60);
+                setTimeout(ensurePlaying, 80);
               });
 
               ensurePlaying();
@@ -122,26 +155,218 @@ class WebCallMediaEngine implements ICallMediaEngine {
               setTimeout(ensurePlaying, 200);
               setTimeout(ensurePlaying, 500);
             },
+
             resumeAllForKey: function(key, muted) {
-              var s = this.streams[key];
+              var s = unwrap(this.streams[key]);
               if (!s) return;
-              var videos = document.querySelectorAll('video[data-agmrm-key="' + key + '"]');
+              var videos = this.findVideosByKey(key);
               for (var i = 0; i < videos.length; i++) {
                 var v = videos[i];
-                if (v.srcObject !== s) {
-                  v.srcObject = s;
+                try {
+                  if (v.srcObject !== s) {
+                    v.srcObject = s;
+                  }
+                  v.muted = !!muted;
+                  if (v.paused) {
+                    var p = v.play();
+                    if (p && p.catch) p.catch(function() {});
+                  }
+                } catch (e) {}
+              }
+            },
+
+            resumeAllStreams: function() {
+              var keys = Object.keys(this.streams);
+              for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                var isMuted = (k === 'local' || k === 'screen');
+                this.resumeAllForKey(k, isMuted);
+              }
+            },
+
+            startLocalMedia: function(audioMuted, videoOff, onSuccess, onError) {
+              var self = this;
+              self.audioMuted = !!audioMuted;
+              self.videoOff = !!videoOff;
+
+              var existing = unwrap(self.streams['local']);
+              if (existing && existing.getTracks && existing.getTracks().some(function(t) { return t.readyState === 'live'; })) {
+                self.setMicMuted(self.audioMuted);
+                self.setCamOff(self.videoOff);
+                self.resumeAllForKey('local', true);
+                onSuccess(true);
+                return;
+              }
+
+              if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                onError('mediaDevices.getUserMedia indisponivel');
+                return;
+              }
+
+              var applyStream = function(stream) {
+                self.streams['local'] = stream;
+                self.setMicMuted(self.audioMuted);
+                self.setCamOff(self.videoOff);
+                self.startAudioAnalyser(stream);
+                self.resumeAllForKey('local', true);
+                onSuccess(true);
+              };
+
+              navigator.mediaDevices.getUserMedia({
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true
+                },
+                video: {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  facingMode: 'user'
                 }
-                v.muted = !!muted;
-                if (v.paused) {
-                  var p = v.play();
-                  if (p && p.catch) p.catch(function() {});
+              }).then(applyStream).catch(function() {
+                navigator.mediaDevices.getUserMedia({
+                  audio: true,
+                  video: true
+                }).then(applyStream).catch(function() {
+                  navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: true
+                  }).then(applyStream).catch(function() {
+                    navigator.mediaDevices.getUserMedia({
+                      audio: true,
+                      video: false
+                    }).then(applyStream).catch(function(err) {
+                      onError(String(err));
+                    });
+                  });
+                });
+              });
+            },
+
+            startAudioAnalyser: function(rawStream) {
+              var self = this;
+              var stream = unwrap(rawStream);
+              if (!stream || !stream.getAudioTracks || stream.getAudioTracks().length === 0) {
+                return;
+              }
+
+              try {
+                if (self.audioTimer) {
+                  clearInterval(self.audioTimer);
+                  self.audioTimer = null;
+                }
+                if (self.audioCtx && self.audioCtx.close) {
+                  try { self.audioCtx.close(); } catch (e) {}
+                }
+
+                var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+
+                var ctx = new AudioCtx();
+                var source = ctx.createMediaStreamSource(stream);
+                var analyser = ctx.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.4;
+                source.connect(analyser);
+
+                self.audioCtx = ctx;
+                self.analyser = analyser;
+
+                var resumeCtx = function() {
+                  if (self.audioCtx && self.audioCtx.state === 'suspended') {
+                    self.audioCtx.resume().catch(function() {});
+                  }
+                };
+                window.addEventListener('click', resumeCtx, { passive: true });
+                window.addEventListener('keydown', resumeCtx, { passive: true });
+                window.addEventListener('pointerdown', resumeCtx, { passive: true });
+                resumeCtx();
+
+                var freqData = new Uint8Array(analyser.frequencyBinCount);
+                var timeData = new Uint8Array(analyser.fftSize);
+
+                self.audioTimer = setInterval(function() {
+                  if (self.audioMuted || !self.analyser) {
+                    if (self.onAudioLevelCb) self.onAudioLevelCb(0.0);
+                    return;
+                  }
+                  try {
+                    if (self.audioCtx && self.audioCtx.state === 'suspended') {
+                      self.audioCtx.resume().catch(function() {});
+                    }
+                    self.analyser.getByteFrequencyData(freqData);
+                    self.analyser.getByteTimeDomainData(timeData);
+
+                    var sumFreq = 0;
+                    for (var i = 0; i < freqData.length; i++) {
+                      var nf = freqData[i] / 255.0;
+                      sumFreq += nf * nf;
+                    }
+                    var rmsFreq = Math.sqrt(sumFreq / freqData.length);
+
+                    var sumTime = 0;
+                    for (var j = 0; j < timeData.length; j++) {
+                      var nt = (timeData[j] - 128.0) / 128.0;
+                      sumTime += nt * nt;
+                    }
+                    var rmsTime = Math.sqrt(sumTime / timeData.length);
+
+                    var combined = Math.max(rmsFreq * 2.4, rmsTime * 4.0);
+                    var clamped = Math.min(1.0, Math.max(0.0, combined));
+                    if (self.onAudioLevelCb) {
+                      self.onAudioLevelCb(clamped);
+                    }
+                  } catch (e) {}
+                }, 100);
+              } catch (e) {}
+            },
+
+            setMicMuted: function(muted) {
+              this.audioMuted = !!muted;
+              var s = unwrap(this.streams['local']);
+              if (s && s.getAudioTracks) {
+                s.getAudioTracks().forEach(function(t) {
+                  t.enabled = !muted;
+                });
+              }
+              if (muted && this.onAudioLevelCb) {
+                this.onAudioLevelCb(0.0);
+              }
+            },
+
+            setCamOff: function(videoOff) {
+              this.videoOff = !!videoOff;
+              var s = unwrap(this.streams['local']);
+              if (s && s.getVideoTracks) {
+                s.getVideoTracks().forEach(function(t) {
+                  t.enabled = !videoOff;
+                });
+              }
+              if (!videoOff) {
+                this.resumeAllForKey('local', true);
+              }
+            },
+
+            replaceOutgoingVideoTrack: function(newVideoTrack) {
+              var peerIds = Object.keys(this.peers);
+              for (var i = 0; i < peerIds.length; i++) {
+                var pc = this.peers[peerIds[i]];
+                if (pc && pc.getSenders) {
+                  var senders = pc.getSenders();
+                  for (var j = 0; j < senders.length; j++) {
+                    var sender = senders[j];
+                    if (sender.track && sender.track.kind === 'video' && newVideoTrack) {
+                      try { sender.replaceTrack(newVideoTrack); } catch (e) {}
+                    }
+                  }
                 }
               }
             },
+
             startDisplayMedia: function(onSuccess, onError, onEnded) {
               var self = this;
               if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                onError('getDisplayMedia not supported');
+                onError('getDisplayMedia nao suportado');
                 return;
               }
               navigator.mediaDevices.getDisplayMedia({
@@ -149,24 +374,276 @@ class WebCallMediaEngine implements ICallMediaEngine {
                 audio: false
               }).then(function(stream) {
                 self.streams['screen'] = stream;
-                var tracks = stream.getVideoTracks();
-                if (tracks && tracks.length > 0) {
-                  tracks[0].addEventListener('ended', function() {
+                var videoTracks = stream.getVideoTracks();
+                if (videoTracks && videoTracks.length > 0) {
+                  self.replaceOutgoingVideoTrack(videoTracks[0]);
+                  videoTracks[0].addEventListener('ended', function() {
                     delete self.streams['screen'];
+                    var localS = unwrap(self.streams['local']);
+                    if (localS && localS.getVideoTracks && localS.getVideoTracks().length > 0) {
+                      self.replaceOutgoingVideoTrack(localS.getVideoTracks()[0]);
+                    }
                     onEnded();
                   });
                 }
-                onSuccess(stream);
+                self.resumeAllForKey('screen', true);
+                onSuccess();
               }).catch(function(err) {
                 onError(String(err));
               });
+            },
+
+            stopDisplayMedia: function() {
+              var s = unwrap(this.streams['screen']);
+              if (s && s.getTracks) {
+                try {
+                  s.getTracks().forEach(function(t) { t.stop(); });
+                } catch (e) {}
+              }
+              delete this.streams['screen'];
+              var localS = unwrap(this.streams['local']);
+              if (localS && localS.getVideoTracks && localS.getVideoTracks().length > 0) {
+                this.replaceOutgoingVideoTrack(localS.getVideoTracks()[0]);
+              }
+            },
+
+            getOrCreatePeer: function(remotePeerId) {
+              var self = this;
+              if (self.peers[remotePeerId]) {
+                return self.peers[remotePeerId];
+              }
+              var pc = new RTCPeerConnection({
+                iceServers: [
+                  { urls: 'stun:stun.l.google.com:19302' },
+                  { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+              });
+              self.peers[remotePeerId] = pc;
+
+              var localStream = unwrap(self.streams['local']);
+              var screenStream = unwrap(self.streams['screen']);
+              var activeStream = screenStream || localStream;
+              if (activeStream && activeStream.getTracks) {
+                activeStream.getTracks().forEach(function(track) {
+                  try { pc.addTrack(track, activeStream); } catch (e) {}
+                });
+              }
+              if (screenStream && localStream && localStream.getAudioTracks) {
+                localStream.getAudioTracks().forEach(function(audioTrack) {
+                  try { pc.addTrack(audioTrack, screenStream); } catch (e) {}
+                });
+              }
+
+              pc.onicecandidate = function(event) {
+                if (event.candidate && self.onOutboundSignalCb) {
+                  self.onOutboundSignalCb(
+                    remotePeerId,
+                    'ice',
+                    '',
+                    '',
+                    event.candidate.candidate || '',
+                    event.candidate.sdpMid || '',
+                    event.candidate.sdpMLineIndex || 0
+                  );
+                }
+              };
+
+              pc.ontrack = function(event) {
+                var remoteStream = (event.streams && event.streams[0])
+                  ? event.streams[0]
+                  : new MediaStream([event.track]);
+                self.streams[remotePeerId] = remoteStream;
+                if (self.onRemoteStreamCb) {
+                  self.onRemoteStreamCb(remotePeerId);
+                }
+                self.resumeAllForKey(remotePeerId, false);
+              };
+
+              return pc;
+            },
+
+            connectPeer: function(remotePeerId, isInitiator) {
+              var self = this;
+              try {
+                var pc = self.getOrCreatePeer(remotePeerId);
+                if (isInitiator) {
+                  pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                  }).then(function(offer) {
+                    return pc.setLocalDescription(offer).then(function() {
+                      if (self.onOutboundSignalCb) {
+                        self.onOutboundSignalCb(
+                          remotePeerId,
+                          'offer',
+                          offer.type || 'offer',
+                          offer.sdp || '',
+                          '',
+                          '',
+                          0
+                        );
+                      }
+                    });
+                  }).catch(function() {});
+                }
+              } catch (e) {}
+            },
+
+            handleSignal: function(remotePeerId, signalType, sdpType, sdp, candidate, sdpMid, sdpMLineIndex) {
+              var self = this;
+              try {
+                var pc = self.getOrCreatePeer(remotePeerId);
+                if (signalType === 'offer') {
+                  if (!sdp) return;
+                  pc.setRemoteDescription({
+                    type: sdpType || 'offer',
+                    sdp: sdp
+                  }).then(function() {
+                    return pc.createAnswer();
+                  }).then(function(answer) {
+                    return pc.setLocalDescription(answer).then(function() {
+                      if (self.onOutboundSignalCb) {
+                        self.onOutboundSignalCb(
+                          remotePeerId,
+                          'answer',
+                          answer.type || 'answer',
+                          answer.sdp || '',
+                          '',
+                          '',
+                          0
+                        );
+                      }
+                    });
+                  }).catch(function() {});
+                } else if (signalType === 'answer') {
+                  if (!sdp) return;
+                  pc.setRemoteDescription({
+                    type: sdpType || 'answer',
+                    sdp: sdp
+                  }).catch(function() {});
+                } else if (signalType === 'ice') {
+                  if (!candidate) return;
+                  pc.addIceCandidate({
+                    candidate: candidate,
+                    sdpMid: sdpMid || '0',
+                    sdpMLineIndex: sdpMLineIndex || 0
+                  }).catch(function() {});
+                }
+              } catch (e) {}
+            },
+
+            disconnectPeer: function(remotePeerId) {
+              var pc = this.peers[remotePeerId];
+              if (pc) {
+                try { pc.close(); } catch (e) {}
+                delete this.peers[remotePeerId];
+              }
+              delete this.streams[remotePeerId];
+            },
+
+            startRecording: function() {
+              var self = this;
+              self.recordedChunks = [];
+              var stream = unwrap(self.streams['screen']) || unwrap(self.streams['local']);
+              if (!stream || typeof MediaRecorder === 'undefined') return;
+              try {
+                var mimeType = 'video/webm;codecs=vp8,opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                  mimeType = 'video/webm';
+                }
+                var options = MediaRecorder.isTypeSupported(mimeType)
+                  ? { mimeType: mimeType }
+                  : {};
+                var recorder = new MediaRecorder(stream, options);
+                recorder.ondataavailable = function(e) {
+                  if (e.data && e.data.size > 0) {
+                    self.recordedChunks.push(e.data);
+                  }
+                };
+                self.mediaRecorder = recorder;
+                recorder.start(1000);
+              } catch (e) {
+                self.mediaRecorder = null;
+              }
+            },
+
+            stopRecordingAndDownload: function(webmName, txtName, txtContent, onDone) {
+              var self = this;
+              var finish = function() {
+                var downloaded = txtName;
+                try {
+                  if (self.recordedChunks && self.recordedChunks.length > 0) {
+                    var webmBlob = new Blob(self.recordedChunks, { type: 'video/webm' });
+                    self.triggerDownload(webmBlob, webmName);
+                    downloaded = webmName;
+                  }
+                  self.recordedChunks = [];
+                  var txtBlob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' });
+                  self.triggerDownload(txtBlob, txtName);
+                } catch (e) {}
+                onDone(downloaded);
+              };
+
+              try {
+                if (self.mediaRecorder && self.mediaRecorder.state !== 'inactive') {
+                  self.mediaRecorder.onstop = function() {
+                    self.mediaRecorder = null;
+                    finish();
+                  };
+                  self.mediaRecorder.stop();
+                  return;
+                }
+              } catch (e) {}
+              self.mediaRecorder = null;
+              finish();
+            },
+
+            triggerDownload: function(blob, fileName) {
+              try {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function() {
+                  try {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  } catch (e) {}
+                }, 400);
+              } catch (e) {}
+            },
+
+            disposeAll: function() {
+              if (this.audioTimer) {
+                clearInterval(this.audioTimer);
+                this.audioTimer = null;
+              }
+              if (this.audioCtx && this.audioCtx.close) {
+                try { this.audioCtx.close(); } catch (e) {}
+                this.audioCtx = null;
+              }
+              var peerIds = Object.keys(this.peers);
+              for (var i = 0; i < peerIds.length; i++) {
+                try { this.peers[peerIds[i]].close(); } catch (e) {}
+              }
+              this.peers = {};
+              var streamKeys = Object.keys(this.streams);
+              for (var j = 0; j < streamKeys.length; j++) {
+                var s = unwrap(this.streams[streamKeys[j]]);
+                if (s && s.getTracks) {
+                  try {
+                    s.getTracks().forEach(function(t) { t.stop(); });
+                  } catch (e) {}
+                }
+              }
+              this.streams = {};
             }
           };
         })();
-        '''
-      ]);
-    } catch (_) {}
-  }
+  ''';
 
   js.JsObject? get _bridge {
     try {
@@ -176,41 +653,61 @@ class WebCallMediaEngine implements ICallMediaEngine {
     }
   }
 
-  /// Watchdog leve (a cada 600ms) que garante que nenhum `<video>` ativo fique pausado
-  /// como imagem estática após transições de rota ou redimensionamentos do DOM.
+  void _bindBridgeCallbacks() {
+    final bridge = _bridge;
+    if (bridge == null) return;
+
+    bridge['onAudioLevelCb'] = js.allowInterop((num level) {
+      if (!_isDisposed && !_audioLevelController.isClosed) {
+        _audioLevelController.add(level.toDouble().clamp(0.0, 1.0));
+      }
+    });
+
+    bridge['onRemoteStreamCb'] = js.allowInterop((String remotePeerId) {
+      if (_isDisposed) return;
+      _registerStreamViewFactory(
+        remotePeerId,
+        muted: false,
+        mirror: false,
+      );
+    });
+
+    bridge['onOutboundSignalCb'] = js.allowInterop((
+      String targetPeerId,
+      String signalType,
+      String sdpType,
+      String sdp,
+      String candidate,
+      String sdpMid,
+      num sdpMLineIndex,
+    ) {
+      if (_isDisposed || _outboundWebRtcController.isClosed) return;
+      if (signalType == 'ice') {
+        _outboundWebRtcController.add({
+          'targetPeerId': targetPeerId,
+          'signalType': 'ice',
+          'candidate': candidate,
+          'sdpMid': sdpMid,
+          'sdpMLineIndex': sdpMLineIndex.toInt(),
+        });
+      } else {
+        _outboundWebRtcController.add({
+          'targetPeerId': targetPeerId,
+          'signalType': signalType,
+          'type': sdpType,
+          'sdp': sdp,
+        });
+      }
+    });
+  }
+
   void _startVideoPlaybackWatchdog() {
     _videoPlaybackWatchdog?.cancel();
     _videoPlaybackWatchdog = Timer.periodic(
-      const Duration(milliseconds: 600),
+      const Duration(milliseconds: 500),
       (_) {
         if (_isDisposed) return;
-        final bridge = _bridge;
-        if (_localStream != null && !_isVideoOff) {
-          bridge?.callMethod('resumeAllForKey', ['local', true]);
-          for (final el in _videoElementsByKey['local'] ?? const []) {
-            if (el.paused) {
-              el.muted = true;
-              el.play().catchError((_) {});
-            }
-          }
-        }
-        if (_screenStreamObj != null) {
-          bridge?.callMethod('resumeAllForKey', ['screen', true]);
-          for (final el in _videoElementsByKey['screen'] ?? const []) {
-            if (el.paused) {
-              el.muted = true;
-              el.play().catchError((_) {});
-            }
-          }
-        }
-        for (final peerId in _remoteStreams.keys) {
-          bridge?.callMethod('resumeAllForKey', [peerId, false]);
-          for (final el in _videoElementsByKey[peerId] ?? const []) {
-            if (el.paused) {
-              el.play().catchError((_) {});
-            }
-          }
-        }
+        _bridge?.callMethod('resumeAllStreams', []);
       },
     );
   }
@@ -231,22 +728,19 @@ class WebCallMediaEngine implements ICallMediaEngine {
       _videoStreamUpdatedController.stream;
 
   @override
-  bool get isInitialized => _localStream != null;
+  bool get isInitialized => _isInitialized;
 
   @override
   String? getVideoViewType(String streamKey) => _registeredViewTypes[streamKey];
 
   /// Registra uma factory no `platformViewRegistry` que cria um `<video>` HTML5
-  /// dedicado para cada montagem de `HtmlElementView` (evitando conflito entre Lobby e Sala).
+  /// limpo e anexa o `MediaStream` nativo em JavaScript sem risco de exceção `DartObject`.
   String _registerStreamViewFactory(
-    String streamKey,
-    Object stream, {
+    String streamKey, {
     required bool muted,
     required bool mirror,
     bool forceNewViewType = false,
   }) {
-    _bridge?.callMethod('setStream', [streamKey, stream]);
-
     if (forceNewViewType || !_registeredViewTypes.containsKey(streamKey)) {
       final viewType = 'agmrm-video-$streamKey-${++_viewSequence}';
       _registeredViewTypes[streamKey] = viewType;
@@ -257,7 +751,6 @@ class WebCallMediaEngine implements ICallMediaEngine {
           final element = html.VideoElement()
             ..autoplay = true
             ..muted = muted
-            ..defaultMuted = muted
             ..controls = false
             ..style.width = '100%'
             ..style.height = '100%'
@@ -268,38 +761,32 @@ class WebCallMediaEngine implements ICallMediaEngine {
           element.setAttribute('playsinline', 'true');
           element.setAttribute('webkit-playsinline', 'true');
           element.setAttribute('data-agmrm-key', streamKey);
+          if (muted) {
+            element.setAttribute('muted', 'true');
+          }
           if (mirror) {
             element.style.transform = 'scaleX(-1)';
           }
 
-          _videoElementsByKey.putIfAbsent(streamKey, () => []).add(element);
+          try {
+            _bridge?.callMethod(
+              'attachStreamToElement',
+              [element, streamKey, muted],
+            );
+          } catch (_) {}
 
-          final currentStream =
-              streamKey == 'local' ? (_localStream ?? stream) : stream;
-          if (currentStream is html.MediaStream) {
-            element.srcObject = currentStream;
-          }
-          _bridge?.callMethod(
-            'attachStreamToElement',
-            [element, streamKey, muted],
-          );
-          element.play().catchError((_) {});
+          // Também agenda varredura no próximo microtask/frame após inserção no Shadow DOM
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (!_isDisposed) {
+              _bridge?.callMethod('resumeAllForKey', [streamKey, muted]);
+            }
+          });
 
           return element;
         },
       );
     } else {
-      // Atualiza elementos existentes caso a mesma viewType continue montada
-      for (final element in _videoElementsByKey[streamKey] ?? const []) {
-        if (stream is html.MediaStream) {
-          element.srcObject = stream;
-        }
-        _bridge?.callMethod(
-          'attachStreamToElement',
-          [element, streamKey, muted],
-        );
-        element.play().catchError((_) {});
-      }
+      _bridge?.callMethod('resumeAllForKey', [streamKey, muted]);
     }
 
     if (!_videoStreamUpdatedController.isClosed) {
@@ -314,148 +801,82 @@ class WebCallMediaEngine implements ICallMediaEngine {
     bool videoOff = false,
   }) async {
     if (_isDisposed) return false;
+    _ensureJsBridge();
+    _bindBridgeCallbacks();
 
-    if (_localStream != null) {
-      await setMicrophoneMuted(audioMuted);
-      await setCameraOff(videoOff);
-      _bridge?.callMethod('setStream', ['local', _localStream]);
-      _bridge?.callMethod('resumeAllForKey', ['local', true]);
-      return true;
-    }
-
-    final mediaDevices = html.window.navigator.mediaDevices;
-    if (mediaDevices == null) return false;
-
-    html.MediaStream? stream;
-    try {
-      stream = await mediaDevices.getUserMedia({
-        'audio': {
-          'echoCancellation': true,
-          'noiseSuppression': true,
-          'autoGainControl': true,
-        },
-        'video': {
-          'width': {'ideal': 1280},
-          'height': {'ideal': 720},
-          'facingMode': 'user',
-        },
-      });
-    } catch (_) {
-      try {
-        stream =
-            await mediaDevices.getUserMedia({'audio': true, 'video': false});
-      } catch (_) {
-        try {
-          stream =
-              await mediaDevices.getUserMedia({'audio': false, 'video': true});
-        } catch (_) {
-          return false;
-        }
-      }
-    }
-
-    if (_isDisposed) {
-      for (final track in stream.getTracks()) {
-        track.stop();
-      }
-      return false;
-    }
-
-    _localStream = stream;
     _isAudioMuted = audioMuted;
     _isVideoOff = videoOff;
 
-    for (final track in stream.getAudioTracks()) {
-      track.enabled = !audioMuted;
-    }
-    for (final track in stream.getVideoTracks()) {
-      track.enabled = !videoOff;
-    }
-
+    // Registra imediatamente a viewFactory 'local' para que o HtmlElementView
+    // já esteja montado no DOM assim que o stream da câmera ficar pronto.
     _registerStreamViewFactory(
       'local',
-      stream,
       muted: true,
       mirror: true,
     );
 
-    _startRealMicrophoneAnalyser(stream);
-    return true;
-  }
+    if (_isInitialized) {
+      await setMicrophoneMuted(audioMuted);
+      await setCameraOff(videoOff);
+      _bridge?.callMethod('resumeAllForKey', ['local', true]);
+      return true;
+    }
 
-  /// Inicializa o `AudioContext` + `AnalyserNode` da Web Audio API via JS interop
-  /// para medir o volume RMS real captado pelo microfone físico a cada 100ms.
-  void _startRealMicrophoneAnalyser(html.MediaStream stream) {
-    _audioMeterTimer?.cancel();
-    if (stream.getAudioTracks().isEmpty) return;
+    if (_initFuture != null) {
+      final result = await _initFuture!;
+      await setMicrophoneMuted(audioMuted);
+      await setCameraOff(videoOff);
+      _bridge?.callMethod('resumeAllForKey', ['local', true]);
+      return result;
+    }
+
+    final completer = Completer<bool>();
+    _initFuture = completer.future;
+
+    final bridge = _bridge;
+    if (bridge == null) {
+      _initFuture = null;
+      completer.complete(false);
+      return false;
+    }
 
     try {
-      final audioCtxClass =
-          (js.context['AudioContext'] ?? js.context['webkitAudioContext'])
-              as js.JsFunction?;
-      if (audioCtxClass == null) return;
-
-      final audioCtx = js.JsObject(audioCtxClass);
-      final source =
-          audioCtx.callMethod('createMediaStreamSource', [stream]) as js.JsObject;
-      final analyser =
-          audioCtx.callMethod('createAnalyser', []) as js.JsObject;
-      analyser['fftSize'] = 256;
-      analyser['smoothingTimeConstant'] = 0.5;
-      source.callMethod('connect', [analyser]);
-
-      _audioContext = audioCtx;
-      _analyserNode = analyser;
-
-      final bufferLength = (analyser['frequencyBinCount'] as int?) ?? 128;
-      final uint8ArrayCtor = js.context['Uint8Array'] as js.JsFunction;
-      final jsDataArray = js.JsObject(uint8ArrayCtor, [bufferLength]);
-
-      _audioMeterTimer = Timer.periodic(
-        const Duration(milliseconds: 100),
-        (_) {
-          if (_isDisposed || _analyserNode == null) return;
-          if (_isAudioMuted) {
-            if (!_audioLevelController.isClosed) {
-              _audioLevelController.add(0.0);
-            }
-            return;
+      bridge.callMethod('startLocalMedia', [
+        audioMuted,
+        videoOff,
+        js.allowInterop((dynamic _) {
+          _isInitialized = true;
+          _registerStreamViewFactory(
+            'local',
+            muted: true,
+            mirror: true,
+          );
+          _bridge?.callMethod('resumeAllForKey', ['local', true]);
+          if (!completer.isCompleted) {
+            completer.complete(true);
           }
+        }),
+        js.allowInterop((dynamic _) {
+          _initFuture = null;
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
+        }),
+      ]);
+    } catch (_) {
+      _initFuture = null;
+      if (!completer.isCompleted) {
+        completer.complete(false);
+      }
+    }
 
-          try {
-            if (audioCtx['state'] == 'suspended') {
-              audioCtx.callMethod('resume', []);
-            }
-
-            _analyserNode!.callMethod('getByteFrequencyData', [jsDataArray]);
-
-            double sumSquares = 0.0;
-            for (var i = 0; i < bufferLength; i++) {
-              final val = (jsDataArray[i] as num?)?.toDouble() ?? 0.0;
-              final normalized = val / 255.0;
-              sumSquares += normalized * normalized;
-            }
-            final rms = math.sqrt(sumSquares / bufferLength);
-            final scaledLevel = (rms * 2.4).clamp(0.0, 1.0);
-
-            if (!_audioLevelController.isClosed) {
-              _audioLevelController.add(scaledLevel);
-            }
-          } catch (_) {}
-        },
-      );
-    } catch (_) {}
+    return completer.future;
   }
 
   @override
   Future<void> setMicrophoneMuted(bool muted) async {
     _isAudioMuted = muted;
-    final stream = _localStream;
-    if (stream != null) {
-      for (final track in stream.getAudioTracks()) {
-        track.enabled = !muted;
-      }
-    }
+    _bridge?.callMethod('setMicMuted', [muted]);
     if (muted && !_audioLevelController.isClosed) {
       _audioLevelController.add(0.0);
     }
@@ -464,18 +885,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
   @override
   Future<void> setCameraOff(bool videoOff) async {
     _isVideoOff = videoOff;
-    final stream = _localStream;
-    if (stream != null) {
-      for (final track in stream.getVideoTracks()) {
-        track.enabled = !videoOff;
-      }
-      if (!videoOff) {
-        _bridge?.callMethod('resumeAllForKey', ['local', true]);
-        for (final el in _videoElementsByKey['local'] ?? const []) {
-          el.play().catchError((_) {});
-        }
-      }
-    }
+    _bridge?.callMethod('setCamOff', [videoOff]);
     if (!_videoStreamUpdatedController.isClosed) {
       _videoStreamUpdatedController.add('local');
     }
@@ -492,55 +902,33 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
     try {
       bridge.callMethod('startDisplayMedia', [
-        // onSuccess(stream)
-        (dynamic rawStream) {
+        js.allowInterop(() {
           if (_isDisposed) {
-            bridge.callMethod('clearStream', ['screen']);
+            bridge.callMethod('stopDisplayMedia', []);
             if (!completer.isCompleted) completer.complete(false);
             return;
           }
-
-          _screenStreamObj = rawStream as Object?;
           _registerStreamViewFactory(
             'screen',
-            rawStream as Object,
             muted: true,
             mirror: false,
             forceNewViewType: true,
           );
-
-          if (rawStream is html.MediaStream) {
-            for (final remotePeerId in _peerConnections.keys.toList()) {
-              final pc = _peerConnections[remotePeerId];
-              if (pc != null) {
-                try {
-                  pc.addStream(rawStream);
-                  connectToPeer(remotePeerId, isInitiator: true);
-                } catch (_) {}
-              }
-            }
-          }
-
           if (!completer.isCompleted) {
             completer.complete(true);
           }
-        },
-        // onError(err)
-        (dynamic _) {
-          _screenStreamObj = null;
+        }),
+        js.allowInterop((dynamic _) {
           if (!completer.isCompleted) {
             completer.complete(false);
           }
-        },
-        // onEnded() — disparado quando o usuário clica em "Parar compartilhamento" na barra do navegador
-        () {
-          _screenStreamObj = null;
-          _videoElementsByKey.remove('screen');
+        }),
+        js.allowInterop(() {
           _registeredViewTypes.remove('screen');
           if (!_screenShareStoppedController.isClosed) {
             _screenShareStoppedController.add(null);
           }
-        },
+        }),
       ]);
     } catch (_) {
       if (!completer.isCompleted) {
@@ -553,83 +941,11 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
   @override
   Future<void> stopScreenShare() async {
-    _screenStreamObj = null;
-    _bridge?.callMethod('clearStream', ['screen']);
-    final elements = _videoElementsByKey.remove('screen') ?? const [];
-    for (final el in elements) {
-      el.pause();
-      el.srcObject = null;
-    }
+    _bridge?.callMethod('stopDisplayMedia', []);
     _registeredViewTypes.remove('screen');
-
-    if (_localStream != null) {
-      for (final remotePeerId in _peerConnections.keys.toList()) {
-        final pc = _peerConnections[remotePeerId];
-        if (pc != null) {
-          try {
-            pc.addStream(_localStream!);
-            connectToPeer(remotePeerId, isInitiator: true);
-          } catch (_) {}
-        }
-      }
-    }
     if (!_videoStreamUpdatedController.isClosed) {
       _videoStreamUpdatedController.add('screen');
     }
-  }
-
-  Future<html.RtcPeerConnection> _getOrCreatePeerConnection(
-    String remotePeerId,
-  ) async {
-    if (_peerConnections.containsKey(remotePeerId)) {
-      return _peerConnections[remotePeerId]!;
-    }
-
-    final pc = html.RtcPeerConnection({
-      'iceServers': [
-        {'urls': 'stun:stun.l.google.com:19302'},
-        {'urls': 'stun:stun1.l.google.com:19302'},
-      ],
-    });
-
-    _peerConnections[remotePeerId] = pc;
-
-    final streamToSend = (_screenStreamObj is html.MediaStream)
-        ? (_screenStreamObj as html.MediaStream)
-        : _localStream;
-    if (streamToSend != null) {
-      try {
-        pc.addStream(streamToSend);
-      } catch (_) {}
-    }
-
-    pc.onIceCandidate.listen((html.RtcPeerConnectionIceEvent event) {
-      final candidate = event.candidate;
-      if (candidate != null && !_outboundWebRtcController.isClosed) {
-        _outboundWebRtcController.add({
-          'targetPeerId': remotePeerId,
-          'signalType': 'ice',
-          'candidate': candidate.candidate,
-          'sdpMid': candidate.sdpMid,
-          'sdpMLineIndex': candidate.sdpMLineIndex,
-        });
-      }
-    });
-
-    pc.onAddStream.listen((html.MediaStreamEvent event) {
-      final remoteStream = event.stream;
-      if (remoteStream != null) {
-        _remoteStreams[remotePeerId] = remoteStream;
-        _registerStreamViewFactory(
-          remotePeerId,
-          remoteStream,
-          muted: false,
-          mirror: false,
-        );
-      }
-    });
-
-    return pc;
   }
 
   @override
@@ -638,27 +954,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
     required bool isInitiator,
   }) async {
     if (_isDisposed) return;
-    try {
-      final pc = await _getOrCreatePeerConnection(remotePeerId);
-      if (isInitiator) {
-        final offer = await pc.createOffer({
-          'offerToReceiveAudio': true,
-          'offerToReceiveVideo': true,
-        });
-        await pc.setLocalDescription({
-          'type': offer.type,
-          'sdp': offer.sdp,
-        });
-        if (!_outboundWebRtcController.isClosed) {
-          _outboundWebRtcController.add({
-            'targetPeerId': remotePeerId,
-            'signalType': 'offer',
-            'sdp': offer.sdp,
-            'type': offer.type,
-          });
-        }
-      }
-    } catch (_) {}
+    _bridge?.callMethod('connectPeer', [remotePeerId, isInitiator]);
   }
 
   @override
@@ -667,111 +963,34 @@ class WebCallMediaEngine implements ICallMediaEngine {
     Map<String, dynamic> signalData,
   ) async {
     if (_isDisposed) return;
-    try {
-      final signalType = signalData['signalType'] as String? ?? '';
-      final pc = await _getOrCreatePeerConnection(remotePeerId);
+    final signalType = signalData['signalType'] as String? ?? '';
+    final sdpType = signalData['type'] as String? ?? '';
+    final sdp = signalData['sdp'] as String? ?? '';
+    final candidate = signalData['candidate'] as String? ?? '';
+    final sdpMid = signalData['sdpMid'] as String? ?? '';
+    final sdpMLineIndex = (signalData['sdpMLineIndex'] as num?)?.toInt() ?? 0;
 
-      if (signalType == 'offer') {
-        final sdp = signalData['sdp'] as String?;
-        final type = signalData['type'] as String? ?? 'offer';
-        if (sdp == null) return;
-
-        await pc.setRemoteDescription({'sdp': sdp, 'type': type});
-        final answer = await pc.createAnswer();
-        await pc.setLocalDescription({
-          'type': answer.type,
-          'sdp': answer.sdp,
-        });
-
-        if (!_outboundWebRtcController.isClosed) {
-          _outboundWebRtcController.add({
-            'targetPeerId': remotePeerId,
-            'signalType': 'answer',
-            'sdp': answer.sdp,
-            'type': answer.type,
-          });
-        }
-      } else if (signalType == 'answer') {
-        final sdp = signalData['sdp'] as String?;
-        final type = signalData['type'] as String? ?? 'answer';
-        if (sdp == null) return;
-
-        await pc.setRemoteDescription({'sdp': sdp, 'type': type});
-      } else if (signalType == 'ice') {
-        final candidateStr = signalData['candidate'] as String?;
-        if (candidateStr == null || candidateStr.isEmpty) return;
-
-        final ice = html.RtcIceCandidate({
-          'candidate': candidateStr,
-          'sdpMid': signalData['sdpMid'],
-          'sdpMLineIndex': signalData['sdpMLineIndex'],
-        });
-        await pc.addIceCandidate(ice);
-      }
-    } catch (_) {}
+    _bridge?.callMethod('handleSignal', [
+      remotePeerId,
+      signalType,
+      sdpType,
+      sdp,
+      candidate,
+      sdpMid,
+      sdpMLineIndex,
+    ]);
   }
 
   @override
   Future<void> disconnectPeer(String remotePeerId) async {
-    final pc = _peerConnections.remove(remotePeerId);
-    try {
-      pc?.close();
-    } catch (_) {}
-
-    final remoteStream = _remoteStreams.remove(remotePeerId);
-    if (remoteStream != null) {
-      for (final track in remoteStream.getTracks()) {
-        track.stop();
-      }
-    }
-    _bridge?.callMethod('clearStream', [remotePeerId]);
-
-    final videoEls = _videoElementsByKey.remove(remotePeerId) ?? const [];
-    for (final videoEl in videoEls) {
-      videoEl.pause();
-      videoEl.srcObject = null;
-    }
+    _bridge?.callMethod('disconnectPeer', [remotePeerId]);
     _registeredViewTypes.remove(remotePeerId);
   }
 
   @override
   Future<void> startRecording() async {
-    _recordedChunks.clear();
-    final streamToRecord = (_screenStreamObj is html.MediaStream)
-        ? (_screenStreamObj as html.MediaStream)
-        : _localStream;
-    if (streamToRecord == null) return;
-
-    try {
-      String mimeType = 'video/webm;codecs=vp8,opus';
-      if (!html.MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
-      }
-
-      final recorder = html.MediaRecorder.isTypeSupported(mimeType)
-          ? html.MediaRecorder(streamToRecord, {'mimeType': mimeType})
-          : html.MediaRecorder(streamToRecord);
-
-      recorder.addEventListener('dataavailable', (html.Event event) {
-        final blobEvent = event as html.BlobEvent;
-        final data = blobEvent.data;
-        if (data != null && data.size > 0) {
-          _recordedChunks.add(data);
-        }
-      });
-
-      recorder.addEventListener('stop', (html.Event _) {
-        if (_recorderStopCompleter != null &&
-            !_recorderStopCompleter!.isCompleted) {
-          _recorderStopCompleter!.complete();
-        }
-      });
-
-      _mediaRecorder = recorder;
-      recorder.start(1000);
-    } catch (_) {
-      _mediaRecorder = null;
-    }
+    if (_isDisposed) return;
+    _bridge?.callMethod('startRecording', []);
   }
 
   @override
@@ -785,128 +1004,80 @@ class WebCallMediaEngine implements ICallMediaEngine {
         .split('.')
         .first;
 
-    try {
-      if (_mediaRecorder != null && _mediaRecorder!.state != 'inactive') {
-        _recorderStopCompleter = Completer<void>();
-        _mediaRecorder!.stop();
-        await _recorderStopCompleter!.future.timeout(
-          const Duration(seconds: 2),
-          onTimeout: () {},
-        );
-      }
-    } catch (_) {}
-    _mediaRecorder = null;
+    final webmFileName = 'gravacao_${sanitizedCode}_$timestamp.webm';
+    final txtFileName = 'ata_${sanitizedCode}_$timestamp.txt';
+    final summaryText = _formatExportReport(exportSummary);
 
-    if (_recordedChunks.isNotEmpty) {
-      try {
-        final videoBlob = html.Blob(_recordedChunks, 'video/webm');
-        final fileName = 'gravacao_${sanitizedCode}_$timestamp.webm';
-        _triggerBrowserDownload(videoBlob, fileName);
-        _recordedChunks.clear();
-        return fileName;
-      } catch (_) {}
+    final completer = Completer<String?>();
+    final bridge = _bridge;
+    if (bridge == null) {
+      return txtFileName;
     }
 
     try {
-      final reportText = _formatSessionReport(exportSummary);
-      final textBlob = html.Blob([reportText], 'text/plain;charset=utf-8');
-      final fileName = 'relatorio_reuniao_${sanitizedCode}_$timestamp.txt';
-      _triggerBrowserDownload(textBlob, fileName);
-      return fileName;
+      bridge.callMethod('stopRecordingAndDownload', [
+        webmFileName,
+        txtFileName,
+        summaryText,
+        js.allowInterop((dynamic downloadedName) {
+          if (!completer.isCompleted) {
+            completer.complete(downloadedName?.toString() ?? txtFileName);
+          }
+        }),
+      ]);
     } catch (_) {
-      return null;
+      if (!completer.isCompleted) {
+        completer.complete(txtFileName);
+      }
     }
+
+    return completer.future.timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => txtFileName,
+    );
   }
 
-  String _formatSessionReport(SessionExport s) {
+  String _formatExportReport(SessionExport exportSummary) {
     final buffer = StringBuffer()
-      ..writeln('====================================================')
-      ..writeln('ATA DE SESSÃO DE VIDEOCONFERÊNCIA ACADÊMICA (AGMRM)')
-      ..writeln('====================================================')
-      ..writeln('Sala: ${s.roomCode}')
-      ..writeln('Início: ${s.startedAt.toIso8601String()}')
-      ..writeln('Término: ${s.endedAt.toIso8601String()}')
-      ..writeln('Duração Total: ${s.totalDuration.inSeconds} segundos')
-      ..writeln('Total de Participantes Reais: ${s.totalParticipants}')
-      ..writeln('Participantes: ${s.attendeeNames.join(", ")}')
-      ..writeln('Mensagens no Chat: ${s.chatMessageCount}')
-      ..writeln('Reações Enviadas: ${s.reactionCount}')
-      ..writeln('====================================================');
+      ..writeln('==========================================================')
+      ..writeln('         ATA DE SESSÃO ACADÊMICA - PLATAFORMA AGMRM       ')
+      ..writeln('==========================================================')
+      ..writeln('Sala: ${exportSummary.roomCode}')
+      ..writeln('Início: ${exportSummary.startedAt.toIso8601String()}')
+      ..writeln('Término: ${exportSummary.endedAt.toIso8601String()}')
+      ..writeln(
+        'Duração Gravada: ${exportSummary.totalDuration.inSeconds} segundos',
+      )
+      ..writeln(
+        'Total de Participantes Reais: ${exportSummary.totalParticipants}',
+      )
+      ..writeln('Presentes: ${exportSummary.attendeeNames.join(", ")}')
+      ..writeln('Mensagens no Chat: ${exportSummary.chatMessageCount}')
+      ..writeln('Reações Registradas: ${exportSummary.reactionCount}')
+      ..writeln('==========================================================');
     return buffer.toString();
-  }
-
-  void _triggerBrowserDownload(html.Blob blob, String fileName) {
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', fileName)
-      ..style.display = 'none';
-    html.document.body?.append(anchor);
-    anchor.click();
-    anchor.remove();
-    Timer(const Duration(seconds: 3), () {
-      html.Url.revokeObjectUrl(url);
-    });
   }
 
   @override
   Future<void> copyToClipboard(String text) async {
     try {
       await Clipboard.setData(ClipboardData(text: text));
-    } catch (_) {
-      try {
-        await html.window.navigator.clipboard?.writeText(text);
-      } catch (_) {}
-    }
+      return;
+    } catch (_) {}
+
+    try {
+      await html.window.navigator.clipboard?.writeText(text);
+    } catch (_) {}
   }
 
   @override
   Future<void> dispose() async {
     if (_isDisposed) return;
     _isDisposed = true;
-
-    _audioMeterTimer?.cancel();
-    _audioMeterTimer = null;
     _videoPlaybackWatchdog?.cancel();
     _videoPlaybackWatchdog = null;
-
-    try {
-      if (_mediaRecorder != null && _mediaRecorder!.state != 'inactive') {
-        _mediaRecorder!.stop();
-      }
-    } catch (_) {}
-    _mediaRecorder = null;
-    _recordedChunks.clear();
-
-    for (final peerId in _peerConnections.keys.toList()) {
-      await disconnectPeer(peerId);
-    }
-    _peerConnections.clear();
-
-    _screenStreamObj = null;
-    _bridge?.callMethod('clearStream', ['screen']);
-
-    if (_localStream != null) {
-      for (final track in _localStream!.getTracks()) {
-        track.stop();
-      }
-      _localStream = null;
-    }
-    _bridge?.callMethod('clearStream', ['local']);
-
-    for (final list in _videoElementsByKey.values) {
-      for (final videoEl in list) {
-        videoEl.pause();
-        videoEl.srcObject = null;
-      }
-    }
-    _videoElementsByKey.clear();
+    _bridge?.callMethod('disposeAll', []);
     _registeredViewTypes.clear();
-
-    try {
-      _audioContext?.callMethod('close', []);
-    } catch (_) {}
-    _audioContext = null;
-    _analyserNode = null;
 
     await _audioLevelController.close();
     await _screenShareStoppedController.close();

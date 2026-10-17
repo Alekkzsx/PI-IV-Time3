@@ -105,7 +105,9 @@ class DynamicVideoGrid extends StatelessWidget {
     if (participants.length == 1) {
       final soleParticipant = participants.first;
       return Center(
-        child: _buildTile(soleParticipant),
+        child: SizedBox.expand(
+          child: _buildTile(soleParticipant),
+        ),
       );
     }
 
