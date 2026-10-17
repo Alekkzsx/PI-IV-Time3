@@ -11,19 +11,19 @@ import 'video_call_contracts.dart';
 /// instances in memory, enabling full end-to-end multi-peer tests on Dart VM.
 class MockVideoCallRepository implements VideoCallRepository {
   final StreamController<Participant> _participantJoinedController =
-      StreamController<Participant>.broadcast();
+      StreamController<Participant>.broadcast(sync: true);
   final StreamController<String> _participantLeftController =
-      StreamController<String>.broadcast();
+      StreamController<String>.broadcast(sync: true);
   final StreamController<ChatMessage> _chatMessageController =
-      StreamController<ChatMessage>.broadcast();
+      StreamController<ChatMessage>.broadcast(sync: true);
   final StreamController<EmojiReaction> _emojiReactionController =
-      StreamController<EmojiReaction>.broadcast();
+      StreamController<EmojiReaction>.broadcast(sync: true);
   final StreamController<HandRaiseItem> _handRaiseController =
-      StreamController<HandRaiseItem>.broadcast();
+      StreamController<HandRaiseItem>.broadcast(sync: true);
   final StreamController<MediaStateUpdate> _mediaStateController =
-      StreamController<MediaStateUpdate>.broadcast();
+      StreamController<MediaStateUpdate>.broadcast(sync: true);
   final StreamController<RecordingState> _recordingStateController =
-      StreamController<RecordingState>.broadcast();
+      StreamController<RecordingState>.broadcast(sync: true);
 
   InMemorySignalingBus? _bus;
   StreamSubscription<String>? _busSubscription;
