@@ -150,6 +150,9 @@ void main() {
 
     testWidgets('Hardware preview toggles mic and cam state visually',
         (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         const MaterialApp(
           home: VideoCallLobbyPage(),
@@ -157,8 +160,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Initial state: Camera Active icon visible
-      expect(find.byIcon(Icons.videocam), findsOneWidget);
+      // Initial state: Camera Active inside preview box
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('lobby_camera_preview')),
+          matching: find.byIcon(Icons.videocam),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Câmera Ligada'), findsOneWidget);
 
       // Toggle camera off
