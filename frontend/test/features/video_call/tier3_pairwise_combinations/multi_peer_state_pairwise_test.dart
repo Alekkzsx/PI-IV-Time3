@@ -29,9 +29,6 @@ void main() {
       // 3. Peer A starts recording
       harness.peerA.toggleRecording();
 
-      // Flush microtasks across in-memory bus
-      await pumpEventQueue();
-
       await tester.pumpWidget(
         MaterialApp(
           home: VideoCallRoomPage(controller: harness.peerA),
@@ -95,9 +92,6 @@ void main() {
       // Peer B sends chat and reaction concurrently
       harness.peerB.sendChatMessage('Pergunta importante durante a gravação');
       harness.peerB.sendReaction('❤️');
-
-      // Flush microtasks
-      await pumpEventQueue();
 
       expect(harness.peerA.chatMessages.length, 1);
       expect(harness.peerA.chatMessages.first.text, 'Pergunta importante durante a gravação');
