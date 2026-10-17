@@ -211,20 +211,27 @@ class VideoCallTestController extends ChangeNotifier {
   void setAudioLevel(double level) {
     if (_localParticipant.isAudioMuted) return;
 
-    final isSpeaking = level > 0.15;
-    _localParticipant = _localParticipant.copyWith(
-      audioLevel: level,
-      isSpeaking: isSpeaking,
-    );
-
-    if (isSpeaking) {
+    final exceeds = level > 0.15;
+    if (exceeds) {
       _speakingHysteresisTimer?.cancel();
-      _speakingHysteresisTimer = Timer(const Duration(milliseconds: 800), () {
-        if (!_localParticipant.isAudioMuted && _localParticipant.audioLevel <= 0.15) {
-          _localParticipant = _localParticipant.copyWith(isSpeaking: false);
-          notifyListeners();
-        }
-      });
+      _speakingHysteresisTimer = null;
+      _localParticipant = _localParticipant.copyWith(
+        audioLevel: level,
+        isSpeaking: true,
+      );
+    } else {
+      _localParticipant = _localParticipant.copyWith(
+        audioLevel: level,
+      );
+      if (_localParticipant.isSpeaking && _speakingHysteresisTimer == null) {
+        _speakingHysteresisTimer = Timer(const Duration(milliseconds: 800), () {
+          if (!_localParticipant.isAudioMuted && _localParticipant.audioLevel <= 0.15) {
+            _localParticipant = _localParticipant.copyWith(isSpeaking: false);
+            notifyListeners();
+          }
+          _speakingHysteresisTimer = null;
+        });
+      }
     }
 
     repository.updateMediaState(
