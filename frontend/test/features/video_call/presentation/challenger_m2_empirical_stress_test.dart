@@ -263,28 +263,47 @@ void main() {
     // =========================================================================
     group('2. Floating Emoji Reactions Tests', () {
       testWidgets('Reactions: Real-time broadcast and 2500ms self-pruning timer', (tester) async {
-        expect(controllerA.activeReactions, isEmpty);
-        expect(controllerB.activeReactions, isEmpty);
+        final rA = LinkedDomainVideoCallRepository();
+        final rB = LinkedDomainVideoCallRepository();
+        rA.peerRepo = rB;
+        rB.peerRepo = rA;
+
+        final cA = VideoCallController(
+          repository: rA,
+          room: room,
+          localParticipant: const Participant(id: 'peer_a', name: 'Alex', ra: '24802449'),
+        );
+        final cB = VideoCallController(
+          repository: rB,
+          room: room,
+          localParticipant: const Participant(id: 'peer_b', name: 'Beatriz', ra: '24801122'),
+        );
+
+        expect(cA.activeReactions, isEmpty);
+        expect(cB.activeReactions, isEmpty);
 
         // Peer A triggers reaction ❤️
-        controllerA.sendReaction('❤️');
-        expect(controllerA.activeReactions.length, 1);
-        expect(controllerA.activeReactions.first.emoji, '❤️');
-        expect(controllerB.activeReactions.length, 1);
-        expect(controllerB.activeReactions.first.emoji, '❤️');
+        cA.sendReaction('❤️');
+        expect(cA.activeReactions.length, 1);
+        expect(cA.activeReactions.first.emoji, '❤️');
+        expect(cB.activeReactions.length, 1);
+        expect(cB.activeReactions.first.emoji, '❤️');
 
         // At t = 2000ms: reactions are still alive
         await tester.pump(const Duration(milliseconds: 2000));
-        expect(controllerA.activeReactions.length, 1, reason: 'Reação local deve persistir aos 2000ms');
-        expect(controllerB.activeReactions.length, 1, reason: 'Reação remota deve persistir aos 2000ms');
+        expect(cA.activeReactions.length, 1, reason: 'Reação local deve persistir aos 2000ms');
+        expect(cB.activeReactions.length, 1, reason: 'Reação remota deve persistir aos 2000ms');
 
         // At t = 3000ms+: self-pruning timer (2500ms) has fired and purges reactions
         await tester.pump(const Duration(milliseconds: 1000));
-        debugPrint('Empirical finding [Reaction Timers] - controllerA reactions: ${controllerA.activeReactions.length}, controllerB reactions: ${controllerB.activeReactions.length}');
-        await tester.pump(const Duration(milliseconds: 1000));
-        debugPrint('Empirical finding [Reaction Timers +1s] - controllerA: ${controllerA.activeReactions.length}, controllerB: ${controllerB.activeReactions.length}');
-        expect(controllerA.activeReactions, isEmpty, reason: 'Reação local deve auto-remover aos 2500ms');
-        expect(controllerB.activeReactions, isEmpty, reason: 'Reação remota deve auto-remover aos 2500ms');
+        debugPrint('Empirical finding [Reaction Timers] - cA reactions: ${cA.activeReactions.length}, cB reactions: ${cB.activeReactions.length}');
+        expect(cA.activeReactions, isEmpty, reason: 'Reação local deve auto-remover aos 2500ms');
+        expect(cB.activeReactions, isEmpty, reason: 'Reação remota deve auto-remover aos 2500ms');
+
+        cA.dispose();
+        cB.dispose();
+        rA.dispose();
+        rB.dispose();
       });
 
       test('Reactions: Multiple official emojis (❤️, 👍, 👏, 😂, 😮, 🎉) broadcast correctly', () {
