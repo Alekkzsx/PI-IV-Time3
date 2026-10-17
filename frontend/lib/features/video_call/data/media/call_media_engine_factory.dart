@@ -6,3 +6,4 @@ import 'call_media_engine_stub.dart'
 
 /// Factory multiplataforma que instancia o motor de mídia real na Web e o stub seguro em testes VM.
 ICallMediaEngine createPlatformMediaEngine() => impl.createCallMediaEngine();
+

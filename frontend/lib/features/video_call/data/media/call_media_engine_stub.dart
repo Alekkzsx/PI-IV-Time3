@@ -102,3 +102,4 @@ class StubCallMediaEngine implements ICallMediaEngine {
     await _videoStreamUpdatedController.close();
   }
 }
+

@@ -71,3 +71,4 @@ abstract class ICallMediaEngine {
   /// Libera todas as trilhas de câmera, microfone, WebRTC e timers.
   Future<void> dispose();
 }
+
