@@ -82,7 +82,7 @@ void main() {
 
       // Start recording
       harness.peerA.toggleRecording();
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Now both institutional banner and timer badge are rendered
       expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
