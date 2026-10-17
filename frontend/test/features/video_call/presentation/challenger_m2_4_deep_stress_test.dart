@@ -270,49 +270,63 @@ void main() {
     // =========================================================================
     group('2. Chat Message Timestamps in Widget Tree', () {
       testWidgets('Timestamps rendered with correct HH:mm formatting for local and remote messages', (tester) async {
-        // Prepare historical timestamps
-        final t1 = DateTime(2026, 10, 17, 8, 5); // 08:05
-        final t2 = DateTime(2026, 10, 17, 14, 30); // 14:30
-        final t3 = DateTime(2026, 10, 17, 23, 59); // 23:59
+        final rA = InterconnectedVideoCallRepository();
+        final rB = InterconnectedVideoCallRepository();
+        rA.peerRepo = rB;
+        rB.peerRepo = rA;
 
-        controllerB.chatMessages.add(
+        final cA = VideoCallController(
+          repository: rA,
+          room: room,
+          localParticipant: Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449'),
+        );
+        final cB = VideoCallController(
+          repository: rB,
+          room: room,
+          localParticipant: Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122'),
+        );
+
+        // Inject 3 messages with precise timestamps through repository stream
+        await rA.sendChatMessage(
+          room.code,
           ChatMessage(
             id: 'm1',
             senderId: 'peer_a',
             senderName: 'Alex Sousa',
             senderRa: '24802449',
             text: 'Bom dia turma!',
-            timestamp: t1,
+            timestamp: DateTime(2026, 10, 17, 8, 5),
           ),
         );
-        controllerB.chatMessages.add(
+        await rA.sendChatMessage(
+          room.code,
           ChatMessage(
             id: 'm2',
-            senderId: 'peer_b',
-            senderName: 'Beatriz Lima',
-            senderRa: '24801122',
+            senderId: 'peer_a',
+            senderName: 'Alex Sousa',
+            senderRa: '24802449',
             text: 'Boa tarde!',
-            timestamp: t2,
-            isLocal: true,
+            timestamp: DateTime(2026, 10, 17, 14, 30),
           ),
         );
-        controllerB.chatMessages.add(
+        await rA.sendChatMessage(
+          room.code,
           ChatMessage(
             id: 'm3',
             senderId: 'peer_a',
             senderName: 'Alex Sousa',
             senderRa: '24802449',
             text: 'Reunião quase no fim',
-            timestamp: t3,
+            timestamp: DateTime(2026, 10, 17, 23, 59),
           ),
         );
 
-        controllerB.toggleChatDrawer();
+        cB.toggleChatDrawer();
 
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: InCallChatDrawer(controller: controllerB),
+              body: InCallChatDrawer(controller: cB),
             ),
           ),
         );
@@ -326,11 +340,33 @@ void main() {
         expect(find.text('23:59'), findsOneWidget);
 
         debugPrint('Empirical finding [Chat Timers] - All 3 timestamps (08:05, 14:30, 23:59) rendered correctly');
+
+        cA.dispose();
+        cB.dispose();
+        rA.dispose();
+        rB.dispose();
       });
 
       testWidgets('Adversarial sender name stress: 150-char sender name does not overflow timestamp', (tester) async {
+        final rA = InterconnectedVideoCallRepository();
+        final rB = InterconnectedVideoCallRepository();
+        rA.peerRepo = rB;
+        rB.peerRepo = rA;
+
+        final cA = VideoCallController(
+          repository: rA,
+          room: room,
+          localParticipant: Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449'),
+        );
+        final cB = VideoCallController(
+          repository: rB,
+          room: room,
+          localParticipant: Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122'),
+        );
+
         final longName = 'A' * 150;
-        controllerB.chatMessages.add(
+        await rA.sendChatMessage(
+          room.code,
           ChatMessage(
             id: 'm_long',
             senderId: 'peer_adversarial',
@@ -340,12 +376,12 @@ void main() {
             timestamp: DateTime(2026, 10, 17, 12, 0),
           ),
         );
-        controllerB.toggleChatDrawer();
+        cB.toggleChatDrawer();
 
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: InCallChatDrawer(controller: controllerB),
+              body: InCallChatDrawer(controller: cB),
             ),
           ),
         );
@@ -354,6 +390,11 @@ void main() {
         // Must render timestamp without Throwing RenderFlex overflow exception
         expect(find.text('12:00'), findsOneWidget);
         expect(tester.takeException(), isNull);
+
+        cA.dispose();
+        cB.dispose();
+        rA.dispose();
+        rB.dispose();
       });
     });
 
@@ -362,10 +403,29 @@ void main() {
     // =========================================================================
     group('3. All 6 Emojis Accessible in Toolbar', () {
       testWidgets('All 6 emoji buttons present, interactive, and trigger real-time P2P dispatch', (tester) async {
+        final rA = InterconnectedVideoCallRepository();
+        final rB = InterconnectedVideoCallRepository();
+        rA.peerRepo = rB;
+        rB.peerRepo = rA;
+
+        final cA = VideoCallController(
+          repository: rA,
+          room: room,
+          localParticipant: Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449'),
+        );
+        final cB = VideoCallController(
+          repository: rB,
+          room: room,
+          localParticipant: Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122'),
+        );
+
+        cA.registerRemoteParticipant(cB.localParticipant);
+        cB.registerRemoteParticipant(cA.localParticipant);
+
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: MeetingControlsToolbar(controller: controllerA),
+              body: MeetingControlsToolbar(controller: cA),
             ),
           ),
         );
@@ -419,16 +479,26 @@ void main() {
           await tester.pump();
 
           // Verify controller A sent reaction
-          expect(controllerA.activeReactions.last.emoji, equals(emoji));
+          expect(cA.activeReactions.last.emoji, equals(emoji));
 
           // Verify controller B received reaction via P2P bus
-          expect(controllerB.activeReactions.last.emoji, equals(emoji));
+          expect(cB.activeReactions.last.emoji, equals(emoji));
 
           debugPrint('Empirical finding [Toolbar Trigger] - $emoji ($tooltip) triggered and synchronized to remote peer');
         }
 
-        expect(controllerA.activeReactions.length, equals(6));
-        expect(controllerB.activeReactions.length, equals(6));
+        expect(cA.activeReactions.length, equals(6));
+        expect(cB.activeReactions.length, equals(6));
+
+        // Advance fake time past 2500ms self-pruning timer so no timers are pending on test exit
+        await tester.pump(const Duration(milliseconds: 2600));
+        expect(cA.activeReactions, isEmpty);
+        expect(cB.activeReactions, isEmpty);
+
+        cA.dispose();
+        cB.dispose();
+        rA.dispose();
+        rB.dispose();
       });
     });
 
@@ -437,61 +507,80 @@ void main() {
     // =========================================================================
     group('4. Session Export Reaction Retention', () {
       testWidgets('Auditable session ledger preserves total reaction count after multi-stage self-pruning', (tester) async {
+        final rA = InterconnectedVideoCallRepository();
+        final rB = InterconnectedVideoCallRepository();
+        rA.peerRepo = rB;
+        rB.peerRepo = rA;
+
+        final cA = VideoCallController(
+          repository: rA,
+          room: room,
+          localParticipant: Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449'),
+        );
+        final cB = VideoCallController(
+          repository: rB,
+          room: room,
+          localParticipant: Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122'),
+        );
+
+        cA.registerRemoteParticipant(cB.localParticipant);
+        cB.registerRemoteParticipant(cA.localParticipant);
+
         // Start recording
-        controllerA.toggleRecording();
-        expect(controllerA.recordingState.isRecording, isTrue);
-        expect(controllerB.recordingState.isRecording, isTrue);
+        cA.toggleRecording();
+        expect(cA.recordingState.isRecording, isTrue);
+        expect(cB.recordingState.isRecording, isTrue);
 
         // Stage 1: Send 6 reactions from Peer A
         final batch1 = ['❤️', '👍', '👏', '😂', '😮', '🎉'];
         for (final emoji in batch1) {
-          controllerA.sendReaction(emoji);
+          cA.sendReaction(emoji);
         }
 
-        expect(controllerA.activeReactions.length, 6);
-        expect(controllerB.activeReactions.length, 6);
-        expect(controllerA.totalReactionsCount, 6);
-        expect(controllerB.totalReactionsCount, 6);
+        expect(cA.activeReactions.length, 6);
+        expect(cB.activeReactions.length, 6);
+        expect(cA.totalReactionsCount, 6);
+        expect(cB.totalReactionsCount, 6);
 
         // Advance 3000ms: All batch 1 reactions must be pruned from UI
         await tester.pump(const Duration(milliseconds: 3000));
-        expect(controllerA.activeReactions, isEmpty, reason: 'Active reactions must be self-pruned');
-        expect(controllerB.activeReactions, isEmpty, reason: 'Remote active reactions must be self-pruned');
+        expect(cA.activeReactions, isEmpty, reason: 'Active reactions must be self-pruned');
+        expect(cB.activeReactions, isEmpty, reason: 'Remote active reactions must be self-pruned');
 
         // Counters must remain intact:
-        expect(controllerA.totalReactionsCount, 6);
-        expect(controllerB.totalReactionsCount, 6);
+        expect(cA.totalReactionsCount, 6);
+        expect(cB.totalReactionsCount, 6);
 
         // Stage 2: Send 4 reactions from Peer B
         final batch2 = ['👍', '🎉', '❤️', '👏'];
         for (final emoji in batch2) {
-          controllerB.sendReaction(emoji);
+          cB.sendReaction(emoji);
         }
 
-        expect(controllerA.activeReactions.length, 4);
-        expect(controllerB.activeReactions.length, 4);
-        expect(controllerA.totalReactionsCount, 10);
-        expect(controllerB.totalReactionsCount, 10);
+        expect(cA.activeReactions.length, 4);
+        expect(cB.activeReactions.length, 4);
+        expect(cA.totalReactionsCount, 10);
+        expect(cB.totalReactionsCount, 10);
 
         // Advance another 3000ms: All batch 2 reactions self-pruned
         await tester.pump(const Duration(milliseconds: 3000));
-        expect(controllerA.activeReactions, isEmpty);
-        expect(controllerB.activeReactions, isEmpty);
+        expect(cA.activeReactions, isEmpty);
+        expect(cB.activeReactions, isEmpty);
 
         // Stop recording
-        controllerA.toggleRecording();
-        expect(controllerA.recordingState.isRecording, isFalse);
-        expect(controllerB.recordingState.isRecording, isFalse);
+        cA.toggleRecording();
+        expect(cA.recordingState.isRecording, isFalse);
+        expect(cB.recordingState.isRecording, isFalse);
 
         // Verify SessionExport on Peer A (initiator)
-        final exportA = controllerA.lastSessionExport;
+        final exportA = cA.lastSessionExport;
         expect(exportA, isNotNull);
         expect(exportA!.reactionCount, equals(10), reason: 'Export reactionCount must retain all 10 cumulative reactions');
         expect(exportA.roomCode, equals('CHALLENGER-M2-4'));
         expect(exportA.totalParticipants, equals(2));
 
         // Verify SessionExport on Peer B (remote listener)
-        final exportB = controllerB.lastSessionExport;
+        final exportB = cB.lastSessionExport;
         expect(exportB, isNotNull);
         expect(exportB!.reactionCount, equals(10), reason: 'Remote peer export reactionCount must also retain 10 reactions');
 
@@ -502,6 +591,11 @@ void main() {
         expect(jsonA['totalParticipants'], equals(2));
 
         debugPrint('Empirical finding [Session Export Audit] - Total reactions sent: 10, Pruned: 10, Export reactionCount: ${exportA.reactionCount}, JSON format: ${jsonA['exportFormat']}');
+
+        cA.dispose();
+        cB.dispose();
+        rA.dispose();
+        rB.dispose();
       });
     });
 

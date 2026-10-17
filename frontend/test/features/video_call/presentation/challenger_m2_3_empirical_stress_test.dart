@@ -363,8 +363,13 @@ void main() {
         expect(controllerB.recordingState.isRecording, isTrue);
         expect(controllerB.recordingState.startedByPeerId, 'peer_a');
 
+        controllerB.addListener(() {
+          debugPrint('LISTENER controllerB: isRecording=${controllerB.recordingState.isRecording}, elapsed=${controllerB.recordingState.elapsedDuration.inSeconds}');
+        });
+
         // Advance 1 second
         await tester.pump(const Duration(seconds: 1));
+        debugPrint('DBG: cA elapsed=${controllerA.recordingState.elapsedDuration.inSeconds}, cB elapsed=${controllerB.recordingState.elapsedDuration.inSeconds}');
         expect(controllerB.recordingState.elapsedDuration.inSeconds, equals(1),
             reason: 'Remote peer elapsedDuration must be 1s after 1s tick');
 
