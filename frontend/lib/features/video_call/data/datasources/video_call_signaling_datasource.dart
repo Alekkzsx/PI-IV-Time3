@@ -299,6 +299,8 @@ class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
         _handleMediaState(envelope);
       } else if (type == SignalingEnvelopeType.recordingState) {
         _handleRecordingState(envelope);
+      } else if (type == SignalingEnvelopeType.webrtcSignal) {
+        _handleWebRtcSignal(envelope);
       }
     } catch (_) {
       // Ignora mensagens malformadas de terceiros

@@ -124,6 +124,18 @@ class VideoCallRepositoryImpl implements VideoCallRepository {
   }
 
   @override
+  Stream<Map<String, dynamic>> get webRtcSignalStream =>
+      _dataSource.onWebRtcSignal;
+
+  @override
+  Future<void> sendWebRtcSignal(
+    String roomId,
+    Map<String, dynamic> signalData,
+  ) async {
+    await _dataSource.broadcastWebRtcSignal(roomId, signalData);
+  }
+
+  @override
   Future<void> dispose() async {
     _dataSource.dispose();
   }
