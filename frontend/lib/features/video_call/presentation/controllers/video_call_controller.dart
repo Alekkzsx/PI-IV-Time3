@@ -130,6 +130,7 @@ class VideoCallController extends ChangeNotifier {
   }
 
   void _onChatMessageReceived(ChatMessage message) {
+    if (message.senderId == _localParticipant.id) return;
     _chatMessages.add(message);
     if (!_isChatDrawerOpen) {
       _unreadChatCount++;
@@ -138,6 +139,7 @@ class VideoCallController extends ChangeNotifier {
   }
 
   void _onEmojiReactionReceived(EmojiReaction reaction) {
+    if (reaction.peerId == _localParticipant.id) return;
     _activeReactions.add(reaction);
     notifyListeners();
 
@@ -152,6 +154,7 @@ class VideoCallController extends ChangeNotifier {
   }
 
   void _onHandRaiseReceived(HandRaiseItem item) {
+    if (item.peerId == _localParticipant.id) return;
     final existingIndex =
         _raisedHandsQueue.indexWhere((h) => h.peerId == item.peerId);
     if (existingIndex >= 0) {
