@@ -108,6 +108,11 @@ class FakeDomainVideoCallRepository implements VideoCallRepository {
     _recordingCtrl.add(state);
   }
 
+  void emitParticipantJoined(Participant p) => _joinedCtrl.add(p);
+  void emitHandRaise(HandRaiseItem item) => _handRaiseCtrl.add(item);
+  void emitMediaState(MediaStateUpdate update) => _mediaCtrl.add(update);
+  void emitRecordingState(RecordingState state) => _recordingCtrl.add(state);
+
   @override
   Future<void> dispose() async {
     await _joinedCtrl.close();
@@ -300,6 +305,106 @@ void main() {
       expect(controller.lastSessionExport, isNotNull);
       expect(controller.lastSessionExport!.roomCode, 'SALA-101');
       expect(controller.lastSessionExport!.attendeeNames, contains('Alex Sousa'));
+    });
+
+    test('Remote participant raising hand updates remoteParticipants.first.isHandRaised', () {
+      final remotePeer = Participant(id: 'peer_remote', name: 'Maria Silva', ra: '24809999');
+      controller.registerRemoteParticipant(remotePeer);
+      expect(controller.remoteParticipants.first.isHandRaised, isFalse);
+
+      fakeRepo.emitHandRaise(
+        HandRaiseItem(
+          peerId: 'peer_remote',
+          name: 'Maria Silva',
+          ra: '24809999',
+          raisedAt: DateTime.now(),
+        ),
+      );
+      expect(controller.remoteParticipants.first.isHandRaised, isTrue);
+      expect(controller.raisedHandsQueue.length, 1);
+
+      // Lower hand
+      fakeRepo.emitHandRaise(
+        HandRaiseItem(
+          peerId: 'peer_remote',
+          name: 'Maria Silva',
+          ra: '24809999',
+          raisedAt: DateTime.now(),
+        ),
+      );
+      expect(controller.remoteParticipants.first.isHandRaised, isFalse);
+      expect(controller.raisedHandsQueue, isEmpty);
+    });
+
+    test('Remote participant starts recording and increments remote elapsed duration', () {
+      expect(controller.recordingState.isRecording, isFalse);
+
+      fakeRepo.emitRecordingState(
+        RecordingState(
+          isRecording: true,
+          startedAt: DateTime.now(),
+          elapsedDuration: Duration.zero,
+          startedByPeerId: 'peer_remote',
+          startedByName: 'Maria Silva',
+        ),
+      );
+      expect(controller.recordingState.isRecording, isTrue);
+      expect(controller.recordingState.startedByName, 'Maria Silva');
+
+      // Stop recording
+      fakeRepo.emitRecordingState(
+        RecordingState(
+          isRecording: false,
+          startedAt: DateTime.now().subtract(const Duration(seconds: 10)),
+          elapsedDuration: const Duration(seconds: 10),
+          startedByPeerId: 'peer_remote',
+        ),
+      );
+      expect(controller.recordingState.isRecording, isFalse);
+      expect(controller.lastSessionExport, isNotNull);
+    });
+
+    test('Muted remote peer with incoming audioLevel does not become active speaker', () {
+      final remotePeer = Participant(
+        id: 'peer_muted',
+        name: 'Carlos',
+        ra: '24807777',
+        isAudioMuted: true,
+      );
+      controller.registerRemoteParticipant(remotePeer);
+      expect(controller.remoteParticipants.first.isAudioMuted, isTrue);
+
+      // Send audioLevel update without isAudioMuted field
+      fakeRepo.emitMediaState(
+        MediaStateUpdate(
+          peerId: 'peer_muted',
+          audioLevel: 0.8,
+          timestamp: DateTime.now(),
+        ),
+      );
+      final updated = controller.remoteParticipants.firstWhere((p) => p.id == 'peer_muted');
+      expect(updated.isAudioMuted, isTrue);
+      expect(updated.isSpeaking, isFalse);
+    });
+
+    test('Total reactions count is accumulated and preserved in SessionExport', () {
+      controller.sendReaction('❤️');
+      controller.sendReaction('👍');
+      fakeRepo.sendEmojiReaction(
+        'SALA-101',
+        EmojiReaction(
+          id: 'rx_1',
+          peerId: 'peer_remote',
+          peerName: 'Maria',
+          emoji: '🎉',
+          timestamp: DateTime.now(),
+        ),
+      );
+      expect(controller.totalReactionsCount, 3);
+
+      controller.toggleRecording();
+      controller.toggleRecording();
+      expect(controller.lastSessionExport!.reactionCount, 3);
     });
   });
 
