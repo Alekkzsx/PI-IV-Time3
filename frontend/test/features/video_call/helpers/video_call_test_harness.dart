@@ -63,8 +63,9 @@ class VideoCallTestHarness {
       localParticipant: participantB,
     );
 
-    // Flush initial handshake signaling envelopes across in-memory bus
-    await pumpEventQueue();
+    // Register initial participants directly so both peers are immediately aware of each other
+    controllerA.registerRemoteParticipant(participantB);
+    controllerB.registerRemoteParticipant(participantA);
 
     return VideoCallTestHarness._(
       roomCode: roomCode,
