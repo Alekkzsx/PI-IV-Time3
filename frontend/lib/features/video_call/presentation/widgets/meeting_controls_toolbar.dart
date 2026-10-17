@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../controllers/video_call_controller.dart';
+import '../theme/video_call_theme.dart';
 
-/// Barra flutuante inferior de controles e ações da conferência.
+/// Barra flutuante inferior de controles e ações da conferência (Estética Preto, Cinza e Branco).
 ///
 /// Agrupa os seletores de mídia (microfone, câmera, tela), reações de emojis,
 /// levantamento de mão, gravação da reunião, abertura das gavetas de chat e participantes,
@@ -22,15 +23,16 @@ class MeetingControlsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       key: const Key('meeting_controls_toolbar'),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: VideoCallColors.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: VideoCallColors.border, width: 1),
         boxShadow: const [
           BoxShadow(
-            color: Colors.black54,
-            blurRadius: 16,
-            offset: Offset(0, 4),
+            color: Colors.black87,
+            blurRadius: 20,
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -49,8 +51,8 @@ class MeetingControlsToolbar extends StatelessWidget {
                     ? Icons.mic_off
                     : Icons.mic,
                 color: controller.localParticipant.isAudioMuted
-                    ? Colors.redAccent
-                    : Colors.white,
+                    ? VideoCallColors.textMuted
+                    : VideoCallColors.accentWhite,
               ),
               onPressed: controller.toggleAudio,
             ),
@@ -64,8 +66,8 @@ class MeetingControlsToolbar extends StatelessWidget {
                     ? Icons.videocam_off
                     : Icons.videocam,
                 color: controller.localParticipant.isVideoOff
-                    ? Colors.redAccent
-                    : Colors.white,
+                    ? VideoCallColors.textMuted
+                    : VideoCallColors.accentWhite,
               ),
               onPressed: controller.toggleVideo,
             ),
@@ -74,11 +76,16 @@ class MeetingControlsToolbar extends StatelessWidget {
               tooltip: controller.isScreenSharing
                   ? 'Parar Apresentação'
                   : 'Compartilhar Tela',
+              style: IconButton.styleFrom(
+                backgroundColor: controller.isScreenSharing
+                    ? VideoCallColors.accentWhite
+                    : Colors.transparent,
+              ),
               icon: Icon(
                 Icons.screen_share,
                 color: controller.isScreenSharing
-                    ? Colors.indigoAccent
-                    : Colors.white,
+                    ? VideoCallColors.background
+                    : VideoCallColors.accentWhite,
               ),
               onPressed: controller.toggleScreenShare,
             ),
@@ -87,11 +94,16 @@ class MeetingControlsToolbar extends StatelessWidget {
               tooltip: controller.localParticipant.isHandRaised
                   ? 'Abaixar Mão'
                   : 'Levantar Mão',
+              style: IconButton.styleFrom(
+                backgroundColor: controller.localParticipant.isHandRaised
+                    ? VideoCallColors.accentWhite
+                    : Colors.transparent,
+              ),
               icon: Icon(
                 Icons.pan_tool,
                 color: controller.localParticipant.isHandRaised
-                    ? Colors.amber
-                    : Colors.white,
+                    ? VideoCallColors.background
+                    : VideoCallColors.accentWhite,
               ),
               onPressed: controller.toggleHandRaise,
             ),
@@ -134,13 +146,18 @@ class MeetingControlsToolbar extends StatelessWidget {
             IconButton(
               key: const Key('toolbar_record_button'),
               tooltip: controller.recordingState.isRecording
-                  ? 'Parar Gravação'
+                  ? 'Parar Gravação e Baixar'
                   : 'Gravar Reunião',
+              style: IconButton.styleFrom(
+                backgroundColor: controller.recordingState.isRecording
+                    ? VideoCallColors.accentWhite
+                    : Colors.transparent,
+              ),
               icon: Icon(
                 Icons.fiber_manual_record,
                 color: controller.recordingState.isRecording
-                    ? Colors.redAccent
-                    : Colors.white,
+                    ? VideoCallColors.background
+                    : VideoCallColors.accentWhite,
               ),
               onPressed: controller.toggleRecording,
             ),
@@ -149,7 +166,15 @@ class MeetingControlsToolbar extends StatelessWidget {
                 IconButton(
                   key: const Key('toolbar_chat_button'),
                   tooltip: 'Chat',
-                  icon: const Icon(Icons.chat, color: Colors.white),
+                  style: IconButton.styleFrom(
+                    backgroundColor: controller.isChatDrawerOpen
+                        ? VideoCallColors.surfaceHover
+                        : Colors.transparent,
+                  ),
+                  icon: const Icon(
+                    Icons.chat,
+                    color: VideoCallColors.accentWhite,
+                  ),
                   onPressed: controller.toggleChatDrawer,
                 ),
                 if (controller.unreadChatCount > 0)
@@ -159,12 +184,12 @@ class MeetingControlsToolbar extends StatelessWidget {
                     child: CircleAvatar(
                       key: const Key('unread_chat_badge'),
                       radius: 9,
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: VideoCallColors.accentWhite,
                       child: Text(
                         '${controller.unreadChatCount}',
                         style: const TextStyle(
                           fontSize: 10,
-                          color: Colors.white,
+                          color: VideoCallColors.background,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -175,13 +200,28 @@ class MeetingControlsToolbar extends StatelessWidget {
             IconButton(
               key: const Key('toolbar_participants_button'),
               tooltip: 'Participantes',
-              icon: const Icon(Icons.people_outline, color: Colors.white),
+              style: IconButton.styleFrom(
+                backgroundColor: controller.isParticipantsDrawerOpen
+                    ? VideoCallColors.surfaceHover
+                    : Colors.transparent,
+              ),
+              icon: const Icon(
+                Icons.people_outline,
+                color: VideoCallColors.accentWhite,
+              ),
               onPressed: controller.toggleParticipantsDrawer,
             ),
+            const SizedBox(width: 4),
             IconButton(
               key: const Key('toolbar_leave_button'),
               tooltip: 'Sair da Reunião',
-              icon: const Icon(Icons.call_end, color: Colors.redAccent),
+              style: IconButton.styleFrom(
+                backgroundColor: VideoCallColors.surfaceElevated,
+              ),
+              icon: const Icon(
+                Icons.call_end,
+                color: VideoCallColors.accentWhite,
+              ),
               onPressed: () {
                 if (onLeaveCall != null) {
                   onLeaveCall!();
