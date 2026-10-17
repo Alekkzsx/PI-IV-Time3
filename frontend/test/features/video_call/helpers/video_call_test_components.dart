@@ -1104,8 +1104,10 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   ),
                   const SizedBox(height: 16),
                   // Hardware toggles
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       ElevatedButton.icon(
                         key: const Key('lobby_toggle_mic_button'),
@@ -1120,7 +1122,6 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                           });
                         },
                       ),
-                      const SizedBox(width: 12),
                       ElevatedButton.icon(
                         key: const Key('lobby_toggle_cam_button'),
                         icon: Icon(
