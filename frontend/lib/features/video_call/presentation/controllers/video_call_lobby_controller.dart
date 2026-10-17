@@ -1,16 +1,20 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../data/datasources/video_call_signaling_datasource.dart';
+import '../../data/media/call_media_engine.dart';
+import '../../data/media/call_media_engine_factory.dart';
+import '../../data/repositories/video_call_repository_impl.dart';
 import '../../domain/entities/meeting_room.dart';
 import '../../domain/entities/participant.dart';
 import '../../domain/repositories/video_call_repository.dart';
-import '../../data/datasources/video_call_signaling_datasource.dart';
-import '../../data/repositories/video_call_repository_impl.dart';
 import 'video_call_controller.dart';
 
-/// Controlador para o estado da pré-chamada (Lobby), validações e preview de hardware.
+/// Controlador para o estado da pré-chamada (Lobby), validações e preview real de hardware.
 class VideoCallLobbyController extends ChangeNotifier {
   final VideoCallRepository? _injectedRepository;
+  final ICallMediaEngine _mediaEngine;
 
   String _name = '';
   String _ra = '';
@@ -18,10 +22,18 @@ class VideoCallLobbyController extends ChangeNotifier {
   bool _isAudioMuted = false;
   bool _isVideoOff = false;
   double _audioLevel = 0.05;
+  bool _handedOffMediaEngine = false;
+  bool _isDisposed = false;
+
+  final List<StreamSubscription> _subscriptions = [];
 
   VideoCallLobbyController({
     VideoCallRepository? repository,
-  }) : _injectedRepository = repository;
+    ICallMediaEngine? mediaEngine,
+  })  : _injectedRepository = repository,
+        _mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
+    _initHardwarePreview();
+  }
 
   String get name => _name;
   String get ra => _ra;
@@ -29,6 +41,33 @@ class VideoCallLobbyController extends ChangeNotifier {
   bool get isAudioMuted => _isAudioMuted;
   bool get isVideoOff => _isVideoOff;
   double get audioLevel => _isAudioMuted ? 0.0 : _audioLevel;
+  ICallMediaEngine get mediaEngine => _mediaEngine;
+  String? get localVideoViewType => _mediaEngine.getVideoViewType('local');
+
+  Future<void> _initHardwarePreview() async {
+    _subscriptions.add(
+      _mediaEngine.onLocalAudioLevel.listen((level) {
+        if (!_isDisposed && !_isAudioMuted) {
+          _audioLevel = level;
+          notifyListeners();
+        }
+      }),
+    );
+    _subscriptions.add(
+      _mediaEngine.onVideoStreamUpdated.listen((_) {
+        if (!_isDisposed) {
+          notifyListeners();
+        }
+      }),
+    );
+    await _mediaEngine.initializeLocalMedia(
+      audioMuted: _isAudioMuted,
+      videoOff: _isVideoOff,
+    );
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
 
   void setName(String value) {
     _name = value;
@@ -47,11 +86,13 @@ class VideoCallLobbyController extends ChangeNotifier {
 
   void toggleAudio() {
     _isAudioMuted = !_isAudioMuted;
+    _mediaEngine.setMicrophoneMuted(_isAudioMuted);
     notifyListeners();
   }
 
   void toggleVideo() {
     _isVideoOff = !_isVideoOff;
+    _mediaEngine.setCameraOff(_isVideoOff);
     notifyListeners();
   }
 
@@ -89,7 +130,7 @@ class VideoCallLobbyController extends ChangeNotifier {
     return null;
   }
 
-  /// Instancia o [VideoCallController] da sala com os parâmetros validados.
+  /// Instancia o [VideoCallController] da sala com os parâmetros validados e o motor de mídia ativo.
   VideoCallController createCallController({
     required String name,
     required String ra,
@@ -121,10 +162,27 @@ class VideoCallLobbyController extends ChangeNotifier {
           dataSource: VideoCallSignalingDataSource(),
         );
 
+    _handedOffMediaEngine = true;
+
     return VideoCallController(
       repository: repo,
       room: room,
       localParticipant: localParticipant,
+      mediaEngine: _mediaEngine,
     );
+  }
+
+  @override
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
+    _subscriptions.clear();
+    if (!_handedOffMediaEngine) {
+      _mediaEngine.dispose();
+    }
+    super.dispose();
   }
 }

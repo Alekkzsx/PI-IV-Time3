@@ -2,6 +2,8 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../data/media/call_media_engine.dart';
+import '../../data/media/call_media_engine_factory.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/emoji_reaction.dart';
 import '../../domain/entities/hand_raise_item.dart';
@@ -15,12 +17,13 @@ import '../../domain/repositories/video_call_repository.dart';
 /// Controlador central de estado e ciclo de vida da chamada de vídeo P2P.
 ///
 /// Implementa a sincronização em tempo real de presença (Invariante Zero Bots),
-/// controle de streams de áudio/vídeo, detecção de orador ativo com histerese,
-/// compartilhamento de tela, chat interno, reações de emojis, fila de mãos levantadas
-/// e auditoria/gravação de sessão acadêmica.
+/// controle de streams reais de áudio/vídeo/WebRTC, detecção de orador ativo com histerese,
+/// compartilhamento de tela real (`getDisplayMedia`), chat interno, reações de emojis,
+/// fila de mãos levantadas e gravação real (`MediaRecorder`) da sessão acadêmica.
 class VideoCallController extends ChangeNotifier {
   final VideoCallRepository repository;
   final MeetingRoom room;
+  final ICallMediaEngine mediaEngine;
 
   Participant _localParticipant;
   final Map<String, Participant> _remoteParticipants = {};
@@ -29,6 +32,7 @@ class VideoCallController extends ChangeNotifier {
   final List<HandRaiseItem> _raisedHandsQueue = [];
   RecordingState _recordingState = const RecordingState();
   SessionExport? _lastSessionExport;
+  String? _lastDownloadedFileName;
   int _totalReactionsCount = 0;
 
   bool _isScreenSharing = false;
@@ -36,6 +40,7 @@ class VideoCallController extends ChangeNotifier {
   bool _isParticipantsDrawerOpen = false;
   int _unreadChatCount = 0;
   Duration _callDuration = Duration.zero;
+  String? _pinnedParticipantId;
 
   Timer? _callDurationTimer;
   Timer? _recordingTimer;
@@ -48,7 +53,9 @@ class VideoCallController extends ChangeNotifier {
     required this.repository,
     required this.room,
     required Participant localParticipant,
-  }) : _localParticipant = localParticipant {
+    ICallMediaEngine? mediaEngine,
+  })  : _localParticipant = localParticipant,
+        mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
     _init();
   }
 
@@ -66,15 +73,53 @@ class VideoCallController extends ChangeNotifier {
 
   List<ChatMessage> get chatMessages => List.unmodifiable(_chatMessages);
   List<EmojiReaction> get activeReactions => List.unmodifiable(_activeReactions);
-  List<HandRaiseItem> get raisedHandsQueue => List.unmodifiable(_raisedHandsQueue);
+  List<HandRaiseItem> get raisedHandsQueue =>
+      List.unmodifiable(_raisedHandsQueue);
   RecordingState get recordingState => _recordingState;
   SessionExport? get lastSessionExport => _lastSessionExport;
+  String? get lastDownloadedFileName => _lastDownloadedFileName;
   int get totalReactionsCount => _totalReactionsCount;
-  bool get isScreenSharing => _isScreenSharing;
+  bool get isScreenSharing =>
+      _isScreenSharing ||
+      _remoteParticipants.values.any((p) => p.isScreenSharing);
+  bool get isLocalScreenSharing => _isScreenSharing;
   bool get isChatDrawerOpen => _isChatDrawerOpen;
   bool get isParticipantsDrawerOpen => _isParticipantsDrawerOpen;
   int get unreadChatCount => _unreadChatCount;
   Duration get callDuration => _callDuration;
+  String? get pinnedParticipantId => _pinnedParticipantId;
+
+  /// Retorna o `viewType` de vídeo registrado para um participante (local ou remoto).
+  String? getParticipantVideoViewType(Participant participant) {
+    if (participant.isLocal) {
+      return mediaEngine.getVideoViewType('local');
+    }
+    return mediaEngine.getVideoViewType(participant.id);
+  }
+
+  /// Retorna o `viewType` do compartilhamento de tela (local ou do par apresentador).
+  String? get screenShareVideoViewType {
+    if (_isScreenSharing) {
+      return mediaEngine.getVideoViewType('screen') ??
+          mediaEngine.getVideoViewType('local');
+    }
+    final remotePresenter = _remoteParticipants.values
+        .where((p) => p.isScreenSharing)
+        .firstOrNull;
+    if (remotePresenter != null) {
+      return mediaEngine.getVideoViewType(remotePresenter.id);
+    }
+    return null;
+  }
+
+  /// Retorna o nome de quem está compartilhando a tela atualmente.
+  String? get activePresenterName {
+    if (_isScreenSharing) return '${_localParticipant.name} (Você)';
+    final remotePresenter = _remoteParticipants.values
+        .where((p) => p.isScreenSharing)
+        .firstOrNull;
+    return remotePresenter?.name;
+  }
 
   void _init() {
     _subscriptions.add(
@@ -98,6 +143,53 @@ class VideoCallController extends ChangeNotifier {
     _subscriptions.add(
       repository.recordingStateStream.listen(_onRecordingStateReceived),
     );
+    _subscriptions.add(
+      repository.webRtcSignalStream.listen(_onWebRtcSignalReceived),
+    );
+
+    // Conecta streams do motor de mídia real (Microfone RMS, WebRTC e Tela)
+    _subscriptions.add(
+      mediaEngine.onLocalAudioLevel.listen((level) {
+        if (!_isDisposed && !_localParticipant.isAudioMuted) {
+          setAudioLevel(level);
+        }
+      }),
+    );
+    _subscriptions.add(
+      mediaEngine.onScreenShareStoppedExternally.listen((_) {
+        if (!_isDisposed && _isScreenSharing) {
+          _isScreenSharing = false;
+          _localParticipant =
+              _localParticipant.copyWith(isScreenSharing: false);
+          repository.updateMediaState(
+            room.code,
+            _localParticipant.id,
+            isScreenSharing: false,
+          );
+          notifyListeners();
+        }
+      }),
+    );
+    _subscriptions.add(
+      mediaEngine.onOutboundWebRtcSignal.listen((signalData) {
+        if (!_isDisposed) {
+          repository.sendWebRtcSignal(room.code, signalData);
+        }
+      }),
+    );
+    _subscriptions.add(
+      mediaEngine.onVideoStreamUpdated.listen((_) {
+        if (!_isDisposed) {
+          notifyListeners();
+        }
+      }),
+    );
+
+    // Inicializa hardware local caso ainda não tenha vindo pré-aquecido do Lobby
+    mediaEngine.initializeLocalMedia(
+      audioMuted: _localParticipant.isAudioMuted,
+      videoOff: _localParticipant.isVideoOff,
+    );
 
     // Ingresso oficial na sala via barramento de sinalização P2P
     repository.joinRoom(room, _localParticipant);
@@ -118,7 +210,14 @@ class VideoCallController extends ChangeNotifier {
 
   void _onParticipantJoined(Participant peer) {
     if (peer.id != _localParticipant.id) {
+      final isNewPeer = !_remoteParticipants.containsKey(peer.id);
       _remoteParticipants[peer.id] = peer;
+
+      if (isNewPeer) {
+        // Inicia negociação WebRTC P2P determinística entre os dois participantes reais
+        final isInitiator = _localParticipant.id.compareTo(peer.id) < 0;
+        mediaEngine.connectToPeer(peer.id, isInitiator: isInitiator);
+      }
       notifyListeners();
     }
   }
@@ -127,8 +226,18 @@ class VideoCallController extends ChangeNotifier {
     if (_remoteParticipants.containsKey(peerId)) {
       _remoteParticipants.remove(peerId);
       _raisedHandsQueue.removeWhere((item) => item.peerId == peerId);
+      if (_pinnedParticipantId == peerId) {
+        _pinnedParticipantId = null;
+      }
+      mediaEngine.disconnectPeer(peerId);
       notifyListeners();
     }
+  }
+
+  void _onWebRtcSignalReceived(Map<String, dynamic> signalData) {
+    final senderId = signalData['senderId'] as String?;
+    if (senderId == null || senderId == _localParticipant.id) return;
+    mediaEngine.handleInboundWebRtcSignal(senderId, signalData);
   }
 
   void _onChatMessageReceived(ChatMessage message) {
@@ -160,16 +269,20 @@ class VideoCallController extends ChangeNotifier {
     if (item.peerId == _localParticipant.id) return;
     final existingIndex =
         _raisedHandsQueue.indexWhere((h) => h.peerId == item.peerId);
-    if (existingIndex >= 0) {
-      _raisedHandsQueue.removeAt(existingIndex);
+    if (!item.isRaised) {
+      if (existingIndex >= 0) {
+        _raisedHandsQueue.removeAt(existingIndex);
+      }
     } else {
-      _raisedHandsQueue.add(item);
+      if (existingIndex < 0) {
+        _raisedHandsQueue.add(item);
+      }
     }
 
     if (_remoteParticipants.containsKey(item.peerId)) {
       final p = _remoteParticipants[item.peerId]!;
       _remoteParticipants[item.peerId] = p.copyWith(
-        isHandRaised: _raisedHandsQueue.any((h) => h.peerId == item.peerId),
+        isHandRaised: item.isRaised,
       );
     }
     notifyListeners();
@@ -215,7 +328,7 @@ class VideoCallController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Alterna o microfone do participante local.
+  /// Alterna o microfone físico do participante local.
   void toggleAudio() {
     final newMuted = !_localParticipant.isAudioMuted;
     _localParticipant = _localParticipant.copyWith(
@@ -223,6 +336,7 @@ class VideoCallController extends ChangeNotifier {
       isSpeaking: newMuted ? false : _localParticipant.isSpeaking,
       audioLevel: newMuted ? 0.0 : _localParticipant.audioLevel,
     );
+    mediaEngine.setMicrophoneMuted(newMuted);
     repository.updateMediaState(
       room.code,
       _localParticipant.id,
@@ -232,10 +346,11 @@ class VideoCallController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Alterna a câmera de vídeo do participante local.
+  /// Alterna a câmera de vídeo física do participante local.
   void toggleVideo() {
     final newVideoOff = !_localParticipant.isVideoOff;
     _localParticipant = _localParticipant.copyWith(isVideoOff: newVideoOff);
+    mediaEngine.setCameraOff(newVideoOff);
     repository.updateMediaState(
       room.code,
       _localParticipant.id,
@@ -244,9 +359,17 @@ class VideoCallController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Alterna o modo de compartilhamento de tela local.
-  void toggleScreenShare() {
-    _isScreenSharing = !_isScreenSharing;
+  /// Alterna o modo de compartilhamento de tela local (`getDisplayMedia`).
+  Future<void> toggleScreenShare() async {
+    if (_isScreenSharing) {
+      _isScreenSharing = false;
+      await mediaEngine.stopScreenShare();
+    } else {
+      final started = await mediaEngine.startScreenShare();
+      if (!started) return;
+      _isScreenSharing = true;
+    }
+
     _localParticipant =
         _localParticipant.copyWith(isScreenSharing: _isScreenSharing);
     repository.updateMediaState(
@@ -255,6 +378,21 @@ class VideoCallController extends ChangeNotifier {
       isScreenSharing: _isScreenSharing,
     );
     notifyListeners();
+  }
+
+  /// Fixa ou desafixa um participante em destaque (Pin / Spotlight).
+  void togglePinParticipant(String participantId) {
+    if (_pinnedParticipantId == participantId) {
+      _pinnedParticipantId = null;
+    } else {
+      _pinnedParticipantId = participantId;
+    }
+    notifyListeners();
+  }
+
+  /// Copia o código da sala para a área de transferência.
+  Future<void> copyRoomInfo() async {
+    await mediaEngine.copyToClipboard(room.code);
   }
 
   /// Atualiza o nível RMS de áudio local com histerese de 800ms para orador ativo.
@@ -308,7 +446,8 @@ class VideoCallController extends ChangeNotifier {
         ),
       );
     } else {
-      _raisedHandsQueue.removeWhere((item) => item.peerId == _localParticipant.id);
+      _raisedHandsQueue
+          .removeWhere((item) => item.peerId == _localParticipant.id);
     }
 
     repository.toggleHandRaise(
@@ -361,8 +500,8 @@ class VideoCallController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Alterna a gravação da reunião e propaga o estado institucional para os peers.
-  void toggleRecording() {
+  /// Alterna a gravação real da reunião (`MediaRecorder`) e propaga o estado aos peers.
+  Future<void> toggleRecording() async {
     if (_recordingState.isRecording) {
       _recordingTimer?.cancel();
       _recordingTimer = null;
@@ -370,7 +509,12 @@ class VideoCallController extends ChangeNotifier {
       _recordingState = stoppedState;
       repository.updateRecordingState(room.code, stoppedState);
       _generateSessionExport();
+      if (_lastSessionExport != null) {
+        _lastDownloadedFileName =
+            await mediaEngine.stopRecordingAndDownload(_lastSessionExport!);
+      }
     } else {
+      await mediaEngine.startRecording();
       final startedState = RecordingState(
         isRecording: true,
         startedAt: DateTime.now(),
@@ -453,6 +597,7 @@ class VideoCallController extends ChangeNotifier {
       sub.cancel();
     }
     _subscriptions.clear();
+    mediaEngine.dispose();
     super.dispose();
   }
 }
