@@ -29,6 +29,7 @@ class VideoCallController extends ChangeNotifier {
   final List<HandRaiseItem> _raisedHandsQueue = [];
   RecordingState _recordingState = const RecordingState();
   SessionExport? _lastSessionExport;
+  int _totalReactionsCount = 0;
 
   bool _isScreenSharing = false;
   bool _isChatDrawerOpen = false;
@@ -68,6 +69,7 @@ class VideoCallController extends ChangeNotifier {
   List<HandRaiseItem> get raisedHandsQueue => List.unmodifiable(_raisedHandsQueue);
   RecordingState get recordingState => _recordingState;
   SessionExport? get lastSessionExport => _lastSessionExport;
+  int get totalReactionsCount => _totalReactionsCount;
   bool get isScreenSharing => _isScreenSharing;
   bool get isChatDrawerOpen => _isChatDrawerOpen;
   bool get isParticipantsDrawerOpen => _isParticipantsDrawerOpen;
@@ -140,6 +142,7 @@ class VideoCallController extends ChangeNotifier {
 
   void _onEmojiReactionReceived(EmojiReaction reaction) {
     if (reaction.peerId == _localParticipant.id) return;
+    _totalReactionsCount++;
     _activeReactions.add(reaction);
     notifyListeners();
 
@@ -166,7 +169,7 @@ class VideoCallController extends ChangeNotifier {
     if (_remoteParticipants.containsKey(item.peerId)) {
       final p = _remoteParticipants[item.peerId]!;
       _remoteParticipants[item.peerId] = p.copyWith(
-        isHandRaised: !_raisedHandsQueue.any((h) => h.peerId == item.peerId),
+        isHandRaised: _raisedHandsQueue.any((h) => h.peerId == item.peerId),
       );
     }
     notifyListeners();
@@ -176,12 +179,11 @@ class VideoCallController extends ChangeNotifier {
     if (_remoteParticipants.containsKey(update.peerId)) {
       final current = _remoteParticipants[update.peerId]!;
       final newAudioLevel = update.audioLevel ?? current.audioLevel;
-      final isSpeaking = (update.isAudioMuted == true)
-          ? false
-          : (newAudioLevel > 0.15);
+      final isMuted = update.isAudioMuted ?? current.isAudioMuted;
+      final isSpeaking = !isMuted && (newAudioLevel > 0.15);
 
       _remoteParticipants[update.peerId] = current.copyWith(
-        isAudioMuted: update.isAudioMuted ?? current.isAudioMuted,
+        isAudioMuted: isMuted,
         isVideoOff: update.isVideoOff ?? current.isVideoOff,
         isScreenSharing: update.isScreenSharing ?? current.isScreenSharing,
         audioLevel: newAudioLevel,
@@ -193,8 +195,22 @@ class VideoCallController extends ChangeNotifier {
 
   void _onRecordingStateReceived(RecordingState state) {
     _recordingState = state;
-    if (!state.isRecording && state.startedAt != null) {
-      _generateSessionExport();
+    if (state.isRecording) {
+      _recordingTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        if (_recordingState.isRecording && !_isDisposed) {
+          _recordingState = _recordingState.copyWith(
+            elapsedDuration:
+                _recordingState.elapsedDuration + const Duration(seconds: 1),
+          );
+          notifyListeners();
+        }
+      });
+    } else {
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
+      if (state.startedAt != null) {
+        _generateSessionExport();
+      }
     }
     notifyListeners();
   }
@@ -305,6 +321,7 @@ class VideoCallController extends ChangeNotifier {
 
   /// Dispara reação animada de emoji e transmite aos pares conectados.
   void sendReaction(String emoji) {
+    _totalReactionsCount++;
     final reaction = EmojiReaction(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       peerId: _localParticipant.id,
@@ -386,7 +403,7 @@ class VideoCallController extends ChangeNotifier {
       totalParticipants: allParticipants.length,
       attendeeNames: allParticipants.map((p) => p.name).toList(),
       chatMessageCount: _chatMessages.length,
-      reactionCount: _activeReactions.length,
+      reactionCount: _totalReactionsCount,
     );
   }
 
