@@ -135,6 +135,6 @@ When fully instantiated, the backend will expose standardized REST endpoints adh
 
 ## 🔗 Cross-Module Integration
 
-- **Frontend Integration**: The Flutter client (`frontend/`) will replace its simulated network layer (`AuthRemoteDataSourceImpl`) with HTTP client implementations targeting these backend endpoints.
-- **Server Integration**: The native Java HTTP server (`server/`) will continue to operate as a high-speed computational service for primitive parsing and mathematical evaluation or be embedded as an internal microservice.
-- **Security Policy**: All backend operations will comply with the governance rules and threat models specified in [`security/`](../security/README.md).
+- **Frontend Integration**: The Flutter client ([`frontend/`](../frontend/README.md)) connects its feature modules (`features/auth_view/` and `features/student_view/`) and shared data layer (`shared/auth/external/auth_remote_datasource_impl.dart`) to these REST endpoints.
+- **Server Integration**: The native Java HTTP server ([`server/`](../server/README.md)) continues to operate as a high-speed computational service for primitive parsing and mathematical evaluation or can be embedded as an internal microservice.
+- **Security Policy**: All backend operations comply with the defense-in-depth guards, threat models, and governance policies implemented in [`security/`](../security/README.md).

@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_iv_time3/features/forgot_password/domain/usecases/recover_password_usecase.dart';
-import 'package:pi_iv_time3/features/forgot_password/presentation/controllers/recover_password_controller.dart';
-import 'package:pi_iv_time3/features/forgot_password/presentation/widgets/recovery_input_field.dart';
-import 'package:pi_iv_time3/features/reset_password/presentation/widgets/password_reset_field.dart';
-import 'package:pi_iv_time3/features/verify_code/presentation/pages/verify_code_page.dart';
+import 'package:pi_iv_time3/features/auth_view/forgot_password/domain/usecases/recover_password_usecase.dart';
+import 'package:pi_iv_time3/features/auth_view/forgot_password/presentation/controllers/recover_password_controller.dart';
+import 'package:pi_iv_time3/features/auth_view/forgot_password/presentation/widgets/recovery_input_field.dart';
+import 'package:pi_iv_time3/features/auth_view/reset_password/presentation/widgets/password_reset_field.dart';
+import 'package:pi_iv_time3/features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
 import 'package:pi_iv_time3/main.dart';
 import 'package:pi_iv_time3/shared/auth/data/auth_repository_impl.dart';
 import 'package:pi_iv_time3/shared/auth/external/auth_remote_datasource_impl.dart';
