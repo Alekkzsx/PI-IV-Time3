@@ -16,6 +16,9 @@ import 'features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
 
+// Importação correta com base na árvore de pastas da sua imagem:
+import 'features/admin/admin_shell/presentation/pages/admin_shell_page.dart';
+
 /// Ponto de entrada da aplicação Flutter.
 ///
 /// Inicializa e injeta as dependências de Clean Architecture (DataSources, Repositories,
@@ -78,8 +81,8 @@ class PortalAvaApp extends StatelessWidget {
         '/student/messages': (context) => const StudentMessagesPage(),
         '/student/secretaria': (context) => const StudentSecretariatPage(),
         '/video-call': (context) => const VideoCallLobbyPage(),
+        '/admin-shell': (context) => const AdminShellPage(),
       },
     );
   }
 }
-
