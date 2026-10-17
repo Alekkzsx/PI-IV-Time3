@@ -15,6 +15,7 @@ import 'tier3_pairwise_combinations/multi_peer_state_pairwise_test.dart' as t3_p
 import 'tier4_real_world_scenarios/full_classroom_lecture_e2e_test.dart' as t4_lecture;
 import 'tier4_real_world_scenarios/interactive_study_group_e2e_test.dart' as t4_study;
 import 'tier4_real_world_scenarios/unexpected_disconnect_recovery_e2e_test.dart' as t4_disconnect;
+import 'presentation/production_presentation_test.dart' as prod_pres;
 import 'tier4_real_world_scenarios/zero_bots_multi_user_e2e_test.dart' as t4_zero_bots;
 
 /// Master test runner for the complete 4-tier P2P Video Conferencing test suite.
@@ -44,6 +45,10 @@ void main() {
       t4_lecture.main();
       t4_study.main();
       t4_disconnect.main();
+    });
+
+    group('Production Presentation Layer Verification', () {
+      prod_pres.main();
     });
   });
 }
