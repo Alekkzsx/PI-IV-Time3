@@ -86,12 +86,6 @@ class VideoCallTestController extends ChangeNotifier {
 
     // Join room over signaling bus
     repository.joinRoom(room, _localParticipant);
-
-    // Call duration timer
-    _callDurationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _callDuration += const Duration(seconds: 1);
-      notifyListeners();
-    });
   }
 
   void _onParticipantJoined(Participant peer) {
