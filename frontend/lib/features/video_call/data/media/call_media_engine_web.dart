@@ -35,8 +35,6 @@ class WebCallMediaEngine implements ICallMediaEngine {
   Timer? _videoPlaybackWatchdog;
 
   bool _isInitialized = false;
-  bool _isAudioMuted = false;
-  bool _isVideoOff = false;
   bool _isDisposed = false;
   Future<bool>? _initFuture;
 
@@ -657,22 +655,22 @@ class WebCallMediaEngine implements ICallMediaEngine {
     final bridge = _bridge;
     if (bridge == null) return;
 
-    bridge['onAudioLevelCb'] = js.allowInterop((num level) {
+    bridge['onAudioLevelCb'] = (num level) {
       if (!_isDisposed && !_audioLevelController.isClosed) {
         _audioLevelController.add(level.toDouble().clamp(0.0, 1.0));
       }
-    });
+    };
 
-    bridge['onRemoteStreamCb'] = js.allowInterop((String remotePeerId) {
+    bridge['onRemoteStreamCb'] = (String remotePeerId) {
       if (_isDisposed) return;
       _registerStreamViewFactory(
         remotePeerId,
         muted: false,
         mirror: false,
       );
-    });
+    };
 
-    bridge['onOutboundSignalCb'] = js.allowInterop((
+    bridge['onOutboundSignalCb'] = (
       String targetPeerId,
       String signalType,
       String sdpType,
@@ -698,7 +696,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
           'sdp': sdp,
         });
       }
-    });
+    };
   }
 
   void _startVideoPlaybackWatchdog() {
@@ -804,9 +802,6 @@ class WebCallMediaEngine implements ICallMediaEngine {
     _ensureJsBridge();
     _bindBridgeCallbacks();
 
-    _isAudioMuted = audioMuted;
-    _isVideoOff = videoOff;
-
     // Registra imediatamente a viewFactory 'local' para que o HtmlElementView
     // já esteja montado no DOM assim que o stream da câmera ficar pronto.
     _registerStreamViewFactory(
@@ -816,6 +811,12 @@ class WebCallMediaEngine implements ICallMediaEngine {
     );
 
     if (_isInitialized) {
+      _registerStreamViewFactory(
+        'local',
+        muted: true,
+        mirror: true,
+        forceNewViewType: true,
+      );
       await setMicrophoneMuted(audioMuted);
       await setCameraOff(videoOff);
       _bridge?.callMethod('resumeAllForKey', ['local', true]);
@@ -824,6 +825,12 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
     if (_initFuture != null) {
       final result = await _initFuture!;
+      _registerStreamViewFactory(
+        'local',
+        muted: true,
+        mirror: true,
+        forceNewViewType: true,
+      );
       await setMicrophoneMuted(audioMuted);
       await setCameraOff(videoOff);
       _bridge?.callMethod('resumeAllForKey', ['local', true]);
@@ -844,7 +851,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
       bridge.callMethod('startLocalMedia', [
         audioMuted,
         videoOff,
-        js.allowInterop((dynamic _) {
+        (dynamic _) {
           _isInitialized = true;
           _registerStreamViewFactory(
             'local',
@@ -855,13 +862,13 @@ class WebCallMediaEngine implements ICallMediaEngine {
           if (!completer.isCompleted) {
             completer.complete(true);
           }
-        }),
-        js.allowInterop((dynamic _) {
+        },
+        (dynamic _) {
           _initFuture = null;
           if (!completer.isCompleted) {
             completer.complete(false);
           }
-        }),
+        },
       ]);
     } catch (_) {
       _initFuture = null;
@@ -875,7 +882,6 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
   @override
   Future<void> setMicrophoneMuted(bool muted) async {
-    _isAudioMuted = muted;
     _bridge?.callMethod('setMicMuted', [muted]);
     if (muted && !_audioLevelController.isClosed) {
       _audioLevelController.add(0.0);
@@ -884,7 +890,6 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
   @override
   Future<void> setCameraOff(bool videoOff) async {
-    _isVideoOff = videoOff;
     _bridge?.callMethod('setCamOff', [videoOff]);
     if (!_videoStreamUpdatedController.isClosed) {
       _videoStreamUpdatedController.add('local');
@@ -902,7 +907,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
     try {
       bridge.callMethod('startDisplayMedia', [
-        js.allowInterop(() {
+        () {
           if (_isDisposed) {
             bridge.callMethod('stopDisplayMedia', []);
             if (!completer.isCompleted) completer.complete(false);
@@ -917,18 +922,18 @@ class WebCallMediaEngine implements ICallMediaEngine {
           if (!completer.isCompleted) {
             completer.complete(true);
           }
-        }),
-        js.allowInterop((dynamic _) {
+        },
+        (dynamic _) {
           if (!completer.isCompleted) {
             completer.complete(false);
           }
-        }),
-        js.allowInterop(() {
+        },
+        () {
           _registeredViewTypes.remove('screen');
           if (!_screenShareStoppedController.isClosed) {
             _screenShareStoppedController.add(null);
           }
-        }),
+        },
       ]);
     } catch (_) {
       if (!completer.isCompleted) {
@@ -1019,11 +1024,11 @@ class WebCallMediaEngine implements ICallMediaEngine {
         webmFileName,
         txtFileName,
         summaryText,
-        js.allowInterop((dynamic downloadedName) {
+        (dynamic downloadedName) {
           if (!completer.isCompleted) {
             completer.complete(downloadedName?.toString() ?? txtFileName);
           }
-        }),
+        },
       ]);
     } catch (_) {
       if (!completer.isCompleted) {
