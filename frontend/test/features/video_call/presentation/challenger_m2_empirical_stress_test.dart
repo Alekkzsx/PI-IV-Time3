@@ -226,7 +226,7 @@ void main() {
         expect(controllerB.unreadChatCount, 1);
       });
 
-      testWidgets('Chat Drawer DEFECT: Timestamp display is absent in InCallChatDrawer', (tester) async {
+      testWidgets('Chat Drawer: Timestamp display is present in InCallChatDrawer', (tester) async {
         controllerA.sendChatMessage('Mensagem com carimbo de tempo');
         controllerB.toggleChatDrawer();
 
@@ -250,10 +250,8 @@ void main() {
         final hasAnyTimestampKey = find.byKey(const Key('chat_message_timestamp')).evaluate().isNotEmpty;
 
         debugPrint('Empirical finding [Chat Drawer] - Formatted timestamp rendered: $hasFormattedTimestamp, Key rendered: $hasAnyTimestampKey');
-        // REQUIREMENT VIOLATION EMPIRICAL ASSERTION:
-        // InCallChatDrawer line 81-110 renders only senderName, senderRa, and text.
-        // It DOES NOT render msg.timestamp.
-        expect(hasFormattedTimestamp, isFalse, reason: 'InCallChatDrawer fails to display message timestamps required by R4');
+        expect(hasFormattedTimestamp, isTrue, reason: 'InCallChatDrawer displays message timestamps required by R4');
+        expect(hasAnyTimestampKey, isTrue);
       });
     });
 
@@ -319,7 +317,7 @@ void main() {
         expect(receivedEmojis, containsAll(officialEmojis));
       });
 
-      testWidgets('Reactions DEFECT: FloatingReactionsOverlay lacks physics-based rising animation', (tester) async {
+      testWidgets('Reactions: FloatingReactionsOverlay features smooth rising animation', (tester) async {
         final reactions = [
           EmojiReaction(
             id: 'r1',
@@ -354,15 +352,12 @@ void main() {
         final isAnimatedRising = (initialPosition.dy != midPosition.dy) && (midPosition.dy != endPosition.dy);
         debugPrint('Empirical finding [Reactions Overlay] - initial.dy=${initialPosition.dy}, mid.dy=${midPosition.dy}, end.dy=${endPosition.dy}, isAnimatedRising=$isAnimatedRising');
 
-        // REQUIREMENT VIOLATION EMPIRICAL ASSERTION:
-        // FloatingReactionsOverlay is a StatelessWidget with a static Positioned(bottom: 80).
-        // It has NO upward movement or animation over time.
-        expect(isAnimatedRising, isFalse, reason: 'FloatingReactionsOverlay is completely static and lacks the physics-based rising animation required by R4');
-        expect(initialPosition.dy, equals(midPosition.dy));
-        expect(midPosition.dy, equals(endPosition.dy));
+        expect(isAnimatedRising, isTrue, reason: 'FloatingReactionsOverlay features rising animation required by R4');
+        expect(initialPosition.dy, greaterThan(midPosition.dy));
+        expect(midPosition.dy, greaterThan(endPosition.dy));
       });
 
-      testWidgets('Toolbar Reactions DEFECT: MeetingControlsToolbar only triggers 2 of 6 official emojis', (tester) async {
+      testWidgets('Toolbar Reactions: MeetingControlsToolbar triggers all 6 official emojis', (tester) async {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -382,11 +377,10 @@ void main() {
 
         expect(hasHeart, isTrue);
         expect(hasClap, isTrue);
-        // Emojis (👍, 😂, 😮, 🎉) specified in R4 are missing triggers in the toolbar
-        expect(hasThumbsUp, isFalse);
-        expect(hasLaugh, isFalse);
-        expect(hasSurprised, isFalse);
-        expect(hasParty, isFalse);
+        expect(hasThumbsUp, isTrue);
+        expect(hasLaugh, isTrue);
+        expect(hasSurprised, isTrue);
+        expect(hasParty, isTrue);
       });
     });
 
@@ -440,15 +434,11 @@ void main() {
         expect(controllerA.localParticipant.isHandRaised, isTrue);
 
         // Remote state on Peer B:
-        // VideoCallController.dart line 169:
-        // isHandRaised: !_raisedHandsQueue.any((h) => h.peerId == item.peerId)
-        // Because of the '!', when Peer A's hand is in the queue, isHandRaised is set to FALSE!
         final peerAInB = controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
         debugPrint('Empirical finding [Hand Raise Inversion] - When Peer A raises hand, Peer B sees peerA.isHandRaised = ${peerAInB.isHandRaised}');
 
-        // EMPIRICAL BUG CONFIRMATION:
-        expect(peerAInB.isHandRaised, isFalse,
-            reason: 'CRITICAL BUG: Remote participant isHandRaised is FALSE when hand is raised due to inverted boolean !any()');
+        expect(peerAInB.isHandRaised, isTrue,
+            reason: 'Remote participant isHandRaised is TRUE when hand is raised');
 
         // Now Peer A LOWERS hand
         controllerA.toggleHandRaise();
@@ -456,12 +446,11 @@ void main() {
         final peerAInBLowered = controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
         debugPrint('Empirical finding [Hand Raise Inversion] - When Peer A lowers hand, Peer B sees peerA.isHandRaised = ${peerAInBLowered.isHandRaised}');
 
-        // EMPIRICAL BUG CONFIRMATION:
-        expect(peerAInBLowered.isHandRaised, isTrue,
-            reason: 'CRITICAL BUG: Remote participant isHandRaised becomes TRUE when hand is lowered due to inverted boolean !any()');
+        expect(peerAInBLowered.isHandRaised, isFalse,
+            reason: 'Remote participant isHandRaised becomes FALSE when hand is lowered');
       });
 
-      testWidgets('Hand Raise CRITICAL DEFECT: ✋ tile badge is NOT shown when remote hand is raised, and appears when lowered', (tester) async {
+      testWidgets('Hand Raise: ✋ tile badge is shown when remote hand is raised, and hidden when lowered', (tester) async {
         // Peer A raises hand
         controllerA.toggleHandRaise();
 
@@ -477,15 +466,14 @@ void main() {
         expect(find.byKey(const Key('raised_hands_banner')), findsOneWidget);
         expect(find.byKey(const Key('queue_item_peer_a')), findsOneWidget);
 
-        // But on Peer A's video tile inside Peer B's view:
+        // On Peer A's video tile inside Peer B's view:
         // Hand raised icon key: 'hand_raised_icon_peer_a'
         final handIconFinder = find.byKey(const Key('hand_raised_icon_peer_a'));
         final isHandBadgeRenderedWhenRaised = handIconFinder.evaluate().isNotEmpty;
         debugPrint('Empirical finding [Tile Badge] - Is ✋ badge rendered on Peer A tile when hand is raised: $isHandBadgeRenderedWhenRaised');
 
-        // EMPIRICAL BUG CONFIRMATION: The badge is MISSING from the video tile!
-        expect(isHandBadgeRenderedWhenRaised, isFalse,
-            reason: 'CRITICAL BUG: ✋ badge is not rendered on remote participant tile when hand is raised');
+        expect(isHandBadgeRenderedWhenRaised, isTrue,
+            reason: '✋ badge is rendered on remote participant tile when hand is raised');
 
         // Now Peer A LOWERS their hand
         controllerA.toggleHandRaise();
@@ -494,9 +482,8 @@ void main() {
         final isHandBadgeRenderedWhenLowered = find.byKey(const Key('hand_raised_icon_peer_a')).evaluate().isNotEmpty;
         debugPrint('Empirical finding [Tile Badge] - Is ✋ badge rendered on Peer A tile when hand is LOWERED: $isHandBadgeRenderedWhenLowered');
 
-        // EMPIRICAL BUG CONFIRMATION: The badge SUDDENLY APPEARS when lowered!
-        expect(isHandBadgeRenderedWhenLowered, isTrue,
-            reason: 'CRITICAL BUG: ✋ badge incorrectly appears on remote participant tile when hand is lowered');
+        expect(isHandBadgeRenderedWhenLowered, isFalse,
+            reason: '✋ badge is removed from remote participant tile when hand is lowered');
       });
     });
 

@@ -10,8 +10,13 @@ import '../controllers/video_call_controller.dart';
 /// e botão de encerramento da chamada.
 class MeetingControlsToolbar extends StatelessWidget {
   final VideoCallController controller;
+  final VoidCallback? onLeaveCall;
 
-  const MeetingControlsToolbar({super.key, required this.controller});
+  const MeetingControlsToolbar({
+    super.key,
+    required this.controller,
+    this.onLeaveCall,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,131 +34,165 @@ class MeetingControlsToolbar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            key: const Key('toolbar_audio_button'),
-            tooltip: controller.localParticipant.isAudioMuted
-                ? 'Ativar Microfone'
-                : 'Silenciar Microfone',
-            icon: Icon(
-              controller.localParticipant.isAudioMuted
-                  ? Icons.mic_off
-                  : Icons.mic,
-              color: controller.localParticipant.isAudioMuted
-                  ? Colors.redAccent
-                  : Colors.white,
-            ),
-            onPressed: controller.toggleAudio,
-          ),
-          IconButton(
-            key: const Key('toolbar_video_button'),
-            tooltip: controller.localParticipant.isVideoOff
-                ? 'Ligar Câmera'
-                : 'Desligar Câmera',
-            icon: Icon(
-              controller.localParticipant.isVideoOff
-                  ? Icons.videocam_off
-                  : Icons.videocam,
-              color: controller.localParticipant.isVideoOff
-                  ? Colors.redAccent
-                  : Colors.white,
-            ),
-            onPressed: controller.toggleVideo,
-          ),
-          IconButton(
-            key: const Key('toolbar_screen_share_button'),
-            tooltip: controller.isScreenSharing
-                ? 'Parar Apresentação'
-                : 'Compartilhar Tela',
-            icon: Icon(
-              Icons.screen_share,
-              color: controller.isScreenSharing
-                  ? Colors.indigoAccent
-                  : Colors.white,
-            ),
-            onPressed: controller.toggleScreenShare,
-          ),
-          IconButton(
-            key: const Key('toolbar_hand_raise_button'),
-            tooltip: controller.localParticipant.isHandRaised
-                ? 'Abaixar Mão'
-                : 'Levantar Mão',
-            icon: Icon(
-              Icons.pan_tool,
-              color: controller.localParticipant.isHandRaised
-                  ? Colors.amber
-                  : Colors.white,
-            ),
-            onPressed: controller.toggleHandRaise,
-          ),
-          IconButton(
-            key: const Key('toolbar_reaction_heart_button'),
-            tooltip: 'Reagir com Coração',
-            icon: const Text('❤️', style: TextStyle(fontSize: 18)),
-            onPressed: () => controller.sendReaction('❤️'),
-          ),
-          IconButton(
-            key: const Key('toolbar_reaction_clap_button'),
-            tooltip: 'Reagir com Palmas',
-            icon: const Text('👏', style: TextStyle(fontSize: 18)),
-            onPressed: () => controller.sendReaction('👏'),
-          ),
-          IconButton(
-            key: const Key('toolbar_record_button'),
-            tooltip: controller.recordingState.isRecording
-                ? 'Parar Gravação'
-                : 'Gravar Reunião',
-            icon: Icon(
-              Icons.fiber_manual_record,
-              color: controller.recordingState.isRecording
-                  ? Colors.redAccent
-                  : Colors.white,
-            ),
-            onPressed: controller.toggleRecording,
-          ),
-          Stack(
-            children: [
-              IconButton(
-                key: const Key('toolbar_chat_button'),
-                tooltip: 'Chat',
-                icon: const Icon(Icons.chat, color: Colors.white),
-                onPressed: controller.toggleChatDrawer,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              key: const Key('toolbar_audio_button'),
+              tooltip: controller.localParticipant.isAudioMuted
+                  ? 'Ativar Microfone'
+                  : 'Silenciar Microfone',
+              icon: Icon(
+                controller.localParticipant.isAudioMuted
+                    ? Icons.mic_off
+                    : Icons.mic,
+                color: controller.localParticipant.isAudioMuted
+                    ? Colors.redAccent
+                    : Colors.white,
               ),
-              if (controller.unreadChatCount > 0)
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: CircleAvatar(
-                    key: const Key('unread_chat_badge'),
-                    radius: 9,
-                    backgroundColor: Colors.redAccent,
-                    child: Text(
-                      '${controller.unreadChatCount}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+              onPressed: controller.toggleAudio,
+            ),
+            IconButton(
+              key: const Key('toolbar_video_button'),
+              tooltip: controller.localParticipant.isVideoOff
+                  ? 'Ligar Câmera'
+                  : 'Desligar Câmera',
+              icon: Icon(
+                controller.localParticipant.isVideoOff
+                    ? Icons.videocam_off
+                    : Icons.videocam,
+                color: controller.localParticipant.isVideoOff
+                    ? Colors.redAccent
+                    : Colors.white,
+              ),
+              onPressed: controller.toggleVideo,
+            ),
+            IconButton(
+              key: const Key('toolbar_screen_share_button'),
+              tooltip: controller.isScreenSharing
+                  ? 'Parar Apresentação'
+                  : 'Compartilhar Tela',
+              icon: Icon(
+                Icons.screen_share,
+                color: controller.isScreenSharing
+                    ? Colors.indigoAccent
+                    : Colors.white,
+              ),
+              onPressed: controller.toggleScreenShare,
+            ),
+            IconButton(
+              key: const Key('toolbar_hand_raise_button'),
+              tooltip: controller.localParticipant.isHandRaised
+                  ? 'Abaixar Mão'
+                  : 'Levantar Mão',
+              icon: Icon(
+                Icons.pan_tool,
+                color: controller.localParticipant.isHandRaised
+                    ? Colors.amber
+                    : Colors.white,
+              ),
+              onPressed: controller.toggleHandRaise,
+            ),
+            IconButton(
+              key: const Key('toolbar_reaction_heart_button'),
+              tooltip: 'Reagir com Coração',
+              icon: const Text('❤️', style: TextStyle(fontSize: 18)),
+              onPressed: () => controller.sendReaction('❤️'),
+            ),
+            IconButton(
+              key: const Key('toolbar_reaction_thumbs_up_button'),
+              tooltip: 'Reagir com Joinha',
+              icon: const Text('👍', style: TextStyle(fontSize: 18)),
+              onPressed: () => controller.sendReaction('👍'),
+            ),
+            IconButton(
+              key: const Key('toolbar_reaction_clap_button'),
+              tooltip: 'Reagir com Palmas',
+              icon: const Text('👏', style: TextStyle(fontSize: 18)),
+              onPressed: () => controller.sendReaction('👏'),
+            ),
+            IconButton(
+              key: const Key('toolbar_reaction_laugh_button'),
+              tooltip: 'Reagir com Risada',
+              icon: const Text('😂', style: TextStyle(fontSize: 18)),
+              onPressed: () => controller.sendReaction('😂'),
+            ),
+            IconButton(
+              key: const Key('toolbar_reaction_surprised_button'),
+              tooltip: 'Reagir com Surpresa',
+              icon: const Text('😮', style: TextStyle(fontSize: 18)),
+              onPressed: () => controller.sendReaction('😮'),
+            ),
+            IconButton(
+              key: const Key('toolbar_reaction_party_button'),
+              tooltip: 'Reagir com Festa',
+              icon: const Text('🎉', style: TextStyle(fontSize: 18)),
+              onPressed: () => controller.sendReaction('🎉'),
+            ),
+            IconButton(
+              key: const Key('toolbar_record_button'),
+              tooltip: controller.recordingState.isRecording
+                  ? 'Parar Gravação'
+                  : 'Gravar Reunião',
+              icon: Icon(
+                Icons.fiber_manual_record,
+                color: controller.recordingState.isRecording
+                    ? Colors.redAccent
+                    : Colors.white,
+              ),
+              onPressed: controller.toggleRecording,
+            ),
+            Stack(
+              children: [
+                IconButton(
+                  key: const Key('toolbar_chat_button'),
+                  tooltip: 'Chat',
+                  icon: const Icon(Icons.chat, color: Colors.white),
+                  onPressed: controller.toggleChatDrawer,
+                ),
+                if (controller.unreadChatCount > 0)
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: CircleAvatar(
+                      key: const Key('unread_chat_badge'),
+                      radius: 9,
+                      backgroundColor: Colors.redAccent,
+                      child: Text(
+                        '${controller.unreadChatCount}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          IconButton(
-            key: const Key('toolbar_participants_button'),
-            tooltip: 'Participantes',
-            icon: const Icon(Icons.people_outline, color: Colors.white),
-            onPressed: controller.toggleParticipantsDrawer,
-          ),
-          IconButton(
-            key: const Key('toolbar_leave_button'),
-            tooltip: 'Sair da Reunião',
-            icon: const Icon(Icons.call_end, color: Colors.redAccent),
-            onPressed: controller.leaveCall,
-          ),
-        ],
+              ],
+            ),
+            IconButton(
+              key: const Key('toolbar_participants_button'),
+              tooltip: 'Participantes',
+              icon: const Icon(Icons.people_outline, color: Colors.white),
+              onPressed: controller.toggleParticipantsDrawer,
+            ),
+            IconButton(
+              key: const Key('toolbar_leave_button'),
+              tooltip: 'Sair da Reunião',
+              icon: const Icon(Icons.call_end, color: Colors.redAccent),
+              onPressed: () {
+                if (onLeaveCall != null) {
+                  onLeaveCall!();
+                } else {
+                  controller.leaveCall();
+                  Navigator.of(context).maybePop();
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
