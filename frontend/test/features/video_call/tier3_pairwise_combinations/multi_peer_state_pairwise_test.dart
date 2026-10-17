@@ -45,7 +45,13 @@ void main() {
 
       // Assert Peer B has raised hand badge and raised hands banner is visible
       expect(find.byKey(const Key('raised_hands_banner')), findsOneWidget);
-      expect(find.text('Beatriz Lima (24801122)'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('raised_hands_banner')),
+          matching: find.text('Beatriz Lima (24801122)'),
+        ),
+        findsOneWidget,
+      );
 
       // Assert recording banner and badge are active
       expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
@@ -86,6 +92,9 @@ void main() {
       // Peer B sends chat and reaction concurrently
       harness.peerB.sendChatMessage('Pergunta importante durante a gravação');
       harness.peerB.sendReaction('❤️');
+
+      // Flush microtasks
+      await pumpEventQueue();
 
       expect(harness.peerA.chatMessages.length, 1);
       expect(harness.peerA.chatMessages.first.text, 'Pergunta importante durante a gravação');
