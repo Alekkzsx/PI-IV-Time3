@@ -37,7 +37,7 @@ void main() {
           home: VideoCallRoomPage(controller: harness.peerA),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Assert Peer A's tile shows active speaking highlight
       final peerABox = tester.widget<Container>(
@@ -62,7 +62,7 @@ void main() {
 
       // Clean up recording timer before ending test
       harness.peerA.toggleRecording();
-      await tester.pumpAndSettle();
+      await tester.pump();
     });
 
     testWidgets('Pairwise: [Peer A Silent] x [Peer B Hand Lowered] x [ScreenShare Active]',
