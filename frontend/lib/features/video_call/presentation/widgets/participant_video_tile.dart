@@ -227,23 +227,40 @@ class ParticipantVideoTile extends StatelessWidget {
                 ),
               ),
 
-            // Indicador de mão levantada (topo direito)
+            // Indicador de mão levantada (canto inferior direito da tile, longe do topo direito)
             if (participant.isHandRaised)
               Positioned(
-                top: 12,
+                bottom: 12,
                 right: 12,
                 child: Container(
                   key: Key('hand_raised_icon_${participant.id}'),
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: VideoCallColors.accentWhite,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: VideoCallColors.background,
                       width: 1.5,
                     ),
                   ),
-                  child: const Text('✋', style: TextStyle(fontSize: 16)),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('✋', style: TextStyle(fontSize: 15)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Mão levantada',
+                        style: TextStyle(
+                          color: VideoCallColors.background,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 

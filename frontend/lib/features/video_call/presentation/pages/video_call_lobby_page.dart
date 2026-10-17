@@ -39,6 +39,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   late final TextEditingController _roomCodeController;
   late final VideoCallLobbyController _lobbyController;
   bool _ownsController = false;
+  bool _isInRoom = false;
 
   @override
   void initState() {
@@ -75,7 +76,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
       final name = _nameController.text.trim();
       final ra = _raController.text.trim();
@@ -91,12 +92,20 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
           ra: ra,
           roomCode: roomCode,
         );
-        Navigator.of(context).push(
+        setState(() {
+          _isInRoom = true;
+        });
+        await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) =>
                 VideoCallRoomPage(controller: videoCallController),
           ),
         );
+        if (mounted) {
+          setState(() {
+            _isInRoom = false;
+          });
+        }
       }
     }
   }
@@ -209,7 +218,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                               ),
                             )
                           : RealVideoRenderer(
-                              viewType: _lobbyController.localVideoViewType,
+                              viewType: _isInRoom
+                                  ? null
+                                  : _lobbyController.localVideoViewType,
                               fallbackIcon: Icons.videocam,
                             ),
                     ),

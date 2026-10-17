@@ -2,11 +2,13 @@
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/emoji_reaction.dart';
+import '../theme/video_call_theme.dart';
 
 /// Overlay transparente para exibição de reações de emoji flutuantes animadas.
 ///
-/// Renderiza os emojis transmitidos em tempo real na tela dos participantes
-/// com animação suave de subida vertical e fade-out, sem interceptar toques.
+/// Renderiza os emojis transmitidos em tempo real na área inferior-esquerda/central
+/// do palco de vídeo com animação suave de subida vertical e fade-out, garantindo
+/// que jamais fiquem escondidos atrás da gaveta lateral de chat ou no canto superior direito.
 class FloatingReactionsOverlay extends StatelessWidget {
   final List<EmojiReaction> reactions;
 
@@ -15,16 +17,18 @@ class FloatingReactionsOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Stack(
-        children: reactions.asMap().entries.map((entry) {
-          final index = entry.key;
-          final r = entry.value;
-          return _RisingReactionParticle(
-            key: ValueKey('particle_${r.id}'),
-            reaction: r,
-            index: index,
-          );
-        }).toList(),
+      child: SizedBox.expand(
+        child: Stack(
+          children: reactions.asMap().entries.map((entry) {
+            final index = entry.key;
+            final r = entry.value;
+            return _RisingReactionParticle(
+              key: ValueKey('particle_${r.id}'),
+              reaction: r,
+              index: index,
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -85,12 +89,39 @@ class _RisingReactionParticleState extends State<_RisingReactionParticle>
         return Positioned(
           key: Key('reaction_item_${widget.reaction.id}'),
           bottom: _bottomAnimation.value,
-          right: 40 + (widget.index * 30.0) % 200,
+          left: 40 + (widget.index * 36.0) % 220,
           child: Opacity(
             opacity: _opacityAnimation.value.clamp(0.0, 1.0),
-            child: Text(
-              widget.reaction.emoji,
-              style: const TextStyle(fontSize: 32),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: VideoCallColors.surfaceElevated.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: VideoCallColors.borderStrong,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.reaction.emoji,
+                    style: const TextStyle(fontSize: 28),
+                  ),
+                  if (widget.reaction.senderName.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.reaction.senderName,
+                      style: const TextStyle(
+                        color: VideoCallColors.textPrimary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
         );
