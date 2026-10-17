@@ -18,6 +18,9 @@ class VideoCallColors {
   /// Superfície de destaque sutil (Cinza Médio Escuro - #3F3F46).
   static const Color surfaceHighlight = Color(0xFF3F3F46);
 
+  /// Superfície de hover e realce secundário (Cinza Médio Escuro - #3F3F46).
+  static const Color surfaceHover = Color(0xFF3F3F46);
+
   /// Bordas e divisores sutis (Cinza Médio - #3F3F46).
   static const Color border = Color(0xFF3F3F46);
 
