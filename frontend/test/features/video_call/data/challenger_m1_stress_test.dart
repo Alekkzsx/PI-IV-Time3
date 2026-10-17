@@ -124,9 +124,9 @@ void main() {
         );
         expect(leftPeers, isEmpty);
 
-        // Aguarda transcorrer a janela total de 5.5s de inatividade do crashed peer
-        // (3000ms já transcorridos + 2600ms = 5600ms > 5000ms threshold + 1000ms watchdog tick)
-        await Future<void>.delayed(const Duration(milliseconds: 2600));
+        // Aguarda transcorrer a janela total para que o watchdog de 1.0s detecte o timeout de 5.0s
+        // (3000ms já transcorridos + 3300ms = 6300ms > 5000ms threshold + 1000ms watchdog tick)
+        await Future<void>.delayed(const Duration(milliseconds: 3300));
 
         healthyHeartbeatTimer.cancel();
 
@@ -664,6 +664,269 @@ void main() {
         await subEmoji.cancel();
         await repo1.dispose();
         await repo2.dispose();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // OBJECTIVE 4: ACTIVE SPEAKER DETECTION & MUTE INVARIANT VIA HEARTBEAT
+    // -------------------------------------------------------------------------
+    test(
+      'Audio & Speaker Invariant: isSpeaking is strictly false when muted and respects 0.15 threshold',
+      () async {
+        final ds1 = VideoCallSignalingDataSource(
+          channelFactory: (name) => InMemorySignalingChannel(name, bus),
+        );
+        final rawChannel = InMemorySignalingChannel(
+          'p2p_videocall_AUDIO-ROOM-1',
+          bus,
+        );
+
+        final p1 = ParticipantModel(
+          id: 'peer_1',
+          name: 'Alex Sousa',
+          ra: '24802449',
+          lastHeartbeat: DateTime.now().millisecondsSinceEpoch,
+        );
+
+        await ds1.connect(roomId: 'AUDIO-ROOM-1', localParticipant: p1);
+
+        // Join peer_speaker
+        final joinEnvelope = SignalingEnvelopeModel.create(
+          type: SignalingEnvelopeType.join,
+          roomId: 'AUDIO-ROOM-1',
+          senderId: 'peer_speaker',
+          senderName: 'Carlos Silva',
+          payload: {
+            'id': 'peer_speaker',
+            'name': 'Carlos Silva',
+            'ra': '24803333',
+            'isAudioMuted': false,
+            'audioLevel': 0.0,
+          },
+        );
+        await rawChannel.send(joinEnvelope.toRawJson());
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+
+        expect(ds1.remoteParticipants.first.isSpeaking, isFalse);
+
+        // Sub-scenario A: Volume 0.15 (limiar exato) com mic aberto -> NÃO falando (>0.15 requerido)
+        final hbThreshold = SignalingEnvelopeModel.create(
+          type: SignalingEnvelopeType.heartbeat,
+          roomId: 'AUDIO-ROOM-1',
+          senderId: 'peer_speaker',
+          senderName: 'Carlos Silva',
+          payload: {
+            'peerId': 'peer_speaker',
+            'audioLevel': 0.15,
+            'isAudioMuted': false,
+          },
+        );
+        await rawChannel.send(hbThreshold.toRawJson());
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+
+        expect(
+          ds1.remoteParticipants.first.isSpeaking,
+          isFalse,
+          reason: 'No limiar exato de 0.15, isSpeaking deve ser false',
+        );
+
+        // Sub-scenario B: Volume 0.16 com mic aberto -> FALANDO (ultrapassou 0.15)
+        final hbSpeaking = SignalingEnvelopeModel.create(
+          type: SignalingEnvelopeType.heartbeat,
+          roomId: 'AUDIO-ROOM-1',
+          senderId: 'peer_speaker',
+          senderName: 'Carlos Silva',
+          payload: {
+            'peerId': 'peer_speaker',
+            'audioLevel': 0.16,
+            'isAudioMuted': false,
+          },
+        );
+        await rawChannel.send(hbSpeaking.toRawJson());
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+
+        expect(
+          ds1.remoteParticipants.first.isSpeaking,
+          isTrue,
+          reason: 'Acima de 0.15 com mic desmutado, isSpeaking deve ser true',
+        );
+
+        // Sub-scenario C: Volume alto (0.85), mas com mic MUTADO -> NUNCA falando
+        final hbMutedHigh = SignalingEnvelopeModel.create(
+          type: SignalingEnvelopeType.heartbeat,
+          roomId: 'AUDIO-ROOM-1',
+          senderId: 'peer_speaker',
+          senderName: 'Carlos Silva',
+          payload: {
+            'peerId': 'peer_speaker',
+            'audioLevel': 0.85,
+            'isAudioMuted': true,
+          },
+        );
+        await rawChannel.send(hbMutedHigh.toRawJson());
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+
+        expect(
+          ds1.remoteParticipants.first.isSpeaking,
+          isFalse,
+          reason: 'Invariante estrito: participante mutado NUNCA deve ser considerado speaking',
+        );
+
+        await rawChannel.close();
+        ds1.dispose();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // OBJECTIVE 5: RECONNECTION CHURN STRESS
+    // -------------------------------------------------------------------------
+    test(
+      'Reconnection Churn: 10 consecutive connect/disconnect cycles leave no zombie timers or state corruption',
+      () async {
+        final ds = VideoCallSignalingDataSource(
+          channelFactory: (name) => InMemorySignalingChannel(name, bus),
+        );
+
+        final p = ParticipantModel(
+          id: 'churn_peer',
+          name: 'Churn Tester',
+          ra: '24802449',
+          lastHeartbeat: DateTime.now().millisecondsSinceEpoch,
+        );
+
+        for (int i = 0; i < 10; i++) {
+          await ds.connect(roomId: 'CHURN-ROOM', localParticipant: p);
+          expect(ds.remoteParticipants, isEmpty);
+          await ds.disconnect();
+          expect(ds.remoteParticipants, isEmpty);
+        }
+
+        // Reconecta uma 11ª vez e verifica que funciona perfeitamente
+        await ds.connect(roomId: 'CHURN-ROOM', localParticipant: p);
+
+        final peer2 = InMemorySignalingChannel('p2p_videocall_CHURN-ROOM', bus);
+        final join2 = SignalingEnvelopeModel.create(
+          type: SignalingEnvelopeType.join,
+          roomId: 'CHURN-ROOM',
+          senderId: 'peer_after_churn',
+          senderName: 'Stable Peer',
+          payload: {
+            'id': 'peer_after_churn',
+            'name': 'Stable Peer',
+            'ra': '24809999',
+          },
+        );
+        await peer2.send(join2.toRawJson());
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+
+        expect(ds.remoteParticipants.length, equals(1));
+        expect(ds.remoteParticipants.first.id, equals('peer_after_churn'));
+
+        await peer2.close();
+        ds.dispose();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // OBJECTIVE 6: ROOM CODE NORMALIZATION & CROSS-ROOM ISOLATION
+    // -------------------------------------------------------------------------
+    test(
+      'Room Isolation & Normalization: lowercase and whitespace room codes match; cross-room traffic ignored',
+      () async {
+        final ds1 = VideoCallSignalingDataSource(
+          channelFactory: (name) => InMemorySignalingChannel(name, bus),
+        );
+        final ds2 = VideoCallSignalingDataSource(
+          channelFactory: (name) => InMemorySignalingChannel(name, bus),
+        );
+
+        final p1 = ParticipantModel(id: 'peer_1', name: 'Alex', ra: '24802449', lastHeartbeat: 0);
+        final p2 = ParticipantModel(id: 'peer_2', name: 'Beatriz', ra: '24801122', lastHeartbeat: 0);
+
+        // ds1 usa 'sala-alpha' minúsculo
+        await ds1.connect(roomId: 'sala-alpha', localParticipant: p1);
+        // ds2 usa '  SALA-ALPHA  ' com espaços e maiúsculo
+        await ds2.connect(roomId: '  SALA-ALPHA  ', localParticipant: p2);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        // Ambos devem ter normalizado para 'SALA-ALPHA' e se conectado mutuamente
+        expect(ds1.remoteParticipants.length, equals(1));
+        expect(ds1.remoteParticipants.first.id, equals('peer_2'));
+        expect(ds2.remoteParticipants.length, equals(1));
+        expect(ds2.remoteParticipants.first.id, equals('peer_1'));
+
+        // Canal em outra sala despacha chat
+        final otherRoomChannel = InMemorySignalingChannel('p2p_videocall_OTHER-ROOM', bus);
+        final crossRoomChat = SignalingEnvelopeModel.create(
+          type: SignalingEnvelopeType.chat,
+          roomId: 'OTHER-ROOM',
+          senderId: 'intruder',
+          senderName: 'Intruder',
+          payload: {'id': 'x1', 'senderId': 'intruder', 'text': 'cross-room leak!'},
+        );
+
+        ChatMessageModel? ds1ReceivedChat;
+        final sub = ds1.onChatMessage.listen((c) => ds1ReceivedChat = c);
+
+        await otherRoomChannel.send(crossRoomChat.toRawJson());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(
+          ds1ReceivedChat,
+          isNull,
+          reason: 'Mensagens de salas distintas NUNCA devem vazar para SALA-ALPHA',
+        );
+
+        await sub.cancel();
+        await otherRoomChannel.close();
+        ds1.dispose();
+        ds2.dispose();
+      },
+    );
+
+    // -------------------------------------------------------------------------
+    // OBJECTIVE 7: ABRUPT BROWSER TEARDOWN HOOK DISPATCHES LEAVE
+    // -------------------------------------------------------------------------
+    test(
+      'Teardown Hook: simulateTeardown broadcasts LEAVE envelope synchronously',
+      () async {
+        late InMemorySignalingChannel ds2Channel;
+        final ds1 = VideoCallSignalingDataSource(
+          channelFactory: (name) => InMemorySignalingChannel(name, bus),
+        );
+        final ds2 = VideoCallSignalingDataSource(
+          channelFactory: (name) {
+            ds2Channel = InMemorySignalingChannel(name, bus);
+            return ds2Channel;
+          },
+        );
+
+        final p1 = ParticipantModel(id: 'peer_1', name: 'Alex', ra: '24802449', lastHeartbeat: 0);
+        final p2 = ParticipantModel(id: 'peer_2', name: 'Beatriz', ra: '24801122', lastHeartbeat: 0);
+
+        await ds1.connect(roomId: 'TEARDOWN-ROOM', localParticipant: p1);
+        await ds2.connect(roomId: 'TEARDOWN-ROOM', localParticipant: p2);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(ds1.remoteParticipants.length, equals(1));
+
+        final leftPeersOnDs1 = <String>[];
+        final leftSub = ds1.onParticipantLeft.listen(leftPeersOnDs1.add);
+
+        // Simula o evento pagehide / beforeunload do navegador na aba do ds2
+        ds2Channel.simulateTeardown();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(
+          leftPeersOnDs1,
+          contains('peer_2'),
+          reason: 'simulateTeardown deve disparar o broadcastLeaveSync e notificar ds1',
+        );
+        expect(ds1.remoteParticipants, isEmpty);
+
+        await leftSub.cancel();
+        ds1.dispose();
+        ds2.dispose();
       },
     );
   });
