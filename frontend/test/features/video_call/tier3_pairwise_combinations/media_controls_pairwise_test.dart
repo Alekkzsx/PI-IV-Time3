@@ -34,8 +34,20 @@ void main() {
       await tester.pumpAndSettle();
 
       // Assert toolbar icons
-      expect(find.byIcon(Icons.mic_off), findsOneWidget);
-      expect(find.byIcon(Icons.videocam_off), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_audio_button')),
+          matching: find.byIcon(Icons.mic_off),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_video_button')),
+          matching: find.byIcon(Icons.videocam_off),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('screen_share_view')), findsNothing);
       expect(find.byKey(const Key('in_call_chat_drawer')), findsNothing);
     });
@@ -56,8 +68,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mic), findsOneWidget);
-      expect(find.byIcon(Icons.videocam), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_audio_button')),
+          matching: find.byIcon(Icons.mic),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_video_button')),
+          matching: find.byIcon(Icons.videocam),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
       expect(find.byKey(const Key('in_call_chat_drawer')), findsOneWidget);
     });
@@ -77,8 +101,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mic_off), findsOneWidget);
-      expect(find.byIcon(Icons.videocam), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_audio_button')),
+          matching: find.byIcon(Icons.mic_off),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_video_button')),
+          matching: find.byIcon(Icons.videocam),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
       expect(find.byKey(const Key('in_call_chat_drawer')), findsNothing);
     });
@@ -98,8 +134,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mic), findsOneWidget);
-      expect(find.byIcon(Icons.videocam_off), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_audio_button')),
+          matching: find.byIcon(Icons.mic),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('toolbar_video_button')),
+          matching: find.byIcon(Icons.videocam_off),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const Key('screen_share_view')), findsNothing);
       expect(find.byKey(const Key('in_call_chat_drawer')), findsOneWidget);
     });
