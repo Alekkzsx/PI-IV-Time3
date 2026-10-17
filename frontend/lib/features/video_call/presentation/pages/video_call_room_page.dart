@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../controllers/video_call_controller.dart';
+import '../theme/video_call_theme.dart';
 import '../widgets/dynamic_video_grid.dart';
 import '../widgets/floating_reactions_overlay.dart';
 import '../widgets/in_call_chat_drawer.dart';
@@ -9,11 +10,11 @@ import '../widgets/meeting_controls_toolbar.dart';
 import '../widgets/participants_drawer.dart';
 import '../widgets/raised_hands_banner.dart';
 
-/// Página principal da sala de reunião virtual P2P.
+/// Página principal da sala de reunião virtual P2P (Estética Preto, Cinza e Branco).
 ///
-/// Compõe a grade de vídeo adaptativa (DynamicVideoGrid), banner de gravação institucional,
-/// fila de mãos levantadas, barra de ferramentas flutuante, overlay de reações e
-/// gavetas deslizantes de chat e participantes.
+/// Compõe a grade de vídeo adaptativa (DynamicVideoGrid) com streams reais WebRTC,
+/// banner de gravação institucional, fila de mãos levantadas, barra de ferramentas
+/// flutuante, overlay de reações e gavetas deslizantes de chat e participantes.
 class VideoCallRoomPage extends StatelessWidget {
   final VideoCallController controller;
 
@@ -39,7 +40,7 @@ class VideoCallRoomPage extends StatelessWidget {
         animation: controller,
         builder: (context, _) {
           return Scaffold(
-            backgroundColor: const Color(0xFF05070B),
+            backgroundColor: VideoCallColors.background,
             body: Stack(
               children: [
                 Column(
@@ -53,14 +54,22 @@ class VideoCallRoomPage extends StatelessWidget {
                           vertical: 6,
                           horizontal: 16,
                         ),
-                        color: Colors.red.shade900,
+                        decoration: const BoxDecoration(
+                          color: VideoCallColors.accentWhite,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: VideoCallColors.border,
+                              width: 1,
+                            ),
+                          ),
+                        ),
                         child: const Center(
                           child: Text(
                             '● REC — Esta reunião está sendo gravada para fins acadêmicos e pedagógicos.',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: VideoCallColors.background,
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -68,18 +77,25 @@ class VideoCallRoomPage extends StatelessWidget {
                       ),
                     // Banner superior da fila de mãos levantadas
                     RaisedHandsBanner(queue: controller.raisedHandsQueue),
-                    // Grade dinâmica responsiva de vídeos (Strictly Zero Bots)
+                    // Grade dinâmica responsiva de vídeos reais (Strictly Zero Bots)
                     Expanded(
                       child: DynamicVideoGrid(
                         participants: controller.allParticipants,
                         isScreenSharing: controller.isScreenSharing,
+                        videoViewTypeBuilder:
+                            controller.getParticipantVideoViewType,
+                        screenShareViewType: controller.screenShareVideoViewType,
+                        activePresenterName: controller.activePresenterName,
+                        pinnedParticipantId: controller.pinnedParticipantId,
+                        onParticipantTap: (p) =>
+                            controller.togglePinParticipant(p.id),
                       ),
                     ),
                   ],
                 ),
                 // Overlay de partículas de reações de emojis flutuantes
                 FloatingReactionsOverlay(reactions: controller.activeReactions),
-                // Cabeçalho superior com título e código da sala
+                // Cabeçalho superior com título, código da sala e botão de cópia
                 Positioned(
                   top: 16,
                   left: 16,
@@ -87,16 +103,52 @@ class VideoCallRoomPage extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black54,
+                      color: VideoCallColors.surface.withValues(alpha: 0.90),
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${controller.room.title} (${controller.room.code})',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      border: Border.all(
+                        color: VideoCallColors.border,
+                        width: 1,
                       ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${controller.room.title} (${controller.room.code})',
+                          style: const TextStyle(
+                            color: VideoCallColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          key: const Key('copy_room_info_button'),
+                          onTap: () async {
+                            await controller.copyRoomInfo();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor:
+                                      VideoCallColors.surfaceElevated,
+                                  content: Text(
+                                    'Código da sala (${controller.room.code}) copiado para a área de transferência.',
+                                    style: const TextStyle(
+                                      color: VideoCallColors.textPrimary,
+                                    ),
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Icon(
+                            Icons.copy_rounded,
+                            size: 14,
+                            color: VideoCallColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -198,13 +250,14 @@ class _PulsatingRecBadgeState extends State<_PulsatingRecBadge>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.red.shade700,
+              color: VideoCallColors.accentWhite,
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: VideoCallColors.borderStrong),
             ),
             child: Text(
               widget.text,
               style: const TextStyle(
-                color: Colors.white,
+                color: VideoCallColors.background,
                 fontWeight: FontWeight.bold,
               ),
             ),

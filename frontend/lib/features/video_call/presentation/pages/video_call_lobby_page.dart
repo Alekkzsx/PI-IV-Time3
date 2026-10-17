@@ -3,10 +3,13 @@
 import 'package:flutter/material.dart';
 import '../../domain/repositories/video_call_repository.dart';
 import '../controllers/video_call_lobby_controller.dart';
+import '../theme/video_call_theme.dart';
 import '../widgets/audio_level_meter.dart';
+import '../widgets/real_video_renderer.dart';
 import 'video_call_room_page.dart';
 
-/// Página de pré-chamada (Lobby) para validação de identidade, preview de áudio/vídeo e entrada na sala.
+/// Página de pré-chamada (Lobby) para validação de identidade, preview real de áudio/vídeo
+/// e entrada na sala (Estética Preto, Cinza e Branco).
 class VideoCallLobbyPage extends StatefulWidget {
   final VideoCallLobbyController? controller;
   final VideoCallRepository? repository;
@@ -98,6 +101,34 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
     }
   }
 
+  InputDecoration _buildMonochromeInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: VideoCallColors.textSecondary),
+      filled: true,
+      fillColor: VideoCallColors.background,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: VideoCallColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide:
+            const BorderSide(color: VideoCallColors.accentWhite, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: VideoCallColors.borderStrong),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide:
+            const BorderSide(color: VideoCallColors.accentWhite, width: 1.5),
+      ),
+      errorStyle: const TextStyle(color: VideoCallColors.textSecondary),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final initialLetter = _nameController.text.trim().isNotEmpty
@@ -105,10 +136,18 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         : '?';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF05070B),
+      backgroundColor: VideoCallColors.background,
       appBar: AppBar(
-        title: const Text('Pré-chamada (Lobby)'),
-        backgroundColor: const Color(0xFF0F172A),
+        title: const Text(
+          'Pré-chamada (Lobby)',
+          style: TextStyle(
+            color: VideoCallColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: VideoCallColors.surface,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: VideoCallColors.textPrimary),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -117,56 +156,66 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
             constraints: const BoxConstraints(maxWidth: 480),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: VideoCallColors.surface,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: VideoCallColors.border, width: 1),
             ),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Moldura de preview da câmera
+                  // Moldura de preview real da câmera (WebRTC / HTML5 <video>)
                   Container(
                     key: const Key('lobby_camera_preview'),
                     height: 200,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: VideoCallColors.background,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: VideoCallColors.border,
+                        width: 1,
+                      ),
                     ),
-                    child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
                       child: _lobbyController.isVideoOff
-                          ? Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircleAvatar(
-                                  radius: 36,
-                                  backgroundColor: const Color(0xFF1E293B),
-                                  child: Text(
-                                    initialLetter,
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 36,
+                                    backgroundColor:
+                                        VideoCallColors.surfaceElevated,
+                                    child: Text(
+                                      initialLetter,
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        color: VideoCallColors.accentWhite,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Câmera Desativada',
-                                  style: TextStyle(color: Colors.white54),
-                                ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Câmera Desativada',
+                                    style: TextStyle(
+                                      color: VideoCallColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             )
-                          : const Icon(
-                              Icons.videocam,
-                              color: Colors.white54,
-                              size: 64,
+                          : RealVideoRenderer(
+                              viewType: _lobbyController.localVideoViewType,
+                              fallbackIcon: Icons.videocam,
                             ),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Indicador de nível de áudio do microfone
+                  // Indicador de nível de áudio do microfone em tempo real
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -175,8 +224,8 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                             ? Icons.mic_off
                             : Icons.mic,
                         color: _lobbyController.isAudioMuted
-                            ? Colors.redAccent
-                            : Colors.white70,
+                            ? VideoCallColors.textMuted
+                            : VideoCallColors.accentWhite,
                       ),
                       const SizedBox(width: 8),
                       AudioLevelMeter(
@@ -193,13 +242,21 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     children: [
                       ElevatedButton.icon(
                         key: const Key('lobby_toggle_mic_button'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _lobbyController.isAudioMuted
+                              ? VideoCallColors.background
+                              : VideoCallColors.surfaceElevated,
+                          foregroundColor: VideoCallColors.textPrimary,
+                          side: const BorderSide(color: VideoCallColors.border),
+                          elevation: 0,
+                        ),
                         icon: Icon(
                           _lobbyController.isAudioMuted
                               ? Icons.mic_off
                               : Icons.mic,
                           color: _lobbyController.isAudioMuted
-                              ? Colors.redAccent
-                              : Colors.white,
+                              ? VideoCallColors.textMuted
+                              : VideoCallColors.accentWhite,
                         ),
                         label: Text(
                           _lobbyController.isAudioMuted
@@ -210,13 +267,21 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                       ),
                       ElevatedButton.icon(
                         key: const Key('lobby_toggle_cam_button'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _lobbyController.isVideoOff
+                              ? VideoCallColors.background
+                              : VideoCallColors.surfaceElevated,
+                          foregroundColor: VideoCallColors.textPrimary,
+                          side: const BorderSide(color: VideoCallColors.border),
+                          elevation: 0,
+                        ),
                         icon: Icon(
                           _lobbyController.isVideoOff
                               ? Icons.videocam_off
                               : Icons.videocam,
                           color: _lobbyController.isVideoOff
-                              ? Colors.redAccent
-                              : Colors.white,
+                              ? VideoCallColors.textMuted
+                              : VideoCallColors.accentWhite,
                         ),
                         label: Text(
                           _lobbyController.isVideoOff
@@ -232,12 +297,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   TextFormField(
                     key: const Key('lobby_name_field'),
                     controller: _nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Nome de Exibição',
-                      labelStyle: TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(),
-                    ),
+                    style: const TextStyle(color: VideoCallColors.textPrimary),
+                    decoration:
+                        _buildMonochromeInputDecoration('Nome de Exibição'),
                     onChanged: (val) {
                       _lobbyController.setName(val);
                       setState(() {});
@@ -249,12 +311,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   TextFormField(
                     key: const Key('lobby_ra_field'),
                     controller: _raController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'RA Institucional',
-                      labelStyle: TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(),
-                    ),
+                    style: const TextStyle(color: VideoCallColors.textPrimary),
+                    decoration:
+                        _buildMonochromeInputDecoration('RA Institucional'),
                     onChanged: _lobbyController.setRa,
                     validator: _lobbyController.validateRa,
                   ),
@@ -263,24 +322,27 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   TextFormField(
                     key: const Key('lobby_room_code_field'),
                     controller: _roomCodeController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Código da Sala (ex: SALA-101)',
-                      labelStyle: TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(),
+                    style: const TextStyle(color: VideoCallColors.textPrimary),
+                    decoration: _buildMonochromeInputDecoration(
+                      'Código da Sala (ex: SALA-101)',
                     ),
                     onChanged: _lobbyController.setRoomCode,
                     validator: _lobbyController.validateRoomCode,
                   ),
                   const SizedBox(height: 24),
-                  // Botão de entrada na reunião
+                  // Botão de entrada na reunião (Alto Contraste Branco sobre Preto)
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
                       key: const Key('lobby_join_button'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigoAccent,
+                        backgroundColor: VideoCallColors.accentWhite,
+                        foregroundColor: VideoCallColors.background,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: _submit,
                       child: const Text(
@@ -288,6 +350,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: VideoCallColors.background,
                         ),
                       ),
                     ),
