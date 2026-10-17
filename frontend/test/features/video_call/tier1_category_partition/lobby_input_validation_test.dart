@@ -63,6 +63,9 @@ void main() {
 
     testWidgets('Empty display name rejects submission and shows error message',
         (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       bool joinCalled = false;
 
       await tester.pumpWidget(
@@ -92,6 +95,9 @@ void main() {
 
     testWidgets('Invalid short RA rejects submission and shows validation error',
         (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       bool joinCalled = false;
 
       await tester.pumpWidget(
@@ -120,6 +126,9 @@ void main() {
 
     testWidgets('Invalid Room Code format shows error and prevents navigation',
         (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       bool joinCalled = false;
 
       await tester.pumpWidget(
