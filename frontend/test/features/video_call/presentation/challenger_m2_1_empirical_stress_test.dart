@@ -325,8 +325,8 @@ void main() {
         expect(cA.remoteParticipants.first.id, 'peer_b');
         expect(cB.remoteParticipants.first.id, 'peer_a');
 
-        cA.leaveCall();
-        cB.leaveCall();
+        cA.dispose();
+        cB.dispose();
         await fixture.repoA.dispose();
         await fixture.repoB.dispose();
       });
@@ -347,7 +347,8 @@ void main() {
         expect(cA.remoteParticipants, isEmpty);
         expect(cA.allParticipants.first.id, 'peer_a');
 
-        cA.leaveCall();
+        cA.dispose();
+        cB.dispose();
         await fixture.repoA.dispose();
         await fixture.repoB.dispose();
       });
@@ -682,8 +683,8 @@ void main() {
         expect(peerAInBMuted.isAudioMuted, isTrue);
         expect(peerAInBMuted.isSpeaking, isFalse);
 
-        cA.leaveCall();
-        cB.leaveCall();
+        cA.dispose();
+        cB.dispose();
         await fixture.repoA.dispose();
         await fixture.repoB.dispose();
       });
