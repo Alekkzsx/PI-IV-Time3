@@ -20,7 +20,6 @@ abstract class IVideoCallSignalingDataSource {
   Stream<HandRaiseItem> get onHandRaise;
   Stream<MediaStateUpdate> get onMediaStateUpdate;
   Stream<RecordingStateModel> get onRecordingState;
-  Stream<Map<String, dynamic>> get onWebRtcSignal => const Stream.empty();
 
   Future<void> connect({
     required String roomId,
@@ -53,14 +52,20 @@ abstract class IVideoCallSignalingDataSource {
 
   Future<void> broadcastRecordingState(String roomId, RecordingStateModel state);
 
-  Future<void> broadcastWebRtcSignal(
-    String roomId,
-    Map<String, dynamic> signalData,
-  ) async {}
-
   void updateLocalAudioLevel(double level);
 
   void dispose();
+}
+
+/// Extensão da fonte de dados de sinalização com suporte a troca de sinais WebRTC P2P.
+abstract class IWebRtcSignalingDataSource
+    implements IVideoCallSignalingDataSource {
+  Stream<Map<String, dynamic>> get onWebRtcSignal;
+
+  Future<void> broadcastWebRtcSignal(
+    String roomId,
+    Map<String, dynamic> signalData,
+  );
 }
 
 /// Implementação da fonte de dados de sinalização P2P via [ISignalingChannel].
@@ -69,7 +74,8 @@ abstract class IVideoCallSignalingDataSource {
 /// - Handshake recíproco JOIN <-> PRESENCE_SYNC
 /// - Heartbeat de 2.0s para telemetria de liveness e áudio RMS
 /// - Watchdog de 5.0s para poda automática de nós desconectados abruptamente
-class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
+class VideoCallSignalingDataSource
+    implements IVideoCallSignalingDataSource, IWebRtcSignalingDataSource {
   final ISignalingChannel Function(String channelName)? _channelFactory;
 
   ISignalingChannel? _channel;
