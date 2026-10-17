@@ -11,7 +11,7 @@ class InMemorySignalingBus {
 
   final String roomCode;
   final StreamController<SignalingPayload> _streamController =
-      StreamController<SignalingPayload>.broadcast();
+      StreamController<SignalingPayload>.broadcast(sync: true);
 
   InMemorySignalingBus._(this.roomCode);
 
@@ -26,17 +26,13 @@ class InMemorySignalingBus {
   /// Broadcasts a message to all connected peers in this room except the sender.
   void broadcast({required String senderId, required String rawData}) {
     if (!_streamController.isClosed) {
-      scheduleMicrotask(() {
-        if (!_streamController.isClosed) {
-          _streamController.add(
-            SignalingPayload(
-              senderId: senderId,
-              rawData: rawData,
-              sentAt: DateTime.now(),
-            ),
-          );
-        }
-      });
+      _streamController.add(
+        SignalingPayload(
+          senderId: senderId,
+          rawData: rawData,
+          sentAt: DateTime.now(),
+        ),
+      );
     }
   }
 
