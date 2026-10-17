@@ -458,6 +458,20 @@ class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
     }
   }
 
+  void _handleWebRtcSignal(SignalingEnvelopeModel envelope) {
+    final payload = Map<String, dynamic>.from(envelope.payload);
+    final targetPeerId = payload['targetPeerId'] as String?;
+    if (targetPeerId != null &&
+        _localParticipant != null &&
+        targetPeerId != _localParticipant!.id) {
+      return;
+    }
+    payload['senderId'] = envelope.senderId;
+    if (!_onWebRtcSignalController.isClosed) {
+      _onWebRtcSignalController.add(payload);
+    }
+  }
+
   Future<void> _broadcastEnvelope({
     required String type,
     required Map<String, dynamic> payload,
@@ -560,6 +574,17 @@ class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
   }
 
   @override
+  Future<void> broadcastWebRtcSignal(
+    String roomId,
+    Map<String, dynamic> signalData,
+  ) async {
+    await _broadcastEnvelope(
+      type: SignalingEnvelopeType.webrtcSignal,
+      payload: signalData,
+    );
+  }
+
+  @override
   void updateLocalAudioLevel(double level) {
     _currentAudioLevel = level;
   }
@@ -574,5 +599,6 @@ class VideoCallSignalingDataSource implements IVideoCallSignalingDataSource {
     _onHandRaiseController.close();
     _onMediaStateUpdateController.close();
     _onRecordingStateController.close();
+    _onWebRtcSignalController.close();
   }
 }
