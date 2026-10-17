@@ -29,8 +29,6 @@ void main() {
       // 3. Peer A starts recording
       harness.peerA.toggleRecording();
 
-      await Future<void>.delayed(const Duration(milliseconds: 25));
-
       await tester.pumpWidget(
         MaterialApp(
           home: VideoCallRoomPage(controller: harness.peerA),
@@ -65,7 +63,6 @@ void main() {
 
       // Peer A initiates screen share while silent
       harness.peerA.toggleScreenShare();
-      await Future<void>.delayed(const Duration(milliseconds: 20));
 
       await tester.pumpWidget(
         MaterialApp(
@@ -89,8 +86,6 @@ void main() {
       // Peer B sends chat and reaction concurrently
       harness.peerB.sendChatMessage('Pergunta importante durante a gravação');
       harness.peerB.sendReaction('❤️');
-
-      await Future<void>.delayed(const Duration(milliseconds: 25));
 
       expect(harness.peerA.chatMessages.length, 1);
       expect(harness.peerA.chatMessages.first.text, 'Pergunta importante durante a gravação');

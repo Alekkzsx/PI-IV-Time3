@@ -63,9 +63,6 @@ class VideoCallTestHarness {
       localParticipant: participantB,
     );
 
-    // Yield control briefly to allow handshake envelopes to propagate across the in-memory bus
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-
     return VideoCallTestHarness._(
       roomCode: roomCode,
       room: room,
