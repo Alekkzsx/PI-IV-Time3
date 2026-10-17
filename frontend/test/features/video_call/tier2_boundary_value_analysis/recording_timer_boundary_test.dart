@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../helpers/video_call_contracts.dart';
 import '../helpers/video_call_test_components.dart';
 import '../helpers/video_call_test_harness.dart';
 
