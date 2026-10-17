@@ -28,119 +28,186 @@ class VideoCallRoomPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        return Scaffold(
-          backgroundColor: const Color(0xFF05070B),
-          body: Stack(
-            children: [
-              Column(
-                children: [
-                  // Banner de conformidade de gravação institucional
-                  if (controller.recordingState.isRecording)
-                    Container(
-                      key: const Key('institutional_recording_banner'),
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6,
-                        horizontal: 16,
-                      ),
-                      color: Colors.red.shade900,
-                      child: const Center(
-                        child: Text(
-                          '● REC — Esta reunião está sendo gravada para fins acadêmicos e pedagógicos.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          controller.leaveCall();
+        }
+      },
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF05070B),
+            body: Stack(
+              children: [
+                Column(
+                  children: [
+                    // Banner de conformidade de gravação institucional
+                    if (controller.recordingState.isRecording)
+                      Container(
+                        key: const Key('institutional_recording_banner'),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 16,
+                        ),
+                        color: Colors.red.shade900,
+                        child: const Center(
+                          child: Text(
+                            '● REC — Esta reunião está sendo gravada para fins acadêmicos e pedagógicos.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
+                    // Banner superior da fila de mãos levantadas
+                    RaisedHandsBanner(queue: controller.raisedHandsQueue),
+                    // Grade dinâmica responsiva de vídeos (Strictly Zero Bots)
+                    Expanded(
+                      child: DynamicVideoGrid(
+                        participants: controller.allParticipants,
+                        isScreenSharing: controller.isScreenSharing,
+                      ),
                     ),
-                  // Banner superior da fila de mãos levantadas
-                  RaisedHandsBanner(queue: controller.raisedHandsQueue),
-                  // Grade dinâmica responsiva de vídeos (Strictly Zero Bots)
-                  Expanded(
-                    child: DynamicVideoGrid(
-                      participants: controller.allParticipants,
-                      isScreenSharing: controller.isScreenSharing,
-                    ),
-                  ),
-                ],
-              ),
-              // Overlay de partículas de reações de emojis flutuantes
-              FloatingReactionsOverlay(reactions: controller.activeReactions),
-              // Cabeçalho superior com título e código da sala
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${controller.room.title} (${controller.room.code})',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  ],
                 ),
-              ),
-              // Badge de temporizador de gravação ativa
-              if (controller.recordingState.isRecording)
+                // Overlay de partículas de reações de emojis flutuantes
+                FloatingReactionsOverlay(reactions: controller.activeReactions),
+                // Cabeçalho superior com título e código da sala
                 Positioned(
                   top: 16,
-                  right: 16,
+                  left: 16,
                   child: Container(
-                    key: const Key('recording_timer_badge'),
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade700,
+                      color: Colors.black54,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '● REC ${_formatDuration(controller.recordingState.elapsedDuration)}',
+                      '${controller.room.title} (${controller.room.code})',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
-              // Barra inferior flutuante de controles
-              Positioned(
-                bottom: 24,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: MeetingControlsToolbar(controller: controller),
+                // Badge de temporizador de gravação ativa com animação pulsante
+                if (controller.recordingState.isRecording)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      key: const Key('recording_timer_badge'),
+                      child: _PulsatingRecBadge(
+                        text:
+                            '● REC ${_formatDuration(controller.recordingState.elapsedDuration)}',
+                      ),
+                    ),
+                  ),
+                // Barra inferior flutuante de controles
+                Positioned(
+                  bottom: 24,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: MeetingControlsToolbar(
+                      controller: controller,
+                      onLeaveCall: () {
+                        controller.leaveCall();
+                        if (context.mounted) {
+                          Navigator.of(context).maybePop();
+                        }
+                      },
+                    ),
+                  ),
                 ),
+                // Gaveta lateral deslizante de chat
+                if (controller.isChatDrawerOpen)
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    child: InCallChatDrawer(controller: controller),
+                  ),
+                // Gaveta lateral deslizante de participantes
+                if (controller.isParticipantsDrawerOpen)
+                  Positioned(
+                    top: 0,
+                    bottom: 0,
+                    right: 0,
+                    child: ParticipantsDrawer(controller: controller),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PulsatingRecBadge extends StatefulWidget {
+  final String text;
+
+  const _PulsatingRecBadge({required this.text});
+
+  @override
+  State<_PulsatingRecBadge> createState() => _PulsatingRecBadgeState();
+}
+
+class _PulsatingRecBadgeState extends State<_PulsatingRecBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _pulseAnimation.value,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.red.shade700,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              widget.text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
-              // Gaveta lateral deslizante de chat
-              if (controller.isChatDrawerOpen)
-                Positioned(
-                  top: 0,
-                  bottom: 0,
-                  right: 0,
-                  child: InCallChatDrawer(controller: controller),
-                ),
-              // Gaveta lateral deslizante de participantes
-              if (controller.isParticipantsDrawerOpen)
-                Positioned(
-                  top: 0,
-                  bottom: 0,
-                  right: 0,
-                  child: ParticipantsDrawer(controller: controller),
-                ),
-            ],
+            ),
           ),
         );
       },

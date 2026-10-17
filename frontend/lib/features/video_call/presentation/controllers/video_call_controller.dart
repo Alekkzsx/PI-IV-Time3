@@ -379,10 +379,9 @@ class VideoCallController extends ChangeNotifier {
         startedByName: _localParticipant.name,
       );
       _recordingState = startedState;
-      repository.updateRecordingState(room.code, startedState);
-
+      _recordingTimer?.cancel();
       _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (_recordingState.isRecording) {
+        if (_recordingState.isRecording && !_isDisposed) {
           _recordingState = _recordingState.copyWith(
             elapsedDuration:
                 _recordingState.elapsedDuration + const Duration(seconds: 1),
@@ -390,6 +389,7 @@ class VideoCallController extends ChangeNotifier {
           notifyListeners();
         }
       });
+      repository.updateRecordingState(room.code, startedState);
     }
     notifyListeners();
   }

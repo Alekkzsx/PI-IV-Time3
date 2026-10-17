@@ -142,7 +142,7 @@ class VideoCallTestController extends ChangeNotifier {
     if (_remoteParticipants.containsKey(item.peerId)) {
       final p = _remoteParticipants[item.peerId]!;
       _remoteParticipants[item.peerId] =
-          p.copyWith(isHandRaised: !_raisedHandsQueue.any((h) => h.peerId == item.peerId));
+          p.copyWith(isHandRaised: _raisedHandsQueue.any((h) => h.peerId == item.peerId));
     }
     notifyListeners();
   }
@@ -151,10 +151,11 @@ class VideoCallTestController extends ChangeNotifier {
     if (_remoteParticipants.containsKey(update.peerId)) {
       final current = _remoteParticipants[update.peerId]!;
       final newAudioLevel = update.audioLevel ?? current.audioLevel;
-      final isSpeaking = newAudioLevel > 0.15;
+      final isMuted = update.isAudioMuted ?? current.isAudioMuted;
+      final isSpeaking = !isMuted && (newAudioLevel > 0.15);
 
       _remoteParticipants[update.peerId] = current.copyWith(
-        isAudioMuted: update.isAudioMuted ?? current.isAudioMuted,
+        isAudioMuted: isMuted,
         isVideoOff: update.isVideoOff ?? current.isVideoOff,
         isScreenSharing: update.isScreenSharing ?? current.isScreenSharing,
         audioLevel: newAudioLevel,

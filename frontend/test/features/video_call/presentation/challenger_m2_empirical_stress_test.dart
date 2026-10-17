@@ -422,7 +422,7 @@ void main() {
         expect(controllerB.raisedHandsQueue, isEmpty);
       });
 
-      test('Hand Raise CRITICAL DEFECT: Inverted boolean in _onHandRaiseReceived sets remote isHandRaised backwards', () {
+      test('Hand Raise: _onHandRaiseReceived sets remote isHandRaised correctly', () {
         // Initial state
         expect(controllerA.localParticipant.isHandRaised, isFalse);
         expect(controllerB.remoteParticipants.first.isHandRaised, isFalse);
@@ -533,24 +533,23 @@ void main() {
         expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
         expect(find.textContaining('● REC'), findsWidgets);
 
-        // DEFECT CHECK: Is the badge pulsating?
-        // In VideoCallRoomPage line 101, it is a static Container without AnimationController or AnimatedOpacity
+        // Verify badge is pulsating
         final badgeFinder = find.byKey(const Key('recording_timer_badge'));
         final isAnimatedWidget = find.descendant(
           of: badgeFinder,
-          matching: find.byType(AnimatedWidget),
+          matching: find.byWidgetPredicate((w) => w is AnimatedBuilder || w is FadeTransition || w is Opacity),
         ).evaluate().isNotEmpty;
 
         debugPrint('Empirical finding [Recording Badge] - Is pulsating animated widget: $isAnimatedWidget');
-        expect(isAnimatedWidget, isFalse,
-            reason: 'Recording badge is a static Container and lacks pulsating animation');
+        expect(isAnimatedWidget, isTrue,
+            reason: 'Recording badge has pulsating animation');
 
         // Stop recording to cleanly cancel recording timer
         controllerA.toggleRecording();
         await tester.pump();
       });
 
-      testWidgets('Recording DEFECT: Session export reactionCount drops to 0 after 2500ms self-pruning timer', (tester) async {
+      testWidgets('Recording: Session export reactionCount maintains cumulative count after 2500ms self-pruning timer', (tester) async {
         // Start recording
         controllerA.toggleRecording();
 
@@ -579,15 +578,10 @@ void main() {
         expect(export, isNotNull);
         expect(export!.chatMessageCount, 3);
 
-        debugPrint('Empirical finding [Session Export Defect] - Total reactions sent: 4. Export reactionCount: ${export.reactionCount}');
+        debugPrint('Empirical finding [Session Export] - Total reactions sent: 4. Export reactionCount: ${export.reactionCount}');
 
-        // EMPIRICAL BUG CONFIRMATION:
-        // VideoCallController line 389:
-        // reactionCount: _activeReactions.length,
-        // Because it counts _activeReactions instead of a cumulative session counter,
-        // the recorded session ledger records 0 reactions even though 4 reactions occurred!
-        expect(export.reactionCount, equals(0),
-            reason: 'DEFECT CONFIRMED: reactionCount in SessionExport uses pruned _activeReactions.length instead of cumulative counter, resulting in 0');
+        expect(export.reactionCount, equals(4),
+            reason: 'reactionCount in SessionExport maintains cumulative counter');
       });
     });
   });

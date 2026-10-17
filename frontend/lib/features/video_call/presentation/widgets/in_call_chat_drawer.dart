@@ -85,13 +85,30 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${msg.senderName} (${msg.senderRa})',
-                        style: const TextStyle(
-                          color: Colors.indigoAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${msg.senderName} (${msg.senderRa})',
+                              style: const TextStyle(
+                                color: Colors.indigoAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}',
+                            key: const Key('chat_message_timestamp'),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Container(
