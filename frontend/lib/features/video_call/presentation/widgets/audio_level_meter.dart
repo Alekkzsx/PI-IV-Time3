@@ -1,13 +1,14 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
+import '../theme/video_call_theme.dart';
 
-/// Medidor visual de nível de volume RMS em tempo real.
+/// Medidor visual de nível de volume RMS em tempo real (Estética Preto, Cinza e Branco).
 ///
 /// Exibe uma barra horizontal preenchida proporcionalmente ao [level] (0.0 a 1.0).
 /// Quando o nível ultrapassa o limiar de fala ativa (> 0.15), a cor de destaque
-/// transiciona dinamicamente para verde esmeralda (`Colors.greenAccent`),
-/// mantendo azul claro (`Colors.lightBlueAccent`) em silêncio ou fala baixa.
+/// transiciona dinamicamente para branco puro ([VideoCallColors.accentWhite]),
+/// mantendo cinza médio ([VideoCallColors.textSecondary]) em silêncio ou fala baixa.
 class AudioLevelMeter extends StatelessWidget {
   /// Nível de áudio normalizado entre 0.0 (silêncio total) e 1.0 (pico máximo).
   final double level;
@@ -35,7 +36,7 @@ class AudioLevelMeter extends StatelessWidget {
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: Colors.white24,
+        color: VideoCallColors.border,
         borderRadius: BorderRadius.circular(height / 2),
       ),
       child: FractionallySizedBox(
@@ -43,7 +44,9 @@ class AudioLevelMeter extends StatelessWidget {
         widthFactor: clampedLevel,
         child: Container(
           decoration: BoxDecoration(
-            color: isSpeaking ? Colors.greenAccent : Colors.lightBlueAccent,
+            color: isSpeaking
+                ? VideoCallColors.accentWhite
+                : VideoCallColors.textSecondary,
             borderRadius: BorderRadius.circular(height / 2),
           ),
         ),

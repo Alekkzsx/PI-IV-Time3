@@ -20,7 +20,7 @@ class RealVideoRenderer extends StatelessWidget {
     super.key,
     required this.viewType,
     this.streamLabel,
-    this.fallbackIcon = Icons.videocam_outlined,
+    this.fallbackIcon = Icons.videocam,
   });
 
   @override

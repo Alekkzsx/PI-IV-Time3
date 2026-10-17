@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
+import '../theme/video_call_theme.dart';
 import 'participant_video_tile.dart';
 import 'screen_share_view.dart';
 
@@ -22,6 +23,18 @@ class DynamicVideoGrid extends StatelessWidget {
   /// Indica se há transmissão de tela ativa no palco principal.
   final bool isScreenSharing;
 
+  /// Construtor opcional para obter o `viewType` de vídeo HTML5 de cada participante.
+  final String? Function(Participant)? videoViewTypeBuilder;
+
+  /// `viewType` opcional da transmissão de tela ativa.
+  final String? screenShareViewType;
+
+  /// Nome opcional do participante que está apresentando a tela.
+  final String? activePresenterName;
+
+  /// Identificador do participante fixado (pin/spotlight), se houver.
+  final String? pinnedParticipantId;
+
   /// Callback opcional disparado ao clicar no tile de um participante.
   final void Function(Participant)? onParticipantTap;
 
@@ -29,17 +42,34 @@ class DynamicVideoGrid extends StatelessWidget {
     super.key,
     required this.participants,
     this.isScreenSharing = false,
+    this.videoViewTypeBuilder,
+    this.screenShareViewType,
+    this.activePresenterName,
+    this.pinnedParticipantId,
     this.onParticipantTap,
   });
+
+  Widget _buildTile(Participant participant) {
+    return ParticipantVideoTile(
+      participant: participant,
+      videoViewType: videoViewTypeBuilder?.call(participant),
+      isPinned: pinnedParticipantId == participant.id,
+      onTap:
+          onParticipantTap != null ? () => onParticipantTap!(participant) : null,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     if (isScreenSharing) {
       return Column(
         children: [
-          const Expanded(
+          Expanded(
             flex: 3,
-            child: ScreenShareView(),
+            child: ScreenShareView(
+              presenterName: activePresenterName,
+              videoViewType: screenShareViewType,
+            ),
           ),
           Expanded(
             flex: 1,
@@ -50,12 +80,7 @@ class DynamicVideoGrid extends StatelessWidget {
                 final participant = participants[index];
                 return SizedBox(
                   width: 180,
-                  child: ParticipantVideoTile(
-                    participant: participant,
-                    onTap: onParticipantTap != null
-                        ? () => onParticipantTap!(participant)
-                        : null,
-                  ),
+                  child: _buildTile(participant),
                 );
               },
             ),
@@ -69,7 +94,7 @@ class DynamicVideoGrid extends StatelessWidget {
         child: Text(
           'Nenhum participante conectado',
           style: TextStyle(
-            color: Colors.white,
+            color: VideoCallColors.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -80,34 +105,15 @@ class DynamicVideoGrid extends StatelessWidget {
     if (participants.length == 1) {
       final soleParticipant = participants.first;
       return Center(
-        child: ParticipantVideoTile(
-          participant: soleParticipant,
-          onTap: onParticipantTap != null
-              ? () => onParticipantTap!(soleParticipant)
-              : null,
-        ),
+        child: _buildTile(soleParticipant),
       );
     }
 
     if (participants.length == 2) {
       return Row(
         children: [
-          Expanded(
-            child: ParticipantVideoTile(
-              participant: participants[0],
-              onTap: onParticipantTap != null
-                  ? () => onParticipantTap!(participants[0])
-                  : null,
-            ),
-          ),
-          Expanded(
-            child: ParticipantVideoTile(
-              participant: participants[1],
-              onTap: onParticipantTap != null
-                  ? () => onParticipantTap!(participants[1])
-                  : null,
-            ),
-          ),
+          Expanded(child: _buildTile(participants[0])),
+          Expanded(child: _buildTile(participants[1])),
         ],
       );
     }
@@ -119,13 +125,7 @@ class DynamicVideoGrid extends StatelessWidget {
       ),
       itemCount: participants.length,
       itemBuilder: (context, index) {
-        final participant = participants[index];
-        return ParticipantVideoTile(
-          participant: participant,
-          onTap: onParticipantTap != null
-              ? () => onParticipantTap!(participant)
-              : null,
-        );
+        return _buildTile(participants[index]);
       },
     );
   }

@@ -2,16 +2,25 @@
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
+import '../theme/video_call_theme.dart';
 import 'audio_level_meter.dart';
+import 'real_video_renderer.dart';
 
 /// Tile individual de exibição de vídeo/avatar de um participante real da conferência.
 ///
-/// Apresenta o stream de câmera ou avatar com gradiente animado e iniciais,
-/// insígnia institucional com nome e RA, badges de silenciamento, compartilhamento
-/// de tela e mão levantada, além da moldura luminosa halo de alto-falante ativo.
+/// Apresenta o stream de câmera HTML5 real via [RealVideoRenderer] ou avatar com
+/// gradiente monocromático e iniciais, insígnia institucional com nome e RA, badges de
+/// silenciamento, compartilhamento de tela e mão levantada, além da moldura luminosa
+/// branca de alto-falante ativo (Estética Preto, Cinza e Branco).
 class ParticipantVideoTile extends StatelessWidget {
   /// Entidade do participante real a ser renderizada.
   final Participant participant;
+
+  /// Identificador opcional da view HTML5 `<video>` registrada no `platformViewRegistry`.
+  final String? videoViewType;
+
+  /// Indica se este participante está fixado (pin/spotlight) na grade.
+  final bool isPinned;
 
   /// Callback opcional ao clicar/tocar no quadro do participante (para destaque/pin).
   final VoidCallback? onTap;
@@ -19,6 +28,8 @@ class ParticipantVideoTile extends StatelessWidget {
   const ParticipantVideoTile({
     super.key,
     required this.participant,
+    this.videoViewType,
+    this.isPinned = false,
     this.onTap,
   });
 
@@ -30,16 +41,18 @@ class ParticipantVideoTile extends StatelessWidget {
       key: Key('participant_tile_${participant.id}'),
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: VideoCallColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSpeaking ? Colors.greenAccent : Colors.transparent,
+          color: isSpeaking
+              ? VideoCallColors.accentWhite
+              : (isPinned ? VideoCallColors.borderStrong : Colors.transparent),
           width: isSpeaking ? 3.0 : 1.0,
         ),
         boxShadow: isSpeaking
             ? [
                 BoxShadow(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.35),
+                  color: VideoCallColors.accentWhite.withValues(alpha: 0.25),
                   blurRadius: 12,
                   spreadRadius: 2,
                 ),
@@ -51,20 +64,27 @@ class ParticipantVideoTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Feed de câmera ou Avatar com iniciais
+            // Feed de câmera real ou Avatar monocromático com iniciais
             Center(
               child: participant.isVideoOff
                   ? CircleAvatar(
                       key: Key('avatar_${participant.id}'),
                       radius: 36,
-                      backgroundColor: const Color(0xFF0F172A),
+                      backgroundColor: VideoCallColors.background,
                       child: Container(
                         width: 72,
                         height: 72,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF3B82F6), Color(0xFF1E1B4B)],
+                          border: Border.all(
+                            color: VideoCallColors.borderStrong,
+                            width: 1.5,
+                          ),
+                          gradient: const LinearGradient(
+                            colors: [
+                              VideoCallColors.surfaceHover,
+                              VideoCallColors.surface,
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -76,7 +96,7 @@ class ParticipantVideoTile extends StatelessWidget {
                                 : '?',
                             style: const TextStyle(
                               fontSize: 28,
-                              color: Colors.white,
+                              color: VideoCallColors.accentWhite,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -86,15 +106,12 @@ class ParticipantVideoTile extends StatelessWidget {
                   : Container(
                       key: Key('camera_feed_${participant.id}'),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
+                        color: VideoCallColors.background,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.videocam,
-                          color: Colors.white38,
-                          size: 48,
-                        ),
+                      child: RealVideoRenderer(
+                        viewType: videoViewType,
+                        fallbackIcon: Icons.videocam,
                       ),
                     ),
             ),
@@ -106,15 +123,23 @@ class ParticipantVideoTile extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.65),
+                  color: VideoCallColors.background.withValues(alpha: 0.80),
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: VideoCallColors.border,
+                    width: 0.8,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       '${participant.name} (${participant.ra})',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      style: const TextStyle(
+                        color: VideoCallColors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     if (participant.role.isNotEmpty &&
                         participant.role.toLowerCase() != 'student' &&
@@ -122,11 +147,11 @@ class ParticipantVideoTile extends StatelessWidget {
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
+                          horizontal: 5,
                           vertical: 1,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withValues(alpha: 0.8),
+                          color: VideoCallColors.surfaceHover,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -136,7 +161,7 @@ class ParticipantVideoTile extends StatelessWidget {
                                   ? 'Apresentador'
                                   : participant.role.toUpperCase(),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: VideoCallColors.accentWhite,
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
                           ),
@@ -147,7 +172,7 @@ class ParticipantVideoTile extends StatelessWidget {
                       const SizedBox(width: 6),
                       const Icon(
                         Icons.screen_share,
-                        color: Colors.indigoAccent,
+                        color: VideoCallColors.accentWhite,
                         size: 14,
                       ),
                     ],
@@ -155,7 +180,7 @@ class ParticipantVideoTile extends StatelessWidget {
                       const SizedBox(width: 6),
                       const Icon(
                         Icons.mic_off,
-                        color: Colors.redAccent,
+                        color: VideoCallColors.textSecondary,
                         size: 14,
                       ),
                     ] else ...[
@@ -167,6 +192,41 @@ class ParticipantVideoTile extends StatelessWidget {
               ),
             ),
 
+            // Indicador de participante fixado (topo esquerdo)
+            if (isPinned)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: VideoCallColors.background.withValues(alpha: 0.80),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: VideoCallColors.borderStrong),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.push_pin,
+                        size: 12,
+                        color: VideoCallColors.accentWhite,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Fixado',
+                        style: TextStyle(
+                          color: VideoCallColors.accentWhite,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // Indicador de mão levantada (topo direito)
             if (participant.isHandRaised)
               Positioned(
@@ -175,9 +235,13 @@ class ParticipantVideoTile extends StatelessWidget {
                 child: Container(
                   key: Key('hand_raised_icon_${participant.id}'),
                   padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.amber,
+                  decoration: BoxDecoration(
+                    color: VideoCallColors.accentWhite,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: VideoCallColors.background,
+                      width: 1.5,
+                    ),
                   ),
                   child: const Text('✋', style: TextStyle(fontSize: 16)),
                 ),
