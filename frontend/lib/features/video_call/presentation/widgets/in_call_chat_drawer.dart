@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../controllers/video_call_controller.dart';
+import '../theme/video_call_theme.dart';
 
-/// Gaveta lateral deslizante de chat interno durante a chamada de vídeo.
+/// Gaveta lateral deslizante de chat interno durante a chamada de vídeo (Estética Preto, Cinza e Branco).
 ///
 /// Permite o envio e recebimento de mensagens instantâneas sincronizadas via P2P,
 /// exibindo cabeçalho institucional do remetente (Nome e RA), carimbo de data/hora
@@ -51,28 +52,38 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
     return Container(
       key: const Key('in_call_chat_drawer'),
       width: 320,
-      color: const Color(0xFF0F172A),
+      decoration: const BoxDecoration(
+        color: VideoCallColors.surface,
+        border: Border(
+          left: BorderSide(color: VideoCallColors.border, width: 1),
+        ),
+      ),
       child: Column(
         children: [
           AppBar(
-            backgroundColor: const Color(0xFF1E293B),
+            backgroundColor: VideoCallColors.background,
+            elevation: 0,
             title: const Text(
               'Chat da Chamada',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: VideoCallColors.textPrimary,
               ),
             ),
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
                 key: const Key('close_chat_drawer_button'),
-                icon: const Icon(Icons.close, color: Colors.white70),
+                icon: const Icon(
+                  Icons.close,
+                  color: VideoCallColors.textSecondary,
+                ),
                 onPressed: widget.controller.toggleChatDrawer,
               ),
             ],
           ),
+          const Divider(color: VideoCallColors.border, height: 1),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -92,7 +103,7 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
                             child: Text(
                               '${msg.senderName} (${msg.senderRa})',
                               style: const TextStyle(
-                                color: Colors.indigoAccent,
+                                color: VideoCallColors.accentWhite,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -104,22 +115,28 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
                             '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}',
                             key: const Key('chat_message_timestamp'),
                             style: const TextStyle(
-                              color: Colors.white54,
+                              color: VideoCallColors.textMuted,
                               fontSize: 10,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
+                          color: VideoCallColors.surfaceElevated,
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: VideoCallColors.border,
+                            width: 0.8,
+                          ),
                         ),
                         child: Text(
                           msg.text,
-                          style: const TextStyle(color: Colors.white),
+                          style: const TextStyle(
+                            color: VideoCallColors.textPrimary,
+                          ),
                         ),
                       ),
                     ],
@@ -128,6 +145,7 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
               },
             ),
           ),
+          const Divider(color: VideoCallColors.border, height: 1),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -137,19 +155,36 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
                     key: const Key('chat_input_field'),
                     controller: _textController,
                     maxLength: 500,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: const TextStyle(color: VideoCallColors.textPrimary),
+                    decoration: InputDecoration(
                       hintText: 'Digite uma mensagem...',
-                      hintStyle: TextStyle(color: Colors.white54),
+                      hintStyle:
+                          const TextStyle(color: VideoCallColors.textMuted),
                       counterText: '',
-                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: VideoCallColors.background,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide:
+                            const BorderSide(color: VideoCallColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: VideoCallColors.accentWhite,
+                        ),
+                      ),
                     ),
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
+                const SizedBox(width: 4),
                 IconButton(
                   key: const Key('send_chat_message_button'),
-                  icon: const Icon(Icons.send, color: Colors.indigoAccent),
+                  icon: const Icon(
+                    Icons.send,
+                    color: VideoCallColors.accentWhite,
+                  ),
                   onPressed: _sendMessage,
                 ),
               ],
