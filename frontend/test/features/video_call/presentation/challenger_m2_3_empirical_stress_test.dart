@@ -351,53 +351,71 @@ void main() {
       });
 
       testWidgets('Step 3.1: Remote peer increments elapsedDuration second by second via internal timer', (tester) async {
-        expect(controllerA.recordingState.isRecording, isFalse);
-        expect(controllerB.recordingState.isRecording, isFalse);
-        expect(controllerB.recordingState.elapsedDuration, Duration.zero);
+        final rA = LinkedDomainVideoCallRepository();
+        final rB = LinkedDomainVideoCallRepository();
+        rA.peerRepo = rB;
+        rB.peerRepo = rA;
+
+        final pA = Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449');
+        final pB = Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122');
+
+        final cA = VideoCallController(repository: rA, room: room, localParticipant: pA);
+        final cB = VideoCallController(repository: rB, room: room, localParticipant: pB);
+        cA.registerRemoteParticipant(pB);
+        cB.registerRemoteParticipant(pA);
+
+        expect(cA.recordingState.isRecording, isFalse);
+        expect(cB.recordingState.isRecording, isFalse);
+        expect(cB.recordingState.elapsedDuration, Duration.zero);
 
         // Peer A starts recording
-        controllerA.toggleRecording();
+        cA.toggleRecording();
         await tester.pump();
 
-        expect(controllerA.recordingState.isRecording, isTrue);
-        expect(controllerB.recordingState.isRecording, isTrue);
-        expect(controllerB.recordingState.startedByPeerId, 'peer_a');
+        expect(cA.recordingState.isRecording, isTrue);
+        expect(cB.recordingState.isRecording, isTrue);
+        expect(cB.recordingState.startedByPeerId, 'peer_a');
 
-        controllerB.addListener(() {
-          debugPrint('LISTENER controllerB: isRecording=${controllerB.recordingState.isRecording}, elapsed=${controllerB.recordingState.elapsedDuration.inSeconds}');
+        cB.addListener(() {
+          debugPrint('LISTENER cB: isRecording=${cB.recordingState.isRecording}, elapsed=${cB.recordingState.elapsedDuration.inSeconds}');
         });
 
-        // Advance 1.1 seconds (1100ms)
-        await tester.pump(const Duration(milliseconds: 1100));
-        debugPrint('DBG: cA elapsed=${controllerA.recordingState.elapsedDuration.inSeconds}, cB elapsed=${controllerB.recordingState.elapsedDuration.inSeconds}');
-        expect(controllerB.recordingState.elapsedDuration.inSeconds, equals(1),
+        // Advance 1 second
+        await tester.pump(const Duration(seconds: 1));
+        debugPrint('DBG: cA elapsed=${cA.recordingState.elapsedDuration.inSeconds}, cB elapsed=${cB.recordingState.elapsedDuration.inSeconds}');
+        expect(cB.recordingState.elapsedDuration.inSeconds, equals(1),
             reason: 'Remote peer elapsedDuration must be 1s after 1s tick');
 
         // Advance 2nd second
         await tester.pump(const Duration(seconds: 1));
-        expect(controllerB.recordingState.elapsedDuration.inSeconds, equals(2),
+        expect(cB.recordingState.elapsedDuration.inSeconds, equals(2),
             reason: 'Remote peer elapsedDuration must be 2s after 2s tick');
 
         // Advance 3rd second
         await tester.pump(const Duration(seconds: 1));
-        expect(controllerB.recordingState.elapsedDuration.inSeconds, equals(3),
+        expect(cB.recordingState.elapsedDuration.inSeconds, equals(3),
             reason: 'Remote peer elapsedDuration must be 3s after 3s tick');
 
         // Peer A stops recording
-        controllerA.toggleRecording();
+        cA.toggleRecording();
         await tester.pump();
 
-        expect(controllerB.recordingState.isRecording, isFalse);
-        final finalDuration = controllerB.recordingState.elapsedDuration.inSeconds;
+        expect(cB.recordingState.isRecording, isFalse);
+        final finalDuration = cB.recordingState.elapsedDuration.inSeconds;
 
         // Advance further time: verify remote timer is cancelled and elapsedDuration does NOT advance further
         await tester.pump(const Duration(seconds: 2));
-        expect(controllerB.recordingState.elapsedDuration.inSeconds, equals(finalDuration),
+        expect(cB.recordingState.elapsedDuration.inSeconds, equals(finalDuration),
             reason: 'Cancelled remote recording timer must not continue incrementing elapsedDuration');
 
         // Verify SessionExport generated on remote peer B
-        expect(controllerB.lastSessionExport, isNotNull);
-        expect(controllerB.lastSessionExport!.totalDuration.inSeconds, equals(3));
+        expect(cB.lastSessionExport, isNotNull);
+        expect(cB.lastSessionExport!.totalDuration.inSeconds, equals(3));
+
+        cA.dispose();
+        cB.dispose();
+        rA.dispose();
+        rB.dispose();
       });
 
       testWidgets('Step 3.2: Remote VideoCallRoomPage displays pulsating REC badge with advancing time', (tester) async {
