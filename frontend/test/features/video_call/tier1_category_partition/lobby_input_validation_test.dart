@@ -8,6 +8,9 @@ void main() {
   group('Tier 1: Category-Partition - Lobby Input Validation & Preview', () {
     testWidgets('Valid inputs trigger onJoin callback with sanitized values',
         (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       String? joinedName;
       String? joinedRa;
       String? joinedRoom;
