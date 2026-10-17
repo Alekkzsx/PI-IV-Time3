@@ -11,7 +11,7 @@ class InMemorySignalingBus {
 
   final String roomCode;
   final StreamController<SignalingPayload> _streamController =
-      StreamController<SignalingPayload>.broadcast();
+      StreamController<SignalingPayload>.broadcast(sync: true);
 
   InMemorySignalingBus._(this.roomCode);
 
