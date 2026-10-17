@@ -463,6 +463,9 @@ void main() {
 
   group('Presentation Pages Tests', () {
     testWidgets('VideoCallLobbyPage renders form, preview, and submits onJoin', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       String? submittedName;
       String? submittedRa;
       String? submittedRoom;
