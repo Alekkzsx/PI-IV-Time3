@@ -280,6 +280,9 @@ void main() {
 
         // At t = 3000ms+: self-pruning timer (2500ms) has fired and purges reactions
         await tester.pump(const Duration(milliseconds: 1000));
+        debugPrint('Empirical finding [Reaction Timers] - controllerA reactions: ${controllerA.activeReactions.length}, controllerB reactions: ${controllerB.activeReactions.length}');
+        await tester.pump(const Duration(milliseconds: 1000));
+        debugPrint('Empirical finding [Reaction Timers +1s] - controllerA: ${controllerA.activeReactions.length}, controllerB: ${controllerB.activeReactions.length}');
         expect(controllerA.activeReactions, isEmpty, reason: 'Reação local deve auto-remover aos 2500ms');
         expect(controllerB.activeReactions, isEmpty, reason: 'Reação remota deve auto-remover aos 2500ms');
       });
