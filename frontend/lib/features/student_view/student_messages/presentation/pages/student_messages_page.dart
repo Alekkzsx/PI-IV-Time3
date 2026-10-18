@@ -1,7 +1,6 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
-import '../../../../../shared/student_layout/student_portal_shell.dart';
 import '../../../../../shared/student_layout/student_sidebar.dart';
 import '../../domain/entities/academic_message.dart';
 import '../controllers/student_messages_controller.dart';

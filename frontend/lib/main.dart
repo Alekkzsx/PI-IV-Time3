@@ -12,7 +12,6 @@ import 'features/auth_view/reset_password/presentation/pages/reset_password_page
 import 'features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
 import 'features/student_view/student_messages/presentation/pages/student_messages_page.dart';
 import 'features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
-import 'features/student_view/student_deliveries/presentation/pages/student_deliveries_page.dart';
 import 'features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
