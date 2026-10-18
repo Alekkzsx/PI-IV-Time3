@@ -58,6 +58,11 @@ class StudentSidebar extends StatelessWidget {
           Navigator.of(context).pushReplacementNamed('/student/secretaria');
         }
         break;
+      case StudentNavItem.entregas:
+        if (activeItem != StudentNavItem.entregas) {
+          Navigator.of(context).pushReplacementNamed('/student/entregas');
+        }
+        break;
       case StudentNavItem.sair:
         Navigator.of(context).pushReplacementNamed('/');
         break;
@@ -65,7 +70,9 @@ class StudentSidebar extends StatelessWidget {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Módulo "${_labelFor(item)}" disponível no Painel Geral.'),
+            content: Text(
+              'Módulo "${_labelFor(item)}" disponível no Painel Geral.',
+            ),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -129,10 +136,7 @@ class StudentSidebar extends StatelessWidget {
           decoration: const BoxDecoration(
             color: Color(0xFFFFFFFF),
             border: Border(
-              right: BorderSide(
-                color: Color(0xFFE5E7EB),
-                width: 1,
-              ),
+              right: BorderSide(color: Color(0xFFE5E7EB), width: 1),
             ),
           ),
           child: SafeArea(
@@ -231,10 +235,12 @@ class StudentSidebar extends StatelessWidget {
     final label = _labelFor(item);
     final icon = _iconFor(item);
 
-    final Color iconColor =
-        isSelected ? const Color(0xFF18181B) : const Color(0xFF71717A);
-    final Color textColor =
-        isSelected ? const Color(0xFF18181B) : const Color(0xFF71717A);
+    final Color iconColor = isSelected
+        ? const Color(0xFF18181B)
+        : const Color(0xFF71717A);
+    final Color textColor = isSelected
+        ? const Color(0xFF18181B)
+        : const Color(0xFF71717A);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -252,11 +258,7 @@ class StudentSidebar extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor,
-                ),
+                Icon(icon, size: 20, color: iconColor),
                 if (!isCollapsed) ...[
                   const SizedBox(height: 5),
                   Text(
@@ -266,8 +268,9 @@ class StudentSidebar extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       color: textColor,
                     ),
                   ),
@@ -280,4 +283,3 @@ class StudentSidebar extends StatelessWidget {
     );
   }
 }
-

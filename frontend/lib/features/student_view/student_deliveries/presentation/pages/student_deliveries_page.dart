@@ -1,3 +1,5 @@
+// Desenvolvido por Rafael Henrique dos Santos Inácio - RA: 25009719
+
 import 'package:flutter/material.dart';
 
 // Enum para mapear os 3 estados que identificamos no protótipo
