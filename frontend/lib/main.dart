@@ -94,7 +94,6 @@ class PortalAvaApp extends StatelessWidget {
         ),
         '/student/messages': (context) => const StudentMessagesPage(),
         '/student/secretaria': (context) => const StudentSecretariatPage(),
-        '/student/entregas': (context) => const StudentDeliveriesPage(),
         '/video-call': (context) => const VideoCallLobbyPage(),
         '/admin-shell': (context) => const AdminShellPage(),
       },

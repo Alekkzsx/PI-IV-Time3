@@ -10,39 +10,61 @@ class StudentDeliveriesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Cor de fundo suave do painel
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 24),
-            _buildDashboardCards(),
-            const SizedBox(height: 32),
-            _buildTabsAndFilters(),
-            const SizedBox(height: 24),
-            _buildDeliveriesList(),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(context), // <-- Passando o context aqui!
+          const SizedBox(height: 24),
+          _buildDashboardCards(),
+          const SizedBox(height: 32),
+          _buildTabsAndFilters(),
+          const SizedBox(height: 24),
+          _buildDeliveriesList(),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
+          children: [
+            // --- NOVO BOTÃO DE VOLTAR ---
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pushReplacementNamed('/student/home');
+              },
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                size: 18,
+                color: Colors.grey,
+              ),
+              label: const Text(
+                'Voltar para o Painel Geral',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // -----------------------------
+            const Text(
               'Central de Entregas & Atividades',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'Gerencie prazos acadêmicos, envie seus trabalhos e acompanhe pareceres e notas oficiais.',
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),

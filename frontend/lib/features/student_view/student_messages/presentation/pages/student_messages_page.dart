@@ -65,9 +65,7 @@ class _StudentMessagesPageState extends State<StudentMessagesPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           message.title,
           style: const TextStyle(
@@ -122,79 +120,72 @@ class _StudentMessagesPageState extends State<StudentMessagesPage> {
   Widget build(BuildContext context) {
     final messages = _controller.filteredMessages;
 
-    return StudentPortalShell(
-      headerTitle: 'Mensagens',
-      activeNavItem: StudentNavItem.mensagens,
-      onNavItemSelected: widget.onNavItemSelected,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Cabeçalho da Seção
-          const Text(
-            'Central de Mensagens & Comunicados',
-            style: TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF18181B),
-              letterSpacing: -0.3,
+    // Removemos o StudentPortalShell e agora retornamos apenas a Column principal!
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Cabeçalho da Seção
+        const Text(
+          'Central de Mensagens & Comunicados',
+          style: TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF18181B),
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Avisos oficiais da Secretaria Acadêmica, Reitoria e comunicados dos docentes das disciplinas.',
+          style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
+        ),
+        const SizedBox(height: 24),
+        // Barra de Filtros e Pesquisa
+        MessageFilterBar(
+          activeFilter: _controller.activeFilter,
+          onFilterChanged: _controller.setFilter,
+          onSearchChanged: _controller.setSearchQuery,
+          searchController: _searchController,
+        ),
+        const SizedBox(height: 22),
+        // Lista de Comunicados
+        if (messages.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Avisos oficiais da Secretaria Acadêmica, Reitoria e comunicados dos docentes das disciplinas.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF71717A),
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Barra de Filtros e Pesquisa
-          MessageFilterBar(
-            activeFilter: _controller.activeFilter,
-            onFilterChanged: _controller.setFilter,
-            onSearchChanged: _controller.setSearchQuery,
-            searchController: _searchController,
-          ),
-          const SizedBox(height: 22),
-          // Lista de Comunicados
-          if (messages.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: const Column(
-                children: [
-                  Icon(
-                    Icons.mail_outline_rounded,
-                    size: 32,
-                    color: Color(0xFF9CA3AF),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.mail_outline_rounded,
+                  size: 32,
+                  color: Color(0xFF9CA3AF),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Nenhum comunicado encontrado para o filtro selecionado.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0xFF71717A),
+                    fontWeight: FontWeight.w500,
                   ),
-                  SizedBox(height: 12),
-                  Text(
-                    'Nenhum comunicado encontrado para o filtro selecionado.',
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      color: Color(0xFF71717A),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            ...messages.map(
-              (msg) => AcademicMessageCard(
-                key: Key('message_card_${msg.id}'),
-                message: msg,
-                onTap: () => _showMessageDetailModal(msg),
-              ),
+                ),
+              ],
             ),
-        ],
-      ),
+          )
+        else
+          ...messages.map(
+            (msg) => AcademicMessageCard(
+              key: Key('message_card_${msg.id}'),
+              message: msg,
+              onTap: () => _showMessageDetailModal(msg),
+            ),
+          ),
+      ],
     );
   }
 }
