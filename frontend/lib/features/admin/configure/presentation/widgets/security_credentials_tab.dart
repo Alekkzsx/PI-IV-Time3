@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Aba de configuração de Segurança & Credenciais do Administrador.
+/// Configuration tab for Administrator Security & Credentials.
 ///
-/// Gerencia criptografia de credenciais (SHA-256), autenticação em dois fatores (2FA TOTP),
-/// chaves de recuperação descartáveis e políticas Zero-Trust.
+/// Manages access credential encryption (SHA-256), two-factor authentication (2FA TOTP),
+/// disposable recovery backup codes, and Zero-Trust access policies.
 class SecurityCredentialsTab extends StatefulWidget {
   const SecurityCredentialsTab({super.key});
 
@@ -18,7 +18,7 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Credencial de Acesso (Senha)
+        // 1. Access Credentials (Password)
         _buildSecurityCard(
           icon: Icons.vpn_key_rounded,
           title: 'Credencial de Acesso (Senha)',
@@ -110,7 +110,7 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Autenticação em Duas Etapas (2FA)
+        // 2. Two-Factor Authentication (2FA)
         _buildSecurityCard(
           icon: Icons.verified_user_rounded,
           title: 'Autenticação em Duas Etapas (2FA)',
@@ -184,7 +184,7 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Códigos de Recuperação (Backup)
+        // 3. Recovery Backup Codes
         _buildSecurityCard(
           icon: Icons.key_outlined,
           title: 'Códigos de Recuperação (Backup)',

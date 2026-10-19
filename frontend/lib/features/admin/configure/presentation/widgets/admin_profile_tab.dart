@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Aba de configuração do Perfil Administrativo.
+/// Configuration tab for Administrative Profile.
 ///
-/// Permite gerenciar identidade visual, nome de exibição (registro civil vs social)
-/// e consultar dados cadastrais oficiais e vínculos acadêmicos.
+/// Manages visual identity, display name (legal civil name vs preferred social name),
+/// and provides official enrollment and academic institutional records.
 class AdminProfileTab extends StatefulWidget {
   const AdminProfileTab({super.key});
 
@@ -28,7 +28,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Card: Identidade Visual & Foto
+        // 1. Visual Identity & Photo Card
         _buildSectionCard(
           title: 'Identidade Visual & Foto',
           subtitle:
@@ -93,7 +93,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Card: Identificação & Nome de Exibição
+        // 2. Identification & Display Name Card
         _buildSectionCard(
           title: 'Identificação & Nome de Exibição',
           subtitle:
@@ -123,7 +123,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Card: Informações Acadêmicas Oficiais
+        // 3. Official Academic Records Card
         _buildSectionCard(
           title: 'Informações Acadêmicas Oficiais',
           subtitle:

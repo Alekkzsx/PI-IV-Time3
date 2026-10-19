@@ -8,10 +8,10 @@ import '../widgets/governance_lgpd_tab.dart';
 import '../widgets/security_credentials_tab.dart';
 import '../widgets/system_preferences_tab.dart';
 
-/// Tela principal de Configurações da Conta de Administração.
+/// Main Administration Account Configuration page.
 ///
-/// Orquestra o menu lateral de 6 abas gerenciais, com layout responsivo para desktop
-/// e suporte a diretrizes regimentais, perfil, segurança, alertas, preferências e LGPD.
+/// Coordinates the 6 managerial navigation tabs with responsive desktop layout
+/// supporting academic guidelines, profile, security, campus alerts, preferences, and LGPD.
 class AdminConfigurePage extends StatefulWidget {
   const AdminConfigurePage({super.key});
 
@@ -83,7 +83,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Cabeçalho Principal da Seção
+            // 1. Main Section Header
             const Text(
               'Configurações da Conta de Administração',
               style: TextStyle(
@@ -103,7 +103,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
             ),
             const SizedBox(height: 28),
 
-            // 2. Layout em Duas Colunas (Menu Lateral + Conteúdo Ativo)
+            // 2. Two-Column Layout (Sidebar Navigation + Active Tab Content)
             LayoutBuilder(
               builder: (context, constraints) {
                 final isStacked = constraints.maxWidth < 980;
@@ -134,7 +134,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
 
             const SizedBox(height: 48),
 
-            // 3. Rodapé Institucional
+            // 3. Institutional Footer
             Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,

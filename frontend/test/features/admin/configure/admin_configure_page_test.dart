@@ -44,35 +44,35 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. Aba Perfil Administrativo
+      // 1. Administrative Profile Tab
       await tester.tap(find.text('Perfil Administrativo').first);
       await tester.pumpAndSettle();
       expect(find.byType(AdminProfileTab), findsOneWidget);
       expect(find.text('Identidade Visual & Foto'), findsOneWidget);
       expect(find.text('Carlos Eduardo Mendes'), findsOneWidget);
 
-      // 2. Aba Segurança & Credenciais
+      // 2. Security & Credentials Tab
       await tester.tap(find.text('Segurança & Credenciais').first);
       await tester.pumpAndSettle();
       expect(find.byType(SecurityCredentialsTab), findsOneWidget);
       expect(find.text('Credencial de Acesso (Senha)'), findsOneWidget);
       expect(find.text('Autenticação em Duas Etapas (2FA)'), findsOneWidget);
 
-      // 3. Aba Alertas do Campus
+      // 3. Campus Alerts Tab
       await tester.tap(find.text('Alertas do Campus').first);
       await tester.pumpAndSettle();
       expect(find.byType(CampusAlertsTab), findsOneWidget);
       expect(find.text('Canais de Comunicação'), findsOneWidget);
       expect(find.text('Prazos de Tarefas & Trabalhos'), findsOneWidget);
 
-      // 4. Aba Preferências do Sistema
+      // 4. System Preferences Tab
       await tester.tap(find.text('Preferências do Sistema').first);
       await tester.pumpAndSettle();
       expect(find.byType(SystemPreferencesTab), findsOneWidget);
       expect(find.text('Aparência & Tema'), findsOneWidget);
       expect(find.text('Acessibilidade & Leitura'), findsOneWidget);
 
-      // 5. Aba Governança & LGPD
+      // 5. Governance & LGPD Tab
       await tester.tap(find.text('Governança & LGPD').first);
       await tester.pumpAndSettle();
       expect(find.byType(GovernanceLgpdTab), findsOneWidget);
@@ -86,7 +86,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      // Renderiza GovernanceLgpdTab e testa botões de exportação
+      // Renders GovernanceLgpdTab and asserts export buttons
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -99,7 +99,7 @@ void main() {
       expect(find.text('Arquivo JSON'), findsOneWidget);
       expect(find.text('Relatório (.txt)'), findsOneWidget);
 
-      // Renderiza SecurityCredentialsTab e testa badge e botões
+      // Renders SecurityCredentialsTab and asserts backup codes badge and buttons
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

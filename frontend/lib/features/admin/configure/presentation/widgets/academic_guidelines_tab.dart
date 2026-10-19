@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Aba de configuração das Diretrizes Acadêmicas Regimentais.
+/// Configuration tab for Institutional Academic Guidelines.
 ///
-/// Permite à administração central definir notas de corte, frequência mínima
-/// e fórmula oficial de ponderação institucional (Resolução CONSU).
+/// Allows central administration to configure cut-off grades, minimum attendance thresholds,
+/// and the official institutional grade-weighting formula (CONSU Resolution).
 class AcademicGuidelinesTab extends StatefulWidget {
   const AcademicGuidelinesTab({super.key});
 
@@ -42,7 +42,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Cabeçalho da Aba
+          // 1. Tab Header
           Row(
             children: [
               Container(
@@ -114,7 +114,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
 
           const SizedBox(height: 24),
 
-          // 2. Banner de Hierarquia Institucional e Autonomia Docente
+          // 2. Institutional Hierarchy and Faculty Autonomy Banner
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -154,7 +154,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
 
           const SizedBox(height: 24),
 
-          // 3. Grid de 3 Cards de Métricas
+          // 3. Metric Cards Grid (Approval, Attendance, Special Exam)
           LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 850;
@@ -263,7 +263,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
 
           const SizedBox(height: 24),
 
-          // 4. Descrição da Fórmula Regimental e Ponderação
+          // 4. Regimental Weighting Formula Description
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -315,7 +315,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
 
           const SizedBox(height: 20),
 
-          // 5. Resolução e Homologação
+          // 5. Deliberation Resolution and Approval Records
           Row(
             children: [
               Expanded(

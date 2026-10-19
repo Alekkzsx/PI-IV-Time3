@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Aba de configuração de Preferências do Sistema e Acessibilidade.
+/// Configuration tab for System Preferences and Accessibility.
 ///
-/// Permite alternar temas de interface (Claro, Escuro, SO), densidade de tabelas,
-/// escala de tipografia, modo de alto contraste e preferências de calendário.
+/// Allows toggling interface themes (Light, Dark, OS default), table density,
+/// typography scale, high-contrast mode, and academic calendar initial views.
 class SystemPreferencesTab extends StatefulWidget {
   const SystemPreferencesTab({super.key});
 
@@ -14,9 +14,9 @@ class SystemPreferencesTab extends StatefulWidget {
 }
 
 class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
-  int _selectedThemeIndex = 0; // 0: Claro, 1: Escuro, 2: SO
-  int _typographyIndex = 0; // 0: Normal, 1: Média (+10%), 2: Grande (+20%)
-  int _densityIndex = 0; // 0: Confortável, 1: Compacto
+  int _selectedThemeIndex = 0; // 0: Light, 1: Dark, 2: OS
+  int _typographyIndex = 0; // 0: Normal, 1: Medium (+10%), 2: Large (+20%)
+  int _densityIndex = 0; // 0: Comfortable, 1: Compact
 
   bool _highContrast = false;
   bool _reduceMotion = false;
@@ -28,7 +28,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Aparência & Tema
+        // 1. Appearance & Theme
         _buildSectionCard(
           title: 'Aparência & Tema',
           subtitle: 'Personalize a experiência visual do Portal e Ambiente Virtual de Aprendizagem.',
@@ -60,7 +60,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Acessibilidade & Leitura
+        // 2. Accessibility & Reading
         _buildSectionCard(
           title: 'Acessibilidade & Leitura',
           subtitle: 'Ajustes para facilitar a visualização de textos, notas e materiais acadêmicos.',
@@ -94,7 +94,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
               const Divider(height: 1, color: Color(0xFFF1F5F9)),
               const SizedBox(height: 18),
 
-              // Toggles de Acessibilidade
+              // Accessibility Toggles
               _buildToggleRow(
                 title: 'Modo de Alto Contraste',
                 subtitle: 'Realça as bordas e aumenta o contraste entre textos e planos de fundo.',
@@ -114,7 +114,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Preferências do Calendário Acadêmico
+        // 3. Academic Calendar Preferences
         _buildSectionCard(
           title: 'Preferências do Calendário Acadêmico',
           subtitle: 'Defina o comportamento inicial da sua agenda de aulas e entregas.',

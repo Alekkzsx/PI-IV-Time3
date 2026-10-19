@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Aba de configuração de Alertas do Campus e Canais de Comunicação.
+/// Configuration tab for Campus Alerts and Communication Channels.
 ///
-/// Permite definir regras de disparo de notificações push no portal, e-mails institucionais,
-/// prazos de tarefas e avisos de tutores/professores.
+/// Defines dispatch rules for push notifications on the portal, institutional emails,
+/// task deadlines, and automated tutor/faculty notifications.
 class CampusAlertsTab extends StatefulWidget {
   const CampusAlertsTab({super.key});
 
@@ -31,7 +31,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Canais de Comunicação
+        // 1. Communication Channels
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -104,7 +104,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Categorias & Frequência de Alertas
+        // 2. Alert Categories & Frequency
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -125,7 +125,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               ),
               const SizedBox(height: 20),
 
-              // Item 1: Prazos de Tarefas & Trabalhos
+              // Item 1: Task & Assignment Deadlines
               _buildAlertRow(
                 icon: Icons.near_me_outlined,
                 title: 'Prazos de Tarefas & Trabalhos',
@@ -185,7 +185,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
 
-              // Item 2: Notas & Correções de Professores
+              // Item 2: Faculty Grades & Review Notices
               _buildAlertRow(
                 icon: Icons.assignment_turned_in_outlined,
                 title: 'Notas & Correções de Professores',
@@ -198,7 +198,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
 
-              // Item 3: Fóruns & Respostas
+              // Item 3: Discussion Forums & Replies
               _buildAlertRow(
                 icon: Icons.chat_bubble_outline_rounded,
                 title: 'Fóruns & Respostas',
@@ -211,7 +211,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
 
-              // Item 4: Mensagens Diretas & Avisos de Tutores
+              // Item 4: Direct Messages & Tutor Announcements
               _buildAlertRow(
                 icon: Icons.message_outlined,
                 title: 'Mensagens Diretas & Avisos de Tutores',

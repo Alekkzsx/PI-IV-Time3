@@ -2,10 +2,11 @@
 
 import 'package:flutter/material.dart';
 
-/// Aba de configuração de Governança e Privacidade (LGPD).
+/// Configuration tab for Governance and Privacy (LGPD).
 ///
-/// Permite gerenciar a visibilidade de dados corporativos e estudantis entre pares,
-/// assegurar direitos do titular conforme a Lei nº 13.709/2018 e exportar relatórios cadastrais.
+/// Manages visibility of profile and peer data, guarantees data subject
+/// rights under Brazilian General Data Protection Law (Law No. 13.709/2018),
+/// and enables exporting registration records.
 class GovernanceLgpdTab extends StatefulWidget {
   const GovernanceLgpdTab({super.key});
 
@@ -21,7 +22,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Visibilidade de Perfil & Dados entre Colegas
+        // 1. Profile Visibility & Peer Data Sharing
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -53,7 +54,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               ),
               const SizedBox(height: 20),
 
-              // Item 1: Exibir meu e-mail nas listagens de turma
+              // Item 1: Display email in class roster
               _buildVisibilityRow(
                 title: 'Exibir meu e-mail nas listagens de turma',
                 subtitle: 'Permite que colegas vejam seu e-mail institucional para formar grupos de estudo.',
@@ -63,7 +64,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
 
-              // Item 2: Mostrar status de presença ("Online recentemente")
+              // Item 2: Show presence status ("Recently Online")
               _buildVisibilityRow(
                 title: 'Mostrar status de presença ("Online recentemente")',
                 subtitle: 'Indica no chat de disciplinas e fóruns se você esteve ativo nas últimas 24 horas.',
@@ -76,7 +77,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Privacidade & Direitos do Titular (LGPD)
+        // 2. Privacy & Data Subject Rights (LGPD)
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -108,7 +109,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               ),
               const SizedBox(height: 20),
 
-              // Box de Exportação de Relatório
+              // Report Export Box
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -144,7 +145,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
 
         const SizedBox(height: 24),
 
-        // 3. Botão Final: Salvar Preferências de Privacidade
+        // 3. Save Privacy Preferences Action Button
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
