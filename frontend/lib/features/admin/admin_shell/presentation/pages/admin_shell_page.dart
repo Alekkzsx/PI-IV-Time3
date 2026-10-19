@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira e Murillo Caravita - RA: 25014012
 import 'package:flutter/material.dart';
 // Importações das diferentes páginas/módulos gerenciados pelo menu lateral (shell)
 import '../../../admin_panel/presentation/pages/panel_geral_page.dart';
@@ -8,10 +8,11 @@ import '../../../classes/presentation/pages/classes_page.dart';
 import '../../../secretary/presentation/pages/secretary_page.dart';
 import '../../../calendar/presentation/pages/calendar_page.dart';
 import '../../../audit/presentation/pages/audit_page.dart';
+import '../../../configure/presentation/pages/admin_configure_page.dart';
 
 // Declaração do painel principal (Shell/Layout base) como um StatefulWidget, pois ele controla o estado da página atualmente selecionada
 class AdminShellPage extends StatefulWidget {
-  const AdminShellPage({Key? key}) : super(key: key);
+  const AdminShellPage({super.key});
 
   @override
   State<AdminShellPage> createState() => _AdminShellPageState();
@@ -29,6 +30,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
     const SecretaryPage(),   // Índice 4
     const CalendarPage(),    // Índice 5
     const AuditPage(),       // Índice 6
+    const AdminConfigurePage(), // Índice 7
   ];
 
   @override
@@ -87,6 +89,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
                       _buildMenuItem(4, Icons.description_outlined, 'Secretaria'),
                       _buildMenuItem(5, Icons.calendar_today_outlined, 'Calendário'),
                       _buildMenuItem(6, Icons.verified_user_outlined, 'Auditoria'),
+                      _buildMenuItem(7, Icons.settings_outlined, 'Configurações'),
                     ],
                   ),
                 ),
@@ -120,8 +123,16 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end, // Alinha os ícones à direita
                     children: [
+                      Text(
+                        _getPageTitle(_selectedIndex),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const Spacer(),
                       IconButton(icon: const Icon(Icons.schedule), onPressed: () {}),
                       const SizedBox(width: 12),
                       IconButton(icon: const Icon(Icons.notifications_none), onPressed: () {}),
@@ -151,7 +162,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         // Adiciona um fundo sutil escuro se o item estiver selecionado, senão fica transparente
-        color: isSelected ? Colors.black.withOpacity(0.05) : Colors.transparent,
+        color: isSelected ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
@@ -168,5 +179,28 @@ class _AdminShellPageState extends State<AdminShellPage> {
         onTap: () => setState(() => _selectedIndex = index),
       ),
     );
+  }
+
+  String _getPageTitle(int index) {
+    switch (index) {
+      case 0:
+        return 'Painel Geral';
+      case 1:
+        return 'Usuários';
+      case 2:
+        return 'Cursos';
+      case 3:
+        return 'Turmas';
+      case 4:
+        return 'Secretaria';
+      case 5:
+        return 'Calendário';
+      case 6:
+        return 'Auditoria';
+      case 7:
+        return 'Configurações';
+      default:
+        return '';
+    }
   }
 }
