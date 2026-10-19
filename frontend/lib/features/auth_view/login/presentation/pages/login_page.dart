@@ -17,10 +17,7 @@ class LoginPage extends StatefulWidget {
   final LoginController? controller;
 
   /// Construtor de [LoginPage].
-  const LoginPage({
-    super.key,
-    this.controller,
-  });
+  const LoginPage({super.key, this.controller});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -133,17 +130,12 @@ class _LoginPageState extends State<LoginPage> {
             ),
             content: const Row(
               children: [
-                Icon(
-                  Icons.check_circle_outline_rounded,
-                  color: Colors.white,
-                ),
+                Icon(Icons.check_circle_outline_rounded, color: Colors.white),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Login realizado com sucesso! Bem-vindo ao AVA.',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -163,17 +155,12 @@ class _LoginPageState extends State<LoginPage> {
             ),
             content: Row(
               children: [
-                const Icon(
-                  Icons.error_outline_rounded,
-                  color: Colors.white,
-                ),
+                const Icon(Icons.error_outline_rounded, color: Colors.white),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     widget.controller!.errorMessage ?? 'Falha ao autenticar.',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -203,17 +190,12 @@ class _LoginPageState extends State<LoginPage> {
           ),
           content: const Row(
             children: [
-              Icon(
-                Icons.check_circle_outline_rounded,
-                color: Colors.white,
-              ),
+              Icon(Icons.check_circle_outline_rounded, color: Colors.white),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Login realizado com sucesso! Bem-vindo ao AVA.',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -231,6 +213,9 @@ class _LoginPageState extends State<LoginPage> {
     if (_selectedProfile == UserProfile.admin) {
       // Redireciona para a página principal do shell administrativo (shell_admin)
       Navigator.of(context).pushReplacementNamed('/admin-shell');
+    } else if (_selectedProfile == UserProfile.aluno) {
+      // Redireciona para o painel principal do aluno
+      Navigator.of(context).pushReplacementNamed('/student/home');
     } else {
       // Outros perfis (aluno/docente) podem ser direcionados para suas respectivas rotas futuramente
     }
@@ -260,13 +245,9 @@ class _LoginPageState extends State<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Coluna Esquerda: Painel Hero Cósmico (50% largura)
-        const Expanded(
-          child: BrandPanel(compact: false),
-        ),
+        const Expanded(child: BrandPanel(compact: false)),
         // Coluna Direita: Área do Formulário de Login (50% largura)
-        Expanded(
-          child: _buildLoginContent(isCompact: false),
-        ),
+        Expanded(child: _buildLoginContent(isCompact: false)),
       ],
     );
   }
@@ -323,7 +304,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   children: const [
                     TextSpan(
-                      text: 'Entre com seu R.A., Matrícula ou E-mail Institucional\n',
+                      text:
+                          'Entre com seu R.A., Matrícula ou E-mail Institucional\n',
                     ),
                     TextSpan(
                       text: '(@universidade.edu.br)',
@@ -392,10 +374,7 @@ class _LoginPageState extends State<LoginPage> {
       color: Colors.white,
       child: isCompact
           ? Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 32,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: formContent,
             )
           : Center(
@@ -494,26 +473,27 @@ class _LoginPageState extends State<LoginPage> {
             }
             return null;
           },
-          decoration: _inputDecoration(
-            hintText: 'Sua senha cadastrada no portal',
-            prefixIcon: Icons.lock_outline_rounded,
-          ).copyWith(
-            suffixIcon: IconButton(
-              tooltip: _obscurePassword ? 'Mostrar senha' : 'Ocultar senha',
-              onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
-              },
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                color: AppColors.textMuted,
-                size: 17,
+          decoration:
+              _inputDecoration(
+                hintText: 'Sua senha cadastrada no portal',
+                prefixIcon: Icons.lock_outline_rounded,
+              ).copyWith(
+                suffixIcon: IconButton(
+                  tooltip: _obscurePassword ? 'Mostrar senha' : 'Ocultar senha',
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: AppColors.textMuted,
+                    size: 17,
+                  ),
+                ),
               ),
-            ),
-          ),
         ),
       ],
     );
@@ -554,11 +534,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     child: _rememberCredential
-                        ? const Icon(
-                            Icons.check,
-                            size: 11,
-                            color: Colors.white,
-                          )
+                        ? const Icon(Icons.check, size: 11, color: Colors.white)
                         : null,
                   ),
                   const SizedBox(width: 8),
@@ -602,10 +578,7 @@ class _LoginPageState extends State<LoginPage> {
       decoration: BoxDecoration(
         color: AppColors.roseBackground,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.roseBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.roseBorder, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -652,7 +625,9 @@ class _LoginPageState extends State<LoginPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.buttonPrimary,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.buttonPrimary.withValues(alpha: 0.75),
+            disabledBackgroundColor: AppColors.buttonPrimary.withValues(
+              alpha: 0.75,
+            ),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -716,17 +691,10 @@ class _LoginPageState extends State<LoginPage> {
         color: AppColors.textMuted,
         fontSize: 13,
       ),
-      prefixIcon: Icon(
-        prefixIcon,
-        color: AppColors.textMuted,
-        size: 16,
-      ),
+      prefixIcon: Icon(prefixIcon, color: AppColors.textMuted, size: 16),
       filled: true,
       fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.borderLight),
@@ -737,10 +705,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: AppColors.slate800,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.slate800, width: 1.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -748,10 +713,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: AppColors.roseIcon,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.roseIcon, width: 1.4),
       ),
     );
   }

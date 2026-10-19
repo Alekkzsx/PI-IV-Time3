@@ -15,36 +15,41 @@ import 'features/student_view/student_secretariat/presentation/pages/student_sec
 import 'features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
+import 'shared/student_layout/student_sidebar.dart';
 
 // Importação correta com base na árvore de pastas da sua imagem:
 import 'features/admin/admin_shell/presentation/pages/admin_shell_page.dart';
+import 'shared/student_layout/student_portal_shell.dart';
 
 /// Ponto de entrada da aplicação Flutter.
 ///
 /// Inicializa e injeta as dependências de Clean Architecture (DataSources, Repositories,
 /// UseCases e Controllers) e inicia a execução do [PortalAvaApp].
 void main() {
-  const initialRoute = String.fromEnvironment('INITIAL_ROUTE', defaultValue: '/');
+  const initialRoute = String.fromEnvironment(
+    'INITIAL_ROUTE',
+    defaultValue: '/',
+  );
 
   // Inicialização da injeção de dependências (Clean Architecture)
   final remoteDataSource = AuthRemoteDataSourceImpl();
   final repository = AuthRepositoryImpl(remoteDataSource);
-  
+
   final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
   final recoverController = RecoverPasswordController(
     recoverPasswordUseCase: recoverPasswordUseCase,
   );
 
   final loginUseCase = LoginUseCase(repository);
-  final loginController = LoginController(
-    loginUseCase: loginUseCase,
-  );
+  final loginController = LoginController(loginUseCase: loginUseCase);
 
-  runApp(PortalAvaApp(
-    controller: recoverController,
-    loginController: loginController,
-    initialRoute: initialRoute,
-  ));
+  runApp(
+    PortalAvaApp(
+      controller: recoverController,
+      loginController: loginController,
+      initialRoute: initialRoute,
+    ),
+  );
 }
 
 /// Widget raiz da aplicação Portal Acadêmico AVA.
@@ -75,9 +80,17 @@ class PortalAvaApp extends StatelessWidget {
       initialRoute: initialRoute,
       routes: {
         '/': (context) => LoginPage(controller: loginController),
-        '/recover-password': (context) => RecoverPasswordPage(controller: controller),
+        '/recover-password': (context) =>
+            RecoverPasswordPage(controller: controller),
         '/verify-code': (context) => const VerifyCodePage(),
         '/reset-password': (context) => const ResetPasswordPage(),
+        '/student/home': (context) => StudentPortalShell(
+          headerTitle: 'Painel Geral',
+          activeNavItem: StudentNavItem.painelGeral,
+          // Como não sei o nome do seu widget do painel geral, coloquei um texto provisório.
+          // Depois, substitua esse Center(...) pela sua página real do Painel Geral!
+          child: Center(child: Text('Tela do Painel Geral provisória')),
+        ),
         '/student/messages': (context) => const StudentMessagesPage(),
         '/student/secretaria': (context) => const StudentSecretariatPage(),
         '/video-call': (context) => const VideoCallLobbyPage(),

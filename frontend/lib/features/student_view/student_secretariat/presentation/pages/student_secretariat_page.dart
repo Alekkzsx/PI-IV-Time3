@@ -1,7 +1,6 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
-import '../../../../../shared/student_layout/student_portal_shell.dart';
 import '../../../../../shared/student_layout/student_sidebar.dart';
 import '../../domain/entities/protocol_request.dart';
 import '../controllers/student_secretariat_controller.dart';
@@ -63,16 +62,10 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Row(
           children: const [
-            Icon(
-              Icons.verified_outlined,
-              size: 20,
-              color: Color(0xFF16A34A),
-            ),
+            Icon(Icons.verified_outlined, size: 20, color: Color(0xFF16A34A)),
             SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -279,9 +272,7 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Text(
           'Parecer — ${protocol.protocolCode}',
           style: const TextStyle(
@@ -297,7 +288,7 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${protocol.subjectType} • ${protocol.componentObject}',
+                '${protocol.subjectType}\n${protocol.componentObject}',
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -334,126 +325,114 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return StudentPortalShell(
-      headerTitle: 'Secretaria Virtual',
-      activeNavItem: StudentNavItem.secretaria,
-      onNavItemSelected: widget.onNavItemSelected,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Linha de Cabeçalho: Título + Botões de Ação
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            runSpacing: 14,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 620),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Secretaria Virtual & Requerimentos',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF18181B),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Emissão de declarações com autenticação digital, solicitação de segundas chamadas e acompanhamento de protocolos.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF71717A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  OutlinedButton.icon(
-                    key: const Key('btn_emit_declaration'),
-                    onPressed: _showEnrollmentDeclarationModal,
-                    icon: const Icon(
-                      Icons.print_outlined,
-                      size: 16,
+    // Retornamos apenas a Column, eliminando o StudentPortalShell daqui!
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Linha de Cabeçalho: Título + Botões de Ação
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          runSpacing: 14,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Secretaria Virtual & Requerimentos',
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF18181B),
-                    ),
-                    label: const Text(
-                      'Emitir Declaração de Matrícula',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF18181B),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                      side: const BorderSide(
-                        color: Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  ElevatedButton.icon(
-                    key: const Key('btn_new_request'),
-                    onPressed: _showNewRequestModal,
-                    icon: const Icon(
-                      Icons.add_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: const Text(
-                      'Novo Requerimento',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF18181B),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Emissão de declarações com autenticação digital, solicitação de segundas chamadas e acompanhamento de protocolos.',
+                    style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
                   ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Cartão do Prontuário Acadêmico Regular
-          AcademicRecordCard(
-            record: _controller.recordSummary,
-          ),
-          const SizedBox(height: 28),
-          // Tabela de Protocolos de Requerimento Cadastrados
-          ProtocolRequestsTable(
-            protocols: _controller.protocols,
-            countLabel: _controller.protocolCountLabel,
-            onViewOpinion: _showOpinionModal,
-          ),
-        ],
-      ),
+            ),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                OutlinedButton.icon(
+                  key: const Key('btn_emit_declaration'),
+                  onPressed: _showEnrollmentDeclarationModal,
+                  icon: const Icon(
+                    Icons.print_outlined,
+                    size: 16,
+                    color: Color(0xFF18181B),
+                  ),
+                  label: const Text(
+                    'Emitir Declaração de Matrícula',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF18181B),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    side: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  key: const Key('btn_new_request'),
+                  onPressed: _showNewRequestModal,
+                  icon: const Icon(
+                    Icons.add_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Novo Requerimento',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF18181B),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Cartão do Prontuário Acadêmico Regular
+        AcademicRecordCard(record: _controller.recordSummary),
+        const SizedBox(height: 28),
+        // Tabela de Protocolos de Requerimento Cadastrados
+        ProtocolRequestsTable(
+          protocols: _controller.protocols,
+          countLabel: _controller.protocolCountLabel,
+          onViewOpinion: _showOpinionModal,
+        ),
+      ],
     );
   }
 }

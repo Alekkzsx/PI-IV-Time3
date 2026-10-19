@@ -1,7 +1,13 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Adaptado para navegação interna de abas (Nested Routing)
 
 import 'package:flutter/material.dart';
 import 'student_sidebar.dart';
+
+// Importações das páginas do Aluno (ajuste a quantidade de '../' se o caminho estiver diferente)
+import '../../features/student_view/student_messages/presentation/pages/student_messages_page.dart';
+import '../../features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
+import '../../features/student_view/student_deliveries/presentation/pages/student_deliveries_page.dart';
 
 /// Estrutura base compartilhada (Shell) da Visão do Aluno do Portal AVA AGMRM.
 ///
@@ -11,10 +17,10 @@ class StudentPortalShell extends StatefulWidget {
   /// Título exibido na barra superior do portal (ex: 'Mensagens' ou 'Secretaria Virtual').
   final String headerTitle;
 
-  /// Item atualmente selecionado na barra lateral.
+  /// Item atualmente selecionado na barra lateral inicialmente.
   final StudentNavItem activeNavItem;
 
-  /// Conteúdo principal da tela.
+  /// Conteúdo principal da tela do Painel Geral.
   final Widget child;
 
   /// Callback opcional ao selecionar um item da barra lateral.
@@ -35,6 +41,76 @@ class StudentPortalShell extends StatefulWidget {
 
 class _StudentPortalShellState extends State<StudentPortalShell> {
   bool _isSidebarCollapsed = false;
+  late StudentNavItem _currentNavItem;
+  late String _currentHeaderTitle;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentNavItem = widget.activeNavItem;
+    _currentHeaderTitle = widget.headerTitle;
+  }
+
+  // --- MÉTODOS DE CONTROLE DE ROTEAMENTO INTERNO ---
+
+  /// Retorna o widget da página correta com base no item selecionado no menu lateral.
+  Widget _buildSelectedPage() {
+    switch (_currentNavItem) {
+      case StudentNavItem.entregas:
+        return const StudentDeliveriesPage();
+      case StudentNavItem.mensagens:
+        return const StudentMessagesPage();
+      case StudentNavItem.secretaria:
+        return const StudentSecretariatPage();
+      case StudentNavItem.painelGeral:
+        return widget
+            .child; // Exibe o Painel Geral principal passado no main.dart
+      default:
+        return widget.child; // Fallback
+    }
+  }
+
+  /// Atualiza o texto do cabeçalho de acordo com a tela selecionada.
+  void _updateHeaderTitle(StudentNavItem item) {
+    switch (item) {
+      case StudentNavItem.entregas:
+        _currentHeaderTitle = 'Entregas';
+        break;
+      case StudentNavItem.mensagens:
+        _currentHeaderTitle = 'Mensagens';
+        break;
+      case StudentNavItem.secretaria:
+        _currentHeaderTitle = 'Secretaria';
+        break;
+      case StudentNavItem.painelGeral:
+        _currentHeaderTitle = 'Painel Geral';
+        break;
+      default:
+        _currentHeaderTitle = widget.headerTitle;
+    }
+  }
+
+  /// Executado sempre que o usuário clica em algum item do menu lateral.
+  void _onMenuItemSelected(StudentNavItem item) {
+    // Se a opção for sair, redireciona para o login e mata o shell
+    if (item == StudentNavItem.sair) {
+      Navigator.of(context).pushReplacementNamed('/');
+      return;
+    }
+
+    // Troca a página e o título internamente, redesenhando apenas o miolo
+    setState(() {
+      _currentNavItem = item;
+      _updateHeaderTitle(item);
+    });
+
+    // Chama o callback externo caso alguém precise escutar a mudança (opcional)
+    if (widget.onNavItemSelected != null) {
+      widget.onNavItemSelected!(item);
+    }
+  }
+
+  // ---------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +125,11 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
               width: 160,
               backgroundColor: Colors.white,
               child: StudentSidebar(
-                activeItem: widget.activeNavItem,
-                onItemSelected: widget.onNavItemSelected,
+                activeItem: _currentNavItem, // Usando o estado dinâmico interno
+                onItemSelected: (item) {
+                  _onMenuItemSelected(item);
+                  Navigator.of(context).pop(); // Fecha o menu lateral no mobile
+                },
               ),
             ),
       body: Row(
@@ -58,8 +137,9 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
         children: [
           if (isDesktop)
             StudentSidebar(
-              activeItem: widget.activeNavItem,
-              onItemSelected: widget.onNavItemSelected,
+              activeItem: _currentNavItem, // Usando o estado dinâmico interno
+              onItemSelected:
+                  _onMenuItemSelected, // Intercepta o clique para não recarregar a tela inteira
               isCollapsed: _isSidebarCollapsed,
               onToggleCollapse: () {
                 setState(() {
@@ -93,7 +173,8 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                                       horizontal: isDesktop ? 48 : 20,
                                       vertical: isDesktop ? 36 : 24,
                                     ),
-                                    child: widget.child,
+                                    // AQUI A PÁGINA É RENDERIZADA DINAMICAMENTE
+                                    child: _buildSelectedPage(),
                                   ),
                                 ),
                               ),
@@ -119,12 +200,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 16),
       decoration: const BoxDecoration(
         color: Color(0xFFF3F1ED),
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -145,7 +221,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                 const SizedBox(width: 8),
               ],
               Text(
-                widget.headerTitle,
+                _currentHeaderTitle, // Usando o título dinâmico
                 style: const TextStyle(
                   fontSize: 16.5,
                   fontWeight: FontWeight.w700,
@@ -206,12 +282,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
       ),
       decoration: const BoxDecoration(
         color: Color(0xFFFFFFFF),
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFFE5E7EB),
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
       ),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
@@ -232,17 +303,11 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
               ),
               Text(
                 '|',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFFD4D4D8),
-                ),
+                style: TextStyle(fontSize: 11, color: Color(0xFFD4D4D8)),
               ),
               Text(
                 'Portal AVA AGMRM • Ambiente Virtual de Aprendizagem Universitário',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF71717A),
-                ),
+                style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
               ),
             ],
           ),
