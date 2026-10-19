@@ -265,9 +265,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           children: const [
             Icon(Icons.text_fields_rounded, size: 16, color: Color(0xFF475569)),
             SizedBox(width: 6),
-            Text(
-              'Escala de Tipografia',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+            Expanded(
+              child: Text(
+                'Escala de Tipografia',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -298,9 +301,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           children: const [
             Icon(Icons.table_rows_outlined, size: 16, color: Color(0xFF475569)),
             SizedBox(width: 6),
-            Text(
-              'Densidade das Tabelas & Listas',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+            Expanded(
+              child: Text(
+                'Densidade das Tabelas & Listas',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
