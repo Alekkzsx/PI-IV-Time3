@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/repositories/video_call_repository.dart';
@@ -8,8 +8,8 @@ import '../widgets/audio_level_meter.dart';
 import '../widgets/real_video_renderer.dart';
 import 'video_call_room_page.dart';
 
-/// Página de pré-chamada (Lobby) para validação de identidade, preview real de áudio/vídeo
-/// e entrada na sala (Estética Preto, Cinza e Branco).
+/// Pre-call lobby page for identity validation, real audio/video preview,
+/// and room entry (Black, Gray, and White design system).
 class VideoCallLobbyPage extends StatefulWidget {
   final VideoCallLobbyController? controller;
   final VideoCallRepository? repository;
