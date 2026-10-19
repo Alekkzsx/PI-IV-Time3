@@ -157,7 +157,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
           // 3. Grid de 3 Cards de Métricas
           LayoutBuilder(
             builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 750;
+              final isNarrow = constraints.maxWidth < 850;
               return isNarrow
                   ? Column(
                       children: [
@@ -425,16 +425,19 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
             children: [
               Icon(icon, color: iconColor, size: 16),
               const SizedBox(width: 6),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                  color: Color(0xFF475569),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: Color(0xFF475569),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
