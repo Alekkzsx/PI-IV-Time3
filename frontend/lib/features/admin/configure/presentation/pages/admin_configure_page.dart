@@ -135,27 +135,35 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
             const SizedBox(height: 48),
 
             // 3. Rodapé Institucional
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 const Text(
                   '© 2026 AGMRM  |  Portal AVA AGMRM • Ambiente Virtual de Aprendizagem Universitário',
                   style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                 ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Ajuda',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Privacidade',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Ajuda',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Privacidade',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
