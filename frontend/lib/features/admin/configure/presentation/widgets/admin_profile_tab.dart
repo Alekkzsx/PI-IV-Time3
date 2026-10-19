@@ -380,13 +380,16 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                 Icon(icon, size: 12, color: const Color(0xFF64748B)),
                 const SizedBox(width: 5),
               ],
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: Color(0xFF64748B),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: Color(0xFF64748B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
