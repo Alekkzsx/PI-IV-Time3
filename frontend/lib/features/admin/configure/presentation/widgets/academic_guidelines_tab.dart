@@ -14,19 +14,19 @@ class AcademicGuidelinesTab extends StatefulWidget {
 }
 
 class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
-  final TextEditing4ApprovalController = TextEditingController(text: '6');
-  final TextEditingAttendanceController = TextEditingController(text: '75');
-  final TextEditingSpecialExamController = TextEditingController(text: '4');
-  final TextEditingFormulaController = TextEditingController(
+  final _approvalController = TextEditingController(text: '6');
+  final _attendanceController = TextEditingController(text: '75');
+  final _specialExamController = TextEditingController(text: '4');
+  final _formulaController = TextEditingController(
     text: 'Média Semestral (MS) = (N1 x 0.4) + (N2 x 0.6)',
   );
 
   @override
   void dispose() {
-    TextEditing4ApprovalController.dispose();
-    TextEditingAttendanceController.dispose();
-    TextEditingSpecialExamController.dispose();
-    TextEditingFormulaController.dispose();
+    _approvalController.dispose();
+    _attendanceController.dispose();
+    _specialExamController.dispose();
+    _formulaController.dispose();
     super.dispose();
   }
 
