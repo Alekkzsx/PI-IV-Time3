@@ -130,13 +130,15 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
                 icon: Icons.near_me_outlined,
                 title: 'Prazos de Tarefas & Trabalhos',
                 description: 'Lembretes automáticos antes do encerramento do prazo de submissão.',
-                customLeadTime: Row(
+                customLeadTime: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     const Text(
                       'Lembrar-me com antecedência de:',
                       style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(

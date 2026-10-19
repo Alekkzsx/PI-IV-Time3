@@ -271,7 +271,10 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         Text(
                           title,
@@ -281,7 +284,6 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                             color: Color(0xFF0F172A),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
