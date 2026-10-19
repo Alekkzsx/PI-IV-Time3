@@ -287,3 +287,4 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
     );
   }
 }
+
