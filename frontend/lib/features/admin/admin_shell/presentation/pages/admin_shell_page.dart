@@ -12,7 +12,7 @@ import '../../../configure/presentation/pages/admin_configure_page.dart';
 
 // Declaração do painel principal (Shell/Layout base) como um StatefulWidget, pois ele controla o estado da página atualmente selecionada
 class AdminShellPage extends StatefulWidget {
-  const AdminShellPage({Key? key}) : super(key: key);
+  const AdminShellPage({super.key});
 
   @override
   State<AdminShellPage> createState() => _AdminShellPageState();
@@ -162,7 +162,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         // Adiciona um fundo sutil escuro se o item estiver selecionado, senão fica transparente
-        color: isSelected ? Colors.black.withOpacity(0.05) : Colors.transparent,
+        color: isSelected ? Colors.black.withValues(alpha: 0.05) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
