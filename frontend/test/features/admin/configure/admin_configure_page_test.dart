@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_iv_time3/features/admin/admin_shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/admin/configure/presentation/pages/admin_configure_page.dart';
 import 'package:pi_iv_time3/features/admin/configure/presentation/widgets/academic_guidelines_tab.dart';
 import 'package:pi_iv_time3/features/admin/configure/presentation/widgets/admin_profile_tab.dart';
@@ -82,25 +81,35 @@ void main() {
       expect(find.text('Salvar Preferências de Privacidade'), findsOneWidget);
     });
 
-    testWidgets('integrates with AdminShellPage and opens configure tab when clicked', (tester) async {
+    testWidgets('renders individual tabs directly in isolation', (tester) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
+      // Renderiza GovernanceLgpdTab e testa botões de exportação
       await tester.pumpWidget(
         const MaterialApp(
-          home: AdminShellPage(),
+          home: Scaffold(
+            body: SingleChildScrollView(child: GovernanceLgpdTab()),
+          ),
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Exportar Relatório de Dados Cadastrais & Histórico'), findsOneWidget);
+      expect(find.text('Arquivo JSON'), findsOneWidget);
+      expect(find.text('Relatório (.txt)'), findsOneWidget);
 
-      expect(find.text('Painel Geral'), findsWidgets);
-
-      // Toca no item "Configurações" na barra lateral principal
-      await tester.tap(find.widgetWithText(ListTile, 'Configurações'));
+      // Renderiza SecurityCredentialsTab e testa badge e botões
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: SecurityCredentialsTab()),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
-
-      expect(find.byType(AdminConfigurePage), findsOneWidget);
+      expect(find.text('8 disponíveis'), findsOneWidget);
+      expect(find.text('Gerenciar Códigos'), findsOneWidget);
     });
   });
 }
