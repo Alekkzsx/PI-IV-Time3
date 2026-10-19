@@ -171,7 +171,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                           badgeTextColor: const Color(0xFF2563EB),
                           subtitle:
                               'Nota de Corte Mínima (0 a 10)\nMédia semestral exigida para aprovação sem necessidade de exame.',
-                          controller: TextEditing4ApprovalController,
+                          controller: _approvalController,
                           footerText: 'Padrão regimental vigente: 6.0',
                         ),
                         const SizedBox(height: 16),
@@ -185,7 +185,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                           badgeTextColor: const Color(0xFF059669),
                           subtitle:
                               'Presença Mínima Obrigatória (%)\nAbaixo deste índice o aluno é reprovado por infrequência (RF).',
-                          controller: TextEditingAttendanceController,
+                          controller: _attendanceController,
                           suffixText: '%',
                           footerText: 'Padrão regimental institucional: 75%',
                         ),
@@ -200,7 +200,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                           badgeTextColor: const Color(0xFFD97706),
                           subtitle:
                               'Corte para Prova Final (0 a 10)\nNota mínima para discentes que não atingiram a média direta.',
-                          controller: TextEditingSpecialExamController,
+                          controller: _specialExamController,
                           footerText: 'Abaixo de 4.0: Reprovado direto',
                         ),
                       ],
@@ -219,7 +219,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                             badgeTextColor: const Color(0xFF2563EB),
                             subtitle:
                                 'Nota de Corte Mínima (0 a 10)\nMédia semestral exigida para aprovação sem necessidade de exame.',
-                            controller: TextEditing4ApprovalController,
+                            controller: _approvalController,
                             footerText: 'Padrão regimental vigente: 6.0',
                           ),
                         ),
@@ -235,7 +235,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                             badgeTextColor: const Color(0xFF059669),
                             subtitle:
                                 'Presença Mínima Obrigatória (%)\nAbaixo deste índice o aluno é reprovado por infrequência (RF).',
-                            controller: TextEditingAttendanceController,
+                            controller: _attendanceController,
                             suffixText: '%',
                             footerText: 'Padrão regimental institucional: 75%',
                           ),
@@ -252,7 +252,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                             badgeTextColor: const Color(0xFFD97706),
                             subtitle:
                                 'Corte para Prova Final (0 a 10)\nNota mínima para discentes que não atingiram a média direta.',
-                            controller: TextEditingSpecialExamController,
+                            controller: _specialExamController,
                             footerText: 'Abaixo de 4.0: Reprovado direto',
                           ),
                         ),
@@ -296,7 +296,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: TextField(
-                    controller: TextEditingFormulaController,
+                    controller: _formulaController,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
