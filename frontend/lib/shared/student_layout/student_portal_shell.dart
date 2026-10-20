@@ -10,6 +10,7 @@ import '../../features/student_view/student_secretariat/presentation/pages/stude
 import '../../features/student_view/student_deliveries/presentation/pages/student_deliveries_page.dart';
 import '../../features/student_view/student_dashboard/presentation/pages/student_dashboard_page.dart';
 import '../../features/student_view/student_disciplines/presentation/pages/student_disciplines_page.dart';
+import '../../features/student_view/student_calendar/presentation/pages/student_calendar_page.dart';
 
 /// Estrutura base compartilhada (Shell) da Visão do Aluno do Portal AVA AGMRM.
 ///
@@ -68,6 +69,8 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
         return const StudentDashboardPage();
       case StudentNavItem.disciplinas:
         return const StudentDisciplinesPage();
+      case StudentNavItem.calendario:
+        return const StudentCalendarPage();
       default:
         return widget.child; // Fallback
     }
@@ -89,6 +92,8 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
         _currentHeaderTitle = 'Painel Geral';
       case StudentNavItem.disciplinas:
         _currentHeaderTitle = 'Disciplinas';
+      case StudentNavItem.calendario:
+        _currentHeaderTitle = 'Calendário';
         break;
       default:
         _currentHeaderTitle = widget.headerTitle;
