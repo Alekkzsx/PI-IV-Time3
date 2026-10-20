@@ -7,6 +7,7 @@ import '../widgets/docente_header.dart';
 import '../widgets/docente_sidebar.dart';
 import 'docente_assignments_tab.dart';
 import 'docente_calendar_tab.dart';
+import 'docente_course_hub_page.dart';
 import 'docente_courses_tab.dart';
 import 'docente_dashboard_tab.dart';
 import 'docente_diary_tab.dart';
@@ -47,12 +48,39 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
     super.dispose();
   }
 
+  void _openCourseHub(String courseId) {
+    _controller.selectCourse(courseId);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DocenteCourseHubPage(
+          course: _controller.selectedCourse,
+          controller: _controller,
+        ),
+      ),
+    );
+  }
+
+  void _openVideoCall() {
+    Navigator.of(context).pushNamed('/video-call');
+  }
+
+  void _logout() {
+    Navigator.of(context).pushReplacementNamed('/');
+  }
+
   Widget _buildCurrentTab(DocenteNavTab tab) {
     switch (tab) {
       case DocenteNavTab.painel:
-        return DocenteDashboardTab(controller: _controller);
+        return DocenteDashboardTab(
+          controller: _controller,
+          onOpenVideoCall: _openVideoCall,
+          onOpenCourseHub: _openCourseHub,
+        );
       case DocenteNavTab.turmas:
-        return DocenteCoursesTab(controller: _controller);
+        return DocenteCoursesTab(
+          controller: _controller,
+          onOpenCourseHub: _openCourseHub,
+        );
       case DocenteNavTab.diario:
         return DocenteDiaryTab(controller: _controller);
       case DocenteNavTab.atividades:
@@ -85,19 +113,25 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
                   : Drawer(
                       child: DocenteSidebar(
                         controller: _controller,
-                        onTabSelected: () => Navigator.of(context).pop(),
+                        onLogout: () {
+                          Navigator.of(context).pop();
+                          _logout();
+                        },
                       ),
                     ),
               body: Row(
                 children: [
                   if (isDesktop)
-                    DocenteSidebar(controller: _controller),
+                    DocenteSidebar(
+                      controller: _controller,
+                      onLogout: _logout,
+                    ),
                   Expanded(
                     child: Column(
                       children: [
                         DocenteHeader(
                           controller: _controller,
-                          onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+                          onOpenDrawer: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
                         ),
                         Expanded(
                           child: _buildCurrentTab(_controller.activeTab),
