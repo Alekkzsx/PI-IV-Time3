@@ -1,7 +1,37 @@
-import 'package:flutter/material.dart';
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-class StudentCalendarPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import '../../data/student_mock_data.dart';
+import '../controllers/student_portal_controller.dart';
+
+/// Tela de Calendário Acadêmico da Visão do Aluno.
+/// Suporta alternância dinâmica entre visualização em Mês e visualização em Agenda,
+/// filtros por categoria e por disciplina, e modal de criação de novo evento.
+class StudentCalendarPage extends StatefulWidget {
   const StudentCalendarPage({super.key});
+
+  @override
+  State<StudentCalendarPage> createState() => _StudentCalendarPageState();
+}
+
+class _StudentCalendarPageState extends State<StudentCalendarPage> {
+  final StudentPortalController _controller = StudentPortalController.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,9 +40,9 @@ class StudentCalendarPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Área Esquerda: Calendário Principal
-          Expanded(flex: 3, child: _buildMainCalendar()),
+          Expanded(flex: 3, child: _buildMainCalendarArea()),
           const SizedBox(width: 24),
-          // Área Direita: Sidebar (Mini calendário e Filtros)
+          // Área Direita: Mini Calendário e Filtros
           Expanded(
             flex: 1,
             child: Column(
@@ -29,9 +59,9 @@ class StudentCalendarPage extends StatelessWidget {
   }
 
   // ==========================================
-  // CALENDÁRIO PRINCIPAL
+  // ÁREA PRINCIPAL DO CALENDÁRIO
   // ==========================================
-  Widget _buildMainCalendar() {
+  Widget _buildMainCalendarArea() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -40,19 +70,23 @@ class StudentCalendarPage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildMainCalendarHeader(),
+          _buildCalendarHeader(),
           const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildDaysOfWeek(),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildCalendarGrid(),
+          if (_controller.calendarViewMode == 'Mês') ...[
+            _buildDaysOfWeek(),
+            const Divider(height: 1, color: Color(0xFFE5E7EB)),
+            _buildMonthGrid(),
+          ] else ...[
+            _buildAgendaView(),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildMainCalendarHeader() {
+  Widget _buildCalendarHeader() {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -61,97 +95,43 @@ class StudentCalendarPage extends StatelessWidget {
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
                   side: const BorderSide(color: Color(0xFFE5E7EB)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
                 ),
-                child: const Text(
-                  'Hoje',
-                  style: TextStyle(color: Color(0xFF18181B)),
-                ),
+                child: const Text('Hoje', style: TextStyle(color: Color(0xFF18181B))),
               ),
-              const SizedBox(width: 16),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () {},
-                      child: const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(Icons.chevron_left, size: 20),
-                      ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 36,
-                      color: const Color(0xFFE5E7EB),
-                    ),
-                    InkWell(
-                      onTap: () {},
-                      child: const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(Icons.chevron_right, size: 20),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              const Text(
-                'SETEMBRO 2026',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
+              const SizedBox(width: 8),
+              IconButton(icon: const Icon(Icons.chevron_left), onPressed: () {}),
+              IconButton(icon: const Icon(Icons.chevron_right), onPressed: () {}),
+              const SizedBox(width: 12),
+              const Text('Outubro de 2026', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF18181B))),
             ],
           ),
           Row(
             children: [
+              // Alternador Mês / Agenda
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  borderRadius: BorderRadius.circular(4),
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    _buildToggleButton('Semana', false),
-                    Container(
-                      width: 1,
-                      height: 36,
-                      color: const Color(0xFFE5E7EB),
-                    ),
-                    _buildToggleButton('Mês', true),
-                    Container(
-                      width: 1,
-                      height: 36,
-                      color: const Color(0xFFE5E7EB),
-                    ),
-                    _buildToggleButton('Agenda', false),
+                    _buildModeButton('Mês'),
+                    _buildModeButton('Agenda'),
                   ],
                 ),
               ),
               const SizedBox(width: 16),
-              OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.all(12),
-                  side: const BorderSide(color: Color(0xFFE5E7EB)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.add,
-                  size: 18,
-                  color: Color(0xFF18181B),
+              ElevatedButton.icon(
+                onPressed: () => _showCreateEventModal(context),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Novo Evento'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],
@@ -161,18 +141,24 @@ class StudentCalendarPage extends StatelessWidget {
     );
   }
 
-  Widget _buildToggleButton(String text, bool isActive) {
+  Widget _buildModeButton(String mode) {
+    final isSelected = _controller.calendarViewMode == mode;
     return InkWell(
-      onTap: () {},
+      onTap: () => _controller.setCalendarViewMode(mode),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: isActive ? const Color(0xFF3F3F46) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected ? [const BoxShadow(color: Colors.black12, blurRadius: 2)] : null,
+        ),
         child: Text(
-          text,
+          mode,
           style: TextStyle(
             fontSize: 13,
-            color: isActive ? Colors.white : const Color(0xFF52525B),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
           ),
         ),
       ),
@@ -181,322 +167,189 @@ class StudentCalendarPage extends StatelessWidget {
 
   Widget _buildDaysOfWeek() {
     final days = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-    return Row(
-      children: days
-          .map(
-            (day) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  day,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF52525B),
-                  ),
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  Widget _buildCalendarGrid() {
-    // Montando a grade estática conforme o protótipo
-    return Column(
-      children: [
-        _buildCalendarRow([
-          _buildCell('30', isOtherMonth: true),
-          _buildCell('31', isOtherMonth: true),
-          _buildCell('1'),
-          _buildCell('2'),
-          _buildCell('3'),
-          _buildCell('4'),
-          _buildCell('5'),
-        ]),
-        _buildCalendarRow([
-          _buildCell('6'),
-          _buildCell('7'),
-          _buildCell('8'),
-          _buildCell('9'),
-          _buildCell('10'),
-          _buildCell('11'),
-          _buildCell('12'),
-        ]),
-        _buildCalendarRow([
-          _buildCell('13'),
-          _buildCell('14'),
-          _buildCell('15'),
-          _buildCell('16'),
-          _buildCell('17'),
-          _buildCell('18'),
-          _buildCell('19'),
-        ]),
-        _buildCalendarRow([
-          _buildCell(
-            '20',
-            isSelected: true,
-            events: [
-              _buildEventPill('23:59 Entreg...', const Color(0xFF10B981)),
-              _buildEventPill('19:00 Aula A...', const Color(0xFF10B981)),
-            ],
-          ),
-          _buildCell(
-            '21',
-            events: [
-              _buildEventPill('18:00 Fórum ...', const Color(0xFFF59E0B)),
-            ],
-          ),
-          _buildCell(
-            '22',
-            events: [
-              _buildEventPill('19:00 Aula R...', const Color(0xFFEF4444)),
-            ],
-          ),
-          _buildCell('23'),
-          _buildCell(
-            '24',
-            events: [
-              _buildEventPill('23:59 Ativid...', const Color(0xFF8B5CF6)),
-            ],
-          ),
-          _buildCell(
-            '25',
-            events: [
-              _buildEventPill('20:40 Labor...', const Color(0xFF3B82F6)),
-            ],
-          ),
-          _buildCell('26'),
-        ]),
-        _buildCalendarRow([
-          _buildCell('27'),
-          _buildCell('28'),
-          _buildCell(
-            '29',
-            events: [
-              _buildEventPill('20:40 Avalia...', const Color(0xFFEF4444)),
-            ],
-          ),
-          _buildCell('30'),
-          _buildCell('1', isOtherMonth: true),
-          _buildCell('2', isOtherMonth: true),
-          _buildCell('3', isOtherMonth: true),
-        ], isLastRow: true),
-      ],
-    );
-  }
-
-  Widget _buildCalendarRow(List<Widget> cells, {bool isLastRow = false}) {
-    return IntrinsicHeight(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: cells.asMap().entries.map((entry) {
-          int idx = entry.key;
-          Widget cell = entry.value;
+        children: days.map((d) {
           return Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(
-                    color: const Color(0xFFE5E7EB),
-                    width: idx < 6 ? 1 : 0,
-                  ),
-                  bottom: BorderSide(
-                    color: const Color(0xFFE5E7EB),
-                    width: isLastRow ? 0 : 1,
-                  ),
-                ),
-              ),
-              child: cell,
-            ),
+            child: Text(d, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
           );
         }).toList(),
       ),
     );
   }
 
-  Widget _buildCell(
-    String day, {
-    bool isOtherMonth = false,
-    bool isSelected = false,
-    List<Widget>? events,
-  }) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 120),
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              day,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? Colors.white
-                    : (isOtherMonth
-                          ? const Color(0xFFA1A1AA)
-                          : const Color(0xFF18181B)),
+  // Visualização Mês (Print 25)
+  Widget _buildMonthGrid() {
+    return SizedBox(
+      height: 480,
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 35,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 7,
+          childAspectRatio: 1.4,
+        ),
+        itemBuilder: (context, index) {
+          final dayNumber = index - 3;
+          final isCurrentMonth = dayNumber >= 1 && dayNumber <= 31;
+          final isToday = dayNumber == 20;
+
+          // Eventos para o dia 20
+          List<Widget> dayEvents = [];
+          if (dayNumber == 20 && isCurrentMonth) {
+            dayEvents.add(
+              Container(
+                margin: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(4)),
+                child: const Text('19:00 Aula APS-II', style: TextStyle(fontSize: 9, color: Color(0xFF16A34A), fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
               ),
+            );
+            dayEvents.add(
+              Container(
+                margin: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(4)),
+                child: const Text('23:59 Entrega Adapter', style: TextStyle(fontSize: 9, color: Color(0xFFDC2626), fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              ),
+            );
+          } else if (dayNumber == 22 && isCurrentMonth) {
+            dayEvents.add(
+              Container(
+                margin: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(4)),
+                child: const Text('20:50 Prova BD-II', style: TextStyle(fontSize: 9, color: Color(0xFFD97706), fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              ),
+            );
+          }
+
+          return Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+              color: isToday ? const Color(0xFFF8FAFC) : Colors.white,
             ),
-          ),
-          const SizedBox(height: 4),
-          if (events != null) ...events,
+            padding: const EdgeInsets.all(6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isCurrentMonth)
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: isToday ? const BoxDecoration(color: Color(0xFF0F172A), shape: BoxShape.circle) : null,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$dayNumber',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                        color: isToday ? Colors.white : const Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                ...dayEvents,
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Visualização Agenda (Print 26)
+  Widget _buildAgendaView() {
+    final filteredEvents = _controller.events.where((e) {
+      return _controller.activeEventTypes.contains(e.type) && _controller.activeDisciplineFilters.contains(e.discipline);
+    }).toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Compromissos e Prazos do Semestre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          const SizedBox(height: 16),
+          if (filteredEvents.isEmpty)
+            const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Nenhum evento correspondente aos filtros selecionados.')))
+          else
+            ...filteredEvents.map((e) {
+              Color tagColor = const Color(0xFF0F172A);
+              if (e.type == 'Entrega') tagColor = const Color(0xFFDC2626);
+              if (e.type == 'Aula') tagColor = const Color(0xFF16A34A);
+              if (e.type == 'Avaliação') tagColor = const Color(0xFFD97706);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(width: 4, height: 44, decoration: BoxDecoration(color: tagColor, borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            const SizedBox(height: 4),
+                            Text('${e.discipline} • ${e.date} • ${e.time} • ${e.location}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Chip(
+                      label: Text(e.type, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tagColor)),
+                      backgroundColor: tagColor.withOpacity(0.1),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
         ],
       ),
     );
   }
 
-  Widget _buildEventPill(String title, Color color) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F5),
-        border: Border(left: BorderSide(color: color, width: 3)),
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 10, color: Color(0xFF52525B)),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
   // ==========================================
-  // SIDEBAR (DIREITA)
+  // SIDEBAR: MINI CALENDÁRIO & FILTROS
   // ==========================================
   Widget _buildMiniCalendar() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Icon(Icons.chevron_left, size: 16),
-              Text(
-                'SETEMBRO 2026',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              Icon(Icons.chevron_right, size: 16),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildMiniCalendarGrid(),
+        children: const [
+          Text('Outubro 2026', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          SizedBox(height: 8),
+          Text('Segunda-feira, 20 de Outubro', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMiniCalendarGrid() {
-    final days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: days
-              .map(
-                (d) => SizedBox(
-                  width: 24,
-                  child: Text(
-                    d,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF71717A),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 12),
-        _buildMiniRow(
-          ['30', '31', '1', '2', '3', '4', '5'],
-          isFaded: [true, true, false, false, false, false, false],
-        ),
-        _buildMiniRow(['6', '7', '8', '9', '10', '11', '12']),
-        _buildMiniRow(['13', '14', '15', '16', '17', '18', '19']),
-        _buildMiniRow([
-          '20',
-          '21',
-          '22',
-          '23',
-          '24',
-          '25',
-          '26',
-        ], selectedIdx: 0),
-        _buildMiniRow(
-          ['27', '28', '29', '30', '1', '2', '3'],
-          isFaded: [false, false, false, false, true, true, true],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMiniRow(
-    List<String> dates, {
-    List<bool>? isFaded,
-    int? selectedIdx,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: dates.asMap().entries.map((entry) {
-          int idx = entry.key;
-          String date = entry.value;
-          bool faded = isFaded != null ? isFaded[idx] : false;
-          bool selected = selectedIdx == idx;
-
-          return Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: selected ? const Color(0xFF2563EB) : Colors.transparent,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              date,
-              style: TextStyle(
-                fontSize: 11,
-                color: selected
-                    ? Colors.white
-                    : (faded
-                          ? const Color(0xFFD4D4D8)
-                          : const Color(0xFF18181B)),
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          );
-        }).toList(),
       ),
     );
   }
 
   Widget _buildFiltersCard() {
+    final eventCategories = [
+      {'tipo': 'Aula', 'cor': const Color(0xFF16A34A)},
+      {'tipo': 'Entrega', 'cor': const Color(0xFFDC2626)},
+      {'tipo': 'Avaliação', 'cor': const Color(0xFFD97706)},
+      {'tipo': 'Fórum', 'cor': const Color(0xFF2563EB)},
+    ];
+
+    final disciplines = ['APS-II', 'BD-II', 'FIS', 'FSO'];
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -505,85 +358,127 @@ class StudentCalendarPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
-              Icon(Icons.keyboard_arrow_down, size: 16),
-              SizedBox(width: 8),
-              Text(
-                'CALENDÁRIOS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
+          const Text('Filtrar por Categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
+          ...eventCategories.map((cat) {
+            final tipo = cat['tipo'] as String;
+            final cor = cat['cor'] as Color;
+            final isChecked = _controller.activeEventTypes.contains(tipo);
+            return InkWell(
+              onTap: () => _controller.toggleEventTypeFilter(tipo),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Container(width: 10, height: 10, decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(tipo, style: const TextStyle(fontSize: 13))),
+                    Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: const Color(0xFF0F172A)),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          }).toList(),
           const SizedBox(height: 16),
-          _buildFilterCheckbox('ALEX GABRIEL SOARES SOUSA'),
-          _buildFilterCheckbox(
-            '218131 - ANÁLISE E PROJETO DE SISTEMAS II (MAT) 0103-04-26-2s',
-          ),
-          _buildFilterCheckbox(
-            '218131 - ESTUDOS DE BANCO DE DADOS II (MAT) 0103-04-26-2s',
-          ),
-          _buildFilterCheckbox(
-            '218131 - FILOSOFIA, INFORMAÇÃO E SOCIEDADE (MAT) 0103-04-26-2s',
-          ),
-          _buildFilterCheckbox('218131 - FUNDAMENTOS DE SISTEMAS OPERACIONAIS'),
-          const SizedBox(height: 24),
-          Row(
-            children: const [
-              Icon(Icons.keyboard_arrow_right, size: 16),
-              SizedBox(width: 8),
-              Text(
-                'SEM DATA',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          const Text('Filtrar por Disciplina', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
+          ...disciplines.map((d) {
+            final isChecked = _controller.activeDisciplineFilters.contains(d);
+            return InkWell(
+              onTap: () => _controller.toggleDisciplineFilter(d),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(d, style: const TextStyle(fontSize: 13))),
+                    Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: const Color(0xFF0F172A)),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          const SizedBox(height: 16),
-          Row(
-            children: const [
-              Icon(
-                Icons.calendar_month_outlined,
-                size: 16,
-                color: Color(0xFF2563EB),
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Feed do calendário',
-                style: TextStyle(fontSize: 12, color: Color(0xFF2563EB)),
-              ),
-            ],
-          ),
+            );
+          }).toList(),
         ],
       ),
     );
   }
 
-  Widget _buildFilterCheckbox(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.check_box, size: 18, color: Color(0xFF2563EB)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF52525B)),
+  // ==========================================
+  // MODAL CRIAR/EDITAR EVENTO (Print 27)
+  // ==========================================
+  void _showCreateEventModal(BuildContext context) {
+    final titleController = TextEditingController();
+    final dateController = TextEditingController(text: '2026-10-25');
+    final timeController = TextEditingController(text: '19:00 - 20:40');
+    final locController = TextEditingController(text: 'Sala Virtual AVA / Lab 04');
+    String selectedType = 'Aula';
+    String selectedDiscipline = 'APS-II';
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text('Criar Novo Evento Acadêmico', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          content: SizedBox(
+            width: 480,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Título do Evento', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: TextField(controller: dateController, decoration: const InputDecoration(labelText: 'Data (AAAA-MM-DD)', border: OutlineInputBorder()))),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: timeController, decoration: const InputDecoration(labelText: 'Horário', border: OutlineInputBorder()))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    decoration: const InputDecoration(labelText: 'Tipo de Evento', border: OutlineInputBorder()),
+                    items: ['Aula', 'Entrega', 'Avaliação', 'Fórum'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    onChanged: (val) => setModalState(() => selectedType = val!),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedDiscipline,
+                    decoration: const InputDecoration(labelText: 'Disciplina Vinculada', border: OutlineInputBorder()),
+                    items: ['APS-II', 'BD-II', 'FIS', 'FSO'].map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                    onChanged: (val) => setModalState(() => selectedDiscipline = val!),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(controller: locController, decoration: const InputDecoration(labelText: 'Local ou Link da Sala Virtual', border: OutlineInputBorder())),
+                ],
+              ),
             ),
           ),
-          const Icon(Icons.more_vert, size: 14, color: Color(0xFFA1A1AA)),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  _controller.addCalendarEvent(
+                    title: titleController.text,
+                    date: dateController.text,
+                    time: timeController.text,
+                    type: selectedType,
+                    discipline: selectedDiscipline,
+                    location: locController.text,
+                  );
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Evento acadêmico agendado com sucesso!')));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+              child: const Text('Salvar Evento'),
+            ),
+          ],
+        ),
       ),
     );
   }
