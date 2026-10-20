@@ -33,7 +33,7 @@ class _DocenteSettingsTabState extends State<DocenteSettingsTab> {
   @override
   void initState() {
     super.initState();
-    _socialNameController = TextEditingController(text: widget.controller.profile.socialName ?? '');
+    _socialNameController = TextEditingController(text: widget.controller.profile.socialName);
     _personalEmailController = TextEditingController(text: widget.controller.profile.personalEmail);
   }
 
