@@ -25,28 +25,31 @@ class PainelGeralPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Painel Geral',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Bem-vindo, Carlos.',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Painel Geral',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Secretaria Geral Acadêmica • Gestão Integrada do Campus 2026/2',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
+                          SizedBox(height: 8),
+                          Text(
+                            'Bem-vindo, Carlos.',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Secretaria Geral Acadêmica • Gestão Integrada do Campus 2026/2',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 16),
 
                     // Botão para emitir comunicados institucionais
                     ElevatedButton.icon(
