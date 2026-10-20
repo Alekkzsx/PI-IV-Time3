@@ -171,8 +171,8 @@ class StudentSidebar extends StatelessWidget {
       activeItem: activeItem,
       isCollapsed: isCollapsed,
       onToggleCollapse: onToggleCollapse,
-      logoTitle: 'ALEX',
-      collapsedLogoTitle: 'ALE',
+      logoTitle: 'AGMRM',
+      collapsedLogoTitle: 'AGM',
       logoSubtitle: 'PORTAL AVA',
       onItemSelected: (item) => _handleNavigation(context, item),
     );

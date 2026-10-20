@@ -40,10 +40,10 @@ class AdminSidebar extends StatelessWidget {
   /// Alternador de expansão/recolhimento da barra lateral.
   final VoidCallback? onToggleCollapse;
 
-  /// Título institucional expandido (padrão: "ALEX").
+  /// Título institucional expandido (padrão: "AGMRM").
   final String logoTitle;
 
-  /// Título institucional recolhido (padrão: "ALE").
+  /// Título institucional recolhido (padrão: "AGM").
   final String collapsedLogoTitle;
 
   /// Subtítulo institucional (padrão: "PORTAL GESTÃO").
@@ -56,8 +56,8 @@ class AdminSidebar extends StatelessWidget {
     required this.onLogout,
     this.isCollapsed = false,
     this.onToggleCollapse,
-    this.logoTitle = 'ALEX',
-    this.collapsedLogoTitle = 'ALE',
+    this.logoTitle = 'AGMRM',
+    this.collapsedLogoTitle = 'AGM',
     this.logoSubtitle = 'PORTAL GESTÃO',
   });
 

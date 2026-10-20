@@ -22,12 +22,17 @@ class InstColors {
   static const Color danger = Color(0xFFB91C1C);
   static const Color dangerBg = Color(0xFFFEF2F2);
   static const Color live = Color(0xFF16A34A);
+  static const Color success = Color(0xFF16A34A);
+  static const Color successBg = Color(0xFFDCFCE7);
+  static const Color warning = Color(0xFFD97706);
+  static const Color warningBg = Color(0xFFFEF3C7);
 }
 
-/// Medidas oficiais da barra lateral institucional.
+/// Medidas oficiais da barra lateral e cabeçalhos institucionais.
 class InstSidebarMetrics {
   const InstSidebarMetrics._();
 
+  static const double topHeaderHeight = 54;
   static const double widthExpanded = 280;
   static const double widthCollapsed = 76;
   static const double itemWidthExpanded = 124;
@@ -62,4 +67,3 @@ class InstText {
 
   static TextStyle pageTitle() => jakarta(size: 18, weight: FontWeight.w500);
 }
-

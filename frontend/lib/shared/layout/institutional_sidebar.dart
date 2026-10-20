@@ -50,8 +50,8 @@ class InstitutionalSidebar<T> extends StatelessWidget {
     this.onItemSelected,
     this.isCollapsed = false,
     this.onToggleCollapse,
-    this.logoTitle = 'ALEX',
-    this.collapsedLogoTitle = 'ALE',
+    this.logoTitle = 'AGMRM',
+    this.collapsedLogoTitle = 'AGM',
     this.logoSubtitle = 'PORTAL AVA',
   });
 
@@ -379,6 +379,15 @@ class _RenderUnclippedHitTestStack extends RenderStack {
     super.fit,
     super.clipBehavior,
   });
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (hitTestChildren(result, position: position) || hitTestSelf(position)) {
+      result.add(BoxHitTestEntry(this, position));
+      return true;
+    }
+    return false;
+  }
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {

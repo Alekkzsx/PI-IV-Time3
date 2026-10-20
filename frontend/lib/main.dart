@@ -63,7 +63,7 @@ class PortalAvaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ALEX - Portal Acadêmico',
+      title: 'AGMRM - Portal Acadêmico',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: initialRoute,

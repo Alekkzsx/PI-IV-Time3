@@ -27,7 +27,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verifica o logotipo institucional
-      expect(find.text('ALEX'), findsOneWidget);
+      expect(find.text('AGMRM'), findsOneWidget);
       expect(find.text('PORTAL GESTÃO'), findsOneWidget);
 
       // Verifica os 8 itens de menu
@@ -94,7 +94,7 @@ void main() {
 
       expect(toggleCalled, isTrue);
       expect(isCollapsed, isTrue);
-      expect(find.text('ALE'), findsOneWidget);
+      expect(find.text('AGM'), findsOneWidget);
     });
   });
 }
