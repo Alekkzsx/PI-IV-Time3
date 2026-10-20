@@ -70,8 +70,10 @@ class CoursesPage extends StatelessWidget {
           const SizedBox(height: 12),
           Text(course.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 24,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
             children: [
               Text('Matriz Homologada: ${course.matrix}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
               Text('Carga Horária: ${course.workload}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
