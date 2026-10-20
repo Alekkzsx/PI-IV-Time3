@@ -1,5 +1,6 @@
 // Desenvolvido por Guilherme Henrique Moreira
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/features/admin/presentation/controllers/admin_portal_controller.dart';
 
 // Tela principal do painel geral da secretaria
 class PainelGeralPage extends StatelessWidget {
@@ -49,7 +50,7 @@ class PainelGeralPage extends StatelessWidget {
 
                     // Botão para emitir comunicados institucionais
                     ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => _showEmitirComunicadoModal(context),
                       icon: const Icon(Icons.campaign, size: 18),
                       label: const Text('Emitir Comunicado Institucional'),
                       style: ElevatedButton.styleFrom(
@@ -295,7 +296,7 @@ class PainelGeralPage extends StatelessWidget {
 
                     // Botão para acessar a lista completa de cursos
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => _showEmitirComunicadoModal(context),
                       child: const Text(
                         'Ver todos os cursos →',
                         style: TextStyle(color: Colors.black),
