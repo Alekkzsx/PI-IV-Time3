@@ -1,5 +1,13 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
+/// Academic standing of a student in the official gradebook.
+enum AcademicStatus {
+  aprovado,
+  exame,
+  reprovadoPorNota,
+  reprovadoPorFalta,
+}
+
 /// Represents a student's grade record inside the official gradebook.
 class StudentGrade {
   final String studentId;
@@ -27,28 +35,48 @@ class StudentGrade {
         ((assignmentsScore * 0.4) + (p1Score * 0.6)).toStringAsFixed(1),
       );
 
+  /// Alias for n1Total.
+  double get n1Score => n1Total;
+
   /// N2 = (projectsScore * 0.4) + (p2Score * 0.6)
   double get n2Total => double.parse(
         ((projectsScore * 0.4) + (p2Score * 0.6)).toStringAsFixed(1),
       );
+
+  /// Alias for n2Total.
+  double get n2Score => n2Total;
 
   /// Final semester average: MS = (N1 * 0.4) + (N2 * 0.6)
   double get finalAverage => double.parse(
         ((n1Total * 0.4) + (n2Total * 0.6)).toStringAsFixed(1),
       );
 
-  /// Academic standing according to institutional regulation (PPC)
-  String get status {
+  /// Academic standing as an enum according to institutional regulation (PPC)
+  AcademicStatus get status {
     if (attendanceRate < 75.0) {
-      return 'Reprovado por Falta';
+      return AcademicStatus.reprovadoPorFalta;
     }
     if (finalAverage >= 7.0) {
-      return 'Aprovado';
+      return AcademicStatus.aprovado;
     }
     if (finalAverage >= 4.0) {
-      return 'Em Exame';
+      return AcademicStatus.exame;
     }
-    return 'Reprovado por Nota';
+    return AcademicStatus.reprovadoPorNota;
+  }
+
+  /// Academic standing as string.
+  String get statusLabel {
+    switch (status) {
+      case AcademicStatus.aprovado:
+        return 'Aprovado';
+      case AcademicStatus.exame:
+        return 'Em Exame';
+      case AcademicStatus.reprovadoPorNota:
+        return 'Reprovado por Nota';
+      case AcademicStatus.reprovadoPorFalta:
+        return 'Reprovado por Falta';
+    }
   }
 
   StudentGrade copyWith({
