@@ -9,7 +9,7 @@ import 'supervision_cockpit_page.dart';
 /// Permite alocar docentes, alternar o regime da fórmula regimental e abrir o
 /// console de supervisão institucional da turma.
 class ClassesPage extends StatefulWidget {
-  const ClassesPage({Key? key}) : super(key: key);
+  const ClassesPage({super.key});
 
   @override
   State<ClassesPage> createState() => _ClassesPageState();
