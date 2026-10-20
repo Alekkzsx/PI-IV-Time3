@@ -22,7 +22,7 @@ void main() {
       expect(controller.assignments.length, equals(2));
       expect(controller.currentSession.attendanceList.length, equals(8));
       expect(controller.gradebook.length, equals(8));
-      expect(controller.events.length, equals(4));
+      expect(controller.events.length, equals(6));
       expect(controller.notices.length, equals(2));
       expect(controller.profile.twoFactorEnabled, isTrue);
     });
