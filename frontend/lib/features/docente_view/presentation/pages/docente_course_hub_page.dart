@@ -242,15 +242,17 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> with Single
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: DocenteColors.charcoal),
-                ),
-                Text(label, style: const TextStyle(fontSize: 11, color: DocenteColors.slate)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: DocenteColors.charcoal),
+                  ),
+                  Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: DocenteColors.slate)),
+                ],
+              ),
             ),
           ],
         ),
