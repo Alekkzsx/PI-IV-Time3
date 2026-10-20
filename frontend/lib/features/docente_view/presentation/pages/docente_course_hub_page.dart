@@ -359,9 +359,11 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> with Single
             children: [
               Icon(Icons.warning_amber_rounded, color: DocenteColors.amber, size: 20),
               SizedBox(width: 10),
-              Text(
-                'Alertas Pedagógicos da Turma',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: DocenteColors.charcoal),
+              Expanded(
+                child: Text(
+                  'Alertas Pedagógicos da Turma',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: DocenteColors.charcoal),
+                ),
               ),
             ],
           ),
