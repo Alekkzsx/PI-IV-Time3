@@ -4,8 +4,10 @@ import 'rubric_model.dart';
 
 /// Submission status of a student assignment.
 enum SubmissionStatus {
+  entregue,
   aguardandoCorrecao,
   corrigido,
+  atrasado,
   naoEntregue,
 }
 
@@ -66,17 +68,17 @@ class StudentSubmission {
   }
 }
 
-/// Represents an assessment assignment created by the professor.
+/// Represents an assignment/evaluative task for a course.
 class AssignmentItem {
   final String id;
   final String courseId;
   final String courseCode;
   final String title;
-  final double weight;
-  final String stage; // 'N1', 'N2', 'PI'
+  final double weight; // e.g. 0.4 for 40%
+  final String stage; // e.g. 'Etapa N1'
   final String dueDateFormatted;
   final bool isUrgent;
-  final String modality; // 'Trabalho Individual', 'Trabalho em Grupo'
+  final String modality; // e.g. 'Individual com Rubrica'
   final bool allowLateWithPenalty;
   final List<RubricCriterion> rubricCriteria;
   final List<StudentSubmission> submissions;
@@ -96,9 +98,13 @@ class AssignmentItem {
     required this.submissions,
   });
 
-  int get totalSubmissions => submissions.where((s) => s.status != SubmissionStatus.naoEntregue).length;
-  int get correctedSubmissions => submissions.where((s) => s.status == SubmissionStatus.corrigido).length;
-  int get pendingSubmissions => submissions.where((s) => s.status == SubmissionStatus.aguardandoCorrecao).length;
+  int get deliveredCount =>
+      submissions.where((s) => s.status != SubmissionStatus.naoEntregue).length;
+
+  int get totalCount => submissions.length;
+
+  double get progressPercentage =>
+      totalCount == 0 ? 0.0 : (deliveredCount / totalCount) * 100;
 
   AssignmentItem copyWith({
     String? id,
