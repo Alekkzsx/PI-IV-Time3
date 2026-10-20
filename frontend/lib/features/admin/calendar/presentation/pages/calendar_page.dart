@@ -73,16 +73,19 @@ class _CalendarPageState extends State<CalendarPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('RESOLUÇÃO CONSEPE 2026/04', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-              SizedBox(height: 8),
-              Text('Semestre Letivo 2026/2 • Carga de 100 Dias Letivos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text('Período: 01 de Agosto de 2026 a 22 de Dezembro de 2026', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('RESOLUÇÃO CONSEPE 2026/04', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                SizedBox(height: 8),
+                Text('Semestre Letivo 2026/2 • Carga de 100 Dias Letivos', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text('Período: 01 de Agosto de 2026 a 22 de Dezembro de 2026', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+              ],
+            ),
           ),
+          const SizedBox(width: 16),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
