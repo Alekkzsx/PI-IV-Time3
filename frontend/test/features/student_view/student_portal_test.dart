@@ -36,7 +36,7 @@ void main() {
 
       await tester.pumpWidget(
         const MaterialApp(
-          home: StudentMessagesPage(),
+          home: Scaffold(body: StudentMessagesPage()),
         ),
       );
       await tester.pumpAndSettle();
@@ -89,7 +89,7 @@ void main() {
 
       await tester.pumpWidget(
         const MaterialApp(
-          home: StudentSecretariatPage(),
+          home: Scaffold(body: StudentSecretariatPage()),
         ),
       );
       await tester.pumpAndSettle();
