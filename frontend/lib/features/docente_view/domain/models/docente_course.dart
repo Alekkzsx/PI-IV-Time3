@@ -20,6 +20,12 @@ class SyllabusUnit {
 
   double get progress => totalClasses == 0 ? 0.0 : completedClasses / totalClasses;
 
+  /// Whether all planned classes for this unit have been given.
+  bool get isCompleted => totalClasses > 0 && completedClasses >= totalClasses;
+
+  /// Human readable description of topics.
+  String get description => topics.join(' • ');
+
   SyllabusUnit copyWith({
     String? id,
     int? unitNumber,
@@ -87,6 +93,18 @@ class DocenteCourse {
     required this.syllabusUnits,
     required this.materials,
   });
+
+  /// Alias for title for convenient usage across widgets.
+  String get name => title;
+
+  /// Alias for term/semester.
+  String get semester => term;
+
+  /// Alias for total workload hours.
+  int get workloadHours => totalHours;
+
+  /// Ratio of completed hours to total hours (0.0 to 1.0).
+  double get progress => totalHours == 0 ? 0.0 : completedHours / totalHours;
 
   double get progressPercentage => totalHours == 0 ? 0.0 : (completedHours / totalHours) * 100;
 
