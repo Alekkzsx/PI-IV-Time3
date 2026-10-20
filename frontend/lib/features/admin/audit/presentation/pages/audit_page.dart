@@ -1,43 +1,125 @@
 // Desenvolvido por Guilherme Henrique Moreira
-import 'package:flutter/material.dart'; // Importa o pacote principal do Material Design para Flutter
 
-// Declaração da tela de Auditoria como um StatelessWidget (componente estático sem estado interno mutável)
-class AuditPage extends StatelessWidget {
-  const AuditPage({Key? key}) : super(key: key); // Construtor padrão com suporte a chave (key)
+import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/features/admin/presentation/controllers/admin_portal_controller.dart';
+
+/// Tela de Auditoria de Segurança & Trilha Documental (Audit Trail) da Visão do Administrador.
+/// Exibe registros imutáveis de transações acadêmicas com rastreabilidade de operadores,
+/// endereços IP, eventos de notas, protocolos e severidades.
+class AuditPage extends StatefulWidget {
+  const AuditPage({super.key});
+
+  @override
+  State<AuditPage> createState() => _AuditPageState();
+}
+
+class _AuditPageState extends State<AuditPage> {
+  final AdminPortalController _controller = AdminPortalController.instance;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Widget que permite a rolagem da página inteira caso o conteúdo exceda a altura disponível
+    final query = _searchController.text.toLowerCase();
+    final logs = _controller.auditLogs.where((l) {
+      if (query.isEmpty) return true;
+      return l.actor.toLowerCase().contains(query) ||
+          l.description.toLowerCase().contains(query) ||
+          l.actionType.toLowerCase().contains(query) ||
+          l.ipAddress.contains(query);
+    }).toList();
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0), // Adiciona margem interna de 32 pixels em todas as bordas
+      padding: const EdgeInsets.all(32.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Alinha todos os elementos filhos à esquerda
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Rótulo superior pequeno contextualizando a seção atual do sistema
           const Text('Auditoria', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8), // Espaçamento vertical entre os textos
-          
-          // Título principal da página enfatizando a segurança e trilha documental
-          const Text('Auditoria de Segurança & Trilha Documental (Audit Trail)', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4), // Pequeno espaçamento vertical
-          
-          // Subtítulo descritivo detalhando o propósito do registro de auditoria (logs)
-          const Text('Registro irrevogável de lançamentos de notas, deferimentos de protocolos, retificações e tentativas de acesso.', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 24), // Espaçamento antes do painel de logs
-          
-          // Container estilizado como cartão para agrupar as informações de auditoria
+          const SizedBox(height: 8),
+          const Text(
+            'Auditoria de Segurança & Trilha Documental (Audit Trail)',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Registro irrevogável de lançamentos de notas, deferimentos de protocolos, retificações e tentativas de acesso.',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: 380,
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'Filtrar por agente, descrição ou IP...',
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dossiê de auditoria exportado com assinatura ICP-Brasil.'))),
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text('Exportar Log Criptografado'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(16), // Espaçamento interno dentro do container
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white, 
-              borderRadius: BorderRadius.circular(12), // Bordas arredondadas de 12 pixels
-              border: Border.all(color: Colors.grey[200]!) // Borda sutil na cor cinza claro
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
             ),
-            // Item de lista estilizado para exibir um registro individual de log
-            child: const ListTile(
-              title: Text('Lançamento de nota de avaliação (9.5) para discente Mariana Rios Costa'), // Descrição principal da ação auditada
-              subtitle: Text('Agente: Profa. Dra. Helena Bittencourt • IP: 177.136.24.10'), // Detalhes técnicos (quem realizou e o IP de origem)
-              trailing: Chip(label: Text('INFO', style: TextStyle(color: Colors.blue))), // Etiqueta indicativa do nível do log (Informativo, em azul)
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('DATA / HORA')),
+                DataColumn(label: Text('AGENTE OPERADOR')),
+                DataColumn(label: Text('EVENTO')),
+                DataColumn(label: Text('DESCRIÇÃO DA TRANSAÇÃO')),
+                DataColumn(label: Text('IP ORIGEM')),
+                DataColumn(label: Text('SEVERIDADE')),
+              ],
+              rows: logs.map((log) {
+                final isAtencao = log.severity == 'ATENCAO';
+                return DataRow(
+                  cells: [
+                    DataCell(Text(log.timestamp, style: const TextStyle(fontSize: 12))),
+                    DataCell(Text(log.actor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                    DataCell(Chip(label: Text(log.actionType, style: const TextStyle(fontSize: 10)), backgroundColor: const Color(0xFFF1F5F9))),
+                    DataCell(SizedBox(width: 320, child: Text(log.description, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis))),
+                    DataCell(Text(log.ipAddress, style: const TextStyle(fontSize: 12, fontFamily: 'monospace'))),
+                    DataCell(
+                      Chip(
+                        label: Text(log.severity, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isAtencao ? Colors.orange[800] : const Color(0xFF2563EB))),
+                        backgroundColor: isAtencao ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
           ),
         ],
