@@ -154,8 +154,15 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(title, style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: const Color(0xFF0F172A))),
-                      if (badgeText != null)
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: const Color(0xFF0F172A)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (badgeText != null) ...[
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
@@ -164,6 +171,7 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
                           ),
                           child: Text(badgeText, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: _controller.isTwoFactorEnabled ? const Color(0xFF16A34A) : const Color(0xFFDC2626))),
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 2),
