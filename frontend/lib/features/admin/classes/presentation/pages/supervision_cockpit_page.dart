@@ -221,25 +221,34 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
         children: [
           const Text('Diretrizes Institucionais de Cálculo da Nota', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
+          // ignore: deprecated_member_use
           RadioListTile<String>(
             title: const Text('Fórmula Ponderada Regimental (N1 40% / N2 60%)'),
             subtitle: const Text('Padrão CONSEPE: Média Final = (N1 x 0.4) + (N2 x 0.6) • Presença Mínima: 75%'),
             value: 'Ponderada (N1 40% / N2 60%)',
+            // ignore: deprecated_member_use
             groupValue: _controller.selectedEvaluationFormula,
+            // ignore: deprecated_member_use
             onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
           ),
+          // ignore: deprecated_member_use
           RadioListTile<String>(
             title: const Text('Fórmula Equitativa (N1 50% / N2 50%)'),
             subtitle: const Text('Média Final = (N1 + N2) / 2'),
             value: 'Equitativa (N1 50% / N2 50%)',
+            // ignore: deprecated_member_use
             groupValue: _controller.selectedEvaluationFormula,
+            // ignore: deprecated_member_use
             onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
           ),
+          // ignore: deprecated_member_use
           RadioListTile<String>(
             title: const Text('Média Aritmética de Instrumentos Contínuos'),
             subtitle: const Text('Média de todas as atividades, provas e trabalhos lançados'),
             value: 'Aritmética Simples',
+            // ignore: deprecated_member_use
             groupValue: _controller.selectedEvaluationFormula,
+            // ignore: deprecated_member_use
             onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
           ),
           const SizedBox(height: 20),
