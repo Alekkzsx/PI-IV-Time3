@@ -145,13 +145,13 @@ void main() {
       expect(find.text('Departamento de Computação'), findsOneWidget);
 
       // Verify Dashboard KPI cards
-      expect(find.text('Alunos Ativos'), findsOneWidget);
-      expect(find.text('Média Semestral Geral'), findsOneWidget);
-      expect(find.text('Frequência Média'), findsOneWidget);
-      expect(find.text('Pendências no Diário'), findsOneWidget);
+      expect(find.text('TURMAS ATIVAS'), findsOneWidget);
+      expect(find.text('ENTREGAS DO MÊS'), findsOneWidget);
+      expect(find.text('CARGA HORÁRIA TOTAL'), findsOneWidget);
+      expect(find.text('FREQUÊNCIA MÉDIA'), findsOneWidget);
 
       // Verify Today Class card
-      expect(find.text('Aula do Dia — Hoje'), findsOneWidget);
+      expect(find.text('Aula do Dia'), findsOneWidget);
       expect(find.text('Iniciar Transmissão'), findsOneWidget);
     });
 
