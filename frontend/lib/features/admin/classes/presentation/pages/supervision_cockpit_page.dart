@@ -295,42 +295,48 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             ],
           ),
           const SizedBox(height: 16),
-          Table(
-            border: TableBorder.all(color: const Color(0xFFE5E7EB)),
-            children: [
-              const TableRow(
-                decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 780,
+              child: Table(
+                border: TableBorder.all(color: const Color(0xFFE5E7EB)),
                 children: [
-                  Padding(padding: EdgeInsets.all(10), child: Text('DISCENTE / R.A.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  Padding(padding: EdgeInsets.all(10), child: Text('P1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  Padding(padding: EdgeInsets.all(10), child: Text('P2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  Padding(padding: EdgeInsets.all(10), child: Text('TRAB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  Padding(padding: EdgeInsets.all(10), child: Text('MÉDIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  Padding(padding: EdgeInsets.all(10), child: Text('FALTAS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                  Padding(padding: EdgeInsets.all(10), child: Text('PARECER AUDITORIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                  const TableRow(
+                    decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                    children: [
+                      Padding(padding: EdgeInsets.all(10), child: Text('DISCENTE / R.A.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      Padding(padding: EdgeInsets.all(10), child: Text('P1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      Padding(padding: EdgeInsets.all(10), child: Text('P2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      Padding(padding: EdgeInsets.all(10), child: Text('TRAB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      Padding(padding: EdgeInsets.all(10), child: Text('MÉDIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      Padding(padding: EdgeInsets.all(10), child: Text('FALTAS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      Padding(padding: EdgeInsets.all(10), child: Text('PARECER AUDITORIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                    ],
+                  ),
+                  ...gradeRows.map((r) {
+                    final isApproved = r['parecer']!.contains('Aprovado');
+                    return TableRow(
+                      children: [
+                        Padding(padding: const EdgeInsets.all(10), child: Text('${r['nome']}\n${r['ra']}', style: const TextStyle(fontSize: 12))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(r['p1']!, style: const TextStyle(fontSize: 12))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(r['p2']!, style: const TextStyle(fontSize: 12))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(r['trab']!, style: const TextStyle(fontSize: 12))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(r['media']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                        Padding(padding: const EdgeInsets.all(10), child: Text(r['faltas']!, style: const TextStyle(fontSize: 12))),
+                        Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Text(
+                            r['parecer']!,
+                            style: TextStyle(color: isApproved ? const Color(0xFF16A34A) : Colors.orange, fontWeight: FontWeight.bold, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
-              ...gradeRows.map((r) {
-                final isApproved = r['parecer']!.contains('Aprovado');
-                return TableRow(
-                  children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('${r['nome']}\n${r['ra']}', style: const TextStyle(fontSize: 12))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(r['p1']!, style: const TextStyle(fontSize: 12))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(r['p2']!, style: const TextStyle(fontSize: 12))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(r['trab']!, style: const TextStyle(fontSize: 12))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(r['media']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text(r['faltas']!, style: const TextStyle(fontSize: 12))),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Text(
-                        r['parecer']!,
-                        style: TextStyle(color: isApproved ? const Color(0xFF16A34A) : Colors.orange, fontWeight: FontWeight.bold, fontSize: 11),
-                      ),
-                    ),
-                  ],
-                );
-              }),
-            ],
+            ),
           ),
           const SizedBox(height: 24),
           const Divider(height: 1),
