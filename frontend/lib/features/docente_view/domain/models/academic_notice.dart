@@ -37,6 +37,9 @@ class AcademicNotice {
 
   int get readPercentage => totalRecipients == 0 ? 0 : ((readCount / totalRecipients) * 100).round();
 
+  /// Decimal percentage of students who acknowledged reading the notice (0.0 to 1.0).
+  double get sciencePercentage => totalRecipients == 0 ? 0.0 : readCount / totalRecipients;
+
   String get classificationLabel {
     switch (classification) {
       case NoticeClassification.informativo:
