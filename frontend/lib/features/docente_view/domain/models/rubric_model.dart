@@ -16,6 +16,9 @@ class RubricCriterion {
     this.assignedScore,
   });
 
+  /// Alias for maxPoints for convenient UI usage.
+  double get maxScore => maxPoints;
+
   RubricCriterion copyWith({
     String? id,
     String? title,
