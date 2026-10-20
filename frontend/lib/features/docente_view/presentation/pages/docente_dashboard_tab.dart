@@ -395,9 +395,12 @@ class DocenteDashboardTab extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 SizedBox(width: 6),
-                Text(
-                  'Plantão de dúvidas e orientação às 17:30 no Gabinete 12.',
-                  style: TextStyle(fontSize: 13, color: DocenteColors.textSecondary),
+                Expanded(
+                  child: Text(
+                    'Plantão de dúvidas e orientação às 17:30 no Gabinete 12.',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: DocenteColors.textSecondary),
+                  ),
                 ),
               ],
             ),
@@ -783,14 +786,18 @@ class DocenteDashboardTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              author,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: DocenteColors.textSecondary,
+            Expanded(
+              child: Text(
+                author,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: DocenteColors.textSecondary,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               time,
               style: const TextStyle(
