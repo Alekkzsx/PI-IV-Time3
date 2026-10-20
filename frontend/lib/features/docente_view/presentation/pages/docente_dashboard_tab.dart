@@ -210,12 +210,15 @@ class DocenteDashboardTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: DocenteColors.textSecondary,
+              Flexible(
+                child: Text(
+                  subtitle,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: DocenteColors.textSecondary,
+                  ),
                 ),
               ),
             ],
