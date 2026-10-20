@@ -196,32 +196,37 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.videocam_outlined, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.videocam_outlined, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle)),
-                      const SizedBox(width: 6),
-                      const Text('AULA DO DIA • 19:00 ÀS 20:40', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle)),
+                          const SizedBox(width: 6),
+                          const Text('AULA DO DIA • 19:00 ÀS 20:40', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text('Análise e Projeto de Sistemas II (APS-II)', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      const Text('Profa. Dra. Helena Bittencourt • Sala Virtual AVA & Lab Informática 04', style: TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  const Text('Análise e Projeto de Sistemas II (APS-II)', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  const Text('Profa. Dra. Helena Bittencourt • Sala Virtual AVA & Lab Informática 04', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 16),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pushNamed('/video-call'),
             icon: const Icon(Icons.login, size: 16),
