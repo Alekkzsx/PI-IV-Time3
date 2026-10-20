@@ -427,6 +427,7 @@ class DocenteAssignmentsTab extends StatelessWidget {
 
     switch (status) {
       case SubmissionStatus.entregue:
+      case SubmissionStatus.aguardandoCorrecao:
         bg = const Color(0xFFEFF6FF);
         fg = const Color(0xFF1D4ED8);
         label = 'Entregue';
