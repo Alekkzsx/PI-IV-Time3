@@ -1,7 +1,37 @@
-import 'package:flutter/material.dart';
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-class StudentDeliveriesPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import '../../data/student_mock_data.dart';
+import '../controllers/student_portal_controller.dart';
+
+/// Tela da Central de Entregas & Atividades Avaliativas da Visão do Aluno.
+/// Exibe métricas de prazos, listagem com filtros, modal de envio com declaração
+/// de integridade acadêmica e modal de devolutiva com notas por rubrica e recibo.
+class StudentDeliveriesPage extends StatefulWidget {
   const StudentDeliveriesPage({super.key});
+
+  @override
+  State<StudentDeliveriesPage> createState() => _StudentDeliveriesPageState();
+}
+
+class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
+  final StudentPortalController _controller = StudentPortalController.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,11 +42,10 @@ class StudentDeliveriesPage extends StatelessWidget {
           _buildHeader(),
           const SizedBox(height: 24),
           _buildStatsRow(),
-          const SizedBox(height: 32),
-          _buildTabsAndFilters(),
           const SizedBox(height: 24),
+          _buildFilterTabs(),
+          const SizedBox(height: 20),
           _buildDeliveriesList(),
-          const SizedBox(height: 40),
         ],
       ),
     );
@@ -28,7 +57,6 @@ class StudentDeliveriesPage extends StatelessWidget {
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,34 +71,20 @@ class StudentDeliveriesPage extends StatelessWidget {
             ),
             SizedBox(height: 4),
             Text(
-              'Gerencie prazos acadêmicos, envie seus trabalhos e acompanhe pareceres e notas oficiais.',
+              'Acompanhamento de prazos regimentais, envio de artefatos de avaliação e pareceres detalhados por rubrica.',
               style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
             ),
           ],
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: const [
-              Text(
-                'Semestre Letivo:',
-                style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-              ),
-              SizedBox(width: 4),
-              Text(
-                '2026/2',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-            ],
+        ElevatedButton.icon(
+          onPressed: () => _showSubmissaoGeralModal(context),
+          icon: const Icon(Icons.cloud_upload_outlined, size: 16),
+          label: const Text('Submeter Atividade'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0F172A),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ],
@@ -78,127 +92,27 @@ class StudentDeliveriesPage extends StatelessWidget {
   }
 
   // ==========================================
-  // ESTATÍSTICAS SUPERIORES
+  // CARDS DE ESTATÍSTICA (KPIS DE ENTREGAS)
   // ==========================================
   Widget _buildStatsRow() {
+    final pendingCount = _controller.deliveries.where((d) => d.status == 'Pendente').length;
+    final inReviewCount = _controller.deliveries.where((d) => d.status == 'Em Análise').length;
+    final evaluatedCount = _controller.deliveries.where((d) => d.status == 'Avaliada').length;
+
     return Row(
       children: [
-        Expanded(
-          child: _buildStatCard(
-            title: 'PENDENTES',
-            value: '4',
-            subtitle: 'atividades',
-            description: 'Há entregas com prazo fatal nos próximos 2 dias.',
-            topRightWidget: const Icon(
-              Icons.access_time,
-              size: 18,
-              color: Color(0xFF18181B),
-            ),
-            badgeWidget: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFFECACA)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.info_outline, size: 10, color: Color(0xFFDC2626)),
-                  SizedBox(width: 4),
-                  Text(
-                    '1 urgente',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFDC2626),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: _buildStatCard('Pendentes de Envio', '$pendingCount', 'Atenção aos prazos', const Color(0xFFD97706))),
         const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            title: 'EM ANÁLISE',
-            value: '2',
-            subtitle: 'aguardando correção',
-            description: 'Submissões com protocolo emitido aguardando parecer.',
-            topRightWidget: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F4F5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Icon(
-                Icons.send_outlined,
-                size: 14,
-                color: Color(0xFF16A34A),
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: _buildStatCard('Em Análise Docente', '$inReviewCount', 'Protocolos aguardando nota', const Color(0xFF2563EB))),
         const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            title: 'AVALIADAS',
-            value: '3',
-            subtitle: 'concluídas no semestre',
-            description: 'Com notas consolidadas e devolutiva do docente.',
-            topRightWidget: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F4F5),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Icon(
-                Icons.bookmark_outline,
-                size: 14,
-                color: Color(0xFF18181B),
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: _buildStatCard('Avaliadas com Parecer', '$evaluatedCount', 'Notas consolidadas', const Color(0xFF16A34A))),
         const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            title: 'MÉDIA PONDERADA',
-            value: '9.7',
-            subtitle: '/ 10.0',
-            description:
-                'Média das notas de trabalhos entregues até o momento.',
-            topRightWidget: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
-                border: Border.all(color: const Color(0xFF86EFAC)),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'Excelente',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF16A34A),
-                ),
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: _buildStatCard('Média Ponderada', '9.7 / 10.0', 'Excelente rendimento', const Color(0xFF0F172A))),
       ],
     );
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required String description,
-    Widget? topRightWidget,
-    Widget? badgeWidget,
-  }) {
+  Widget _buildStatCard(String title, String value, String subtitle, Color color) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -209,195 +123,230 @@ class StudentDeliveriesPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF71717A),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              if (topRightWidget != null) topRightWidget,
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-              ),
-              if (badgeWidget != null) ...[const Spacer(), badgeWidget],
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Color(0xFFA1A1AA),
-              height: 1.4,
-            ),
-          ),
+          Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF71717A))),
         ],
       ),
     );
   }
 
   // ==========================================
-  // TABS, BUSCA E FILTROS
+  // FILTROS POR STATUS (Print 28)
   // ==========================================
-  Widget _buildTabsAndFilters() {
+  Widget _buildFilterTabs() {
+    final filters = ['Todas', 'Pendente', 'Em Análise', 'Avaliada'];
+
+    return Row(
+      children: filters.map((f) {
+        final isSelected = _controller.activeDeliveryFilter == f;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: ChoiceChip(
+            label: Text(f == 'Todas' ? 'Todas as Atividades' : f),
+            selected: isSelected,
+            onSelected: (_) => _controller.setDeliveryFilter(f),
+            selectedColor: const Color(0xFF0F172A),
+            backgroundColor: Colors.white,
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFF334155),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 12,
+            ),
+            side: BorderSide(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ==========================================
+  // LISTAGEM DE ATIVIDADES
+  // ==========================================
+  Widget _buildDeliveriesList() {
+    final filtered = _controller.deliveries.where((d) {
+      if (_controller.activeDeliveryFilter == 'Todas') return true;
+      return d.status == _controller.activeDeliveryFilter;
+    }).toList();
+
     return Column(
-      children: [
-        Row(
-          children: [
-            _buildTabItem('Todas as Atividades', '9', isActive: true),
-            _buildTabItem('Pendentes', '4'),
-            _buildTabItem('Em Análise / Enviadas', '2'),
-            _buildTabItem('Avaliadas com Nota', '3'),
-          ],
-        ),
-        Container(
-          height: 1,
-          width: double.infinity,
-          color: const Color(0xFFE5E7EB),
-        ),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            SizedBox(
-              width: 400,
-              height: 40,
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Buscar por título, código ou palavra-chave...',
-                  hintStyle: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFA1A1AA),
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    size: 18,
-                    color: Color(0xFFA1A1AA),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF18181B)),
-                  ),
+      children: filtered.map((d) {
+        Color badgeBg = const Color(0xFFF1F5F9);
+        Color badgeFg = const Color(0xFF0F172A);
+
+        if (d.status == 'Pendente') {
+          badgeBg = const Color(0xFFFEF3C7);
+          badgeFg = const Color(0xFFD97706);
+        } else if (d.status == 'Em Análise') {
+          badgeBg = const Color(0xFFDBEAFE);
+          badgeFg = const Color(0xFF1D4ED8);
+        } else if (d.status == 'Avaliada') {
+          badgeBg = const Color(0xFFDCFCE7);
+          badgeFg = const Color(0xFF16A34A);
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(4)),
+                          child: Text(d.disciplineCode, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(d.disciplineName, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(d.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                    const SizedBox(height: 6),
+                    Text('Prazo Final: ${d.dueDate} às ${d.dueHour} • Peso Regimental: ${d.weight.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12, color: Color(0xFF71717A))),
+                  ],
                 ),
               ),
-            ),
-            Row(
+              Row(
+                children: [
+                  Chip(
+                    label: Text(d.status, style: TextStyle(color: badgeFg, fontWeight: FontWeight.bold, fontSize: 11)),
+                    backgroundColor: badgeBg,
+                  ),
+                  const SizedBox(width: 16),
+                  if (d.status == 'Avaliada') ...[
+                    OutlinedButton.icon(
+                      onPressed: () => _showDevolutivaModal(context, d),
+                      icon: const Icon(Icons.rate_review_outlined, size: 16),
+                      label: Text('Ver Nota: ${d.score}'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF16A34A),
+                        side: const BorderSide(color: Color(0xFF16A34A)),
+                      ),
+                    ),
+                  ] else if (d.status == 'Pendente') ...[
+                    ElevatedButton.icon(
+                      onPressed: () => _showSubmissaoDiretaModal(context, d),
+                      icon: const Icon(Icons.upload_file, size: 16),
+                      label: const Text('Enviar'),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+                    ),
+                  ] else ...[
+                    OutlinedButton(
+                      onPressed: () => _showProtocolModal(context, d),
+                      child: Text('Protocolo: ${d.protocol ?? 'AGR-2026-SUB'}'),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // ==========================================
+  // MODAL DEVOLUTIVA & NOTA DETALHADA (Print 29)
+  // ==========================================
+  void _showDevolutivaModal(BuildContext context, StudentDeliveryItem item) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.filter_alt_outlined,
-                  size: 16,
-                  color: Color(0xFF71717A),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Disciplina:',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
-                ),
-                const SizedBox(width: 8),
+                const Text('Devolutiva & Parecer Pedagógico', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(item.title, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              ],
+            ),
+            IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+          ],
+        ),
+        content: SizedBox(
+          width: 620,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                  ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(8)),
                   child: Row(
-                    children: const [
-                      Text(
-                        'Todas as disciplinas',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF18181B),
-                        ),
-                      ),
-                      SizedBox(width: 32),
-                      Icon(
-                        Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: Color(0xFF18181B),
-                      ),
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Nota Oficial Atribuída:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF16A34A))),
+                      Text('${item.score} / 10.0', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFF16A34A))),
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                const Text('Parecer Descritivo do Docente:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                Text(item.feedback ?? 'Trabalho avaliado conforme critérios de rubrica.', style: const TextStyle(fontSize: 13, color: Color(0xFF334155))),
+                const SizedBox(height: 16),
+                const Text('Detalhamento por Rubrica Avaliativa:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                Table(
+                  border: TableBorder.all(color: const Color(0xFFE5E7EB)),
+                  children: [
+                    const TableRow(
+                      decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                      children: [
+                        Padding(padding: EdgeInsets.all(8), child: Text('CRITÉRIO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Padding(padding: EdgeInsets.all(8), child: Text('PESO MÁXIMO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Padding(padding: EdgeInsets.all(8), child: Text('NOTA OBTIDA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                      ],
+                    ),
+                    ...item.rubrics.map((r) {
+                      return TableRow(
+                        children: [
+                          Padding(padding: const EdgeInsets.all(8), child: Text(r['criterio'] as String, style: const TextStyle(fontSize: 12))),
+                          Padding(padding: const EdgeInsets.all(8), child: Text('${r['pontos']} pts', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                          Padding(padding: const EdgeInsets.all(8), child: Text('${r['nota']} pts', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF16A34A)))),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text('Protocolo Oficial de Submissão: ${item.protocol ?? 'AGR-2026-0913-1092'}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
               ],
             ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabItem(String title, String count, {bool isActive = false}) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 12, right: 24, left: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: isActive ? const Color(0xFF18181B) : Colors.transparent,
-            width: 2,
           ),
         ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive
-                  ? const Color(0xFF18181B)
-                  : const Color(0xFF71717A),
-            ),
+        actions: [
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Download do comprovante de entrega iniciado (PDF).')));
+            },
+            icon: const Icon(Icons.download, size: 16),
+            label: const Text('Baixar Comprovante Assinado'),
           ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? const Color(0xFF18181B)
-                  : const Color(0xFFF4F4F5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              count,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: isActive ? Colors.white : const Color(0xFF71717A),
-              ),
-            ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            child: const Text('Fechar'),
           ),
         ],
       ),
@@ -405,411 +354,116 @@ class StudentDeliveriesPage extends StatelessWidget {
   }
 
   // ==========================================
-  // LISTA DE ENTREGAS
+  // MODAL SUBMISSÃO DE ATIVIDADE (Print 30)
   // ==========================================
-  Widget _buildDeliveriesList() {
-    return Column(
-      children: [
-        // Exemplo 1: Tarefa Pendente e Urgente
-        _buildTaskCard(
-          code: 'APS-ATV-04',
-          discipline: 'Análise e Projeto de Sistemas II',
-          title:
-              'Modelagem de Domínio e Diagramas de Casos de Uso com Padrões GoF',
-          description:
-              'Elaboração de documento técnico contendo a especificação detalhada de 3 casos de uso do sistema acadêmico, o diagrama de classes de domínio com cardinalidades e justificativa técnica da aplicação de pelo menos dois padrões de projeto GoF (Factory Method e Strategy).',
-          dataLimite: '02 de Outubro, 23:59',
-          docente: 'Profa. Dra. Helena Bittencourt',
-          criterio: 'Peso 2.5 • Nota Máx: 10.0',
-          topRightBadge: _buildUrgentBadge('Prazo fatal: em 2 dias'),
-          bottomLeftWidget: const Text(
-            'Formatos aceitos: .pdf, .zip • Max: 25MB',
-            style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-          ),
-          actionButton: _buildActionButton(
-            'Realizar Entrega',
-            Icons.upload,
-            isDark: true,
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Exemplo 2: Tarefa Pendente Normal
-        _buildTaskCard(
-          code: 'BD2-LAB-03',
-          discipline: 'Banco de Dados II',
-          title:
-              'Otimização de Índices B-Tree, Explain Plan e Triggers no PostgreSQL',
-          description:
-              'Prática de laboratório com execução de planos de consulta (EXPLAIN ANALYZE) sobre dataset com 1 milhão de tuplas, criação de índices parciais e implementação de trigger para auditoria de alterações sensíveis.',
-          dataLimite: '05 de Outubro, 23:59',
-          docente: 'Prof. Me. Carlos Eduardo Silva',
-          criterio: 'Peso 2.0 • Nota Máx: 10.0',
-          topRightBadge: _buildNormalBadge(
-            'Prazo em 5 dias',
-            Icons.access_time,
-          ),
-          bottomLeftWidget: const Text(
-            'Formatos aceitos: .sql, .pdf, .zip • Max: 30MB',
-            style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-          ),
-          actionButton: _buildActionButton(
-            'Realizar Entrega',
-            Icons.upload,
-            isDark: true,
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Exemplo 3: Tarefa Enviada / Em Análise
-        _buildTaskCard(
-          code: 'APS-ATV-03',
-          discipline: 'Análise e Projeto de Sistemas II',
-          title: 'Documento de Visão e Requisitos de Software v1.2',
-          description:
-              'Revisão completa do documento de requisitos incorporando as regras de negócio de fechamento contábil e autenticação federada com OAuth 2.0 / SAML.',
-          dataLimite: '28 de Setembro, 23:59',
-          docente: 'Profa. Dra. Helena Bittencourt',
-          criterio: 'Peso 2.0 • Nota Máx: 10.0',
-          topRightBadge: _buildBlueBadge(
-            'Enviada em 28/09/2026',
-            Icons.send_outlined,
-          ),
-          bottomLeftWidget: Row(
-            children: const [
-              Icon(
-                Icons.verified_user_outlined,
-                size: 14,
-                color: Color(0xFF16A34A),
-              ),
-              SizedBox(width: 4),
-              Text(
-                'Protocolo: ',
-                style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
-              ),
-              Text(
-                'AGR-2026-0928-8472 (1 anexo)',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: Color(0xFF71717A),
-                ),
-              ),
-            ],
-          ),
-          actionButton: _buildActionButton(
-            'Ver Comprovante',
-            Icons.insert_drive_file_outlined,
-            isGreen: true,
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Exemplo 4: Tarefa Avaliada
-        _buildTaskCard(
-          code: 'APS-ATV-01',
-          discipline: 'Análise e Projeto de Sistemas II',
-          title:
-              'Estudo de Caso 01: Análise de Viabilidade Técnica e Econômica',
-          description:
-              'Elaboração de parecer técnico sobre a substituição de sistema legado monolítico por arquitetura distribuída, com cálculo de TCO (Total Cost of Ownership), ROI estimado e análise de riscos.',
-          dataLimite: '14 de Setembro, 23:59',
-          docente: 'Profa. Dra. Helena Bittencourt',
-          criterio: 'Peso 2.0 • Nota Máx: 10.0',
-          topRightBadge: _buildOutlineGreenBadge(
-            'Nota: 9.8 / 10.0',
-            Icons.check_circle_outline,
-          ),
-          bottomLeftWidget: const Text(
-            'Parecer emitido em 17/09/2026',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF16A34A),
-            ),
-          ),
-          actionButton: _buildActionButton(
-            'Ver Devolutiva & Nota',
-            Icons.check_circle_outline,
-            isGreen: true,
-          ),
-        ),
-      ],
-    );
+  void _showSubmissaoGeralModal(BuildContext context) {
+    if (_controller.deliveries.isEmpty) return;
+    final firstPending = _controller.deliveries.firstWhere((d) => d.status == 'Pendente', orElse: () => _controller.deliveries.first);
+    _showSubmissaoDiretaModal(context, firstPending);
   }
 
-  // ==========================================
-  // CONSTRUTOR GENÉRICO DO CARTÃO DE TAREFA
-  // ==========================================
-  Widget _buildTaskCard({
-    required String code,
-    required String discipline,
-    required String title,
-    required String description,
-    required String dataLimite,
-    required String docente,
-    required String criterio,
-    required Widget topRightBadge,
-    required Widget bottomLeftWidget,
-    required Widget actionButton,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+  void _showSubmissaoDiretaModal(BuildContext context, StudentDeliveryItem item) {
+    bool hasAgreedToIntegrity = false;
+    final gitController = TextEditingController();
+    final obsController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Submissão: ${item.title}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: 540,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text('Disciplina: ${item.disciplineName} • Prazo: ${item.dueDate} às ${item.dueHour}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                  const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(border: Border.all(color: const Color(0xFFCBD5E1)), borderRadius: BorderRadius.circular(8)),
+                    child: Column(
+                      children: const [
+                        Icon(Icons.cloud_upload_outlined, size: 40, color: Color(0xFF64748B)),
+                        SizedBox(height: 8),
+                        Text('Clique ou arraste o arquivo da entrega (PDF, DOCX, ZIP até 25MB)', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      ],
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F4F5),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      code,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF52525B),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(controller: gitController, decoration: const InputDecoration(labelText: 'Link do Repositório Git (Opcional)', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: obsController, maxLines: 2, decoration: const InputDecoration(labelText: 'Observações para o Docente', border: OutlineInputBorder())),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Checkbox(
+                        value: hasAgreedToIntegrity,
+                        onChanged: (val) => setModalState(() => hasAgreedToIntegrity = val ?? false),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    discipline,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF52525B),
-                    ),
+                      const Expanded(
+                        child: Text(
+                          'Declaração de Integridade Acadêmica: Declaro formalmente que este trabalho é de minha autoria e que não utilizei plágio ou ferramentas em desacordo com as diretrizes da disciplina.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF334155)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              topRightBadge,
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF18181B),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF71717A),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInfoColumn(
-                  'DATA LIMITE',
-                  dataLimite,
-                  icon: Icons.access_time,
-                ),
-              ),
-              Expanded(child: _buildInfoColumn('DOCENTE RESPONSÁVEL', docente)),
-              Expanded(child: _buildInfoColumn('CRITÉRIO E PESO', criterio)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              bottomLeftWidget,
-              Row(
-                children: [
-                  actionButton,
-                  const SizedBox(width: 12),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: Color(0xFFA1A1AA),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoColumn(String label, String value, {IconData? icon}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFA1A1AA),
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: const Color(0xFFA1A1AA)),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              value,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF18181B)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: hasAgreedToIntegrity
+                  ? () {
+                      _controller.submitDelivery(
+                        deliveryId: item.id,
+                        fileName: 'submissao_${item.id.toLowerCase()}.zip',
+                        gitUrl: gitController.text,
+                        comments: obsController.text,
+                      );
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Atividade submetida com sucesso! Protocolo emitido.')));
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+              child: const Text('Protocolar Envio'),
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  // ==========================================
-  // BADGES E BOTÕES DE ESTADO
-  // ==========================================
-  Widget _buildUrgentBadge(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, size: 12, color: Color(0xFFDC2626)),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFDC2626),
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildNormalBadge(String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F4F5),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 12, color: const Color(0xFF71717A)),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 10, color: Color(0xFF52525B)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBlueBadge(String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 12, color: const Color(0xFF2563EB)),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2563EB),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOutlineGreenBadge(String text, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF86EFAC)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 12, color: const Color(0xFF16A34A)),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF16A34A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    String label,
-    IconData icon, {
-    bool isDark = false,
-    bool isGreen = false,
-  }) {
-    Color bgColor = Colors.white;
-    if (isDark) bgColor = const Color(0xFF18181B);
-    if (isGreen)
-      bgColor = const Color(0xFF14532D); // Verde bem escuro conforme o layout
-
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: Icon(icon, size: 16, color: Colors.white),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+  void _showProtocolModal(BuildContext context, StudentDeliveryItem item) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Protocolo de Entrega Emitido', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Atividade: ${item.title}'),
+            const SizedBox(height: 8),
+            Text('Código do Protocolo: ${item.protocol ?? 'AGR-2026-SUB'}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+            const SizedBox(height: 8),
+            const Text('Status: Em fila de correção pedagógica pelo docente titular.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+          ],
         ),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: bgColor,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 0,
+        actions: [
+          ElevatedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fechar')),
+        ],
       ),
     );
   }
