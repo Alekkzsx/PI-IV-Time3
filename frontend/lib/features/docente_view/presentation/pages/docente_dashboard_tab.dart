@@ -237,13 +237,17 @@ class DocenteDashboardTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                footerLabel,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: DocenteColors.textSecondary,
+              Expanded(
+                child: Text(
+                  footerLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: DocenteColors.textSecondary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 footerValue,
                 style: const TextStyle(
