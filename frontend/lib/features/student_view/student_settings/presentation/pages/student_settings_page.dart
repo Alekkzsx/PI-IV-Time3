@@ -252,7 +252,7 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
             trailing: Switch(
               value: _controller.isTwoFactorEnabled,
               onChanged: (_) => _controller.toggleTwoFactor(),
-              activeColor: const Color(0xFF16A34A),
+              activeThumbColor: const Color(0xFF16A34A),
             ),
           ),
           const Divider(height: 1),
