@@ -149,18 +149,24 @@ class _ClassesPageState extends State<ClassesPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ignore: deprecated_member_use
               RadioListTile<String>(
                 title: const Text('Impor pelo Admin (Trava Regimental)'),
                 subtitle: const Text('A fórmula regimental (N1 40% / N2 60%) é obrigatória e bloqueada contra alterações no Gradebook do professor.'),
                 value: 'Impor pelo Admin',
+                // ignore: deprecated_member_use
                 groupValue: currentRegime,
+                // ignore: deprecated_member_use
                 onChanged: (val) => setModalState(() => currentRegime = val!),
               ),
+              // ignore: deprecated_member_use
               RadioListTile<String>(
                 title: const Text('Conceder Autonomia Docente'),
                 subtitle: const Text('Permite ao professor flexibilizar pesos de provas, atividades práticas e projetos integradores no diário.'),
                 value: 'Autonomia Docente',
+                // ignore: deprecated_member_use
                 groupValue: currentRegime,
+                // ignore: deprecated_member_use
                 onChanged: (val) => setModalState(() => currentRegime = val!),
               ),
             ],
