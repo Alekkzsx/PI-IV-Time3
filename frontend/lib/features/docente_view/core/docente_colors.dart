@@ -30,4 +30,14 @@ class DocenteColors {
 
   static const Color info = Color(0xFF2563EB);
   static const Color infoLight = Color(0xFFEFF6FF);
+
+  // Semantic color aliases for high consistency across all widgets
+  static const Color charcoal = textPrimary;
+  static const Color emerald = success;
+  static const Color crimson = danger;
+  static const Color amber = warning;
+  static const Color slate = textSecondary;
+  static const Color muted = textMuted;
+  static const Color white = surface;
+  static const Color offWhite = background;
 }
