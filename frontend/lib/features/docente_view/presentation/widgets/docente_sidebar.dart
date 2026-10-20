@@ -297,3 +297,4 @@ class DocenteSidebar extends StatelessWidget {
     );
   }
 }
+
