@@ -62,24 +62,28 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Bem-vindo de volta, Gabriel Soares.',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF18181B),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Bem-vindo de volta, Gabriel Soares.',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF18181B),
+                ),
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'R.A.: 2024.1.00892 • Bacharelado em Engenharia de Software (4º Semestre • Matutino)',
-              style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
-            ),
-          ],
+              SizedBox(height: 4),
+              Text(
+                'R.A.: 2024.1.00892 • Bacharelado em Engenharia de Software (4º Semestre • Matutino)',
+                style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
