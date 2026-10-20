@@ -1,7 +1,6 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Guilherme Henrique Moreira e Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin_view/audit/presentation/pages/audit_page.dart';
 import 'package:pi_iv_time3/features/admin_view/calendar/presentation/pages/calendar_page.dart';
 import 'package:pi_iv_time3/features/admin_view/classes/presentation/pages/classes_page.dart';
@@ -10,6 +9,7 @@ import 'package:pi_iv_time3/features/admin_view/dashboard/presentation/pages/pai
 import 'package:pi_iv_time3/features/admin_view/secretary/presentation/pages/secretary_page.dart';
 import 'package:pi_iv_time3/features/admin_view/settings/presentation/pages/admin_configure_page.dart';
 import 'package:pi_iv_time3/features/admin_view/users/presentation/pages/users_page.dart';
+import 'package:pi_iv_time3/shared/layout/institutional_top_header.dart';
 import '../widgets/admin_sidebar.dart';
 
 /// Shell principal da Visão Administrativa / Gestão do Campus.
@@ -117,7 +117,31 @@ class _AdminShellPageState extends State<AdminShellPage> {
               Expanded(
                 child: Column(
                   children: [
-                    _buildTopHeader(context, isDesktop: isDesktop),
+                    InstitutionalTopHeader(
+                      title: _getPageTitle(_activeTab),
+                      showMobileMenuButton: !isDesktop,
+                      actions: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.schedule_rounded,
+                            size: 22,
+                            color: Color(0xFF525252),
+                          ),
+                          tooltip: 'Prazos Regimentais',
+                          onPressed: () {},
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 24,
+                            color: Color(0xFF525252),
+                          ),
+                          tooltip: 'Notificações Institucionais',
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
                     Expanded(
                       child: Container(
                         color: const Color(0xFFFAF9F6),
@@ -131,62 +155,6 @@ class _AdminShellPageState extends State<AdminShellPage> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildTopHeader(BuildContext context, {required bool isDesktop}) {
-    return Container(
-      height: 54,
-      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF5F5F5),
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 1)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              if (!isDesktop) ...[
-                Builder(
-                  builder: (ctx) => IconButton(
-                    icon: const Icon(
-                      Icons.menu_rounded,
-                      size: 22,
-                      color: Color(0xFF18181B),
-                    ),
-                    onPressed: () => Scaffold.of(ctx).openDrawer(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                _getPageTitle(_activeTab),
-                style: jakarta(
-                  size: 18,
-                  weight: FontWeight.w500,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.schedule_rounded, size: 22, color: Color(0xFF525252)),
-                tooltip: 'Prazos Regimentais',
-                onPressed: () {},
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: const Icon(Icons.notifications_none_rounded, size: 24, color: Color(0xFF525252)),
-                tooltip: 'Notificações Institucionais',
-                onPressed: () {},
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

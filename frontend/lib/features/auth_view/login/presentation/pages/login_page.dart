@@ -1,32 +1,24 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../controllers/login_controller.dart';
 import '../widgets/brand_panel.dart';
+import '../widgets/login_form_fields.dart';
 import '../widgets/login_profile_tabs.dart';
 
 /// Página principal de autenticação de usuários no portal acadêmico.
 /// Suporta layouts responsivos (desktop e compacto/mobile).
 class LoginPage extends StatefulWidget {
-  /// Controlador reativo opcional que orquestra as regras de negócio de login.
-  ///
-  /// Caso seja omitido (`null`), a tela operará em modo autônomo com simulação
-  /// assíncrona local para prototipagem e visualização de interface.
   final LoginController? controller;
 
-  /// Construtor de [LoginPage].
   const LoginPage({super.key, this.controller});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
-/// Estado da tela de autenticação [LoginPage].
-///
-/// Gerencia os controladores de texto do formulário, seleção de perfil dinâmico,
-/// visibilidade da senha e submissão das credenciais.
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
 
@@ -53,17 +45,14 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// Notifica a interface sobre atualizações de estado emitidas pelo [LoginController].
   void _onControllerChanged() {
     if (mounted) {
       setState(() {});
     }
   }
 
-  /// Indica se a interface está em estado de processamento/carregamento.
   bool get _isLoading => widget.controller?.isLoading ?? _localLoading;
 
-  /// Retorna o rótulo do campo identificador adaptado ao perfil acadêmico selecionado.
   String get _identityLabel {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -75,7 +64,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// Retorna um formato ou exemplo de credencial de acordo com o perfil ativo.
   String get _identityExample {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -87,7 +75,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// Retorna o texto informativo (placeholder) do campo de identificação do perfil.
   String get _identityPlaceholder {
     switch (_selectedProfile) {
       case UserProfile.aluno:
@@ -99,7 +86,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// Executa o fluxo de validação e submissão da tentativa de autenticação.
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -143,7 +129,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
 
-        // Redireciona para o painel correspondente após login bem-sucedido
         _redirectAfterLogin();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -203,26 +188,20 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // Redireciona para o painel correspondente (modo simulação local)
       _redirectAfterLogin();
     }
   }
 
-  /// Gerencia o redirecionamento de acordo com o perfil logado.
   void _redirectAfterLogin() {
     if (_selectedProfile == UserProfile.admin) {
-      // Redireciona para a página principal do shell administrativo (shell_admin)
       Navigator.of(context).pushReplacementNamed('/admin-shell');
     } else if (_selectedProfile == UserProfile.aluno) {
-      // Redireciona para o painel principal do aluno
       Navigator.of(context).pushReplacementNamed('/student/home');
     } else if (_selectedProfile == UserProfile.docente) {
-      // Redireciona para o portal principal do docente
       Navigator.of(context).pushReplacementNamed('/docente/home');
     }
   }
 
-  /// Redireciona para o fluxo institucional de recuperação de senha acadêmica.
   void _handleForgotPassword() {
     Navigator.of(context).pushNamed('/recover-password');
   }
@@ -240,27 +219,23 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// Constrói o layout de visualização desktop em duas colunas complementares.
   Widget _buildDesktopLayout() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Coluna Esquerda: Painel Hero Cósmico (50% largura)
         const Expanded(child: BrandPanel(compact: false)),
-        // Coluna Direita: Área do Formulário de Login (50% largura)
         Expanded(child: _buildLoginContent(isCompact: false)),
       ],
     );
   }
 
-  /// Constrói o layout compacto responsivo para telas móveis ou janelas menores que 900px.
   Widget _buildCompactLayout() {
     return SafeArea(
       child: SingleChildScrollView(
         child: Column(
           children: [
             const SizedBox(
-              height: 520, // min-h-[520px]
+              height: 520,
               width: double.infinity,
               child: BrandPanel(compact: true),
             ),
@@ -271,25 +246,23 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// Constrói a área central com o formulário de login e seus controles interativos.
   Widget _buildLoginContent({bool isCompact = false}) {
     final errorMessage = widget.controller?.errorMessage;
 
     final formContent = Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440), // max-w-[440px]
+        constraints: const BoxConstraints(maxWidth: 440),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Cabeçalho do Formulário
               Text(
                 'Acesse seu AVA',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   color: AppColors.textPrimary,
-                  fontSize: isCompact ? 24 : 30, // text-2xl sm:text-3xl
+                  fontSize: isCompact ? 24 : 30,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
                 ),
@@ -300,7 +273,7 @@ class _LoginPageState extends State<LoginPage> {
                 text: TextSpan(
                   style: GoogleFonts.plusJakartaSans(
                     color: AppColors.textSecondary,
-                    fontSize: isCompact ? 12 : 13.5, // text-xs sm:text-sm
+                    fontSize: isCompact ? 12 : 13.5,
                     height: 1.5,
                   ),
                   children: const [
@@ -319,13 +292,11 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 28),
-
-              // Label do Seletor de Perfil
               Text(
                 'SELECIONE SEU PERFIL',
                 style: GoogleFonts.plusJakartaSans(
                   color: AppColors.textSecondary,
-                  fontSize: 11, // text-[11px]
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.8,
                 ),
@@ -342,27 +313,42 @@ class _LoginPageState extends State<LoginPage> {
                 },
               ),
               const SizedBox(height: 20),
-
-              // 1. Campo de Identificador
-              _buildIdentityInput(),
+              LoginIdentityField(
+                controller: _identityController,
+                label: _identityLabel,
+                example: _identityExample,
+                placeholder: _identityPlaceholder,
+              ),
               const SizedBox(height: 16),
-
-              // 2. Campo de Senha
-              _buildPasswordInput(),
+              LoginPasswordField(
+                controller: _passwordController,
+                obscurePassword: _obscurePassword,
+                onToggleVisibility: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                onSubmitted: _handleLogin,
+              ),
               const SizedBox(height: 14),
-
-              // 3. Linha do Checkbox e Link Esqueceu a Senha
-              _buildCredentialRow(),
-
-              // 4. Caixa de Alerta de Erro (Condicional)
+              LoginCredentialRow(
+                rememberCredential: _rememberCredential,
+                onToggleRemember: (val) {
+                  setState(() {
+                    _rememberCredential = val;
+                  });
+                },
+                onForgotPassword: _handleForgotPassword,
+              ),
               if (errorMessage != null && errorMessage.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _buildErrorAlertBox(errorMessage),
+                LoginErrorAlertBox(errorMessage: errorMessage),
               ],
-
-              // 5. Botão de Ação Primária: "Entrar no AVA"
               const SizedBox(height: 20),
-              _buildLoginButton(),
+              LoginSubmitButton(
+                isLoading: _isLoading,
+                onPressed: _handleLogin,
+              ),
             ],
           ),
         ),
@@ -387,335 +373,6 @@ class _LoginPageState extends State<LoginPage> {
                 child: formContent,
               ),
             ),
-    );
-  }
-
-  /// Constrói o campo de identificador com dica contextual.
-  Widget _buildIdentityInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                _identityLabel,
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppColors.slate800,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Text(
-              _identityExample,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                color: AppColors.textMuted,
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: _identityController,
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.next,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13.5,
-            color: AppColors.textPrimary,
-          ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Informe seu identificador de acesso.';
-            }
-            return null;
-          },
-          decoration: _inputDecoration(
-            hintText: _identityPlaceholder,
-            prefixIcon: Icons.assignment_ind_outlined,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Constrói o campo de entrada de senha com controle de visibilidade.
-  Widget _buildPasswordInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Senha de Acesso',
-          style: GoogleFonts.plusJakartaSans(
-            color: AppColors.slate800,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (_) => _handleLogin(),
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13.5,
-            color: AppColors.textPrimary,
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Informe sua senha.';
-            }
-            if (value.length < 6) {
-              return 'A senha precisa ter pelo menos 6 caracteres.';
-            }
-            return null;
-          },
-          decoration:
-              _inputDecoration(
-                hintText: 'Sua senha cadastrada no portal',
-                prefixIcon: Icons.lock_outline_rounded,
-              ).copyWith(
-                suffixIcon: IconButton(
-                  tooltip: _obscurePassword ? 'Mostrar senha' : 'Ocultar senha',
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: AppColors.textMuted,
-                    size: 17,
-                  ),
-                ),
-              ),
-        ),
-      ],
-    );
-  }
-
-  /// Constrói a linha contendo o checkbox "Lembrar credencial" e a navegação "Esqueceu a senha?".
-  Widget _buildCredentialRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _rememberCredential = !_rememberCredential;
-                });
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: _rememberCredential
-                          ? AppColors.buttonPrimary
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: _rememberCredential
-                            ? AppColors.buttonPrimary
-                            : const Color(0xFFCBD5E1),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: _rememberCredential
-                        ? const Icon(Icons.check, size: 11, color: Colors.white)
-                        : null,
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      'Lembrar credencial neste computador confiável',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        color: AppColors.slate700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: _handleForgotPassword,
-            child: Text(
-              'Esqueceu a senha?',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Constrói o quadro de aviso e alerta visual de erros retornados pela autenticação.
-  Widget _buildErrorAlertBox(String errorMessage) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.roseBackground,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.roseBorder, width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: AppColors.roseIcon,
-            size: 16,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              errorMessage,
-              style: GoogleFonts.plusJakartaSans(
-                color: AppColors.roseText,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Constrói o botão de ação principal "Entrar no AVA" com feedback de carregamento reativo.
-  Widget _buildLoginButton() {
-    return SizedBox(
-      height: 48,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1F0B1325),
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _handleLogin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonPrimary,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.buttonPrimary.withValues(
-              alpha: 0.75,
-            ),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: _isLoading
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Autenticando...',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Entrar no AVA',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  /// Retorna a estilização e decoração visual padronizada dos campos de texto do formulário.
-  InputDecoration _inputDecoration({
-    required String hintText,
-    required IconData prefixIcon,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: GoogleFonts.plusJakartaSans(
-        color: AppColors.textMuted,
-        fontSize: 13,
-      ),
-      prefixIcon: Icon(prefixIcon, color: AppColors.textMuted, size: 16),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.borderLight),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.borderLight),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.slate800, width: 1.4),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.roseIcon),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.roseIcon, width: 1.4),
-      ),
     );
   }
 }
