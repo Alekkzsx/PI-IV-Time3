@@ -41,3 +41,4 @@ class DocenteColors {
   static const Color white = surface;
   static const Color offWhite = background;
 }
+
