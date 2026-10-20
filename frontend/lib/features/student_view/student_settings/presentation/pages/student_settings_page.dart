@@ -1,8 +1,8 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import '../../data/student_mock_data.dart';
-import '../controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student_view/presentation/controllers/student_portal_controller.dart';
 
 /// Tela de Configurações da Conta Discente.
 /// Implementa as 5 seções de governança: Perfil, Segurança com 2FA,
@@ -213,10 +213,10 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
               const SizedBox(width: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(StudentMockData.studentName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Text('R.A.: ${StudentMockData.studentRa} • Registro Homologado DTI', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                children: [
+                  const Text(StudentMockData.studentName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  const Text('R.A.: ${StudentMockData.studentRa} • Registro Homologado DTI', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                 ],
               ),
             ],
