@@ -8,6 +8,7 @@ import 'student_sidebar.dart';
 import '../../features/student_view/student_messages/presentation/pages/student_messages_page.dart';
 import '../../features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
 import '../../features/student_view/student_deliveries/presentation/pages/student_deliveries_page.dart';
+import '../../features/student_view/student_dashboard/presentation/pages/student_dashboard_page.dart';
 
 /// Estrutura base compartilhada (Shell) da Visão do Aluno do Portal AVA AGMRM.
 ///
@@ -63,8 +64,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
       case StudentNavItem.secretaria:
         return const StudentSecretariatPage();
       case StudentNavItem.painelGeral:
-        return widget
-            .child; // Exibe o Painel Geral principal passado no main.dart
+        return const StudentDashboardPage();
       default:
         return widget.child; // Fallback
     }
