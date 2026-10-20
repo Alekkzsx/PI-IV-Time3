@@ -54,24 +54,28 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Minhas Disciplinas',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF18181B),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Minhas Disciplinas',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF18181B),
+                ),
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Ambiente Virtual de Aprendizagem (AVA), cronograma de aulas, tarefas ativas e boletim oficial.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
-            ),
-          ],
+              SizedBox(height: 4),
+              Text(
+                'Ambiente Virtual de Aprendizagem (AVA), cronograma de aulas, tarefas ativas e boletim oficial.',
+                style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 16),
         Row(
           children: [
             OutlinedButton.icon(
