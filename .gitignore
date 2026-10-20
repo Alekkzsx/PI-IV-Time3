@@ -126,6 +126,7 @@ desktop.ini
 PROJECT.md
 TEST_INFRA.md
 ORIGINAL_REQUEST.md
+TEST_READY.md
 
 # VS Code (ignora histórico e workspace local, mantém configurações compartilhadas se desejado)
 .vscode/*
@@ -138,6 +139,7 @@ ORIGINAL_REQUEST.md
 
 # ─── 7. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
 !.github/
+
 
 
 
