@@ -8,6 +8,10 @@ import 'student_sidebar.dart';
 import '../../features/student_view/student_messages/presentation/pages/student_messages_page.dart';
 import '../../features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
 import '../../features/student_view/student_deliveries/presentation/pages/student_deliveries_page.dart';
+import '../../features/student_view/student_dashboard/presentation/pages/student_dashboard_page.dart';
+import '../../features/student_view/student_disciplines/presentation/pages/student_disciplines_page.dart';
+import '../../features/student_view/student_calendar/presentation/pages/student_calendar_page.dart';
+import '../../features/student_view/student_settings/presentation/pages/student_settings_page.dart';
 
 /// Estrutura base compartilhada (Shell) da Visão do Aluno do Portal AVA AGMRM.
 ///
@@ -63,8 +67,13 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
       case StudentNavItem.secretaria:
         return const StudentSecretariatPage();
       case StudentNavItem.painelGeral:
-        return widget
-            .child; // Exibe o Painel Geral principal passado no main.dart
+        return const StudentDashboardPage();
+      case StudentNavItem.disciplinas:
+        return const StudentDisciplinesPage();
+      case StudentNavItem.calendario:
+        return const StudentCalendarPage();
+      case StudentNavItem.configuracoes:
+        return const StudentSettingsPage();
       default:
         return widget.child; // Fallback
     }
@@ -84,6 +93,12 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
         break;
       case StudentNavItem.painelGeral:
         _currentHeaderTitle = 'Painel Geral';
+      case StudentNavItem.disciplinas:
+        _currentHeaderTitle = 'Disciplinas';
+      case StudentNavItem.calendario:
+        _currentHeaderTitle = 'Calendário';
+      case StudentNavItem.configuracoes:
+        _currentHeaderTitle = 'Configurações';
         break;
       default:
         _currentHeaderTitle = widget.headerTitle;

@@ -87,6 +87,10 @@ coverage/
 .nyc_output/
 *.tsbuildinfo
 
+# Cache, ferramentas e arquivos gerados pelo Dart/Flutter
+.dart_tool/
+**/.dart_tool/
+
 # ─── 4. Logs e Arquivos Temporários ───
 logs/
 *.log
