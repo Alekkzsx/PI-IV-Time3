@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'student_sidebar.dart';
+import '../../features/student_view/presentation/controllers/student_portal_controller.dart';
 
 // Importações das páginas do Aluno (ajuste a quantidade de '../' se o caminho estiver diferente)
 import '../../features/student_view/student_messages/presentation/pages/student_messages_page.dart';
@@ -52,7 +53,28 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
   void initState() {
     super.initState();
     _currentNavItem = widget.activeNavItem;
+    StudentPortalController.instance.activeNavItem = _currentNavItem;
     _currentHeaderTitle = widget.headerTitle;
+    StudentPortalController.instance.addListener(_onPortalControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    StudentPortalController.instance.removeListener(_onPortalControllerChanged);
+    super.dispose();
+  }
+
+  void _onPortalControllerChanged() {
+    if (!mounted) return;
+    final controller = StudentPortalController.instance;
+    if (_currentNavItem != controller.activeNavItem) {
+      setState(() {
+        _currentNavItem = controller.activeNavItem;
+        _updateHeaderTitle(_currentNavItem);
+      });
+    } else {
+      setState(() {});
+    }
   }
 
   // --- MÉTODOS DE CONTROLE DE ROTEAMENTO INTERNO ---
@@ -113,6 +135,8 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
       return;
     }
 
+    StudentPortalController.instance.setNavItem(item);
+
     // Troca a página e o título internamente, redesenhando apenas o miolo
     setState(() {
       _currentNavItem = item;
@@ -130,14 +154,14 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 820;
+    final isDesktop = screenWidth >= 768; // hidden md:flex (desktop >= 768px)
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       drawer: isDesktop
           ? null
           : Drawer(
-              width: 160,
+              width: 280,
               backgroundColor: Colors.white,
               child: StudentSidebar(
                 activeItem: _currentNavItem, // Usando o estado dinâmico interno
@@ -247,6 +271,45 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
           ),
           Row(
             children: [
+              if (_currentNavItem == StudentNavItem.painelGeral && isDesktop) ...[
+                OutlinedButton.icon(
+                  key: const Key('btn_toggle_dashboard_view'),
+                  onPressed: () {
+                    StudentPortalController.instance.toggleDashboardView(
+                      !StudentPortalController.instance.isGridView,
+                    );
+                  },
+                  icon: Icon(
+                    StudentPortalController.instance.isGridView
+                        ? Icons.view_list_rounded
+                        : Icons.grid_view_rounded,
+                    size: 15,
+                    color: const Color(0xFF18181B),
+                  ),
+                  label: Text(
+                    StudentPortalController.instance.isGridView
+                        ? 'Alterar para visualização em lista'
+                        : 'Alterar para visualização em grade',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF18181B),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               IconButton(
                 onPressed: () {},
                 tooltip: 'Histórico Recente',

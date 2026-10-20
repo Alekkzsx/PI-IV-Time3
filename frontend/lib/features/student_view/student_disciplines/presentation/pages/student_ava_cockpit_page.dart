@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
@@ -118,7 +118,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               Container(
                 width: 52,
                 height: 52,
-                decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(10)),
                 alignment: Alignment.center,
                 child: Text(widget.discipline.code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
@@ -158,7 +158,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
       children: [
         Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF18181B))),
       ],
     );
   }
@@ -178,14 +178,14 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               label: Text(_tabs[index]),
               selected: isSelected,
               onSelected: (_) => _controller.setAvaTab(index),
-              selectedColor: const Color(0xFF0F172A),
+              selectedColor: const Color(0xFF18181B),
               backgroundColor: Colors.white,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : const Color(0xFF334155),
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
-              side: BorderSide(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+              side: BorderSide(color: isSelected ? const Color(0xFF18181B) : const Color(0xFFE2E8F0)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           );
@@ -244,7 +244,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
             title: Text(m['titulo'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             subtitle: Text('${m['semana']} • ${m['aulas']} aulas gravadas e materiais em PDF', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
             trailing: Chip(
-              label: Text(m['status'] as String, style: TextStyle(fontSize: 11, color: m['status'] == 'Concluído' ? const Color(0xFF16A34A) : const Color(0xFF0F172A))),
+              label: Text(m['status'] as String, style: TextStyle(fontSize: 11, color: m['status'] == 'Concluído' ? const Color(0xFF16A34A) : const Color(0xFF18181B))),
               backgroundColor: m['status'] == 'Concluído' ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
             ),
             children: [
@@ -291,7 +291,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 onPressed: () => _showSubmissionModal(context),
                 icon: const Icon(Icons.upload_file, size: 16),
                 label: const Text('Enviar Atividade'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
               ),
             ],
           ),
@@ -344,7 +344,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
   // --- ABA 3: Sala Virtual Ao Vivo (Prints 13, 14, 15) ---
   Widget _buildLiveClassroomTab() {
     return Container(
-      decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
@@ -457,7 +457,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 onPressed: () => _showNewTopicDialog(context),
                 icon: const Icon(Icons.add_comment, size: 16),
                 label: const Text('Publicar Nova Dúvida'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
               ),
             ],
           ),
@@ -475,7 +475,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(topic['autor']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+                      Text(topic['autor']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF18181B))),
                       Text(topic['tempo']!, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                     ],
                   ),
@@ -574,8 +574,8 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
           ...people.map((p) {
             return ListTile(
               leading: CircleAvatar(
-                backgroundColor: (p['isTeacher'] as bool) ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
-                foregroundColor: (p['isTeacher'] as bool) ? Colors.white : const Color(0xFF0F172A),
+                backgroundColor: (p['isTeacher'] as bool) ? const Color(0xFF18181B) : const Color(0xFFE2E8F0),
+                foregroundColor: (p['isTeacher'] as bool) ? Colors.white : const Color(0xFF18181B),
                 child: Text((p['nome'] as String)[0]),
               ),
               title: Text(p['nome'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -612,7 +612,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
 
   Widget _buildFileRow(String name, String desc, String size) {
     return ListTile(
-      leading: const Icon(Icons.insert_drive_file, color: Color(0xFF0F172A)),
+      leading: const Icon(Icons.insert_drive_file, color: Color(0xFF18181B)),
       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
       subtitle: Text('$desc • $size', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
       trailing: IconButton(icon: const Icon(Icons.file_download_outlined), onPressed: () {}),
@@ -629,11 +629,11 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
         children: const [
           Text('Programa da Disciplina (Syllabus Homologado MEC)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           SizedBox(height: 16),
-          Text('EMENTA:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+          Text('EMENTA:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF18181B))),
           SizedBox(height: 4),
           Text('Padrões de projeto de software (GoF: Criacionais, Estruturais e Comportamentais). Arquiteturas em camadas, Clean Architecture e princípios SOLID. Modelagem em UML e desenvolvimento orientado a testes.', style: TextStyle(fontSize: 13, color: Color(0xFF334155))),
           SizedBox(height: 16),
-          Text('BIBLIOGRAFIA BÁSICA (ABNT):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A))),
+          Text('BIBLIOGRAFIA BÁSICA (ABNT):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF18181B))),
           SizedBox(height: 4),
           Text('1. GAMMA, Erich et al. Padrões de Projeto: Soluções Reutilizáveis de Software Orientado a Objetos. Porto Alegre: Bookman, 2000.\n2. MARTIN, Robert C. Clean Architecture: A Craftsman\'s Guide to Software Structure and Design. Prentice Hall, 2017.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
         ],
@@ -687,7 +687,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 },
                 icon: const Icon(Icons.save, size: 16),
                 label: const Text('Salvar Anotações'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
               ),
             ],
           ),
@@ -747,7 +747,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.send, color: Color(0xFF0F172A)),
+                icon: const Icon(Icons.send, color: Color(0xFF18181B)),
                 onPressed: () {
                   chatInput.clear();
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mensagem enviada no chat!')));
@@ -817,7 +817,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Atividade submetida com sucesso! Protocolo gerado.')));
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
             child: const Text('Confirmar Submissão'),
           ),
         ],
@@ -856,7 +856,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dúvida publicada no fórum da disciplina!')));
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
             child: const Text('Publicar'),
           ),
         ],

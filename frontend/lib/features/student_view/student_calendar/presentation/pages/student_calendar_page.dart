@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student_view/presentation/controllers/student_portal_controller.dart';
@@ -127,7 +127,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Novo Evento'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F172A),
+                  backgroundColor: const Color(0xFF18181B),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -157,7 +157,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+            color: isSelected ? const Color(0xFF18181B) : const Color(0xFF64748B),
           ),
         ),
       ),
@@ -237,7 +237,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                   Container(
                     width: 22,
                     height: 22,
-                    decoration: isToday ? const BoxDecoration(color: Color(0xFF0F172A), shape: BoxShape.circle) : null,
+                    decoration: isToday ? const BoxDecoration(color: Color(0xFF18181B), shape: BoxShape.circle) : null,
                     alignment: Alignment.center,
                     child: Text(
                       '$dayNumber',
@@ -268,13 +268,13 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Compromissos e Prazos do Semestre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          const Text('Compromissos e Prazos do Semestre', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF18181B))),
           const SizedBox(height: 16),
           if (filteredEvents.isEmpty)
             const Padding(padding: EdgeInsets.all(32), child: Center(child: Text('Nenhum evento correspondente aos filtros selecionados.')))
           else
             ...filteredEvents.map((e) {
-              Color tagColor = const Color(0xFF0F172A);
+              Color tagColor = const Color(0xFF18181B);
               if (e.type == 'Entrega') tagColor = const Color(0xFFDC2626);
               if (e.type == 'Aula') tagColor = const Color(0xFF16A34A);
               if (e.type == 'Avaliação') tagColor = const Color(0xFFD97706);
@@ -372,7 +372,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                     Container(width: 10, height: 10, decoration: BoxDecoration(color: cor, shape: BoxShape.circle)),
                     const SizedBox(width: 8),
                     Expanded(child: Text(tipo, style: const TextStyle(fontSize: 13))),
-                    Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: const Color(0xFF0F172A)),
+                    Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: const Color(0xFF18181B)),
                   ],
                 ),
               ),
@@ -392,7 +392,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                 child: Row(
                   children: [
                     Expanded(child: Text(d, style: const TextStyle(fontSize: 13))),
-                    Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: const Color(0xFF0F172A)),
+                    Icon(isChecked ? Icons.check_box : Icons.check_box_outline_blank, size: 18, color: const Color(0xFF18181B)),
                   ],
                 ),
               ),
@@ -473,7 +473,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Evento acadêmico agendado com sucesso!')));
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
               child: const Text('Salvar Evento'),
             ),
           ],

@@ -12,6 +12,7 @@ import 'features/auth_view/reset_password/presentation/pages/reset_password_page
 import 'features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
 import 'features/student_view/student_messages/presentation/pages/student_messages_page.dart';
 import 'features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
+import 'features/student_view/student_dashboard/presentation/pages/student_dashboard_page.dart';
 import 'features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'shared/auth/data/auth_repository_impl.dart';
 import 'shared/auth/external/auth_remote_datasource_impl.dart';
@@ -85,12 +86,10 @@ class PortalAvaApp extends StatelessWidget {
             RecoverPasswordPage(controller: controller),
         '/verify-code': (context) => const VerifyCodePage(),
         '/reset-password': (context) => const ResetPasswordPage(),
-        '/student/home': (context) => StudentPortalShell(
+        '/student/home': (context) => const StudentPortalShell(
           headerTitle: 'Painel Geral',
           activeNavItem: StudentNavItem.painelGeral,
-          // Como não sei o nome do seu widget do painel geral, coloquei um texto provisório.
-          // Depois, substitua esse Center(...) pela sua página real do Painel Geral!
-          child: Center(child: Text('Tela do Painel Geral provisória')),
+          child: StudentDashboardPage(),
         ),
         '/student/messages': (context) => const StudentMessagesPage(),
         '/student/secretaria': (context) => const StudentSecretariatPage(),

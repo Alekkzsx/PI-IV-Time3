@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
@@ -94,7 +94,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
               icon: const Icon(Icons.receipt_long_outlined, size: 18),
               label: const Text('Boletim & Histórico Oficial'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
+                backgroundColor: const Color(0xFF18181B),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -124,7 +124,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
               'Carga Horária do Semestre',
               '190h / 280h cursadas (68%)',
               Icons.timelapse_outlined,
-              const Color(0xFF0F172A),
+              const Color(0xFF18181B),
             ),
           ),
           Container(width: 1, height: 48, color: const Color(0xFFE5E7EB)),
@@ -170,7 +170,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
               children: [
                 Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)), overflow: TextOverflow.ellipsis),
+                Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF18181B)), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -198,14 +198,14 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
             label: Text(f),
             selected: isSelected,
             onSelected: (_) => setState(() => _selectedFilter = f),
-            selectedColor: const Color(0xFF0F172A),
+            selectedColor: const Color(0xFF18181B),
             backgroundColor: Colors.white,
             labelStyle: TextStyle(
               color: isSelected ? Colors.white : const Color(0xFF334155),
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               fontSize: 12,
             ),
-            side: BorderSide(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+            side: BorderSide(color: isSelected ? const Color(0xFF18181B) : const Color(0xFFE2E8F0)),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
@@ -246,7 +246,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: const Color(0xFF18181B),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(d.code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
@@ -258,13 +258,13 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(d.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text(d.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF18181B))),
               Text('${d.professor} • ${d.time}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
               const SizedBox(height: 8),
               LinearProgressIndicator(
                 value: d.progress,
                 backgroundColor: const Color(0xFFE2E8F0),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFF0F172A)),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFF18181B)),
               ),
               const SizedBox(height: 12),
               Row(
@@ -277,7 +277,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
                       setState(() => _activeDisciplineCockpit = d);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F172A),
+                      backgroundColor: const Color(0xFF18181B),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     ),
@@ -390,7 +390,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(period.period, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                        Text(period.period, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF18181B))),
                         const SizedBox(height: 8),
                         Table(
                           border: TableBorder.all(color: const Color(0xFFE5E7EB)),
@@ -441,7 +441,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
             child: const Text('Fechar'),
           ),
         ],
@@ -467,7 +467,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
               children: const [
                 Text('Curso: Bacharelado em Engenharia de Software (4º Semestre)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 SizedBox(height: 12),
-                Text('Critérios Regimentais de Aprovação (Resolução CONSEPE 2026/04):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
+                Text('Critérios Regimentais de Aprovação (Resolução CONSEPE 2026/04):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF18181B))),
                 SizedBox(height: 4),
                 Text('• Aprovação Direta: Média Final ≥ 6.0 e Frequência Global ≥ 75%\n• Fórmula: Média Final = (N1 x 0.4) + (N2 x 0.6)\n• Exame Especial: Médias entre 4.0 e 5.9 têm direito à Prova Final.\n• Reprovação por Falta: Frequência inferior a 75% reprova sem direito a exame.', style: TextStyle(fontSize: 12, color: Color(0xFF334155))),
                 SizedBox(height: 16),
@@ -483,7 +483,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
             child: const Text('Entendido'),
           ),
         ],

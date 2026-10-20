@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
@@ -84,7 +84,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
           icon: const Icon(Icons.cloud_upload_outlined, size: 16),
           label: const Text('Submeter Atividade'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0F172A),
+            backgroundColor: const Color(0xFF18181B),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -110,7 +110,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
         const SizedBox(width: 16),
         Expanded(child: _buildStatCard('Avaliadas com Parecer', '$evaluatedCount', 'Notas consolidadas', const Color(0xFF16A34A))),
         const SizedBox(width: 16),
-        Expanded(child: _buildStatCard('Média Ponderada', '9.7 / 10.0', 'Excelente rendimento', const Color(0xFF0F172A))),
+        Expanded(child: _buildStatCard('Média Ponderada', '9.7 / 10.0', 'Excelente rendimento', const Color(0xFF18181B))),
       ],
     );
   }
@@ -151,14 +151,14 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
             label: Text(f == 'Todas' ? 'Todas as Atividades' : f),
             selected: isSelected,
             onSelected: (_) => _controller.setDeliveryFilter(f),
-            selectedColor: const Color(0xFF0F172A),
+            selectedColor: const Color(0xFF18181B),
             backgroundColor: Colors.white,
             labelStyle: TextStyle(
               color: isSelected ? Colors.white : const Color(0xFF334155),
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               fontSize: 12,
             ),
-            side: BorderSide(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+            side: BorderSide(color: isSelected ? const Color(0xFF18181B) : const Color(0xFFE2E8F0)),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
@@ -178,7 +178,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
     return Column(
       children: filtered.map((d) {
         Color badgeBg = const Color(0xFFF1F5F9);
-        Color badgeFg = const Color(0xFF0F172A);
+        Color badgeFg = const Color(0xFF18181B);
 
         if (d.status == 'Pendente') {
           badgeBg = const Color(0xFFFEF3C7);
@@ -210,7 +210,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(4)),
+                          decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(4)),
                           child: Text(d.disciplineCode, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                         const SizedBox(width: 8),
@@ -218,7 +218,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(d.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                    Text(d.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF18181B))),
                     const SizedBox(height: 6),
                     Text('Prazo Final: ${d.dueDate} às ${d.dueHour} • Peso Regimental: ${d.weight.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12, color: Color(0xFF71717A))),
                   ],
@@ -246,7 +246,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
                       onPressed: () => _showSubmissaoDiretaModal(context, d),
                       icon: const Icon(Icons.upload_file, size: 16),
                       label: const Text('Enviar'),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
                     ),
                   ] else ...[
                     OutlinedButton(
@@ -348,7 +348,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
             child: const Text('Fechar'),
           ),
         ],
@@ -437,7 +437,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Atividade submetida com sucesso! Protocolo emitido.')));
                     }
                   : null,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF18181B), foregroundColor: Colors.white),
               child: const Text('Protocolar Envio'),
             ),
           ],

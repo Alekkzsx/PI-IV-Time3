@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import '../../../../shared/student_layout/student_sidebar.dart';
 import '../../data/student_mock_data.dart';
 
 /// Controlador reativo com estado unificado em memória para o Portal do Aluno.
@@ -9,6 +10,16 @@ class StudentPortalController extends ChangeNotifier {
   static final StudentPortalController instance = StudentPortalController._internal();
   StudentPortalController._internal();
   factory StudentPortalController() => instance;
+
+  // Navegação Ativa
+  StudentNavItem activeNavItem = StudentNavItem.painelGeral;
+
+  void setNavItem(StudentNavItem item) {
+    if (activeNavItem != item) {
+      activeNavItem = item;
+      notifyListeners();
+    }
+  }
 
   // Visualização do Dashboard
   bool isGridView = true;

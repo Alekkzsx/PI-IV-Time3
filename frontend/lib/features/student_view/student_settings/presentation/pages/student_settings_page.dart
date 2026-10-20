@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
@@ -141,11 +141,11 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFF8FAFC) : Colors.transparent,
-          border: isSelected ? const Border(left: BorderSide(color: Color(0xFF0F172A), width: 3)) : null,
+          border: isSelected ? const Border(left: BorderSide(color: Color(0xFF18181B), width: 3)) : null,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B)),
+            Icon(icon, size: 20, color: isSelected ? const Color(0xFF18181B) : const Color(0xFF64748B)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -157,7 +157,7 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
                       Expanded(
                         child: Text(
                           title,
-                          style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: const Color(0xFF0F172A)),
+                          style: TextStyle(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: const Color(0xFF18181B)),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -217,7 +217,7 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              const CircleAvatar(radius: 36, backgroundColor: Color(0xFF0F172A), child: Text('G', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))),
+              const CircleAvatar(radius: 36, backgroundColor: Color(0xFF18181B), child: Text('G', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))),
               const SizedBox(width: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +288,7 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
           const Text('Sessões Ativas:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           const SizedBox(height: 8),
           const ListTile(
-            leading: Icon(Icons.computer, color: Color(0xFF0F172A)),
+            leading: Icon(Icons.computer, color: Color(0xFF18181B)),
             title: Text('Google Chrome no Windows 11 (Esta sessão)'),
             subtitle: Text('IP: 177.136.24.10 • Curitiba, Brasil • Ativo agora'),
           ),
@@ -405,7 +405,7 @@ class _StudentSettingsPageState extends State<StudentSettingsPage> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFE2E8F0))),
-          child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+          child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF18181B))),
         ),
       ],
     );
