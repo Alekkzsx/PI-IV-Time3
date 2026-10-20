@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import '../../core/docente_colors.dart';
 import '../../domain/models/assignment_model.dart';
-import '../../domain/models/rubric_model.dart';
 import '../controllers/docente_controller.dart';
 
 /// Modal dialog for grading an assignment submission against its predefined rubric criteria.
@@ -50,8 +49,9 @@ class _RubricEvaluationModalState extends State<RubricEvaluationModal> {
   }
 
   @override
-  void disposeWidget() {
+  void dispose() {
     _feedbackController.dispose();
+    super.dispose();
   }
 
   double get _totalScore {
