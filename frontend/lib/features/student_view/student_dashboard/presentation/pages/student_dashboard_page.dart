@@ -1,26 +1,63 @@
-import 'package:flutter/material.dart';
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-class StudentDashboardPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import '../../data/student_mock_data.dart';
+import '../controllers/student_portal_controller.dart';
+
+/// Painel Geral (Dashboard) da Visão do Aluno.
+/// Exibe métricas acadêmicas consolidadas (CR, Disciplinas, Entregas, Horas Complementares),
+/// aula síncrona do dia ao vivo e alternador reativo entre visualização em Cards e Lista.
+class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
 
   @override
+  State<StudentDashboardPage> createState() => _StudentDashboardPageState();
+}
+
+class _StudentDashboardPageState extends State<StudentDashboardPage> {
+  final StudentPortalController _controller = StudentPortalController.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Retornamos uma Column dentro de um SingleChildScrollView.
-    // O Scaffold já é provido pelo StudentPortalShell.
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeaderSection(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           _buildStatsCards(),
+          const SizedBox(height: 24),
+          _buildLiveClassCard(),
+          const SizedBox(height: 24),
+          _buildDisciplinesHeader(),
+          const SizedBox(height: 16),
+          _controller.isGridView ? _buildDisciplinesGrid() : _buildDisciplinesList(),
           const SizedBox(height: 32),
-          _buildMainContentRow(),
+          _buildDeadlinesAndNotices(),
         ],
       ),
     );
   }
 
+  // ==========================================
+  // CABEÇALHO COM BOAS-VINDAS
+  // ==========================================
   Widget _buildHeaderSection() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -29,404 +66,89 @@ class StudentDashboardPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
             Text(
-              'Bem-vindo, Gabriel.',
+              'Bem-vindo de volta, Gabriel Soares.',
               style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF18181B),
-                letterSpacing: -0.5,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Engenharia de Software • 5º Semestre',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF52525B),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsCards() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildStatCard(
-            title: 'DISCIPLINAS',
-            mainValue: '04',
-            subValue: 'Ativas no Semestre',
-            bottomLabel: 'Frequência Média',
-            bottomValue: '94.8%',
-          ),
-          const SizedBox(width: 16),
-          _buildStatCard(
-            title: 'ENTREGAS DO MÊS',
-            mainValue: '04',
-            subValue: 'Cadastradas',
-            bottomLabel: 'Próximo\nVencimento',
-            bottomValue: 'Hoje,\n23:59',
-          ),
-          const SizedBox(width: 16),
-          _buildStatCard(
-            title: 'COEFICIENTE DE RENDIMENTO\n(CR)',
-            mainValue: '8.8',
-            subValue: '/10.0',
-            bottomLabel: 'Situação Acadêmica',
-            bottomValue: 'Regular',
-          ),
-          const SizedBox(width: 16),
-          _buildStatCard(
-            title: 'HORAS COMPLEMENTARES',
-            mainValue: '140h',
-            subValue: '/ 180h',
-            bottomLabel: 'Progresso Total',
-            bottomValue: '77.7%',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String mainValue,
-    required String subValue,
-    required String bottomLabel,
-    required String bottomValue,
-  }) {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF18181B),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                mainValue,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                subValue,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                bottomLabel,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-              ),
-              Text(
-                bottomValue,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 2,
-            width: double.infinity,
-            color: const Color(0xFFE5E7EB),
-            alignment: Alignment.centerLeft,
-            child: Container(
-              height: 2,
-              width: 150, // Ajuste estático para visualização
-              color: const Color(0xFF18181B),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMainContentRow() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader('Aula do Dia', 'HOJE, 20 SET'),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _buildLiveClassCard()),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildFreeScheduleCard()),
-                ],
-              ),
-              const SizedBox(height: 32),
-              _buildSectionHeader('Minhas Disciplinas', 'Ver grade →'),
-              const SizedBox(height: 16),
-              _buildDisciplinesGrid(),
-            ],
-          ),
-        ),
-        const SizedBox(width: 32),
-        Expanded(
-          flex: 1,
-          child: Column(
-            children: [
-              _buildPendingDeadlinesList(),
-              const SizedBox(height: 32),
-              _buildNoticeBoard(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(String title, String actionText) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF18181B),
-          ),
-        ),
-        Text(
-          actionText,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF71717A),
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLiveClassCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF16A34A), width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '19:00 - 20:40',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF52525B),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.circle, size: 8, color: Color(0xFF16A34A)),
-                    SizedBox(width: 4),
-                    Text(
-                      'AO VIVO AGORA',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Análise e Projeto de Sistemas II',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF18181B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Profa. Dra. Helena Bittencourt',
-            style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(
-                    Icons.videocam_outlined,
-                    size: 16,
-                    color: Color(0xFF18181B),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Sala Virtual AVA •\nTeams Link',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF18181B),
-                    ),
-                  ),
-                ],
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF18181B),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Row(
-                  children: const [
-                    Text(
-                      'Entrar na\nVideochamada',
-                      style: TextStyle(fontSize: 11, color: Colors.white),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 14, color: Colors.white),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFreeScheduleCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      height: 190, // Altura aproximada para igualar ao card ao vivo
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.calendar_today_outlined, color: Color(0xFFA1A1AA)),
-            SizedBox(height: 12),
-            Text(
-              'Horário Livre',
-              style: TextStyle(
-                fontSize: 16,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF18181B),
               ),
             ),
             SizedBox(height: 4),
             Text(
-              'Reservado para estudos e atividades práticas',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
+              'R.A.: 2024.1.00892 • Bacharelado em Engenharia de Software (4º Semestre • Matutino)',
+              style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDisciplinesGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      shrinkWrap: true,
-      childAspectRatio: 1.8,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _buildDisciplineCard(
-          '218131 - APS-II',
-          'Análise e Projeto de Sistemas II',
-          'Profa. Dra. Helena Bittencourt',
-          '68%',
-        ),
-        _buildDisciplineCard(
-          '218131 - BD-II',
-          'Estudos de Banco de Dados II',
-          'Profa. Dra. Helena Bittencourt',
-          '75%',
-        ),
-        _buildDisciplineCard(
-          '218131 - FIS',
-          'Filosofia, Informação e Sociedade',
-          'Prof. Dr. Marcos Vinícius Ferreira',
-          '82%',
-        ),
-        _buildDisciplineCard(
-          '218131 - FSO',
-          'Fundamentos de Sistemas Operacionais',
-          'Prof. Esp. André Luiz Silveira',
-          '54%',
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            children: const [
+              Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF0F172A)),
+              SizedBox(width: 8),
+              Text('2º Semestre Letivo de 2026', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildDisciplineCard(
-    String code,
-    String name,
-    String teacher,
-    String progress,
-  ) {
+  // ==========================================
+  // BLOCO DE CARDS DE KPI (4 MÉTRICAS)
+  // ==========================================
+  Widget _buildStatsCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildKpiCard(
+            'Disciplinas Ativas',
+            '04',
+            'Frequência média: 94.8%',
+            Icons.school_outlined,
+            const Color(0xFF0F172A),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildKpiCard(
+            'Entregas do Mês',
+            '04',
+            'Próximo vencimento: Hoje 23:59',
+            Icons.assignment_turned_in_outlined,
+            const Color(0xFFD97706),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildKpiCard(
+            'Coeficiente de Rendimento',
+            '8.8',
+            'Situação Curricular: Regular',
+            Icons.trending_up,
+            const Color(0xFF16A34A),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildKpiCard(
+            'Horas Complementares',
+            '140h / 180h',
+            '77.7% integralizadas',
+            Icons.verified_outlined,
+            const Color(0xFF2563EB),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKpiCard(String title, String value, String subtitle, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -437,156 +159,74 @@ class StudentDashboardPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F5),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              code,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Color(0xFF52525B),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF18181B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            teacher,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-          ),
-          const Spacer(),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Progresso',
-                style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-              ),
-              Text(
-                progress,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
+              Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(icon, color: color, size: 18),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Container(
-            height: 4,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(2),
-            ),
-            alignment: Alignment.centerLeft,
-            child: Container(
-              height: 4,
-              width: 100, // Ajuste estático para visualização
-              decoration: BoxDecoration(
-                color: const Color(0xFF18181B),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+          const SizedBox(height: 12),
+          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF71717A))),
         ],
       ),
     );
   }
 
-  Widget _buildPendingDeadlinesList() {
+  // ==========================================
+  // CARD DA AULA DO DIA (LIVE CARD)
+  // ==========================================
+  Widget _buildLiveClassCard() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Prazos Pendentes',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F5),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '4',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.videocam_outlined, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      const Text('AULA DO DIA • 19:00 ÀS 20:40', style: TextStyle(color: Color(0xFF22C55E), fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text('Análise e Projeto de Sistemas II (APS-II)', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  const Text('Profa. Dra. Helena Bittencourt • Sala Virtual AVA & Lab Informática 04', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          _buildDeadlineItem(
-            'Entrega: Diagrama de Classes e Se...',
-            'Análise e Projeto de Sistemas II',
-            'Hoje, 20/09 às 23:59',
-          ),
-          const SizedBox(height: 16),
-          _buildDeadlineItem(
-            'Fórum Temático: Ética na Inteligên...',
-            'Filosofia, Informação e Sociedade',
-            'Amanhã, 21/09 às 18:00',
-          ),
-          const SizedBox(height: 16),
-          _buildDeadlineItem(
-            'Atividade Prática: Modelagem Rel...',
-            'Estudos de Banco de Dados II',
-            'Quinta, 24/09 às 23:59',
-          ),
-          const SizedBox(height: 16),
-          _buildDeadlineItem(
-            'Avaliação Parcial: Gerenciamento ...',
-            'Fundamentos de Sistemas Operacionais',
-            'Terça, 29/09 às 20:40',
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: const BorderSide(color: Color(0xFFE5E7EB)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Abrir Calendário',
-                style: TextStyle(
-                  color: Color(0xFF18181B),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pushNamed('/video-call'),
+            icon: const Icon(Icons.login, size: 16),
+            label: const Text('Entrar na Videochamada'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],
@@ -594,161 +234,215 @@ class StudentDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDeadlineItem(String title, String subtitle, String time) {
+  // ==========================================
+  // CABEÇALHO DO GRID COM ALTERNADOR DE VISUALIZAÇÃO
+  // ==========================================
+  Widget _buildDisciplinesHeader() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(width: 3, height: 40, color: const Color(0xFF18181B)),
-        const SizedBox(width: 12),
-        Expanded(
+        const Text('Minhas Disciplinas em Andamento', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _controller.toggleDashboardView(true),
+              icon: Icon(Icons.grid_view, size: 16, color: _controller.isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8)),
+              label: Text('Cards', style: TextStyle(color: _controller.isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8))),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: _controller.isGridView ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: () => _controller.toggleDashboardView(false),
+              icon: Icon(Icons.view_list, size: 16, color: !_controller.isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8)),
+              label: Text('Tabela', style: TextStyle(color: !_controller.isGridView ? const Color(0xFF0F172A) : const Color(0xFF94A3B8))),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: !_controller.isGridView ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ==========================================
+  // GRID VIEW DE DISCIPLINAS (Print 02)
+  // ==========================================
+  Widget _buildDisciplinesGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: StudentMockData.disciplines.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.6,
+      ),
+      itemBuilder: (context, index) {
+        final d = StudentMockData.disciplines[index];
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 12,
-                    color: Color(0xFFA1A1AA),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(6)),
+                    child: Text(d.code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    time,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFFA1A1AA),
-                    ),
-                  ),
+                  Text('${(d.progress * 100).toInt()}% concluído', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF16A34A))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(d.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text('${d.professor} • ${d.time}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: d.progress, backgroundColor: const Color(0xFFE2E8F0), valueColor: const AlwaysStoppedAnimation(Color(0xFF0F172A))),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Frequência: ${d.attendancePercentage}%', style: const TextStyle(fontSize: 12, color: Color(0xFF334155))),
+                  Text('Média: ${d.partialAverage.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
                 ],
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ==========================================
+  // LIST VIEW DE DISCIPLINAS (Print 03)
+  // ==========================================
+  Widget _buildDisciplinesList() {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
+      child: Table(
+        border: TableBorder.all(color: const Color(0xFFE5E7EB)),
+        children: [
+          const TableRow(
+            decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+            children: [
+              Padding(padding: EdgeInsets.all(12), child: Text('CÓDIGO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Padding(padding: EdgeInsets.all(12), child: Text('DISCIPLINA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Padding(padding: EdgeInsets.all(12), child: Text('DOCENTE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Padding(padding: EdgeInsets.all(12), child: Text('PROGRESSO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Padding(padding: EdgeInsets.all(12), child: Text('FREQUÊNCIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Padding(padding: EdgeInsets.all(12), child: Text('MÉDIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+            ],
+          ),
+          ...StudentMockData.disciplines.map((d) {
+            return TableRow(
+              children: [
+                Padding(padding: const EdgeInsets.all(12), child: Text(d.code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                Padding(padding: const EdgeInsets.all(12), child: Text(d.name, style: const TextStyle(fontSize: 12))),
+                Padding(padding: const EdgeInsets.all(12), child: Text(d.professor, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))),
+                Padding(padding: const EdgeInsets.all(12), child: Text('${(d.progress * 100).toInt()}%', style: const TextStyle(fontSize: 12))),
+                Padding(padding: const EdgeInsets.all(12), child: Text('${d.attendancePercentage}%', style: const TextStyle(fontSize: 12))),
+                Padding(padding: const EdgeInsets.all(12), child: Text(d.partialAverage.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF16A34A)))),
+              ],
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // PRAZOS PENDENTES E MURAL DE AVISOS
+  // ==========================================
+  Widget _buildDeadlinesAndNotices() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Prazos & Entregas Pendentes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                _buildDeadlineRow('Padrões Adapter e Facade', 'APS-II', 'Hoje às 23:59', true),
+                const SizedBox(height: 10),
+                _buildDeadlineRow('Modelagem Relacional 3FN', 'BD-II', '24/10 às 23:59', false),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Mural de Avisos & Comunicados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                _buildNoticeRow('DTI: Manutenção Preventiva no Servidor AVA', 'Sábado 02:00 às 04:00', 'Informativo'),
+                const SizedBox(height: 10),
+                _buildNoticeRow('Secretaria: Prazo de Entrega de Horas Complementares', 'Encerramento em 30/11', 'Importante'),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildNoticeBoard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Mural de Avisos',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-              Text(
-                'NÃO LIDOS',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF71717A),
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _buildNoticeItem(
-            'Prof. Carlos Eduardo (APS-II)',
-            'Hoje, 14:10',
-            'Feedback da Sprint 1 e Orientações para o Diagrama UML',
-            'Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já...',
-          ),
-          const Divider(height: 32, color: Color(0xFFE5E7EB)),
-          _buildNoticeItem(
-            'Profª. Eliane Ramos (BD-II)',
-            'Ontem, 17:45',
-            'Material de Apoio: Normalização em 3FN e BCNF',
-            'Disponibilizei os slides com os exercícios resolvidos em aula sobre dependências...',
-          ),
-          const Divider(height: 32, color: Color(0xFFE5E7EB)),
-          _buildNoticeItem(
-            'Secretaria Acadêmica AGMRM',
-            '18 de set',
-            'Prazo para Validação de Atividades Complementares 2026/2',
-            'Lembramos a todos os estudantes que o envio de certificados de cursos e palestras...',
-          ),
-        ],
-      ),
+  Widget _buildDeadlineRow(String title, String discipline, String due, bool isUrgent) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            Text(discipline, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          ],
+        ),
+        Chip(
+          label: Text(due, style: TextStyle(fontSize: 11, color: isUrgent ? const Color(0xFFDC2626) : const Color(0xFF0F172A), fontWeight: FontWeight.bold)),
+          backgroundColor: isUrgent ? const Color(0xFFFEE2E2) : const Color(0xFFF1F5F9),
+        ),
+      ],
     );
   }
 
-  Widget _buildNoticeItem(
-    String sender,
-    String time,
-    String title,
-    String preview,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildNoticeRow(String title, String subtitle, String tag) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              sender,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF52525B),
-              ),
-            ),
-            Text(
-              time,
-              style: const TextStyle(fontSize: 10, color: Color(0xFFA1A1AA)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF18181B),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
+              Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          preview,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF71717A),
-            height: 1.4,
-          ),
-        ),
+        Chip(label: Text(tag, style: const TextStyle(fontSize: 10)), backgroundColor: const Color(0xFFF1F5F9)),
       ],
     );
   }
