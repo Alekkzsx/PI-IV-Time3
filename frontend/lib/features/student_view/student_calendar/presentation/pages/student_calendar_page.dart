@@ -438,14 +438,14 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: selectedType,
+                    initialValue: selectedType,
                     decoration: const InputDecoration(labelText: 'Tipo de Evento', border: OutlineInputBorder()),
                     items: ['Aula', 'Entrega', 'Avaliação', 'Fórum'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                     onChanged: (val) => setModalState(() => selectedType = val!),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: selectedDiscipline,
+                    initialValue: selectedDiscipline,
                     decoration: const InputDecoration(labelText: 'Disciplina Vinculada', border: OutlineInputBorder()),
                     items: ['APS-II', 'BD-II', 'FIS', 'FSO'].map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
                     onChanged: (val) => setModalState(() => selectedDiscipline = val!),
