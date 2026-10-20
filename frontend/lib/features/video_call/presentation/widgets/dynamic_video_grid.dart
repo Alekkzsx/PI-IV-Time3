@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
@@ -6,36 +6,36 @@ import '../theme/video_call_theme.dart';
 import 'participant_video_tile.dart';
 import 'screen_share_view.dart';
 
-/// Grade dinâmica responsiva de videoconferência com garantia de Zero Bots.
+/// Responsive dynamic video conferencing grid with Zero Bots assurance.
 ///
-/// Adapta a disposição visual rigorosamente à contagem de participantes reais:
-/// - N = 0: Exibe mensagem informativa centralizada 'Nenhum participante conectado'.
-/// - N = 1: Renderiza exatamente 1 quadro em destaque central (Zero Bots).
-/// - N = 2: Layout bipartido horizontal (dual split) distribuído equitativamente.
-/// - N = 3 ou 4: Grade 2x2 com `GridView` e proporção de aspecto ergonômica (1.3).
-/// - N > 4: Grade expansível com rolagem suave.
-/// - Modo Compartilhamento de Tela: Transiciona para o modo Spotlight com palco
-///   primário [ScreenShareView] no topo e filmstrip horizontal na base.
+/// Strictly adapts layout presentation according to connected real participants:
+/// - N = 0: Renders centered notice 'Nenhum participante conectado'.
+/// - N = 1: Renders exactly 1 highlighted central tile (Zero Bots).
+/// - N = 2: Horizontal dual-split layout with equitable space distribution.
+/// - N = 3 or 4: 2x2 grid via [GridView] with ergonomic aspect ratio (1.3).
+/// - N > 4: Expandable scrolling grid.
+/// - Screen Sharing Mode: Transitions to spotlight mode with [ScreenShareView]
+///   as primary stage and horizontal filmstrip on the bottom.
 class DynamicVideoGrid extends StatelessWidget {
-  /// Lista estrita de participantes reais atualmente conectados na sala.
+  /// Strict list of real participants currently connected to the room.
   final List<Participant> participants;
 
-  /// Indica se há transmissão de tela ativa no palco principal.
+  /// Indicates whether active screen sharing is displayed on the main stage.
   final bool isScreenSharing;
 
-  /// Construtor opcional para obter o `viewType` de vídeo HTML5 de cada participante.
+  /// Optional builder to resolve HTML5 video viewType for each participant.
   final String? Function(Participant)? videoViewTypeBuilder;
 
-  /// `viewType` opcional da transmissão de tela ativa.
+  /// Optional viewType of the active screen share stream.
   final String? screenShareViewType;
 
-  /// Nome opcional do participante que está apresentando a tela.
+  /// Optional display name of the participant currently sharing screen.
   final String? activePresenterName;
 
-  /// Identificador do participante fixado (pin/spotlight), se houver.
+  /// Identifier of the pinned (spotlight) participant, if any.
   final String? pinnedParticipantId;
 
-  /// Callback opcional disparado ao clicar no tile de um participante.
+  /// Optional callback triggered when tapping a participant video tile.
   final void Function(Participant)? onParticipantTap;
 
   const DynamicVideoGrid({
