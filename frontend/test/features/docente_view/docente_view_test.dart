@@ -141,8 +141,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Professor Helena profile header
-      expect(find.text('Profa. Helena Bittencourt'), findsWidgets);
-      expect(find.text('Departamento de Computação • 2026/2'), findsWidgets);
+      expect(find.text('Bem-vinda, Helena.'), findsOneWidget);
+      expect(find.text('Departamento de Computação'), findsOneWidget);
 
       // Verify Dashboard KPI cards
       expect(find.text('Alunos Ativos'), findsOneWidget);
