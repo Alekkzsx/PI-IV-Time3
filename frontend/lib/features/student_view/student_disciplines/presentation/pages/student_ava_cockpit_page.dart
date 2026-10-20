@@ -393,7 +393,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                   right: 16,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(6)),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(6)),
                     child: const Text('CC (Legenda Automática): "...o padrão adapter permite que interfaces incompatíveis colaborem sem refatorar o código existente..."', style: TextStyle(color: Colors.amberAccent, fontSize: 12)),
                   ),
                 ),
