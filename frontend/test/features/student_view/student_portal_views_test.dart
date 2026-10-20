@@ -2,14 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
-import 'package:pi_iv_time3/features/student_view/presentation/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student_view/student_dashboard/presentation/pages/student_dashboard_page.dart';
-import 'package:pi_iv_time3/features/student_view/student_disciplines/presentation/pages/student_disciplines_page.dart';
-import 'package:pi_iv_time3/features/student_view/student_disciplines/presentation/pages/student_ava_cockpit_page.dart';
-import 'package:pi_iv_time3/features/student_view/student_calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student_view/student_deliveries/presentation/pages/student_deliveries_page.dart';
-import 'package:pi_iv_time3/features/student_view/student_settings/presentation/pages/student_settings_page.dart';
+import 'package:pi_iv_time3/features/student_view/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student_view/dashboard/presentation/pages/student_dashboard_page.dart';
+import 'package:pi_iv_time3/features/student_view/disciplines/presentation/pages/student_disciplines_page.dart';
+import 'package:pi_iv_time3/features/student_view/disciplines/presentation/pages/student_ava_cockpit_page.dart';
+import 'package:pi_iv_time3/features/student_view/calendar/presentation/pages/student_calendar_page.dart';
+import 'package:pi_iv_time3/features/student_view/deliveries/presentation/pages/student_deliveries_page.dart';
+import 'package:pi_iv_time3/features/student_view/settings/presentation/pages/student_settings_page.dart';
 
 void main() {
   group('StudentPortalController Unit Tests', () {
@@ -96,12 +96,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Bem-vindo de volta, Gabriel Soares.'), findsOneWidget);
-      expect(find.text('Disciplinas Ativas'), findsOneWidget);
-      expect(find.text('Entregas do Mês'), findsOneWidget);
-      expect(find.text('Coeficiente de Rendimento'), findsOneWidget);
-      expect(find.text('Horas Complementares'), findsOneWidget);
-      expect(find.text('Análise e Projeto de Sistemas II (APS-II)'), findsWidgets);
+      expect(find.text('Bem-vindo, Gabriel.'), findsOneWidget);
+      expect(find.text('DISCIPLINAS'), findsOneWidget);
+      expect(find.text('ENTREGAS DO MÊS'), findsOneWidget);
+      expect(find.text('COEFICIENTE DE RENDIMENTO (CR)'), findsOneWidget);
+      expect(find.text('HORAS COMPLEMENTARES'), findsOneWidget);
+      expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
     });
 
     testWidgets('Renderiza StudentDisciplinesPage com estatísticas e ensalamento', (tester) async {

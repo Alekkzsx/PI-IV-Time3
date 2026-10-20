@@ -1,0 +1,409 @@
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Adaptado para navegação interna de abas (Nested Routing)
+
+import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/student_view/calendar/presentation/pages/student_calendar_page.dart';
+import 'package:pi_iv_time3/features/student_view/dashboard/presentation/pages/student_dashboard_page.dart';
+import 'package:pi_iv_time3/features/student_view/deliveries/presentation/pages/student_deliveries_page.dart';
+import 'package:pi_iv_time3/features/student_view/disciplines/presentation/pages/student_disciplines_page.dart';
+import 'package:pi_iv_time3/features/student_view/messages/presentation/pages/student_messages_page.dart';
+import 'package:pi_iv_time3/features/student_view/secretariat/presentation/pages/student_secretariat_page.dart';
+import 'package:pi_iv_time3/features/student_view/settings/presentation/pages/student_settings_page.dart';
+import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
+import '../widgets/student_sidebar.dart';
+
+/// Estrutura base compartilhada (Shell) da Visão do Aluno do Portal AVA AGMRM.
+///
+/// Integra a barra lateral [StudentSidebar], cabeçalho superior com ícones de
+/// histórico e notificações, área principal de conteúdo e rodapé institucional.
+class StudentPortalShell extends StatefulWidget {
+  /// Título exibido na barra superior do portal (ex: 'Mensagens' ou 'Secretaria Virtual').
+  final String headerTitle;
+
+  /// Item atualmente selecionado na barra lateral inicialmente.
+  final StudentNavItem activeNavItem;
+
+  /// Conteúdo principal da tela do Painel Geral.
+  final Widget child;
+
+  /// Callback opcional ao selecionar um item da barra lateral.
+  final ValueChanged<StudentNavItem>? onNavItemSelected;
+
+  /// Cria uma instância de [StudentPortalShell].
+  const StudentPortalShell({
+    super.key,
+    required this.headerTitle,
+    required this.activeNavItem,
+    required this.child,
+    this.onNavItemSelected,
+  });
+
+  @override
+  State<StudentPortalShell> createState() => _StudentPortalShellState();
+}
+
+class _StudentPortalShellState extends State<StudentPortalShell> {
+  bool _isSidebarCollapsed = false;
+  late StudentNavItem _currentNavItem;
+  late String _currentHeaderTitle;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentNavItem = widget.activeNavItem;
+    StudentPortalController.instance.activeNavItem = _currentNavItem;
+    _currentHeaderTitle = widget.headerTitle;
+    StudentPortalController.instance.addListener(_onPortalControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    StudentPortalController.instance.removeListener(_onPortalControllerChanged);
+    super.dispose();
+  }
+
+  void _onPortalControllerChanged() {
+    if (!mounted) return;
+    final controller = StudentPortalController.instance;
+    if (_currentNavItem != controller.activeNavItem) {
+      setState(() {
+        _currentNavItem = controller.activeNavItem;
+        _updateHeaderTitle(_currentNavItem);
+      });
+    } else {
+      setState(() {});
+    }
+  }
+
+  // --- MÉTODOS DE CONTROLE DE ROTEAMENTO INTERNO ---
+
+  /// Retorna o widget da página correta com base no item selecionado no menu lateral.
+  Widget _buildSelectedPage() {
+    switch (_currentNavItem) {
+      case StudentNavItem.entregas:
+        return const StudentDeliveriesPage();
+      case StudentNavItem.mensagens:
+        return const StudentMessagesPage();
+      case StudentNavItem.secretaria:
+        return const StudentSecretariatPage();
+      case StudentNavItem.painelGeral:
+        return const StudentDashboardPage();
+      case StudentNavItem.disciplinas:
+        return const StudentDisciplinesPage();
+      case StudentNavItem.calendario:
+        return const StudentCalendarPage();
+      case StudentNavItem.configuracoes:
+        return const StudentSettingsPage();
+      default:
+        return widget.child; // Fallback
+    }
+  }
+
+  /// Atualiza o texto do cabeçalho de acordo com a tela selecionada.
+  void _updateHeaderTitle(StudentNavItem item) {
+    switch (item) {
+      case StudentNavItem.entregas:
+        _currentHeaderTitle = 'Entregas';
+        break;
+      case StudentNavItem.mensagens:
+        _currentHeaderTitle = 'Mensagens';
+        break;
+      case StudentNavItem.secretaria:
+        _currentHeaderTitle = 'Secretaria';
+        break;
+      case StudentNavItem.painelGeral:
+        _currentHeaderTitle = 'Painel Geral';
+      case StudentNavItem.disciplinas:
+        _currentHeaderTitle = 'Disciplinas';
+      case StudentNavItem.calendario:
+        _currentHeaderTitle = 'Calendário';
+      case StudentNavItem.configuracoes:
+        _currentHeaderTitle = 'Configurações';
+        break;
+      default:
+        _currentHeaderTitle = widget.headerTitle;
+    }
+  }
+
+  /// Executado sempre que o usuário clica em algum item do menu lateral.
+  void _onMenuItemSelected(StudentNavItem item) {
+    // Se a opção for sair, redireciona para o login e mata o shell
+    if (item == StudentNavItem.sair) {
+      Navigator.of(context).pushReplacementNamed('/');
+      return;
+    }
+
+    StudentPortalController.instance.setNavItem(item);
+
+    // Troca a página e o título internamente, redesenhando apenas o miolo
+    setState(() {
+      _currentNavItem = item;
+      _updateHeaderTitle(item);
+    });
+
+    // Chama o callback externo caso alguém precise escutar a mudança (opcional)
+    if (widget.onNavItemSelected != null) {
+      widget.onNavItemSelected!(item);
+    }
+  }
+
+  // ---------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 768; // hidden md:flex (desktop >= 768px)
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      drawer: isDesktop
+          ? null
+          : Drawer(
+              width: 280,
+              backgroundColor: Colors.white,
+              child: StudentSidebar(
+                activeItem: _currentNavItem, // Usando o estado dinâmico interno
+                onItemSelected: (item) {
+                  _onMenuItemSelected(item);
+                  Navigator.of(context).pop(); // Fecha o menu lateral no mobile
+                },
+              ),
+            ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (isDesktop)
+            StudentSidebar(
+              activeItem: _currentNavItem, // Usando o estado dinâmico interno
+              onItemSelected:
+                  _onMenuItemSelected, // Intercepta o clique para não recarregar a tela inteira
+              isCollapsed: _isSidebarCollapsed,
+              onToggleCollapse: () {
+                setState(() {
+                  _isSidebarCollapsed = !_isSidebarCollapsed;
+                });
+              },
+            ),
+          Expanded(
+            child: Column(
+              children: [
+                _buildTopHeader(context, isDesktop: isDesktop),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 1120,
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isDesktop ? 48 : 20,
+                                      vertical: isDesktop ? 36 : 24,
+                                    ),
+                                    // AQUI A PÁGINA É RENDERIZADA DINAMICAMENTE
+                                    child: _buildSelectedPage(),
+                                  ),
+                                ),
+                              ),
+                              _buildFooter(isDesktop: isDesktop),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopHeader(BuildContext context, {required bool isDesktop}) {
+    return Container(
+      height: 54,
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 28 : 16),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F5F5),
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              if (!isDesktop) ...[
+                Builder(
+                  builder: (ctx) => IconButton(
+                    icon: const Icon(
+                      Icons.menu_rounded,
+                      size: 22,
+                      color: Color(0xFF18181B),
+                    ),
+                    onPressed: () => Scaffold.of(ctx).openDrawer(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                _currentHeaderTitle, // Usando o título dinâmico
+                style: jakarta(size: 18, weight: FontWeight.w500),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              if (_currentNavItem == StudentNavItem.painelGeral && isDesktop) ...[
+                OutlinedButton.icon(
+                  key: const Key('btn_toggle_dashboard_view'),
+                  onPressed: () {
+                    StudentPortalController.instance.toggleDashboardView(
+                      !StudentPortalController.instance.isGridView,
+                    );
+                  },
+                  icon: Icon(
+                    StudentPortalController.instance.isGridView
+                        ? Icons.view_list_rounded
+                        : Icons.grid_view_rounded,
+                    size: 13,
+                    color: const Color(0xFF1A1A1A),
+                  ),
+                  label: Text(
+                    StudentPortalController.instance.isGridView
+                        ? 'Alterar para visualização em lista'
+                        : 'Alterar para visualização em grade',
+                    style: jakarta(size: 10.5, weight: FontWeight.w500),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFE5E5E5)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              IconButton(
+                onPressed: () {},
+                tooltip: 'Histórico Recente',
+                icon: const Icon(
+                  Icons.access_time_outlined,
+                  size: 19,
+                  color: Color(0xFF52525B),
+                ),
+              ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  IconButton(
+                    onPressed: () {},
+                    tooltip: 'Notificações',
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      size: 20,
+                      color: Color(0xFF52525B),
+                    ),
+                  ),
+                  Positioned(
+                    right: 11,
+                    top: 11,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF18181B),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter({required bool isDesktop}) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 48 : 20,
+        vertical: 16,
+      ),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF),
+        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 8,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            children: const [
+              Text(
+                '© 2026 AGMRM',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF18181B),
+                ),
+              ),
+              Text(
+                '|',
+                style: TextStyle(fontSize: 10, color: Color(0xFFD4D4D8)),
+              ),
+              Text(
+                'Portal AVA AGMRM • Ambiente Virtual de Aprendizagem Universitário',
+                style: TextStyle(fontSize: 10, color: Color(0xFFA3A3A3)),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                'Ajuda',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFFA3A3A3),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(width: 16),
+              Text(
+                'Privacidade',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFFA3A3A3),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

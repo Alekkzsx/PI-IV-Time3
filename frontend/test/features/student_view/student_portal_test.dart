@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_iv_time3/features/student_view/student_messages/domain/entities/academic_message.dart';
-import 'package:pi_iv_time3/features/student_view/student_messages/presentation/controllers/student_messages_controller.dart';
-import 'package:pi_iv_time3/features/student_view/student_messages/presentation/pages/student_messages_page.dart';
-import 'package:pi_iv_time3/features/student_view/student_secretariat/presentation/controllers/student_secretariat_controller.dart';
-import 'package:pi_iv_time3/features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
+import 'package:pi_iv_time3/features/student_view/messages/domain/entities/academic_message.dart';
+import 'package:pi_iv_time3/features/student_view/messages/presentation/controllers/student_messages_controller.dart';
+import 'package:pi_iv_time3/features/student_view/messages/presentation/pages/student_messages_page.dart';
+import 'package:pi_iv_time3/features/student_view/secretariat/presentation/controllers/student_secretariat_controller.dart';
+import 'package:pi_iv_time3/features/student_view/secretariat/presentation/pages/student_secretariat_page.dart';
 
 void main() {
   group('StudentMessagesController & StudentMessagesPage', () {

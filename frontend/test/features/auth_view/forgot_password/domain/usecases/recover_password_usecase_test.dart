@@ -2,7 +2,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/auth_view/forgot_password/domain/usecases/recover_password_usecase.dart';
-import 'package:pi_iv_time3/shared/auth/domain/auth_repository.dart';
+import 'package:pi_iv_time3/features/auth_view/shared/domain/auth_repository.dart';
 
 /// Dublê de testes (Mock / Spy) para o contrato de [AuthRepository].
 ///

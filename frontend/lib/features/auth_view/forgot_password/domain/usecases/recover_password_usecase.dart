@@ -1,6 +1,6 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
-import '../../../../../shared/auth/domain/auth_repository.dart';
+import 'package:pi_iv_time3/features/auth_view/shared/domain/auth_repository.dart';
 
 /// Caso de uso responsável por encapsular a regra de negócio de recuperação
 /// de senha no sistema.

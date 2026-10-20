@@ -8,8 +8,8 @@ import 'package:pi_iv_time3/features/auth_view/forgot_password/presentation/widg
 import 'package:pi_iv_time3/features/auth_view/reset_password/presentation/widgets/password_reset_field.dart';
 import 'package:pi_iv_time3/features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
 import 'package:pi_iv_time3/main.dart';
-import 'package:pi_iv_time3/shared/auth/data/auth_repository_impl.dart';
-import 'package:pi_iv_time3/shared/auth/external/auth_remote_datasource_impl.dart';
+import 'package:pi_iv_time3/features/auth_view/shared/data/auth_repository_impl.dart';
+import 'package:pi_iv_time3/features/auth_view/shared/external/auth_remote_datasource_impl.dart';
 
 /// Configura resolução de tela desktop (largura >= 900px) padrão do Portal AVA.
 void _setDesktopViewport(WidgetTester tester) {

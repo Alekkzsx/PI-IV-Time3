@@ -2,12 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_iv_time3/features/docente_view/domain/models/academic_event.dart';
-import 'package:pi_iv_time3/features/docente_view/domain/models/academic_notice.dart';
-import 'package:pi_iv_time3/features/docente_view/domain/models/attendance_record.dart';
-import 'package:pi_iv_time3/features/docente_view/presentation/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/docente_view/presentation/pages/docente_course_hub_page.dart';
-import 'package:pi_iv_time3/features/docente_view/presentation/pages/docente_shell_page.dart';
+import 'package:pi_iv_time3/features/docente_view/courses/presentation/pages/docente_course_hub_page.dart';
+import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
+import 'package:pi_iv_time3/features/docente_view/shared/domain/models/academic_event.dart';
+import 'package:pi_iv_time3/features/docente_view/shared/domain/models/academic_notice.dart';
+import 'package:pi_iv_time3/features/docente_view/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/docente_view/shell/presentation/pages/docente_shell_page.dart';
 
 void main() {
   group('DocenteController Unit Tests', () {

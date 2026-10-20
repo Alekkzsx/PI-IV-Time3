@@ -1,6 +1,6 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-import '../../../../../shared/auth/domain/auth_repository.dart';
+import 'package:pi_iv_time3/features/auth_view/shared/domain/auth_repository.dart';
 
 /// Caso de uso responsável pelas regras de negócio e validações defensivas do login.
 ///
