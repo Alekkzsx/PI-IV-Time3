@@ -1,8 +1,8 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import '../../data/student_mock_data.dart';
-import '../controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student_view/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student_view/presentation/controllers/student_portal_controller.dart';
 
 /// Painel Geral (Dashboard) da Visão do Aluno.
 /// Exibe métricas acadêmicas consolidadas (CR, Disciplinas, Entregas, Horas Complementares),
