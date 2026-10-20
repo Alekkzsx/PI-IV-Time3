@@ -58,24 +58,27 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Central de Entregas & Atividades',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF18181B),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Central de Entregas & Atividades',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF18181B),
+                ),
               ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Acompanhamento de prazos regimentais, envio de artefatos de avaliação e pareceres detalhados por rubrica.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
-            ),
-          ],
+              SizedBox(height: 4),
+              Text(
+                'Acompanhamento de prazos regimentais, envio de artefatos de avaliação e pareceres detalhados por rubrica.',
+                style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 16),
         ElevatedButton.icon(
           onPressed: () => _showSubmissaoGeralModal(context),
           icon: const Icon(Icons.cloud_upload_outlined, size: 16),
