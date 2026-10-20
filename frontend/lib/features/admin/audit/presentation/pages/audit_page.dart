@@ -93,33 +93,36 @@ class _AuditPageState extends State<AuditPage> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey[200]!),
             ),
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('DATA / HORA')),
-                DataColumn(label: Text('AGENTE OPERADOR')),
-                DataColumn(label: Text('EVENTO')),
-                DataColumn(label: Text('DESCRIÇÃO DA TRANSAÇÃO')),
-                DataColumn(label: Text('IP ORIGEM')),
-                DataColumn(label: Text('SEVERIDADE')),
-              ],
-              rows: logs.map((log) {
-                final isAtencao = log.severity == 'ATENCAO';
-                return DataRow(
-                  cells: [
-                    DataCell(Text(log.timestamp, style: const TextStyle(fontSize: 12))),
-                    DataCell(Text(log.actor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                    DataCell(Chip(label: Text(log.actionType, style: const TextStyle(fontSize: 10)), backgroundColor: const Color(0xFFF1F5F9))),
-                    DataCell(SizedBox(width: 320, child: Text(log.description, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis))),
-                    DataCell(Text(log.ipAddress, style: const TextStyle(fontSize: 12, fontFamily: 'monospace'))),
-                    DataCell(
-                      Chip(
-                        label: Text(log.severity, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isAtencao ? Colors.orange[800] : const Color(0xFF2563EB))),
-                        backgroundColor: isAtencao ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('DATA / HORA')),
+                  DataColumn(label: Text('AGENTE OPERADOR')),
+                  DataColumn(label: Text('EVENTO')),
+                  DataColumn(label: Text('DESCRIÇÃO DA TRANSAÇÃO')),
+                  DataColumn(label: Text('IP ORIGEM')),
+                  DataColumn(label: Text('SEVERIDADE')),
+                ],
+                rows: logs.map((log) {
+                  final isAtencao = log.severity == 'ATENCAO';
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(log.timestamp, style: const TextStyle(fontSize: 12))),
+                      DataCell(Text(log.actor, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                      DataCell(Chip(label: Text(log.actionType, style: const TextStyle(fontSize: 10)), backgroundColor: const Color(0xFFF1F5F9))),
+                      DataCell(SizedBox(width: 320, child: Text(log.description, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis))),
+                      DataCell(Text(log.ipAddress, style: const TextStyle(fontSize: 12, fontFamily: 'monospace'))),
+                      DataCell(
+                        Chip(
+                          label: Text(log.severity, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isAtencao ? Colors.orange[800] : const Color(0xFF2563EB))),
+                          backgroundColor: isAtencao ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE),
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              }).toList(),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],
