@@ -1,11 +1,34 @@
-import 'package:flutter/material.dart';
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-class StudentDisciplinesPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import '../../data/student_mock_data.dart';
+import '../controllers/student_portal_controller.dart';
+import 'student_ava_cockpit_page.dart';
+
+/// Tela principal de Minhas Disciplinas da Visão do Aluno.
+/// Exibe carga horária total, média consolidada, ensalamento semanal,
+/// modais de Boletim Oficial e Ementário, e acesso ao Ambiente Virtual (AVA).
+class StudentDisciplinesPage extends StatefulWidget {
   const StudentDisciplinesPage({super.key});
 
   @override
+  State<StudentDisciplinesPage> createState() => _StudentDisciplinesPageState();
+}
+
+class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
+  final StudentPortalController _controller = StudentPortalController.instance;
+  StudentDisciplineModel? _activeDisciplineCockpit;
+  String _selectedFilter = 'Todas as Disciplinas (4)';
+
+  @override
   Widget build(BuildContext context) {
-    // Retorna o conteúdo diretamente para encaixar no Shell, sem Scaffold.
+    if (_activeDisciplineCockpit != null) {
+      return StudentAvaCockpitPage(
+        discipline: _activeDisciplineCockpit!,
+        onBack: () => setState(() => _activeDisciplineCockpit = null),
+      );
+    }
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -18,7 +41,7 @@ class StudentDisciplinesPage extends StatelessWidget {
           const SizedBox(height: 24),
           _buildDisciplinesGrid(),
           const SizedBox(height: 32),
-          _buildBottomLayout(),
+          _buildScheduleAndEnsalamento(),
         ],
       ),
     );
@@ -49,251 +72,138 @@ class StudentDisciplinesPage extends StatelessWidget {
             ),
           ],
         ),
-        OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(
-            Icons.receipt_long_outlined,
-            size: 18,
-            color: Color(0xFF18181B),
-          ),
-          label: const Text(
-            'Boletim & Histórico Oficial',
-            style: TextStyle(color: Color(0xFF18181B)),
-          ),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            side: const BorderSide(color: Color(0xFFE5E7EB)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => _showPlanoEnsinoModal(context),
+              icon: const Icon(Icons.menu_book_outlined, size: 18, color: Color(0xFF18181B)),
+              label: const Text('Plano de Ensino & Ementa', style: TextStyle(color: Color(0xFF18181B))),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                side: const BorderSide(color: Color(0xFFE5E7EB)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
+            ElevatedButton.icon(
+              onPressed: () => _showBoletimModal(context),
+              icon: const Icon(Icons.receipt_long_outlined, size: 18),
+              label: const Text('Boletim & Histórico Oficial'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F172A),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
   // ==========================================
-  // BLOCO 2: ESTATÍSTICAS GERAIS (BARRA CINZA)
+  // BLOCO 2: ESTATÍSTICAS GERAIS
   // ==========================================
   Widget _buildGeneralStats() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildStatColumn(
-            'CARGA HORÁRIA TOTAL',
-            '190h',
-            'de 280h (68%)',
-            showProgress: true,
+          Expanded(
+            child: _buildStatItem(
+              'Carga Horária do Semestre',
+              '190h / 280h cursadas (68%)',
+              Icons.timelapse_outlined,
+              const Color(0xFF0F172A),
+            ),
           ),
-          _buildStatColumn(
-            'MÉDIA PONDERADA PARCIAL',
-            '8.63',
-            'Mínimo regimental: 6.0',
-            badgeText: 'Aprovado em todas',
+          Container(width: 1, height: 48, color: const Color(0xFFE5E7EB)),
+          Expanded(
+            child: _buildStatItem(
+              'Média Ponderada Consolidada',
+              '8.63 / 10.0',
+              Icons.analytics_outlined,
+              const Color(0xFF16A34A),
+            ),
           ),
-          _buildStatColumn(
-            'FREQUÊNCIA GLOBAL CONSOLIDADA',
-            '95.7%',
-            'Excelente assiduidade presencial',
-            badgeSubtitle: '(12 faltas)',
-            isGreenSubtitle: true,
-          ),
-          _buildStatColumn(
-            'SITUAÇÃO CURRICULAR 2026/2',
-            'Regular & Apto',
-            '4 disciplinas em andamento',
-            icon: Icons.check_circle_outline,
+          Container(width: 1, height: 48, color: const Color(0xFFE5E7EB)),
+          Expanded(
+            child: _buildStatItem(
+              'Frequência Global Registrada',
+              '95.7% (12 faltas acumuladas)',
+              Icons.check_circle_outline,
+              const Color(0xFF16A34A),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatColumn(
-    String title,
-    String value,
-    String subtitle, {
-    bool showProgress = false,
-    String? badgeText,
-    String? badgeSubtitle,
-    bool isGreenSubtitle = false,
-    IconData? icon,
-  }) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF71717A),
-              letterSpacing: 0.5,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (icon != null) ...[
-                Icon(icon, color: const Color(0xFF16A34A), size: 20),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-              if (badgeSubtitle != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                  badgeSubtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFA1A1AA),
-                  ),
-                ),
-              ],
-              if (badgeText != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    badgeText,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF16A34A),
-                    ),
-                  ),
-                ),
-              ],
+              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
             ],
           ),
-          const SizedBox(height: 4),
-          if (showProgress) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF18181B),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: isGreenSubtitle
-                  ? const Color(0xFF16A34A)
-                  : const Color(0xFF71717A),
-            ),
-          ),
         ],
       ),
     );
   }
 
   // ==========================================
-  // BLOCO 3: FILTROS E BUSCA
+  // BLOCO 3: FILTROS
   // ==========================================
   Widget _buildFilterRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            _buildFilterChip('Todas as Disciplinas (4)', isSelected: true),
-            const SizedBox(width: 8),
-            _buildFilterChip('Com Tarefas Pendentes (3)'),
-            const SizedBox(width: 8),
-            _buildFilterChip('Aulas em Laboratório (2)'),
-          ],
-        ),
-        SizedBox(
-          width: 300,
-          height: 40,
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Filtrar por nome, código ou docente...',
-              hintStyle: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFFA1A1AA),
-              ),
-              prefixIcon: const Icon(
-                Icons.search,
-                size: 18,
-                color: Color(0xFFA1A1AA),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF18181B)),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+    final filters = [
+      'Todas as Disciplinas (4)',
+      'Com Tarefas Pendentes (3)',
+      'Aulas em Laboratório (2)',
+    ];
 
-  Widget _buildFilterChip(String label, {bool isSelected = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF18181B) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isSelected ? const Color(0xFF18181B) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.white : const Color(0xFF52525B),
-        ),
-      ),
+    return Row(
+      children: filters.map((f) {
+        final isSelected = _selectedFilter == f;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: ChoiceChip(
+            label: Text(f),
+            selected: isSelected,
+            onSelected: (_) => setState(() => _selectedFilter = f),
+            selectedColor: const Color(0xFF0F172A),
+            backgroundColor: Colors.white,
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFF334155),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 12,
+            ),
+            side: BorderSide(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -301,382 +211,85 @@ class StudentDisciplinesPage extends StatelessWidget {
   // BLOCO 4: GRID DE DISCIPLINAS
   // ==========================================
   Widget _buildDisciplinesGrid() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildDisciplineCard(
-                '218131 - APS-II',
-                'Análise e Projeto de Sistemas II',
-                'Profa. Dra. Helena Bittencourt',
-                'Lab 04 - Bloco C (Noturno) • Segundas-feiras, 19:00 às 22:30',
-                '54h de 80h (68%)',
-                '8.5',
-                '9.0',
-                '8.8',
-                '1 tarefa pendente',
-                'Freq. 97.5%',
-                '2 faltas (limite: 20h)',
-                0.68,
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: _buildDisciplineCard(
-                '218131 - BD-II',
-                'Estudos de Banco de Dados II',
-                'Profa. Dra. Helena Bittencourt',
-                'Lab 02 - Bloco B (Noturno) • Terças-feiras, 19:00 às 22:30',
-                '60h de 80h (75%)',
-                '9.0',
-                '8.5',
-                '8.7',
-                '1 tarefa pendente',
-                'Freq. 95.0%',
-                '4 faltas (limite: 20h)',
-                0.75,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: _buildDisciplineCard(
-                '218131 - FIS',
-                'Filosofia, Informação e Sociedade',
-                'Prof. Dr. Marcos Vinícius Ferreira',
-                'Sala 204 - Bloco A (Noturno) • Quartas-feiras, 19:00 às 21:00',
-                '32h de 40h (80%)',
-                '9.5',
-                '9.0',
-                '9.2',
-                '1 tarefa pendente',
-                'Freq. 100.0%',
-                '0 faltas (limite: 10h)',
-                0.8,
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: _buildDisciplineCard(
-                '218131 - FSO',
-                'Fundamentos de Sistemas Operacionais',
-                'Prof. Esp. André Luiz Silveira',
-                'Anfiteatro 101 - Bloco Central (Noturno) • Quintas-feiras, 19:00 às 22:30',
-                '44h de 80h (55%)',
-                '7.5',
-                '8.0',
-                '7.8',
-                null,
-                'Freq. 92.5%',
-                '6 faltas (limite: 20h)',
-                0.55,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDisciplineCard(
-    String code,
-    String title,
-    String teacher,
-    String info,
-    String progressText,
-    String n1,
-    String n2,
-    String media,
-    String? pendingTask,
-    String freq,
-    String faltas,
-    double progressRatio,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: StudentMockData.disciplines.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+        childAspectRatio: 1.5,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      itemBuilder: (context, index) {
+        final d = StudentMockData.disciplines[index];
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F5),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  code,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF52525B),
-                  ),
-                ),
-              ),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  if (pendingTask != null) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        pendingTask,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFD97706),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(4),
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(
-                      freq,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
+                    child: Text(d.code, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF18181B),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            teacher,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF52525B)),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on_outlined,
-                size: 14,
-                color: Color(0xFFA1A1AA),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  info,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF71717A),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Progresso dos Módulos',
-                style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-              ),
-              Text(
-                progressText,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progressRatio,
-            backgroundColor: const Color(0xFFE5E7EB),
-            color: const Color(0xFF18181B),
-            minHeight: 4,
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFAFAFA),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildGradeCol('Avaliação N1', n1),
-                _buildGradeCol('Avaliação N2', n2),
-                _buildGradeCol('Média Parcial', media, isGreen: true),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.menu_book,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    'Entrar na Disciplina (AVA)',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF18181B),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.videocam_outlined,
-                    size: 16,
-                    color: Color(0xFF16A34A),
-                  ),
-                  label: const Text(
-                    'Sala Virtual',
-                    style: TextStyle(color: Color(0xFF16A34A)),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: Color(0xFF16A34A)),
+                  Chip(
+                    label: Text('${(d.progress * 100).toInt()}% Concluído', style: const TextStyle(fontSize: 11, color: Color(0xFF16A34A))),
                     backgroundColor: const Color(0xFFDCFCE7),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(d.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              Text('${d.professor} • ${d.time}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: d.progress,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Frequência: ${d.attendancePercentage}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  ElevatedButton(
+                    onPressed: () {
+                      _controller.selectDiscipline(d);
+                      setState(() => _activeDisciplineCockpit = d);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F172A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    child: const Text('Acessar AVA', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Ver Plano de Ensino & Ementa',
-                style: TextStyle(
-                  fontSize: 11,
-                  decoration: TextDecoration.underline,
-                  color: Color(0xFF52525B),
-                ),
-              ),
-              Text(
-                faltas,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: Color(0xFF71717A),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGradeCol(String label, String value, {bool isGreen = false}) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10, color: Color(0xFFA1A1AA)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: isGreen ? const Color(0xFF16A34A) : const Color(0xFF18181B),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
   // ==========================================
-  // BLOCO 5: LAYOUT INFERIOR (TABELAS E AVISOS)
+  // BLOCO 5: ENSALAMENTO E QUADRO SEMANAL
   // ==========================================
-  Widget _buildBottomLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Coluna da Esquerda (Maior)
-        Expanded(
-          flex: 2,
-          child: Column(
-            children: [
-              _buildScheduleBoard(),
-              const SizedBox(height: 32),
-              _buildTeacherNotices(),
-            ],
-          ),
-        ),
-        const SizedBox(width: 32),
-        // Coluna da Direita (Menor)
-        Expanded(
-          flex: 1,
-          child: Column(
-            children: [
-              _buildUpcomingTasks(),
-              const SizedBox(height: 32),
-              _buildOfficialResources(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScheduleBoard() {
+  Widget _buildScheduleAndEnsalamento() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -687,598 +300,187 @@ class StudentDisciplinesPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Quadro Semanal de Horários & Laboratórios',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF18181B),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Grade de encontros presenciais das 4 disciplinas no Bloco Central e Labs.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-                  ),
+          const Text('Quadro Semanal de Horários & Ensalamento Físico', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          const Text('Locais de aula presenciais homologados pela DTI e Conselho Universitário para 2026/2.', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+          const SizedBox(height: 20),
+          Table(
+            border: TableBorder.all(color: const Color(0xFFE5E7EB)),
+            children: const [
+              TableRow(
+                decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                children: [
+                  Padding(padding: EdgeInsets.all(12), child: Text('DIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('1º HORÁRIO (19:00 - 20:40)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('2º HORÁRIO (20:50 - 22:30)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'Semestre 2026/2',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF52525B)),
-                ),
+              TableRow(
+                children: [
+                  Padding(padding: EdgeInsets.all(12), child: Text('Segunda-feira', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Análise e Projeto de Sistemas II\nLab 04 - Bloco C', style: TextStyle(fontSize: 12))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Fundamentos de Sist. Operacionais\nLab 01 - Bloco C', style: TextStyle(fontSize: 12))),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(padding: EdgeInsets.all(12), child: Text('Terça-feira', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Fundamentos de I.A.\nSala 302 - Bloco A', style: TextStyle(fontSize: 12))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Banco de Dados II\nLab 02 - Bloco B', style: TextStyle(fontSize: 12))),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(padding: EdgeInsets.all(12), child: Text('Quarta-feira', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Análise e Projeto de Sistemas II\nLab 04 - Bloco C', style: TextStyle(fontSize: 12))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Fundamentos de Sist. Operacionais\nLab 01 - Bloco C', style: TextStyle(fontSize: 12))),
+                ],
+              ),
+              TableRow(
+                children: [
+                  Padding(padding: EdgeInsets.all(12), child: Text('Quinta-feira', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Fundamentos de I.A.\nSala 302 - Bloco A', style: TextStyle(fontSize: 12))),
+                  Padding(padding: EdgeInsets.all(12), child: Text('Banco de Dados II\nLab 02 - Bloco B', style: TextStyle(fontSize: 12))),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildScheduleItem(
-            'Segunda-feira',
-            '19:00 - 22:30',
-            'Análise e Projeto de Sistemas II',
-            'APS-II',
-            'Lab 04 - Bloco C • Profa. Helena Bittencourt',
-            'Laboratório Prático',
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildScheduleItem(
-            'Terça-feira',
-            '19:00 - 22:30',
-            'Estudos de Banco de Dados II',
-            'BD-II',
-            'Lab 02 - Bloco B • Profa. Helena Bittencourt',
-            'Laboratório Prático',
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildScheduleItem(
-            'Quarta-feira',
-            '19:00 - 21:00',
-            'Filosofia, Informação e Sociedade',
-            'FIS',
-            'Sala 204 - Bloco A • Prof. Marcos Vinícius',
-            'Teórica & Debates',
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildScheduleItem(
-            'Quinta-feira',
-            '19:00 - 22:30',
-            'Fundamentos de Sistemas Operacionais',
-            'FSO',
-            'Anfiteatro 101 - Bloco Central • Prof. André Luiz Silveira',
-            'Teórica & Demonstração',
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildScheduleItem(
-            'Sexta-feira',
-            '18:30 - 20:30',
-            'Plantão Orientado de Dúvidas & Monitoria',
-            'MONITORIA',
-            'Lab 04 & Microsoft Teams • Monitores Discentes',
-            'Atendimento Orientado',
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildScheduleItem(
-    String day,
-    String time,
-    String title,
-    String code,
-    String subtitle,
-    String type,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 100,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  day,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF18181B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF71717A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF18181B),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF4F4F5),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        code,
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF52525B),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF71717A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              type,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF52525B)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeacherNotices() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Mural de Avisos & Comunicados Docentes',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF18181B),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Orientações recentes publicadas pelos professores das suas disciplinas.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-                  ),
-                ],
-              ),
-              const Text(
-                '3 avisos',
-                style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _buildNoticeItem(
-            'APS-II',
-            'Profa. Dra. Helena Bittencourt',
-            'Há 2 horas',
-            'Orientações para o Sprint 1 e Modelagem de Domínio',
-            'Lembrem-se de que os diagramas de classes devem contemplar todas as multiplicidades e a rastreabilidade com os casos de uso do Projeto Integrador. Gabarito conceitual disponível na aba de...',
-          ),
-          const Divider(height: 32, color: Color(0xFFE5E7EB)),
-          _buildNoticeItem(
-            'BD-II',
-            'Profa. Dra. Helena Bittencourt',
-            'Ontem',
-            'Scripts de Carga e EXPLAIN ANALYZE no PostgreSQL',
-            'Os scripts de povoamento da base de testes para a prática de planos de execução já estão disponíveis no repositório da disciplina. Usem o ambiente Docker homologado.',
-          ),
-          const Divider(height: 32, color: Color(0xFFE5E7EB)),
-          _buildNoticeItem(
-            'FSO',
-            'Prof. Esp. André Luiz Silveira',
-            '2 dias atrás',
-            'Instalação das Máquinas Virtuais para Prática de Semáforos',
-            'Todos os alunos devem conferir o acesso à imagem Linux do laboratório para o exercício de sincronização entre processos na próxima quinta-feira.',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoticeItem(
-    String code,
-    String teacher,
-    String time,
-    String title,
-    String preview,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  // ==========================================
+  // MODAL: BOLETIM & HISTÓRICO OFICIAL (Print 08)
+  // ==========================================
+  void _showBoletimModal(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F4F5),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    code,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF52525B),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  teacher,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFFA1A1AA),
-                  ),
-                ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Boletim & Histórico Escolar Oficial', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Gabriel Soares de Oliveira • R.A.: 2024.1.00892', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
               ],
             ),
-            Text(
-              time,
-              style: const TextStyle(fontSize: 11, color: Color(0xFFA1A1AA)),
-            ),
+            IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF18181B),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          preview,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFF52525B),
-            height: 1.4,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUpcomingTasks() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Próximas Avaliações & Entregas',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF18181B),
-                ),
-              ),
-              Text(
-                'Ver Calendário →',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF52525B),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Prazos e entregas acadêmicas das 4 disciplinas.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildTaskItem(
-            'APS-II',
-            '25% da N2',
-            'Sprint 1: Diagramas de Classes e Sequência do AVA',
-            'Hoje às 23:59',
-            isUrgent: true,
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildTaskItem(
-            'BD-II',
-            '20% da N2',
-            'Lista Prática 02: Normalização Formal e BCNF',
-            'Amanhã às 23:59',
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildTaskItem(
-            'FIS',
-            '30% da N2',
-            'Seminário: Soberania de Dados e LGPD na IA',
-            '08 Out às 19:00',
-          ),
-          const Divider(height: 1, color: Color(0xFFE5E7EB)),
-          _buildTaskItem(
-            'FSO',
-            '20% da N2',
-            'Relatório: Simulação de Escalonamento Round-Robin',
-            '15 Out às 23:59',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(
-    String code,
-    String weight,
-    String title,
-    String time, {
-    bool isUrgent = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
+        content: SizedBox(
+          width: 720,
+          child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE5E7EB),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        code,
-                        style: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF52525B),
+                ...StudentMockData.historicalBoletim.map((period) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(period.period, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+                        const SizedBox(height: 8),
+                        Table(
+                          border: TableBorder.all(color: const Color(0xFFE5E7EB)),
+                          children: [
+                            const TableRow(
+                              decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                              children: [
+                                Padding(padding: EdgeInsets.all(8), child: Text('CÓDIGO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                Padding(padding: EdgeInsets.all(8), child: Text('DISCIPLINA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                Padding(padding: EdgeInsets.all(8), child: Text('N1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                Padding(padding: EdgeInsets.all(8), child: Text('N2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                Padding(padding: EdgeInsets.all(8), child: Text('MÉDIA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                Padding(padding: EdgeInsets.all(8), child: Text('FALTAS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                Padding(padding: EdgeInsets.all(8), child: Text('RESULTADO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                              ],
+                            ),
+                            ...period.items.map((item) {
+                              return TableRow(
+                                children: [
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['codigo'] as String, style: const TextStyle(fontSize: 11))),
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['disciplina'] as String, style: const TextStyle(fontSize: 11))),
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['n1'].toString(), style: const TextStyle(fontSize: 11))),
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['n2'].toString(), style: const TextStyle(fontSize: 11))),
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['media'].toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['faltas'].toString(), style: const TextStyle(fontSize: 11))),
+                                  Padding(padding: const EdgeInsets.all(8), child: Text(item['situacao'] as String, style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 11))),
+                                ],
+                              );
+                            }).toList(),
+                          ],
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      weight,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFFA1A1AA),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF18181B),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: isUrgent
-                        ? const Color(0xFFDC2626)
-                        : const Color(0xFF71717A),
-                  ),
-                ),
+                  );
+                }).toList(),
               ],
             ),
           ),
-          OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              side: const BorderSide(color: Color(0xFFE5E7EB)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Acessar',
-              style: TextStyle(fontSize: 12, color: Color(0xFF18181B)),
-            ),
+        ),
+        actions: [
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Download do Boletim Oficial iniciado (PDF).')));
+            },
+            icon: const Icon(Icons.download, size: 16),
+            label: const Text('Exportar PDF Assinado'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            child: const Text('Fechar'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOfficialResources() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Apoio Acadêmico & Recursos Oficiais',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF18181B),
+  // ==========================================
+  // MODAL: PLANO DE ENSINO & EMENTA (Print 09)
+  // ==========================================
+  void _showPlanoEnsinoModal(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Plano de Ensino & Ementa Homologada', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: 600,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Curso: Bacharelado em Engenharia de Software (4º Semestre)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                SizedBox(height: 12),
+                Text('Critérios Regimentais de Aprovação (Resolução CONSEPE 2026/04):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
+                SizedBox(height: 4),
+                Text('• Aprovação Direta: Média Final ≥ 6.0 e Frequência Global ≥ 75%\n• Fórmula: Média Final = (N1 x 0.4) + (N2 x 0.6)\n• Exame Especial: Médias entre 4.0 e 5.9 têm direito à Prova Final.\n• Reprovação por Falta: Frequência inferior a 75% reprova sem direito a exame.', style: TextStyle(fontSize: 12, color: Color(0xFF334155))),
+                SizedBox(height: 16),
+                Divider(height: 1),
+                SizedBox(height: 16),
+                Text('Competências Pedagógicas Desenvolvidas:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                SizedBox(height: 4),
+                Text('1. Aplicar padrões de projeto de software para produzir sistemas escaláveis e modulares.\n2. Conduzir revisões arquiteturais e aplicar testes unitários com Clean Architecture.\n3. Modelar e integrar soluções acadêmicas distribuídas.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Serviços integrados de suporte ao aprendizado e pesquisa.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-          ),
-          const SizedBox(height: 24),
-          _buildResourceBtn(
-            Icons.menu_book,
-            'Biblioteca Virtual Universitária',
-            'Mais de 15.000 títulos técnicos Pearson & Minha Biblioteca',
-            isExternal: true,
-          ),
-          const SizedBox(height: 12),
-          _buildResourceBtn(
-            Icons.computer,
-            'Laboratórios Virtuais & Docker',
-            'Ambientes conteinerizados de PostgreSQL e Linux',
-            isExternal: true,
-          ),
-          const SizedBox(height: 12),
-          _buildResourceBtn(
-            Icons.school_outlined,
-            'Monitoria & Nivelamento',
-            'Plantões com discentes bolsistas de Seg a Sex',
-            isExternal: true,
-          ),
-          const SizedBox(height: 12),
-          _buildResourceBtn(
-            Icons.description_outlined,
-            'Templates Oficiais ABNT & TCC',
-            'Modelos LaTeX e Word aprovados pelo Colegiado',
-            isExternal: false,
-            isDownload: true,
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+            child: const Text('Entendido'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildResourceBtn(
-    IconData icon,
-    String title,
-    String subtitle, {
-    bool isExternal = false,
-    bool isDownload = false,
-  }) {
-    return InkWell(
-      onTap: () {},
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: const Color(0xFF52525B)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF18181B),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFFA1A1AA),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isExternal)
-              const Icon(Icons.open_in_new, size: 16, color: Color(0xFFA1A1AA)),
-            if (isDownload)
-              const Icon(
-                Icons.download_outlined,
-                size: 16,
-                color: Color(0xFFA1A1AA),
-              ),
-          ],
-        ),
       ),
     );
   }
