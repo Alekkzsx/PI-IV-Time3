@@ -212,3 +212,4 @@ class StudentPortalController extends ChangeNotifier {
     notifyListeners();
   }
 }
+
