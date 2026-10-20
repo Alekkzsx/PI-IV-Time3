@@ -68,61 +68,64 @@ class _ClassesPageState extends State<ClassesPage> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey[200]!),
             ),
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('CÓDIGO / DISCIPLINA')),
-                DataColumn(label: Text('CURSO & TURNO')),
-                DataColumn(label: Text('LOCAL')),
-                DataColumn(label: Text('VAGAS')),
-                DataColumn(label: Text('DOCENTE REGENTE')),
-                DataColumn(label: Text('AÇÕES')),
-              ],
-              rows: _controller.classes.map((c) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text('${c.subjectName}\n${c.code}')),
-                    DataCell(Text(c.courseAndTerm)),
-                    DataCell(Text(c.location)),
-                    DataCell(Text('${c.enrolled} / ${c.maxCapacity} vagas')),
-                    DataCell(
-                      Row(
-                        children: [
-                          Expanded(child: Text(c.professor, overflow: TextOverflow.ellipsis)),
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 16),
-                            tooltip: 'Alocar Docente',
-                            onPressed: () => _showAlocarDocenteModal(context, c),
-                          ),
-                        ],
-                      ),
-                    ),
-                    DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => setState(() => _activeSupervisedClass = c),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0F172A),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('CÓDIGO / DISCIPLINA')),
+                  DataColumn(label: Text('CURSO & TURNO')),
+                  DataColumn(label: Text('LOCAL')),
+                  DataColumn(label: Text('VAGAS')),
+                  DataColumn(label: Text('DOCENTE REGENTE')),
+                  DataColumn(label: Text('AÇÕES')),
+                ],
+                rows: _controller.classes.map((c) {
+                  return DataRow(
+                    cells: [
+                      DataCell(Text('${c.subjectName}\n${c.code}')),
+                      DataCell(Text(c.courseAndTerm)),
+                      DataCell(Text(c.location)),
+                      DataCell(Text('${c.enrolled} / ${c.maxCapacity} vagas')),
+                      DataCell(
+                        Row(
+                          children: [
+                            Text(c.professor),
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 16),
+                              tooltip: 'Alocar Docente',
+                              onPressed: () => _showAlocarDocenteModal(context, c),
                             ),
-                            child: const Text('Supervisionar', style: TextStyle(fontSize: 12)),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton(
-                            onPressed: () => _showRegimeFormulaModal(context, c),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            ),
-                            child: const Text('Regime', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              }).toList(),
+                      DataCell(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => setState(() => _activeSupervisedClass = c),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0F172A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              child: const Text('Supervisionar', style: TextStyle(fontSize: 12)),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton(
+                              onPressed: () => _showRegimeFormulaModal(context, c),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              ),
+                              child: const Text('Regime', style: TextStyle(fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],
