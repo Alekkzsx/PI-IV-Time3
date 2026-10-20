@@ -325,7 +325,7 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
                           Padding(padding: const EdgeInsets.all(8), child: Text('${r['nota']} pts', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF16A34A)))),
                         ],
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
                 const SizedBox(height: 16),
