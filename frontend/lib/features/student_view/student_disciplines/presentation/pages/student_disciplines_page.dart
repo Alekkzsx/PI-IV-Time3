@@ -413,13 +413,13 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
                                   Padding(padding: const EdgeInsets.all(8), child: Text(item['situacao'] as String, style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 11))),
                                 ],
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
           ),
