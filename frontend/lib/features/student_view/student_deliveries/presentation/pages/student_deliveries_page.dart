@@ -1,9 +1,4 @@
-// Desenvolvido por Rafael Henrique dos Santos Inácio - RA: 25009719
-
 import 'package:flutter/material.dart';
-
-// Enum para mapear os 3 estados que identificamos no protótipo
-enum DeliveryStatus { pending, inReview, graded }
 
 class StudentDeliveriesPage extends StatelessWidget {
   const StudentDeliveriesPage({super.key});
@@ -11,341 +6,560 @@ class StudentDeliveriesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(context), // <-- Passando o context aqui!
+          _buildHeader(),
           const SizedBox(height: 24),
-          _buildDashboardCards(),
+          _buildStatsRow(),
           const SizedBox(height: 32),
           _buildTabsAndFilters(),
           const SizedBox(height: 24),
           _buildDeliveriesList(),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  // ==========================================
+  // CABEÇALHO
+  // ==========================================
+  Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- NOVO BOTÃO DE VOLTAR ---
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushReplacementNamed('/student/home');
-              },
-              icon: const Icon(
-                Icons.arrow_back_rounded,
-                size: 18,
-                color: Colors.grey,
-              ),
-              label: const Text(
-                'Voltar para o Painel Geral',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                alignment: Alignment.centerLeft,
-              ),
-            ),
-            const SizedBox(height: 12),
-            // -----------------------------
-            const Text(
+          children: const [
+            Text(
               'Central de Entregas & Atividades',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF18181B),
+              ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 4),
+            Text(
               'Gerencie prazos acadêmicos, envie seus trabalhos e acompanhe pareceres e notas oficiais.',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
             ),
           ],
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            color: Colors.white,
+            border: Border.all(color: const Color(0xFFE5E7EB)),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Text(
-            'Semestre Letivo: 2026/2',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          child: Row(
+            children: const [
+              Text(
+                'Semestre Letivo:',
+                style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+              ),
+              SizedBox(width: 4),
+              Text(
+                '2026/2',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF18181B),
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDashboardCards() {
-    // Aqui você pode criar um Row com 4 Expanded contendo os 4 cards brancos
-    // (Pendentes, Em Análise, Avaliadas, Média Ponderada)
+  // ==========================================
+  // ESTATÍSTICAS SUPERIORES
+  // ==========================================
+  Widget _buildStatsRow() {
     return Row(
       children: [
-        _buildMetricCard(
-          'PENDENTES',
-          '4',
-          'atividades',
-          'Há entregas com prazo fatal nos próximos 2 dias.',
-          isUrgent: true,
+        Expanded(
+          child: _buildStatCard(
+            title: 'PENDENTES',
+            value: '4',
+            subtitle: 'atividades',
+            description: 'Há entregas com prazo fatal nos próximos 2 dias.',
+            topRightWidget: const Icon(
+              Icons.access_time,
+              size: 18,
+              color: Color(0xFF18181B),
+            ),
+            badgeWidget: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.info_outline, size: 10, color: Color(0xFFDC2626)),
+                  SizedBox(width: 4),
+                  Text(
+                    '1 urgente',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 16),
-        _buildMetricCard(
-          'EM ANÁLISE',
-          '2',
-          'aguardando correção',
-          'Submissões com protocolo emitido aguardando parecer.',
+        Expanded(
+          child: _buildStatCard(
+            title: 'EM ANÁLISE',
+            value: '2',
+            subtitle: 'aguardando correção',
+            description: 'Submissões com protocolo emitido aguardando parecer.',
+            topRightWidget: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F4F5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(
+                Icons.send_outlined,
+                size: 14,
+                color: Color(0xFF16A34A),
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 16),
-        _buildMetricCard(
-          'AVALIADAS',
-          '3',
-          'concluídas no semestre',
-          'Com notas consolidadas e devolutiva do docente.',
+        Expanded(
+          child: _buildStatCard(
+            title: 'AVALIADAS',
+            value: '3',
+            subtitle: 'concluídas no semestre',
+            description: 'Com notas consolidadas e devolutiva do docente.',
+            topRightWidget: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F4F5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(
+                Icons.bookmark_outline,
+                size: 14,
+                color: Color(0xFF18181B),
+              ),
+            ),
+          ),
         ),
         const SizedBox(width: 16),
-        _buildMetricCard(
-          'MÉDIA PONDERADA',
-          '9.7',
-          '/ 10.0',
-          'Média das notas de trabalhos entregues até o momento.',
-          isSuccess: true,
+        Expanded(
+          child: _buildStatCard(
+            title: 'MÉDIA PONDERADA',
+            value: '9.7',
+            subtitle: '/ 10.0',
+            description:
+                'Média das notas de trabalhos entregues até o momento.',
+            topRightWidget: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Excelente',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildMetricCard(
-    String title,
-    String value,
-    String subtitle,
-    String desc, {
-    bool isUrgent = false,
-    bool isSuccess = false,
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required String description,
+    Widget? topRightWidget,
+    Widget? badgeWidget,
   }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF71717A),
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: isSuccess ? Colors.green.shade700 : Colors.black,
-                  ),
+              if (topRightWidget != null) topRightWidget,
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF18181B),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+              ),
+              const SizedBox(width: 6),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+              ),
+              if (badgeWidget != null) ...[const Spacer(), badgeWidget],
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFFA1A1AA),
+              height: 1.4,
             ),
-            const SizedBox(height: 12),
-            Text(
-              desc,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
+  // ==========================================
+  // TABS, BUSCA E FILTROS
+  // ==========================================
   Widget _buildTabsAndFilters() {
-    // Linha contendo Filtros de Texto e Dropdown
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          flex: 2,
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Buscar por título, código ou palavra-chave...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-          ),
+        Row(
+          children: [
+            _buildTabItem('Todas as Atividades', '9', isActive: true),
+            _buildTabItem('Pendentes', '4'),
+            _buildTabItem('Em Análise / Enviadas', '2'),
+            _buildTabItem('Avaliadas com Nota', '3'),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: 'Todas as disciplinas',
-                items:
-                    [
-                          'Todas as disciplinas',
-                          'Análise e Projeto de Sistemas II',
-                          'Banco de Dados II',
-                        ]
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                onChanged: (val) {},
+        Container(
+          height: 1,
+          width: double.infinity,
+          color: const Color(0xFFE5E7EB),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SizedBox(
+              width: 400,
+              height: 40,
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Buscar por título, código ou palavra-chave...',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFA1A1AA),
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: Color(0xFFA1A1AA),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF18181B)),
+                  ),
+                ),
               ),
             ),
-          ),
+            Row(
+              children: [
+                const Icon(
+                  Icons.filter_alt_outlined,
+                  size: 16,
+                  color: Color(0xFF71717A),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Disciplina:',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF71717A)),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Todas as disciplinas',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF18181B),
+                        ),
+                      ),
+                      SizedBox(width: 32),
+                      Icon(
+                        Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: Color(0xFF18181B),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ],
     );
   }
 
+  Widget _buildTabItem(String title, String count, {bool isActive = false}) {
+    return Container(
+      padding: const EdgeInsets.only(bottom: 12, right: 24, left: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: isActive ? const Color(0xFF18181B) : Colors.transparent,
+            width: 2,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              color: isActive
+                  ? const Color(0xFF18181B)
+                  : const Color(0xFF71717A),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? const Color(0xFF18181B)
+                  : const Color(0xFFF4F4F5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              count,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isActive ? Colors.white : const Color(0xFF71717A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // LISTA DE ENTREGAS
+  // ==========================================
   Widget _buildDeliveriesList() {
     return Column(
       children: [
-        // Exemplo 1: Pendente e Urgente
-        DeliveryCardWidget(
-          status: DeliveryStatus.pending,
-          courseCode: 'APS-ATV-04',
-          courseName: 'Análise e Projeto de Sistemas II',
+        // Exemplo 1: Tarefa Pendente e Urgente
+        _buildTaskCard(
+          code: 'APS-ATV-04',
+          discipline: 'Análise e Projeto de Sistemas II',
           title:
               'Modelagem de Domínio e Diagramas de Casos de Uso com Padrões GoF',
           description:
-              'Elaboração de documento técnico contendo a especificação detalhada de 3 casos de uso do sistema acadêmico...',
-          deadline: '02 de Outubro, 23:59',
-          professor: 'Profa. Dra. Helena Bittencourt',
-          criteria: 'Peso 2.5 • Nota Máx: 10.0',
-          statusLabel: 'Prazo fatal: em 2 dias',
-          footerInfo: 'Formatos aceitos: .pdf, .zip • Max: 25MB',
-          actionText: 'Realizar Entrega',
+              'Elaboração de documento técnico contendo a especificação detalhada de 3 casos de uso do sistema acadêmico, o diagrama de classes de domínio com cardinalidades e justificativa técnica da aplicação de pelo menos dois padrões de projeto GoF (Factory Method e Strategy).',
+          dataLimite: '02 de Outubro, 23:59',
+          docente: 'Profa. Dra. Helena Bittencourt',
+          criterio: 'Peso 2.5 • Nota Máx: 10.0',
+          topRightBadge: _buildUrgentBadge('Prazo fatal: em 2 dias'),
+          bottomLeftWidget: const Text(
+            'Formatos aceitos: .pdf, .zip • Max: 25MB',
+            style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+          ),
+          actionButton: _buildActionButton(
+            'Realizar Entrega',
+            Icons.upload,
+            isDark: true,
+          ),
         ),
         const SizedBox(height: 16),
-        // Exemplo 2: Em Análise
-        DeliveryCardWidget(
-          status: DeliveryStatus.inReview,
-          courseCode: 'APS-ATV-03',
-          courseName: 'Análise e Projeto de Sistemas II',
+        // Exemplo 2: Tarefa Pendente Normal
+        _buildTaskCard(
+          code: 'BD2-LAB-03',
+          discipline: 'Banco de Dados II',
+          title:
+              'Otimização de Índices B-Tree, Explain Plan e Triggers no PostgreSQL',
+          description:
+              'Prática de laboratório com execução de planos de consulta (EXPLAIN ANALYZE) sobre dataset com 1 milhão de tuplas, criação de índices parciais e implementação de trigger para auditoria de alterações sensíveis.',
+          dataLimite: '05 de Outubro, 23:59',
+          docente: 'Prof. Me. Carlos Eduardo Silva',
+          criterio: 'Peso 2.0 • Nota Máx: 10.0',
+          topRightBadge: _buildNormalBadge(
+            'Prazo em 5 dias',
+            Icons.access_time,
+          ),
+          bottomLeftWidget: const Text(
+            'Formatos aceitos: .sql, .pdf, .zip • Max: 30MB',
+            style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+          ),
+          actionButton: _buildActionButton(
+            'Realizar Entrega',
+            Icons.upload,
+            isDark: true,
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Exemplo 3: Tarefa Enviada / Em Análise
+        _buildTaskCard(
+          code: 'APS-ATV-03',
+          discipline: 'Análise e Projeto de Sistemas II',
           title: 'Documento de Visão e Requisitos de Software v1.2',
           description:
-              'Revisão completa do documento de requisitos incorporando as regras de negócio de fechamento contábil...',
-          deadline: '28 de Setembro, 23:59',
-          professor: 'Profa. Dra. Helena Bittencourt',
-          criteria: 'Peso 2.0 • Nota Máx: 10.0',
-          statusLabel: 'Enviada em 28/09/2026',
-          footerInfo: 'Protocolo: AGR-2026-0928-8472 (1 anexo)',
-          actionText: 'Ver Comprovante',
+              'Revisão completa do documento de requisitos incorporando as regras de negócio de fechamento contábil e autenticação federada com OAuth 2.0 / SAML.',
+          dataLimite: '28 de Setembro, 23:59',
+          docente: 'Profa. Dra. Helena Bittencourt',
+          criterio: 'Peso 2.0 • Nota Máx: 10.0',
+          topRightBadge: _buildBlueBadge(
+            'Enviada em 28/09/2026',
+            Icons.send_outlined,
+          ),
+          bottomLeftWidget: Row(
+            children: const [
+              Icon(
+                Icons.verified_user_outlined,
+                size: 14,
+                color: Color(0xFF16A34A),
+              ),
+              SizedBox(width: 4),
+              Text(
+                'Protocolo: ',
+                style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
+              ),
+              Text(
+                'AGR-2026-0928-8472 (1 anexo)',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: Color(0xFF71717A),
+                ),
+              ),
+            ],
+          ),
+          actionButton: _buildActionButton(
+            'Ver Comprovante',
+            Icons.insert_drive_file_outlined,
+            isGreen: true,
+          ),
         ),
         const SizedBox(height: 16),
-        // Exemplo 3: Avaliada
-        DeliveryCardWidget(
-          status: DeliveryStatus.graded,
-          courseCode: 'APS-ATV-01',
-          courseName: 'Análise e Projeto de Sistemas II',
+        // Exemplo 4: Tarefa Avaliada
+        _buildTaskCard(
+          code: 'APS-ATV-01',
+          discipline: 'Análise e Projeto de Sistemas II',
           title:
               'Estudo de Caso 01: Análise de Viabilidade Técnica e Econômica',
           description:
-              'Elaboração de parecer técnico sobre a substituição de sistema legado monolítico por arquitetura distribuída...',
-          deadline: '14 de Setembro, 23:59',
-          professor: 'Profa. Dra. Helena Bittencourt',
-          criteria: 'Peso 2.0 • Nota Máx: 10.0',
-          statusLabel: 'Nota: 9.8 / 10.0',
-          footerInfo: 'Parecer emitido em 17/09/2026',
-          actionText: 'Ver Devolutiva & Nota',
+              'Elaboração de parecer técnico sobre a substituição de sistema legado monolítico por arquitetura distribuída, com cálculo de TCO (Total Cost of Ownership), ROI estimado e análise de riscos.',
+          dataLimite: '14 de Setembro, 23:59',
+          docente: 'Profa. Dra. Helena Bittencourt',
+          criterio: 'Peso 2.0 • Nota Máx: 10.0',
+          topRightBadge: _buildOutlineGreenBadge(
+            'Nota: 9.8 / 10.0',
+            Icons.check_circle_outline,
+          ),
+          bottomLeftWidget: const Text(
+            'Parecer emitido em 17/09/2026',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF16A34A),
+            ),
+          ),
+          actionButton: _buildActionButton(
+            'Ver Devolutiva & Nota',
+            Icons.check_circle_outline,
+            isGreen: true,
+          ),
         ),
       ],
     );
   }
-}
 
-// Widget Reutilizável do Card que se adapta aos estados
-class DeliveryCardWidget extends StatelessWidget {
-  final DeliveryStatus status;
-  final String courseCode;
-  final String courseName;
-  final String title;
-  final String description;
-  final String deadline;
-  final String professor;
-  final String criteria;
-  final String statusLabel;
-  final String footerInfo;
-  final String actionText;
-
-  const DeliveryCardWidget({
-    super.key,
-    required this.status,
-    required this.courseCode,
-    required this.courseName,
-    required this.title,
-    required this.description,
-    required this.deadline,
-    required this.professor,
-    required this.criteria,
-    required this.statusLabel,
-    required this.footerInfo,
-    required this.actionText,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    Color statusColor;
-    Color actionButtonColor;
-
-    switch (status) {
-      case DeliveryStatus.pending:
-        statusColor = Colors.red.shade700;
-        actionButtonColor = const Color(0xFF1E1E1E); // Preto
-        break;
-      case DeliveryStatus.inReview:
-        statusColor = Colors.blue.shade700;
-        actionButtonColor = const Color(0xFF1E5B3A); // Verde Escuro
-        break;
-      case DeliveryStatus.graded:
-        statusColor = Colors.green.shade700;
-        actionButtonColor = const Color(0xFF1E5B3A); // Verde Escuro
-        break;
-    }
-
+  // ==========================================
+  // CONSTRUTOR GENÉRICO DO CARTÃO DE TAREFA
+  // ==========================================
+  Widget _buildTaskCard({
+    required String code,
+    required String discipline,
+    required String title,
+    required String description,
+    required String dataLimite,
+    required String docente,
+    required String criterio,
+    required Widget topRightBadge,
+    required Widget bottomLeftWidget,
+    required Widget actionButton,
+  }) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header do Card
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -357,115 +571,81 @@ class DeliveryCardWidget extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: const Color(0xFFF4F4F5),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      courseCode,
+                      code,
                       style: const TextStyle(
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        color: Color(0xFF52525B),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Text(
-                    courseName,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    discipline,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF52525B),
+                    ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: status == DeliveryStatus.pending
-                      ? Colors.red.shade50
-                      : Colors.white,
-                  border: Border.all(
-                    color: status == DeliveryStatus.graded
-                        ? Colors.green
-                        : statusColor.withOpacity(0.3),
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
+              topRightBadge,
             ],
           ),
           const SizedBox(height: 16),
-          // Corpo do Card
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF18181B),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             description,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF71717A),
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 24),
-          // Metadados
           Row(
             children: [
-              _buildMetaColumn('DATA LIMITE', deadline),
-              const SizedBox(width: 48),
-              _buildMetaColumn('DOCENTE RESPONSÁVEL', professor),
-              const SizedBox(width: 48),
-              _buildMetaColumn('CRITÉRIO E PESO', criteria),
+              Expanded(
+                child: _buildInfoColumn(
+                  'DATA LIMITE',
+                  dataLimite,
+                  icon: Icons.access_time,
+                ),
+              ),
+              Expanded(child: _buildInfoColumn('DOCENTE RESPONSÁVEL', docente)),
+              Expanded(child: _buildInfoColumn('CRITÉRIO E PESO', criterio)),
             ],
           ),
           const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 16),
-          // Footer do Card
+          const Divider(height: 1, color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                footerInfo,
-                style: TextStyle(
-                  color: status == DeliveryStatus.pending
-                      ? Colors.grey.shade600
-                      : Colors.green.shade700,
-                  fontSize: 14,
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: actionButtonColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              bottomLeftWidget,
+              Row(
+                children: [
+                  actionButton,
+                  const SizedBox(width: 12),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: Color(0xFFA1A1AA),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                ),
-                onPressed: () {},
-                child: Row(
-                  children: [
-                    Text(
-                      actionText,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ],
-                ),
+                ],
               ),
             ],
           ),
@@ -474,24 +654,163 @@ class DeliveryCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildMetaColumn(String title, String value) {
+  Widget _buildInfoColumn(String label, String value, {IconData? icon}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title,
-          style: TextStyle(
-            color: Colors.grey.shade500,
-            fontSize: 10,
+          label,
+          style: const TextStyle(
+            fontSize: 9,
             fontWeight: FontWeight.bold,
+            color: Color(0xFFA1A1AA),
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 14, color: const Color(0xFFA1A1AA)),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              value,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF18181B)),
+            ),
+          ],
         ),
       ],
+    );
+  }
+
+  // ==========================================
+  // BADGES E BOTÕES DE ESTADO
+  // ==========================================
+  Widget _buildUrgentBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 12, color: Color(0xFFDC2626)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFDC2626),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNormalBadge(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F5),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF71717A)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF52525B)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlueBadge(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF2563EB)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOutlineGreenBadge(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFF86EFAC)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: const Color(0xFF16A34A)),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF16A34A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    String label,
+    IconData icon, {
+    bool isDark = false,
+    bool isGreen = false,
+  }) {
+    Color bgColor = Colors.white;
+    if (isDark) bgColor = const Color(0xFF18181B);
+    if (isGreen)
+      bgColor = const Color(0xFF14532D); // Verde bem escuro conforme o layout
+
+    return ElevatedButton.icon(
+      onPressed: () {},
+      icon: Icon(icon, size: 16, color: Colors.white),
+      label: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: bgColor,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
     );
   }
 }
