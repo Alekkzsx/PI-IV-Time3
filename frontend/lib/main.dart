@@ -19,6 +19,7 @@ import 'shared/student_layout/student_sidebar.dart';
 
 // Importação correta com base na árvore de pastas da sua imagem:
 import 'features/admin/admin_shell/presentation/pages/admin_shell_page.dart';
+import 'features/docente_view/presentation/pages/docente_shell_page.dart';
 import 'shared/student_layout/student_portal_shell.dart';
 
 /// Ponto de entrada da aplicação Flutter.
