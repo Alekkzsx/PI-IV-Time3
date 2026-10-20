@@ -2,14 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:frontend/features/docente_view/core/docente_colors.dart';
 import 'package:frontend/features/docente_view/domain/models/academic_event.dart';
 import 'package:frontend/features/docente_view/domain/models/academic_notice.dart';
-import 'package:frontend/features/docente_view/domain/models/assignment_model.dart';
 import 'package:frontend/features/docente_view/domain/models/attendance_record.dart';
-import 'package:frontend/features/docente_view/domain/models/docente_course.dart';
-import 'package:frontend/features/docente_view/domain/models/grade_record.dart';
-import 'package:frontend/features/docente_view/domain/models/rubric_model.dart';
 import 'package:frontend/features/docente_view/presentation/controllers/docente_controller.dart';
 import 'package:frontend/features/docente_view/presentation/pages/docente_course_hub_page.dart';
 import 'package:frontend/features/docente_view/presentation/pages/docente_shell_page.dart';
@@ -133,9 +128,10 @@ void main() {
 
   group('Docente Shell & Widgets Rendering Tests', () {
     testWidgets('Renders DocenteShellPage with sidebar, header, and dashboard tabs', (tester) async {
-      tester.binding.window.physicalSizeTestValue = const Size(1280, 800);
-      tester.binding.window.devicePixelRatioTestValue = 1.0;
-      addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -160,9 +156,10 @@ void main() {
     });
 
     testWidgets('Renders DocenteCourseHubPage and displays top navigation and metrics', (tester) async {
-      tester.binding.window.physicalSizeTestValue = const Size(1280, 800);
-      tester.binding.window.devicePixelRatioTestValue = 1.0;
-      addTearDown(tester.binding.window.clearPhysicalSizeTestValue);
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       final controller = DocenteController();
       final course = controller.courses.first;
