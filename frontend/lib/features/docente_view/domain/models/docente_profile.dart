@@ -36,6 +36,14 @@ class LoginAudit {
     required this.ip,
     required this.status,
   });
+
+  /// Formatted date and time.
+  String get timestamp => '$date às $time';
+
+  /// Whether authentication was granted.
+  bool get success =>
+      status.toLowerCase().contains('autorizado') ||
+      status.toLowerCase().contains('sucesso');
 }
 
 /// Represents the professor's account and security profile.
@@ -67,6 +75,21 @@ class DocenteProfile {
     required this.activeSessions,
     required this.loginAudits,
   });
+
+  /// Institutional registration number alias.
+  String get registrationNumber => registrationId;
+
+  /// Institutional email alias.
+  String get institutionalEmail => academicEmail;
+
+  /// Institutional title / degree.
+  String get title => 'Doutorado em Ciência da Computação - USP';
+
+  /// Work contract regime.
+  String get workRegime => '40h Dedicação Exclusiva (DE)';
+
+  /// Lattes CV URL.
+  String get lattesUrl => 'http://lattes.cnpq.br/4928172938471928';
 
   DocenteProfile copyWith({
     String? fullName,
