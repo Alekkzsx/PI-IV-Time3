@@ -9,13 +9,13 @@ import '../controllers/docente_controller.dart';
 class SyllabusMaterialsModal extends StatefulWidget {
   final DocenteCourse course;
   final DocenteController controller;
-  final void Function(String courseId) onOpenCourseHub;
+  final void Function(String courseId)? onOpenCourseHub;
 
   const SyllabusMaterialsModal({
     super.key,
     required this.course,
     required this.controller,
-    required this.onOpenCourseHub,
+    this.onOpenCourseHub,
   });
 
   @override
@@ -97,7 +97,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      widget.onOpenCourseHub(currentCourse.id);
+                      widget.onOpenCourseHub?.call(currentCourse.id);
                     },
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
                     label: const Text('Abrir no AVA'),
