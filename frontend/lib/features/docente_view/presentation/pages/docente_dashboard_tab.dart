@@ -474,14 +474,18 @@ class DocenteDashboardTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                course.code,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: DocenteColors.textSecondary,
+              Expanded(
+                child: Text(
+                  course.code,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: DocenteColors.textSecondary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${course.enrolledCount} alunos',
                 style: const TextStyle(
@@ -586,14 +590,18 @@ class DocenteDashboardTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Prazos e Entregas',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: DocenteColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Prazos e Entregas',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: DocenteColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
