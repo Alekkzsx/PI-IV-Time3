@@ -165,7 +165,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Icon(icon, color: color, size: 18),
               ),
             ],
@@ -196,7 +196,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.videocam_outlined, color: Colors.white, size: 28),
               ),
               const SizedBox(width: 16),
@@ -356,7 +356,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 Padding(padding: const EdgeInsets.all(12), child: Text(d.partialAverage.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF16A34A)))),
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );
