@@ -106,12 +106,15 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> with Single
               children: [
                 Row(
                   children: [
-                    Text(
-                      widget.course.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: DocenteColors.charcoal,
+                    Flexible(
+                      child: Text(
+                        widget.course.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: DocenteColors.charcoal,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
