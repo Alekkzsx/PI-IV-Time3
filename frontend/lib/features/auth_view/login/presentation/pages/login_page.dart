@@ -216,8 +216,9 @@ class _LoginPageState extends State<LoginPage> {
     } else if (_selectedProfile == UserProfile.aluno) {
       // Redireciona para o painel principal do aluno
       Navigator.of(context).pushReplacementNamed('/student/home');
-    } else {
-      // Outros perfis (aluno/docente) podem ser direcionados para suas respectivas rotas futuramente
+    } else if (_selectedProfile == UserProfile.docente) {
+      // Redireciona para o portal principal do docente
+      Navigator.of(context).pushReplacementNamed('/docente/home');
     }
   }
 
