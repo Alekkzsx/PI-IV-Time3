@@ -252,6 +252,7 @@ class _DocenteCalendarTabState extends State<DocenteCalendarTab> {
         typeColor = DocenteColors.emerald;
         typeLabel = 'Plantão de Dúvidas';
         break;
+      case EventType.colegiado:
       case EventType.reuniao:
         typeColor = DocenteColors.amber;
         typeLabel = 'Colegiado / Reunião';
