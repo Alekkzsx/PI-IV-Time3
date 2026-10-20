@@ -486,7 +486,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -585,7 +585,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 backgroundColor: p['status'] == 'Offline' ? const Color(0xFFF1F5F9) : const Color(0xFFDCFCE7),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
