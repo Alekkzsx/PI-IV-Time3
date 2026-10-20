@@ -528,10 +528,14 @@ class DocenteDashboardTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Carga Horária: ${course.completedHours}h / ${course.totalHours}h',
-                style: const TextStyle(fontSize: 12, color: DocenteColors.textSecondary),
+              Expanded(
+                child: Text(
+                  'Carga Horária: ${course.completedHours}h / ${course.totalHours}h',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: DocenteColors.textSecondary),
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${course.progressPercentage.toStringAsFixed(0)}%',
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -660,14 +664,18 @@ class DocenteDashboardTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Mensagens e Avisos',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: DocenteColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Mensagens e Avisos',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: DocenteColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               TextButton(
                 onPressed: () => controller.navigateToTab(DocenteNavTab.comunicados),
                 child: const Text('Ver todos'),
@@ -764,10 +772,14 @@ class DocenteDashboardTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              course,
-              style: const TextStyle(fontSize: 12, color: DocenteColors.textSecondary),
+            Expanded(
+              child: Text(
+                course,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: DocenteColors.textSecondary),
+              ),
             ),
+            const SizedBox(width: 8),
             Text(
               date,
               style: TextStyle(
