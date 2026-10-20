@@ -89,3 +89,4 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
     );
   }
 }
+

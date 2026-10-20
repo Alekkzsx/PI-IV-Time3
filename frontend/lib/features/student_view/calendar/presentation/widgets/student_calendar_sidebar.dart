@@ -141,3 +141,4 @@ class StudentCalendarSidebar extends StatelessWidget {
     );
   }
 }
+

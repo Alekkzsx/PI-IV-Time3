@@ -24,3 +24,4 @@ abstract class IDocenteRepository {
   Future<void> addNotice(AcademicNotice notice);
   Future<void> addEvent(AcademicEvent event);
 }
+

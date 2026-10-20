@@ -150,3 +150,4 @@ class GuidelinesFormulaCard extends StatelessWidget {
     );
   }
 }
+
