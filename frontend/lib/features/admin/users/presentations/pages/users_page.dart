@@ -49,14 +49,17 @@ class _UsersPageState extends State<UsersPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Gestão de Usuários & Controle de Acessos', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Text('Emissão de registros acadêmicos (R.A.), matrículas funcionais e governança de credenciais.', style: TextStyle(color: Colors.grey)),
-                ],
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Gestão de Usuários & Controle de Acessos', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text('Emissão de registros acadêmicos (R.A.), matrículas funcionais e governança de credenciais.', style: TextStyle(color: Colors.grey)),
+                  ],
+                ),
               ),
+              const SizedBox(width: 16),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0F172A),
