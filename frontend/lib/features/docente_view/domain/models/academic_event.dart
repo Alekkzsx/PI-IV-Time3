@@ -6,6 +6,7 @@ enum EventType {
   avaliacao,
   plantao,
   colegiado,
+  reuniao,
 }
 
 /// Represents an event or appointment in the academic calendar.
@@ -37,7 +38,8 @@ class AcademicEvent {
       case EventType.plantao:
         return 'Plantão Docente';
       case EventType.colegiado:
-        return 'Colegiado';
+      case EventType.reuniao:
+        return 'Colegiado / Reunião';
     }
   }
 
