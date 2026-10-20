@@ -305,12 +305,12 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                     ),
                     Chip(
                       label: Text(e.type, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tagColor)),
-                      backgroundColor: tagColor.withOpacity(0.1),
+                      backgroundColor: tagColor.withValues(alpha: 0.1),
                     ),
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -377,7 +377,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                 ),
               ),
             );
-          }).toList(),
+          }),
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
@@ -397,7 +397,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
