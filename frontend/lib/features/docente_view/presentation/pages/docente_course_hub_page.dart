@@ -274,10 +274,13 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> with Single
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Unidades do Plano de Ensino (MEC)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: DocenteColors.charcoal),
+              const Expanded(
+                child: Text(
+                  'Unidades do Plano de Ensino (MEC)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: DocenteColors.charcoal),
+                ),
               ),
+              const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: _openSyllabusModal,
                 icon: const Icon(Icons.edit_note, size: 16),
