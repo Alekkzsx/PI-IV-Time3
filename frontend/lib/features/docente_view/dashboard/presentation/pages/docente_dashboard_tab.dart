@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
+import 'package:pi_iv_time3/features/docente_view/shell/presentation/widgets/docente_footer.dart';
 import 'package:pi_iv_time3/shared/widgets/institutional_hero_header.dart';
 import 'package:pi_iv_time3/shared/widgets/institutional_kpi_card.dart';
 import '../widgets/docente_courses_preview_section.dart';
@@ -23,46 +24,95 @@ class DocenteDashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1400),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero Welcome Section
-              const InstitutionalHeroHeader(
-                greeting: 'Bem-vinda, Helena.',
-                subtitleItems: [
-                  'Departamento de Computação',
-                  'Docência 2026/2',
-                ],
-              ),
-              const SizedBox(height: 32),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth > 1050;
 
-              // 4 KPI Metric Cards
-              _buildKpiMetricsGrid(context),
-              const SizedBox(height: 32),
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hero Welcome Section
+                      const InstitutionalHeroHeader(
+                        greeting: 'Bem-vinda, Helena.',
+                        subtitleItems: [
+                          'Departamento de Computação',
+                          'Docência 2026/2',
+                        ],
+                      ),
+                      const SizedBox(height: 28),
 
-              // Aula do Dia & Plantão Card
-              DocenteLiveClassCard(
-                onOpenVideoCall: onOpenVideoCall,
-                onOpenCourseHub: onOpenCourseHub,
-              ),
-              const SizedBox(height: 32),
+                      // 4 KPI Metric Cards
+                      _buildKpiMetricsGrid(context),
+                      const SizedBox(height: 28),
 
-              // Minhas Turmas Cards
-              DocenteCoursesPreviewSection(controller: controller),
-              const SizedBox(height: 32),
+                      // Layout em 2 Colunas (Esquerda: Aula do Dia, Minhas Turmas, Requerimentos | Direita: Prazos, Avisos)
+                      if (isDesktop)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Coluna Esquerda
+                            Expanded(
+                              flex: 64,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  DocenteLiveClassCard(
+                                    onOpenVideoCall: onOpenVideoCall,
+                                    onOpenCourseHub: onOpenCourseHub,
+                                  ),
+                                  const SizedBox(height: 28),
+                                  DocenteCoursesPreviewSection(
+                                    controller: controller,
+                                    onOpenCourseHub: onOpenCourseHub,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 24),
 
-              // Bottom Split: Prazos e Entregas + Mensagens e Avisos
-              DocenteDeadlinesNoticesSection(controller: controller),
-              const SizedBox(height: 48),
-            ],
+                            // Coluna Direita
+                            Expanded(
+                              flex: 36,
+                              child: DocenteDeadlinesNoticesSection(controller: controller),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DocenteLiveClassCard(
+                              onOpenVideoCall: onOpenVideoCall,
+                              onOpenCourseHub: onOpenCourseHub,
+                            ),
+                            const SizedBox(height: 28),
+                            DocenteCoursesPreviewSection(
+                              controller: controller,
+                              onOpenCourseHub: onOpenCourseHub,
+                            ),
+                            const SizedBox(height: 28),
+                            DocenteDeadlinesNoticesSection(controller: controller),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Rodapé Institucional Reutilizável
+                const DocenteFooter(padding: EdgeInsets.symmetric(horizontal: 48, vertical: 20)),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

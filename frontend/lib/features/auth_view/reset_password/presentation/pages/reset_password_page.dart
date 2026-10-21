@@ -203,15 +203,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         const SizedBox(height: 28),
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
+                          height: 52,
                           child: ElevatedButton(
                             onPressed: _handleSavePassword,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF64748B),
+                              backgroundColor: const Color(0xFF0B1325),
                               foregroundColor: Colors.white,
-                              elevation: 0,
+                              elevation: 2,
+                              shadowColor: const Color(0x260B1325),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                             child: const FittedBox(
@@ -228,7 +229,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                   ),
                                   SizedBox(width: 8),
                                   Icon(
-                                    Icons.arrow_forward,
+                                    Icons.arrow_forward_rounded,
                                     size: 16,
                                     color: Colors.white,
                                   ),

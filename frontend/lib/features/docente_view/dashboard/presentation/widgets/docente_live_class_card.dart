@@ -1,9 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/features/docente_view/shared/theme/docente_colors.dart';
 
-/// Card de "Aula do Dia & Plantão" com indicador de transmissão ao vivo e ações rápidas.
+/// Seção "Aula do Dia" do Portal Docente contendo a aula ao vivo e o plantão de atendimento.
 class DocenteLiveClassCard extends StatelessWidget {
   final VoidCallback onOpenVideoCall;
   final void Function(String courseId) onOpenCourseHub;
@@ -16,150 +15,237 @@ class DocenteLiveClassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: DocenteColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: DocenteColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Aula do Dia',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: DocenteColors.textPrimary,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Cabeçalho da Seção
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: const [
+            Text(
+              'Aula do Dia',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF09090B),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: DocenteColors.dangerLight,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
+            ),
+            Text(
+              'HOJE, 20 SET',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF71717A),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Grid/Row com Aula ao Vivo e Plantão
+        LayoutBuilder(
+          builder: (context, box) {
+            final isSmall = box.maxWidth < 750;
+
+            final liveCard = Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE4E4E7)),
+              ),
+              child: Stack(
+                children: [
+                  // Borda verde vertical no canto esquerdo
+                  Positioned(
+                    left: -18,
+                    top: -18,
+                    bottom: -18,
+                    child: Container(
+                      width: 4,
                       decoration: const BoxDecoration(
-                        color: DocenteColors.danger,
-                        shape: BoxShape.circle,
+                        color: Color(0xFF16A34A),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(10),
+                          bottomLeft: Radius.circular(10),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'AO VIVO • TRANSMITINDO',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              '19:10 • 20:50',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF09090B),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF16A34A),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  const Text(
+                                    'AO VIVO • TRANSMITINDO',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF16A34A),
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Análise e Projeto de Sistemas II',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF09090B),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          '43 alunos conectados no AVA',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF71717A),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.videocam_outlined, size: 16, color: Color(0xFF16A34A)),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Lab 04 • Sala Virtual Teams',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF52525B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            ElevatedButton(
+                              onPressed: onOpenVideoCall,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF18181B),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                elevation: 0,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Text(
+                                    'Iniciar Transmissão',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Icon(Icons.arrow_forward, size: 12, color: Colors.white),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            final plantaoCard = Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE4E4E7)),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.calendar_today_outlined, size: 20, color: Color(0xFF71717A)),
+                    SizedBox(height: 8),
+                    Text(
+                      'Atendimento Docente',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF09090B),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Plantão de dúvidas e orientação às 17:30',
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: DocenteColors.danger,
-                        letterSpacing: 0.5,
+                        color: Color(0xFF71717A),
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'HOJE, 20 SET • 19:10 - 20:50',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: DocenteColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Análise e Projeto de Sistemas II',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: DocenteColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            '43 alunos conectados no AVA • Lab 04 • Sala Virtual Teams',
-            style: TextStyle(
-              fontSize: 14,
-              color: DocenteColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: onOpenVideoCall,
-                icon: const Icon(Icons.videocam_rounded, size: 20),
-                label: const Text('Iniciar Transmissão'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: DocenteColors.textPrimary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              OutlinedButton.icon(
-                onPressed: () => onOpenCourseHub('course-aps2'),
-                icon: const Icon(Icons.hub_outlined, size: 18),
-                label: const Text('Abrir Course Hub'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: DocenteColors.textPrimary,
-                  side: const BorderSide(color: DocenteColors.borderDark),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: DocenteColors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.schedule_rounded, size: 18, color: DocenteColors.textSecondary),
-                SizedBox(width: 8),
-                Text(
-                  'Atendimento Docente:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Plantão de dúvidas e orientação às 17:30 no Gabinete 12.',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: DocenteColors.textSecondary),
-                  ),
-                ),
+            );
+
+            if (isSmall) {
+              return Column(
+                children: [
+                  liveCard,
+                  const SizedBox(height: 12),
+                  plantaoCard,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(flex: 58, child: liveCard),
+                const SizedBox(width: 14),
+                Expanded(flex: 42, child: plantaoCard),
               ],
-            ),
-          ),
-        ],
-      ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
-

@@ -126,24 +126,24 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       children: [
         Text(
           'Bem-vindo, Gabriel.',
-          style: jakarta(size: 36, weight: FontWeight.w500, letterSpacing: -1),
+          style: jakarta(size: 44, weight: FontWeight.w600, letterSpacing: -1.2),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Row(
           children: [
             Text('Engenharia de Software',
-                style: jakarta(size: 12, weight: FontWeight.w600)),
+                style: jakarta(size: 16, weight: FontWeight.w700, color: Colors.black)),
             const SizedBox(width: 10),
             Container(
-              width: 4,
-              height: 4,
+              width: 5,
+              height: 5,
               decoration: const BoxDecoration(
                   color: Color(0xFFD4D4D4), shape: BoxShape.circle),
             ),
             const SizedBox(width: 10),
             Text('5º Semestre',
                 style: jakarta(
-                    size: 12, weight: FontWeight.w500, color: _faint)),
+                    size: 16, weight: FontWeight.w600, color: _muted)),
           ],
         ),
       ],
@@ -152,13 +152,13 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   Widget _buildKpis(bool isDesktop) {
     final cards = [
-      _buildKpiCard('DISCIPLINAS', '04', 'Ativas no Semestre', 'Frequência Média',
+      _buildKpiCard('Disciplinas', '04', 'Ativas no Semestre', 'Frequência Média',
           '94.8%', 0.948),
-      _buildKpiCard('ENTREGAS DO MÊS', '04', 'Cadastradas', 'Próximo Vencimento',
-          'Hoje, 23:59', 0.55),
-      _buildKpiCard('COEFICIENTE DE RENDIMENTO (CR)', '8.8', '/10.0',
+      _buildKpiCard('Entregas do Mês', '04', 'Cadastradas', 'Próximo Vencimento',
+          'Hoje, 23:59', 0.50),
+      _buildKpiCard('Coeficiente de Rendimento (CR)', '8.8', '/ 10.0',
           'Situação Acadêmica', 'Regular', 0.88),
-      _buildKpiCard('HORAS COMPLEMENTARES', '140h', '/180h', 'Progresso Total',
+      _buildKpiCard('Horas Complementares', '140h', '/ 180h', 'Progresso Total',
           '77.7%', 0.777),
     ];
     if (!isDesktop) {
@@ -187,51 +187,58 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   Widget _buildKpiCard(String label, String value, String unit, String footLabel,
       String footValue, double progress) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
+          Text(label.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: jakarta(
-                  size: 9.5, weight: FontWeight.w700, letterSpacing: 0.6)),
-          const SizedBox(height: 8),
+                  size: 11, weight: FontWeight.w700, letterSpacing: 0.8, color: Colors.black)),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(value, style: jakarta(size: 24, weight: FontWeight.w500)),
-              const SizedBox(width: 6),
+              Text(value, style: jakarta(size: 28, weight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(unit,
                     overflow: TextOverflow.ellipsis,
-                    style: jakarta(size: 10.5, color: _faint)),
+                    style: jakarta(size: 13, color: const Color(0xFFA3A3A3), weight: FontWeight.w500)),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(footLabel, style: jakarta(size: 11, color: _muted)),
+              Text(footLabel, style: jakarta(size: 13, color: const Color(0xFF737373), weight: FontWeight.w500)),
               Text(footValue,
-                  style: jakarta(size: 11, weight: FontWeight.w700)),
+                  style: jakarta(size: 13, weight: FontWeight.w600, color: Colors.black)),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
-              minHeight: 3,
-              backgroundColor: _border,
-              valueColor: const AlwaysStoppedAnimation<Color>(_ink),
+              minHeight: 4,
+              backgroundColor: const Color(0xFFF2F0EB),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1A1A1A)),
             ),
           ),
         ],

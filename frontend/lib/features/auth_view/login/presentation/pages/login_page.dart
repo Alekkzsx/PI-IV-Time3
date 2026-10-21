@@ -25,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   final _identityController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  UserProfile _selectedProfile = UserProfile.admin;
+  UserProfile _selectedProfile = UserProfile.aluno;
 
   bool _obscurePassword = true;
   bool _rememberCredential = true;
@@ -261,10 +261,10 @@ class _LoginPageState extends State<LoginPage> {
                 'Acesse seu AVA',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppColors.textPrimary,
-                  fontSize: isCompact ? 24 : 30,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
+                  color: const Color(0xFF0F172A),
+                  fontSize: isCompact ? 26 : 32,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.6,
                 ),
               ),
               const SizedBox(height: 8),
@@ -272,9 +272,9 @@ class _LoginPageState extends State<LoginPage> {
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: GoogleFonts.plusJakartaSans(
-                    color: AppColors.textSecondary,
-                    fontSize: isCompact ? 12 : 13.5,
-                    height: 1.5,
+                    color: const Color(0xFF64748B),
+                    fontSize: isCompact ? 13 : 14,
+                    height: 1.45,
                   ),
                   children: const [
                     TextSpan(
@@ -284,7 +284,7 @@ class _LoginPageState extends State<LoginPage> {
                     TextSpan(
                       text: '(@universidade.edu.br)',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: Color(0xFF94A3B8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -295,9 +295,9 @@ class _LoginPageState extends State<LoginPage> {
               Text(
                 'SELECIONE SEU PERFIL',
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppColors.textSecondary,
+                  color: const Color(0xFF64748B),
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                 ),
               ),

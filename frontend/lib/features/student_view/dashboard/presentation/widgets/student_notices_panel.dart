@@ -36,11 +36,18 @@ class StudentNoticesPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -50,24 +57,24 @@ class StudentNoticesPanel extends StatelessWidget {
             children: [
               Text(
                 'Mural de Avisos',
-                style: jakarta(size: 15, weight: FontWeight.w500),
+                style: jakarta(size: 18, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
               ),
               Text(
                 'NÃO LIDOS',
                 style: jakarta(
-                  size: 8.5,
+                  size: 11,
                   weight: FontWeight.w700,
-                  color: _muted,
-                  letterSpacing: 0.6,
+                  color: const Color(0xFF737373),
+                  letterSpacing: 0.8,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Container(height: 1, color: const Color(0xFFEFEFEF)),
           const SizedBox(height: 16),
+          Container(height: 1, color: const Color(0xFFF2F0EB)),
+          const SizedBox(height: 18),
           for (int i = 0; i < notices.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
+            if (i > 0) const SizedBox(height: 18),
             _noticeItem(notices[i]),
           ],
         ],
@@ -80,27 +87,32 @@ class StudentNoticesPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
-              child: Text(
-                n.author,
-                overflow: TextOverflow.ellipsis,
-                style: jakarta(size: 9.5, weight: FontWeight.w600),
-              ),
-            ),
-            if (n.unread) ...[
-              const SizedBox(width: 6),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: const BoxDecoration(
-                  color: _ink,
-                  shape: BoxShape.circle,
+            Row(
+              children: [
+                Text(
+                  n.author,
+                  style: jakarta(
+                    size: 13,
+                    weight: FontWeight.w600,
+                    color: n.unread ? const Color(0xFF1A1A1A) : const Color(0xFF525252),
+                  ),
                 ),
-              ),
-            ],
-            const Spacer(),
-            Text(n.time, style: jakarta(size: 9, color: _faint)),
+                if (n.unread) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A1A1A),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            Text(n.time, style: jakarta(size: 12, color: const Color(0xFFA3A3A3), weight: FontWeight.w500)),
           ],
         ),
         const SizedBox(height: 6),
@@ -108,14 +120,14 @@ class StudentNoticesPanel extends StatelessWidget {
           n.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: jakarta(size: 12, weight: FontWeight.w600, height: 1.3),
+          style: jakarta(size: 14, weight: FontWeight.w600, color: const Color(0xFF1A1A1A), height: 1.3),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 4),
         Text(
           n.body,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: jakarta(size: 10, color: _muted, height: 1.4),
+          style: jakarta(size: 13, color: const Color(0xFF737373), height: 1.4),
         ),
       ],
     );

@@ -108,6 +108,35 @@ class DocenteCourse {
 
   double get progressPercentage => totalHours == 0 ? 0.0 : (completedHours / totalHours) * 100;
 
+  /// List of ISO weekday integers (1 = Monday, 7 = Sunday) when this course meets according to schedule.
+  List<int> get classWeekdays {
+    final lower = schedule.toLowerCase();
+    final days = <int>[];
+    if (lower.contains('segunda')) days.add(DateTime.monday);
+    if (lower.contains('terça') || lower.contains('terca')) days.add(DateTime.tuesday);
+    if (lower.contains('quarta')) days.add(DateTime.wednesday);
+    if (lower.contains('quinta')) days.add(DateTime.thursday);
+    if (lower.contains('sexta')) days.add(DateTime.friday);
+    if (lower.contains('sábado') || lower.contains('sabado')) days.add(DateTime.saturday);
+    if (days.isEmpty) {
+      return [DateTime.monday, DateTime.wednesday];
+    }
+    return days;
+  }
+
+  /// Human-friendly summary of class days.
+  String get classDaysLabel {
+    final days = <String>[];
+    final w = classWeekdays;
+    if (w.contains(DateTime.monday)) days.add('Segundas');
+    if (w.contains(DateTime.tuesday)) days.add('Terças');
+    if (w.contains(DateTime.wednesday)) days.add('Quartas');
+    if (w.contains(DateTime.thursday)) days.add('Quintas');
+    if (w.contains(DateTime.friday)) days.add('Sextas');
+    if (w.contains(DateTime.saturday)) days.add('Sábados');
+    return days.join(' e ');
+  }
+
   DocenteCourse copyWith({
     String? id,
     String? code,

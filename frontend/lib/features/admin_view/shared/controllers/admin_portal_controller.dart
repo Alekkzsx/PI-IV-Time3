@@ -46,7 +46,11 @@ class AdminPortalController extends ChangeNotifier {
 
   List<AdminUserModel> get filteredUsers {
     return users.where((u) {
-      final matchesFilter = userFilter == 'Todos' || u.profile == userFilter;
+      final matchesFilter = userFilter == 'Todos' ||
+          u.profile == userFilter ||
+          (userFilter == 'Discentes' && u.profile == 'Discente') ||
+          (userFilter == 'Docentes' && u.profile == 'Docente') ||
+          (userFilter == 'Administração' && u.profile == 'Administrador');
       final matchesSearch = u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.id.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.email.toLowerCase().contains(userSearchQuery.toLowerCase());
@@ -150,7 +154,18 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   List<AdminProtocolModel> get filteredProtocols {
-    if (protocolFilter == 'Todos') return protocols;
+    if (protocolFilter == 'Todos' || protocolFilter == 'Todos Os Protocolos') {
+      return protocols;
+    }
+    if (protocolFilter == 'Aguardando' || protocolFilter == 'Aguardando Parecer') {
+      return protocols.where((p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer').toList();
+    }
+    if (protocolFilter == 'Deferidos' || protocolFilter == 'Deferido') {
+      return protocols.where((p) => p.status == 'Deferido').toList();
+    }
+    if (protocolFilter == 'Indeferidos' || protocolFilter == 'Indeferido') {
+      return protocols.where((p) => p.status == 'Indeferido').toList();
+    }
     return protocols.where((p) => p.status == protocolFilter).toList();
   }
 

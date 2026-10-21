@@ -30,7 +30,9 @@ class _AdminShellPageState extends State<AdminShellPage> {
   Widget _buildCurrentPage(AdminNavTab tab) {
     switch (tab) {
       case AdminNavTab.painelGeral:
-        return const PainelGeralPage();
+        return PainelGeralPage(
+          onNavigateTab: (targetTab) => setState(() => _activeTab = targetTab),
+        );
       case AdminNavTab.usuarios:
         return const UsersPage();
       case AdminNavTab.cursos:
@@ -123,28 +125,57 @@ class _AdminShellPageState extends State<AdminShellPage> {
                       actions: [
                         IconButton(
                           icon: const Icon(
-                            Icons.schedule_rounded,
-                            size: 22,
-                            color: Color(0xFF525252),
+                            Icons.access_time_outlined,
+                            size: 20,
+                            color: Color(0xFF18181B),
                           ),
                           tooltip: 'Prazos Regimentais',
                           onPressed: () {},
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.notifications_none_rounded,
-                            size: 24,
-                            color: Color(0xFF525252),
-                          ),
-                          tooltip: 'Notificações Institucionais',
-                          onPressed: () {},
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.notifications_none_outlined,
+                                size: 20,
+                                color: Color(0xFF18181B),
+                              ),
+                              tooltip: 'Notificações Institucionais',
+                              onPressed: () {},
+                            ),
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF18181B),
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 14,
+                                  minHeight: 14,
+                                ),
+                                child: const Text(
+                                  '0',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                     Expanded(
                       child: Container(
-                        color: const Color(0xFFFAF9F6),
+                        color: Colors.white,
                         child: _buildCurrentPage(_activeTab),
                       ),
                     ),

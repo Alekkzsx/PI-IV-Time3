@@ -89,8 +89,7 @@ class StudentDisciplinesGridSection extends StatelessWidget {
 
   Widget _disciplineCard(StudentDisciplineItemData d) {
     return Container(
-      height: 144,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(22),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,11 +100,11 @@ class StudentDisciplinesGridSection extends StatelessWidget {
             d.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: jakarta(size: 13, weight: FontWeight.w600),
+            style: jakarta(size: 17, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
           ),
-          const SizedBox(height: 4),
-          Text(d.professor, style: jakarta(size: 10, color: _muted)),
-          const Spacer(),
+          const SizedBox(height: 6),
+          Text(d.professor, style: jakarta(size: 14, color: const Color(0xFF737373), weight: FontWeight.w500)),
+          const SizedBox(height: 24),
           _progressRow(d.progress),
         ],
       ),
@@ -149,13 +148,13 @@ class StudentDisciplinesGridSection extends StatelessWidget {
 
   Widget _codeChip(String code) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F4F0),
-        border: Border.all(color: _border),
-        borderRadius: BorderRadius.circular(3),
+        color: const Color(0xFFFAF9F6),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(code, style: jakarta(size: 10.5, weight: FontWeight.w500)),
+      child: Text(code, style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF525252))),
     );
   }
 
@@ -168,22 +167,22 @@ class StudentDisciplinesGridSection extends StatelessWidget {
           children: [
             Text(
               'Progresso',
-              style: jakarta(size: 10, weight: FontWeight.w600, color: _muted),
+              style: jakarta(size: 13, weight: FontWeight.w700, color: const Color(0xFF737373)),
             ),
             Text(
               '${(p * 100).round()}%',
-              style: jakarta(size: 10.5, weight: FontWeight.w700),
+              style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: p.clamp(0.0, 1.0),
-            minHeight: 3,
-            backgroundColor: _track,
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC8C6C0)),
+            minHeight: 4,
+            backgroundColor: const Color(0xFFF2F0EB),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD4D4D4)),
           ),
         ),
       ],
@@ -192,8 +191,15 @@ class StudentDisciplinesGridSection extends StatelessWidget {
 
   BoxDecoration _cardDecoration() => BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _border),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       );
 }
 

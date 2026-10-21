@@ -62,7 +62,7 @@ void main() {
 
     test('Decide protocolo na secretaria acadêmica com despacho', () {
       final controller = AdminPortalController();
-      final protocol = controller.protocols.firstWhere((p) => p.status == 'Aguardando Parecer');
+      final protocol = controller.protocols.firstWhere((p) => p.status.startsWith('Aguardando'));
 
       controller.decideProtocol(
         protocolId: protocol.id,
@@ -100,10 +100,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Bem-vindo, Carlos.'), findsOneWidget);
+      expect(find.text('Secretaria Geral Acadêmica'), findsOneWidget);
+      expect(find.text('Gestão Integrada do Campus 2026/2'), findsOneWidget);
       expect(find.text('Emitir Comunicado Institucional'), findsOneWidget);
+      expect(find.text('DISCENTES ATIVOS'), findsOneWidget);
+      expect(find.text('CORPO DOCENTE'), findsOneWidget);
+      expect(find.text('TURMAS EM ANDAMENTO'), findsOneWidget);
+      expect(find.text('PROTOCOLOS DE SECRETARIA'), findsOneWidget);
+      expect(find.text('Alertas da Secretaria'), findsOneWidget);
+      expect(find.text('Requerimentos Discentes'), findsOneWidget);
+      expect(find.text('Fechamento do Período'), findsOneWidget);
+      expect(find.text('Cursos & Matrizes Ativas'), findsOneWidget);
+      expect(find.text('Bacharelado em Engenharia de Software'), findsOneWidget);
+      expect(find.text('Bacharelado em Sistemas de Informação'), findsOneWidget);
+      expect(find.text('Prazos Regimentais'), findsOneWidget);
+      expect(find.text('Últimos Requerimentos'), findsOneWidget);
+      expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
+      expect(find.text('© 2026 AGMRM'), findsOneWidget);
     });
 
-    testWidgets('Renderiza UsersPage com tabela e botão de novo cadastro', (tester) async {
+    testWidgets('Renderiza UsersPage com tabela e modal de novo cadastro institucional', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -116,7 +132,34 @@ void main() {
 
       expect(find.text('Gestão de Usuários & Controle de Acessos'), findsOneWidget);
       expect(find.text('Novo Cadastro Institucional'), findsOneWidget);
-      expect(find.text('Discentes'), findsWidgets);
+      expect(find.text('IDENTIFICAÇÃO'), findsOneWidget);
+      expect(find.text('NOME DO USUÁRIO'), findsOneWidget);
+      expect(find.text('PERFIL'), findsOneWidget);
+      expect(find.text('CURSO / LOTAÇÃO'), findsOneWidget);
+      expect(find.text('STATUS'), findsOneWidget);
+      expect(find.text('AÇÕES DE SEGURANÇA'), findsOneWidget);
+      expect(find.text('Gabriel Soares de Oliveira'), findsOneWidget);
+      expect(find.text('Profa. Dra. Helena Bittencourt'), findsOneWidget);
+      expect(find.text('© 2026 AGMRM'), findsOneWidget);
+
+      // Abre modal de Novo Cadastro Institucional
+      await tester.tap(find.text('Novo Cadastro Institucional'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GESTÃO DE IDENTIDADES & ACESSOS'), findsOneWidget);
+      expect(find.text('Tipo de Vínculo Acadêmico'), findsOneWidget);
+      expect(find.text('Discente (Aluno)'), findsOneWidget);
+      expect(find.text('Nome Completo do Usuário'), findsOneWidget);
+      expect(find.text('E-mail Institucional'), findsOneWidget);
+      expect(find.text('R.A. Gerado Oficial'), findsOneWidget);
+      expect(find.text('Curso de Ingresso'), findsOneWidget);
+      expect(find.text('Concluir Cadastro'), findsOneWidget);
+
+      // Fecha modal
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GESTÃO DE IDENTIDADES & ACESSOS'), findsNothing);
     });
 
     testWidgets('Renderiza CoursesPage com matrizes curriculares e modal', (tester) async {
@@ -132,11 +175,28 @@ void main() {
 
       expect(find.text('Cursos & Matrizes Curriculares (PPC)'), findsOneWidget);
       expect(find.text('Bacharelado em Engenharia de Software'), findsOneWidget);
-      expect(find.text('Ver Matriz & Ementário'), findsWidgets);
+      expect(find.text('Bacharelado em Sistemas de Informação'), findsOneWidget);
+      expect(find.text('Bacharelado em Ciência da Computação'), findsOneWidget);
+      expect(find.text('Tecnologia em Análise e Desenvolvimento de Sistemas'), findsOneWidget);
+      expect(find.text('Consultar Matriz Curricular & Ementário'), findsWidgets);
+      expect(find.text('© 2026 AGMRM'), findsOneWidget);
+
+      // Abre modal da primeira matriz
+      await tester.tap(find.text('Consultar Matriz Curricular & Ementário').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('MATRIZ CURRICULAR & COMPONENTES'), findsOneWidget);
+      expect(find.text('Componentes Curriculares em Oferta no Período Letivo Vigente:'), findsOneWidget);
+
+      // Fecha modal
+      await tester.tap(find.text('Fechar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MATRIZ CURRICULAR & COMPONENTES'), findsNothing);
     });
 
-    testWidgets('Renderiza ClassesPage com tabela de turmas e botão supervisionar', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1280, 900));
+    testWidgets('Renderiza ClassesPage com tabela de turmas e modal de regime de avaliação', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1680, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
@@ -147,7 +207,34 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Gestão de Turmas, Ensalamento & Atribuição Docente'), findsOneWidget);
+      expect(find.text('CÓDIGO / DISCIPLINA'), findsOneWidget);
+      expect(find.text('CURSO & TURNO'), findsOneWidget);
+      expect(find.text('LOCAL / ENSALAMENTO'), findsOneWidget);
+      expect(find.text('VAGAS OCUPADAS'), findsOneWidget);
+      expect(find.text('DOCENTE RESPONSÁVEL'), findsOneWidget);
+      expect(find.text('REGIME DE AVALIAÇÃO'), findsOneWidget);
+      expect(find.text('Análise e Projeto de Sistemas II'), findsOneWidget);
+      expect(find.text('Estudos de Banco de Dados II'), findsOneWidget);
       expect(find.text('Supervisionar'), findsWidgets);
+      expect(find.text('Regime'), findsWidgets);
+      expect(find.text('Alocar'), findsWidgets);
+
+      // Garante visibilidade e abre o modal de Regime de Avaliação da primeira turma
+      await tester.ensureVisible(find.text('Regime').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Regime').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('GOVERNANÇA & PRERROGATIVAS DE AVALIAÇÃO'), findsOneWidget);
+      expect(find.text('Regime da Fórmula da Nota Final'), findsOneWidget);
+      expect(find.text('DEFINIR PRERROGATIVA DA FÓRMULA DE AVALIAÇÃO'), findsOneWidget);
+      expect(find.text('Salvar Diretriz da Disciplina'), findsOneWidget);
+
+      // Fecha o modal
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Regime da Fórmula da Nota Final'), findsNothing);
     });
 
     testWidgets('Renderiza SupervisionCockpitPage com 5 abas de auditoria', (tester) async {
@@ -202,6 +289,19 @@ void main() {
 
       expect(find.text('Calendário Acadêmico Oficial & Prazos Regimentais'), findsOneWidget);
       expect(find.text('RESOLUÇÃO CONSEPE 2026/04'), findsOneWidget);
+      expect(find.text('Semana 10 de 18'), findsOneWidget);
+      expect(find.text('Janela de Avaliações Parciais e Trabalhos Práticos'), findsOneWidget);
+      expect(find.text('Prazo Final para Digitação e Homologação de Diários'), findsOneWidget);
+      expect(find.text('Em Andamento'), findsOneWidget);
+      expect(find.text('Futuro'), findsWidgets);
+
+      // Testa botão de trava regimental
+      final lockButton = find.text('Ativar Trava Regimental');
+      expect(lockButton, findsOneWidget);
+      await tester.tap(lockButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Liberar Diários'), findsOneWidget);
     });
 
     testWidgets('Renderiza AuditPage com logs de segurança e severidades', (tester) async {
@@ -216,7 +316,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Auditoria de Segurança & Trilha Documental (Audit Trail)'), findsOneWidget);
-      expect(find.text('Exportar Log Criptografado'), findsOneWidget);
+      expect(find.text('Buscar por ator, ação ou descrição nos logs...'), findsOneWidget);
+      expect(find.text('Profa. Dra. Helena Bittencourt'), findsOneWidget);
+      expect(find.text('Docente (DOC-88410)'), findsOneWidget);
+      expect(find.text('ALTERACAO NOTA'), findsOneWidget);
+      expect(find.text('Sistema de Segurança'), findsOneWidget);
+      expect(find.text('INFO'), findsWidgets);
+      expect(find.text('ATENCAO'), findsOneWidget);
     });
   });
 }

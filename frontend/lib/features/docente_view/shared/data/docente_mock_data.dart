@@ -183,44 +183,49 @@ class DocenteMockData {
       ];
 
   /// Initial class session and attendance register for APS-II.
-  static ClassSession get initialClassSession => const ClassSession(
+  static ClassSession get initialClassSession => ClassSession(
+        id: 'sess-27',
+        courseId: 'course-aps2',
         sessionNumber: 27,
         hours: 2,
+        date: DateTime(2026, 9, 30),
         dateFormatted: '30 de Setembro de 2026 (Quarta-feira)',
         contentProgram:
             'Detalhamento do Diagrama de Sequência em UML 2.5: troca de mensagens síncronas, objetos ativados, fragmentos combinados (alt, loop, opt) e tratamento de exceções.',
         methodology:
-            'Aula expositiva dialogada e estudo de caso prático no laboratório de informática com ferramenta CASE Visual Paradigm.',
+            'Aula expositiva dialogada e estudo de caso prático no laboratório de informática.',
+        location: 'Lab Informática 04 - Bloco C',
         isHomologated: false,
         attendanceList: [
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-1',
-            ra: '2024.1.00892',
+            ra: '2024.1.00092',
             name: 'Gabriel Soares de Oliveira',
             status: AttendanceStatus.presente,
             accumulatedAbsences: 2,
             attendanceRate: 94.8,
             riskLevel: AttendanceRiskLevel.regular,
+            isConnected: true,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-2',
             ra: '2024.1.00901',
             name: 'Mariana Rios Costa',
             status: AttendanceStatus.presente,
-            accumulatedAbsences: 0,
-            attendanceRate: 100.0,
+            accumulatedAbsences: 1,
+            attendanceRate: 97.4,
             riskLevel: AttendanceRiskLevel.regular,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-3',
             ra: '2024.1.00915',
             name: 'Lucas Mendes Santos',
             status: AttendanceStatus.ausente,
-            accumulatedAbsences: 6,
-            attendanceRate: 84.2,
+            accumulatedAbsences: 9,
+            attendanceRate: 76.9,
             riskLevel: AttendanceRiskLevel.atencao,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-4',
             ra: '2024.1.00922',
             name: 'Beatriz Lima Alencar',
@@ -229,7 +234,7 @@ class DocenteMockData {
             attendanceRate: 92.1,
             riskLevel: AttendanceRiskLevel.regular,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-5',
             ra: '2024.1.00938',
             name: 'Rodrigo Antunes Nogueira',
@@ -238,7 +243,7 @@ class DocenteMockData {
             attendanceRate: 69.2,
             riskLevel: AttendanceRiskLevel.critico,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-6',
             ra: '2024.1.00944',
             name: 'Juliana Paiva Castilho',
@@ -247,7 +252,7 @@ class DocenteMockData {
             attendanceRate: 100.0,
             riskLevel: AttendanceRiskLevel.regular,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-7',
             ra: '2024.1.00959',
             name: 'Thiago Farias Barreto',
@@ -256,7 +261,7 @@ class DocenteMockData {
             attendanceRate: 89.5,
             riskLevel: AttendanceRiskLevel.regular,
           ),
-          AttendanceStudent(
+          const AttendanceStudent(
             studentId: 'st-8',
             ra: '2024.1.00962',
             name: 'Camila Duarte Fagundes',
@@ -264,10 +269,161 @@ class DocenteMockData {
             accumulatedAbsences: 2,
             attendanceRate: 94.8,
             riskLevel: AttendanceRiskLevel.regular,
-            observation: 'Atestado médico deferido pela secretaria (Prot. 2026/8841)',
+            observation: 'Atestado médico deferido pela secretaria [Prot. 2026/8841]',
           ),
         ],
       );
+
+  /// All registered class sessions for the professor across all courses.
+  static List<ClassSession> get defaultSessions => [
+        // Aula 25 - Quarta-feira, 23/09/2026 (APS-II)
+        ClassSession(
+          id: 'sess-25',
+          courseId: 'course-aps2',
+          sessionNumber: 25,
+          hours: 2,
+          date: DateTime(2026, 9, 23),
+          dateFormatted: '23 de Setembro de 2026 (Quarta-feira)',
+          contentProgram:
+              'Modelagem de Interações e Diagramas de Comunicação (Colaboração). Mensagens com números de sequência e aninhamento de chamadas.',
+          methodology:
+              'Aula expositiva dialogada e resolução de estudo de caso prático no laboratório com ferramenta CASE.',
+          location: 'Lab Informática 04 - Bloco C',
+          isHomologated: true,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        // Aula 26 - Segunda-feira, 28/09/2026 (APS-II)
+        ClassSession(
+          id: 'sess-26',
+          courseId: 'course-aps2',
+          sessionNumber: 26,
+          hours: 2,
+          date: DateTime(2026, 9, 28),
+          dateFormatted: '28 de Setembro de 2026 (Segunda-feira)',
+          contentProgram:
+              'Diagramas de Máquina de Estados (Statechart): transições, eventos disparadores, condições de guarda e ações de entrada/saída.',
+          methodology:
+              'Aula expositiva interativa com simulação de autômatos em ferramenta CASE.',
+          location: 'Lab Informática 04 - Bloco C',
+          isHomologated: true,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.studentId == 'st-5'
+                  ? s.copyWith(status: AttendanceStatus.ausente)
+                  : s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        // Aula 27 - Quarta-feira, 30/09/2026 (Sessão Atual)
+        initialClassSession,
+        // Aula 28 - Segunda-feira, 05/10/2026 (APS-II)
+        ClassSession(
+          id: 'sess-28',
+          courseId: 'course-aps2',
+          sessionNumber: 28,
+          hours: 2,
+          date: DateTime(2026, 10, 5),
+          dateFormatted: '05 de Outubro de 2026 (Segunda-feira)',
+          contentProgram:
+              'Diagramas de Atividades em UML 2.5: fluxos concorrentes (fork/join), nós de decisão e raias de partição (swimlanes).',
+          methodology:
+              'Laboratório guiado com modelagem de esteira de checkout de compras corporativo.',
+          location: 'Lab Informática 04 - Bloco C',
+          isHomologated: false,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        // Aula 29 - Quarta-feira, 07/10/2026 (APS-II)
+        ClassSession(
+          id: 'sess-29',
+          courseId: 'course-aps2',
+          sessionNumber: 29,
+          hours: 2,
+          date: DateTime(2026, 10, 7),
+          dateFormatted: '07 de Outubro de 2026 (Quarta-feira)',
+          contentProgram:
+              'Engenharia Reversa e Geração de Código a partir de Diagramas de Sequência e Classes.',
+          methodology:
+              'Prática de programação assistida e validação de testes automatizados.',
+          location: 'Lab Informática 04 - Bloco C',
+          isHomologated: false,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        // Aula 30 - Quarta-feira, 14/10/2026 (APS-II)
+        ClassSession(
+          id: 'sess-30',
+          courseId: 'course-aps2',
+          sessionNumber: 30,
+          hours: 2,
+          date: DateTime(2026, 10, 14),
+          dateFormatted: '14 de Outubro de 2026 (Quarta-feira)',
+          contentProgram:
+              'Avaliação Parcial Regimental (P1) e Entrega do Dossier de Análise Orientada a Objetos.',
+          methodology:
+              'Aplicação de avaliação individual de modelagem de sistemas.',
+          location: 'Lab Informática 04 - Bloco C',
+          isHomologated: false,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        // Turma BD-II (Terças e Quintas)
+        ClassSession(
+          id: 'sess-bd2-1',
+          courseId: 'course-bd2',
+          sessionNumber: 18,
+          hours: 2,
+          date: DateTime(2026, 9, 29),
+          dateFormatted: '29 de Setembro de 2026 (Terça-feira)',
+          contentProgram:
+              'Otimização de Consultas SQL e Análise de Planos de Execução (EXPLAIN ANALYZE) no PostgreSQL.',
+          methodology:
+              'Laboratório prático de ajuste fino de índices B-Tree e Hash.',
+          location: 'Lab Banco de Dados 02 - Bloco B',
+          isHomologated: true,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        ClassSession(
+          id: 'sess-bd2-2',
+          courseId: 'course-bd2',
+          sessionNumber: 19,
+          hours: 2,
+          date: DateTime(2026, 10, 1),
+          dateFormatted: '01 de Outubro de 2026 (Quinta-feira)',
+          contentProgram:
+              'Transações Distribuídas, Níveis de Isolamento ACID e Mecanismos MVCC.',
+          methodology:
+              'Estudo de caso e testes práticos de concorrência.',
+          location: 'Lab Banco de Dados 02 - Bloco B',
+          isHomologated: false,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+        // Turma ES-IV (Sextas)
+        ClassSession(
+          id: 'sess-es4-1',
+          courseId: 'course-es4',
+          sessionNumber: 12,
+          hours: 4,
+          date: DateTime(2026, 10, 2),
+          dateFormatted: '02 de Outubro de 2026 (Sexta-feira)',
+          contentProgram:
+              'Arquitetura de Microsserviços e Padrões de Mensageria com RabbitMQ e Kafka.',
+          methodology:
+              'Workshop imersivo de arquitetura orientada a eventos.',
+          location: 'Anfiteatro 101 - Bloco Central',
+          isHomologated: false,
+          attendanceList: initialClassSession.attendanceList
+              .map((s) => s.copyWith(status: AttendanceStatus.presente))
+              .toList(),
+        ),
+      ];
 
   /// Initial assignments and student submissions.
   static List<AssignmentItem> get initialAssignments => [

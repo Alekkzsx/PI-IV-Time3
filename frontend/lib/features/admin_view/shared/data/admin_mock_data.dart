@@ -28,6 +28,8 @@ class AdminCourseModel {
   final String workload;
   final int studentsCount;
   final String formula;
+  final String department;
+  final String modality;
   final List<Map<String, dynamic>> components;
 
   const AdminCourseModel({
@@ -37,6 +39,8 @@ class AdminCourseModel {
     required this.workload,
     required this.studentsCount,
     required this.formula,
+    this.department = 'Departamento de Computação e Sistemas',
+    this.modality = 'Graduação',
     required this.components,
   });
 }
@@ -44,6 +48,9 @@ class AdminCourseModel {
 class AdminClassModel {
   final String code;
   final String subjectName;
+  final String courseName;
+  final String semester;
+  final String shift;
   final String courseAndTerm;
   final String location;
   final int enrolled;
@@ -54,13 +61,19 @@ class AdminClassModel {
   AdminClassModel({
     required this.code,
     required this.subjectName,
-    required this.courseAndTerm,
+    String? courseName,
+    String? semester,
+    String? shift,
+    String? courseAndTerm,
     required this.location,
     required this.enrolled,
     required this.maxCapacity,
     required this.professor,
     required this.formulaRegime,
-  });
+  })  : courseName = courseName ?? (courseAndTerm?.split('•').first.trim() ?? 'Engenharia de Software'),
+        semester = semester ?? '2026/2 - 4º Semestre',
+        shift = shift ?? '• Noturno',
+        courseAndTerm = courseAndTerm ?? '${courseName ?? "Engenharia de Software"} • ${semester ?? "2026/2 - 4º Semestre"} • ${shift ?? "• Noturno"}';
 }
 
 class AdminProtocolModel {
@@ -68,11 +81,13 @@ class AdminProtocolModel {
   final String studentName;
   final String studentRa;
   final String requestType;
+  final String targetComponent;
   final String date;
-  String status; // 'Aguardando Parecer', 'Deferido', 'Indeferido'
+  String status; // 'Aguardando', 'Deferido', 'Indeferido'
   final String attachmentName;
   final String justification;
   String? decisionNote;
+  String? immediateImpact;
   String? signedBy;
 
   AdminProtocolModel({
@@ -80,19 +95,22 @@ class AdminProtocolModel {
     required this.studentName,
     required this.studentRa,
     required this.requestType,
+    String? targetComponent,
     required this.date,
     required this.status,
     required this.attachmentName,
     required this.justification,
     this.decisionNote,
+    this.immediateImpact,
     this.signedBy,
-  });
+  }) : targetComponent = targetComponent ?? 'Componente Curricular Geral';
 }
 
 class AdminAuditLogModel {
   final String id;
   final String timestamp;
   final String actor;
+  final String? actorRole;
   final String actionType;
   final String description;
   final String ipAddress;
@@ -102,6 +120,7 @@ class AdminAuditLogModel {
     required this.id,
     required this.timestamp,
     required this.actor,
+    this.actorRole,
     required this.actionType,
     required this.description,
     required this.ipAddress,
@@ -116,7 +135,7 @@ class AdminMockData {
       name: 'Gabriel Soares de Oliveira',
       email: 'gabriel.oliveira@aluno.universidade.edu.br',
       profile: 'Discente',
-      departmentOrCourse: 'Engenharia de Software (4º Semestre)',
+      departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
     ),
@@ -130,11 +149,29 @@ class AdminMockData {
       twoFactorRequired: true,
     ),
     AdminUserModel(
-      id: 'DOC-88411',
-      name: 'Prof. Dr. Marcos Vinicius',
-      email: 'marcos.vinicius@docente.universidade.edu.br',
+      id: '2024.1.00901',
+      name: 'Mariana Rios Costa',
+      email: 'mariana.costa@aluno.universidade.edu.br',
+      profile: 'Discente',
+      departmentOrCourse: 'Engenharia de Software (5º Semestre)',
+      status: 'Ativo',
+      twoFactorRequired: true,
+    ),
+    AdminUserModel(
+      id: 'DOC-88392',
+      name: 'Prof. Me. Carlos Eduardo Silva',
+      email: 'carlos.silva@docente.universidade.edu.br',
       profile: 'Docente',
-      departmentOrCourse: 'Departamento de Banco de Dados',
+      departmentOrCourse: 'Departamento de Computação e Sistemas',
+      status: 'Ativo',
+      twoFactorRequired: true,
+    ),
+    AdminUserModel(
+      id: '2024.1.00915',
+      name: 'Lucas Mendes Santos',
+      email: 'lucas.santos@aluno.universidade.edu.br',
+      profile: 'Discente',
+      departmentOrCourse: 'Sistemas de Informação (4º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
     ),
@@ -148,22 +185,13 @@ class AdminMockData {
       twoFactorRequired: true,
     ),
     AdminUserModel(
-      id: '2024.1.00912',
-      name: 'Mariana Rios Costa',
-      email: 'mariana.rios@aluno.universidade.edu.br',
+      id: '2024.1.00962',
+      name: 'Camila Duarte Fagundes',
+      email: 'camila.fagundes@aluno.universidade.edu.br',
       profile: 'Discente',
-      departmentOrCourse: 'Engenharia de Software (4º Semestre)',
+      departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
-      twoFactorRequired: false,
-    ),
-    AdminUserModel(
-      id: '2024.1.00940',
-      name: 'Lucas Silva Santos',
-      email: 'lucas.silva@aluno.universidade.edu.br',
-      profile: 'Discente',
-      departmentOrCourse: 'Engenharia de Software (4º Semestre)',
-      status: 'Ativo',
-      twoFactorRequired: false,
+      twoFactorRequired: true,
     ),
   ];
 
@@ -171,10 +199,12 @@ class AdminMockData {
     const AdminCourseModel(
       code: 'ENG-SOFT-2024',
       name: 'Bacharelado em Engenharia de Software',
+      modality: 'Graduação',
+      department: 'Departamento de Computação e Sistemas',
       matrix: 'Matriz 2024/1 (PPC Atualizado)',
       workload: '3200h / 210 créditos',
       studentsCount: 420,
-      formula: 'Média = (N1 x 0.4) + (N2 x 0.6) • Freq. ≥ 75%',
+      formula: 'Média = (N1 × 0.4) + (N2 × 0.6) • Freq. ≥ 75%',
       components: [
         {'semestre': '4º Semestre', 'disciplina': 'Análise e Projeto de Sistemas II', 'carga': '80h', 'docente': 'Profa. Dra. Helena Bittencourt'},
         {'semestre': '4º Semestre', 'disciplina': 'Banco de Dados II', 'carga': '80h', 'docente': 'Prof. Dr. Marcos Vinicius'},
@@ -185,13 +215,45 @@ class AdminMockData {
     const AdminCourseModel(
       code: 'SIS-INFO-2023',
       name: 'Bacharelado em Sistemas de Informação',
+      modality: 'Graduação',
+      department: 'Departamento de Computação e Sistemas',
       matrix: 'Matriz 2023/1',
       workload: '3000h / 195 créditos',
       studentsCount: 380,
-      formula: 'Média = (N1 x 0.4) + (N2 x 0.6) • Freq. ≥ 75%',
+      formula: 'Média = (N1 × 0.4) + (N2 × 0.6) • Freq. ≥ 75%',
       components: [
         {'semestre': '4º Semestre', 'disciplina': 'Gestão de Processos de Negócio', 'carga': '80h', 'docente': 'Profa. Me. Carla Dias'},
         {'semestre': '4º Semestre', 'disciplina': 'Sistemas Integrados de Gestão (ERP)', 'carga': '80h', 'docente': 'Prof. Dr. Fernando Rocha'},
+        {'semestre': '4º Semestre', 'disciplina': 'Engenharia de Software Corporativa', 'carga': '80h', 'docente': 'Prof. Esp. André Luiz Silveira'},
+      ],
+    ),
+    const AdminCourseModel(
+      code: 'CIEN-COMP-2022',
+      name: 'Bacharelado em Ciência da Computação',
+      modality: 'Graduação',
+      department: 'Departamento de Computação e Sistemas',
+      matrix: 'Matriz 2022/2',
+      workload: '3400h / 220 créditos',
+      studentsCount: 310,
+      formula: 'Média = (N1 × 0.5) + (N2 × 0.5) • Freq. ≥ 75%',
+      components: [
+        {'semestre': '4º Semestre', 'disciplina': 'Algoritmos Avançados e Grafos', 'carga': '80h', 'docente': 'Prof. Dr. Marcelo Carvalho'},
+        {'semestre': '4º Semestre', 'disciplina': 'Teoria dos Autômatos e Linguagens Formais', 'carga': '80h', 'docente': 'Profa. Dra. Renata Toledo'},
+        {'semestre': '4º Semestre', 'disciplina': 'Compiladores e Tradutores', 'carga': '80h', 'docente': 'Prof. Dr. Ricardo Fontes'},
+      ],
+    ),
+    const AdminCourseModel(
+      code: 'TEC-ADS-2025',
+      name: 'Tecnologia em Análise e Desenvolvimento de Sistemas',
+      modality: 'Tecnólogo',
+      department: 'Departamento de Tecnologia Aplicada',
+      matrix: 'Matriz 2025/1',
+      workload: '2400h / 140 créditos',
+      studentsCount: 130,
+      formula: 'Média = (N1 × 0.4) + (N2 × 0.6) • Freq. ≥ 75%',
+      components: [
+        {'semestre': '3º Semestre', 'disciplina': 'Desenvolvimento Web Full-Stack', 'carga': '80h', 'docente': 'Prof. Me. Gabriel Duarte'},
+        {'semestre': '3º Semestre', 'disciplina': 'Engenharia de Requisitos e Métodos Ágeis', 'carga': '80h', 'docente': 'Profa. Esp. Juliana Mendes'},
       ],
     ),
   ];
@@ -200,117 +262,168 @@ class AdminMockData {
     AdminClassModel(
       code: '218131 - APS-II',
       subjectName: 'Análise e Projeto de Sistemas II',
+      courseName: 'Engenharia de Software',
+      semester: '2026/2 - 4º Semestre',
+      shift: '• Noturno',
       courseAndTerm: 'Engenharia de Software • 2026/2 • Noturno',
       location: 'Lab Informática 04 - Bloco C',
       enrolled: 34,
       maxCapacity: 40,
       professor: 'Profa. Dra. Helena Bittencourt',
-      formulaRegime: 'Impor pelo Admin',
-    ),
-    AdminClassModel(
-      code: '218132 - BD-II',
-      subjectName: 'Banco de Dados II',
-      courseAndTerm: 'Engenharia de Software • 2026/2 • Noturno',
-      location: 'Lab Informática 02 - Bloco B',
-      enrolled: 32,
-      maxCapacity: 40,
-      professor: 'Prof. Dr. Marcos Vinicius',
-      formulaRegime: 'Impor pelo Admin',
-    ),
-    AdminClassModel(
-      code: '218133 - FIS',
-      subjectName: 'Fundamentos de Inteligência Artificial',
-      courseAndTerm: 'Engenharia de Software • 2026/2 • Noturno',
-      location: 'Sala 302 - Bloco A',
-      enrolled: 38,
-      maxCapacity: 45,
-      professor: 'Profa. Dra. Camila Santos',
       formulaRegime: 'Autonomia Docente',
     ),
     AdminClassModel(
-      code: '218134 - FSO',
-      subjectName: 'Fundamentos de Sistemas Operacionais',
+      code: '218131 - BD-II',
+      subjectName: 'Estudos de Banco de Dados II',
+      courseName: 'Engenharia de Software',
+      semester: '2026/2 - 4º Semestre',
+      shift: '• Noturno',
       courseAndTerm: 'Engenharia de Software • 2026/2 • Noturno',
-      location: 'Lab Informática 01 - Bloco C',
-      enrolled: 35,
-      maxCapacity: 40,
-      professor: 'Prof. Me. Lucas Ribeiro',
-      formulaRegime: 'Impor pelo Admin',
+      location: 'Lab Banco de Dados 02 - Bloco B',
+      enrolled: 31,
+      maxCapacity: 35,
+      professor: 'Profa. Dra. Helena Bittencourt',
+      formulaRegime: 'Autonomia Docente',
+    ),
+    AdminClassModel(
+      code: '218131 - FSO',
+      subjectName: 'Fundamentos de Sistemas Operacionais',
+      courseName: 'Sistemas de Informação',
+      semester: '2026/2 - 4º Semestre',
+      shift: '• Noturno',
+      courseAndTerm: 'Sistemas de Informação • 2026/2 • Noturno',
+      location: 'Anfiteatro 101 - Bloco Central',
+      enrolled: 36,
+      maxCapacity: 50,
+      professor: 'Profa. Dra. Helena Bittencourt',
+      formulaRegime: 'Autonomia Docente',
+    ),
+    AdminClassModel(
+      code: '218131 - FIS',
+      subjectName: 'Filosofia, Informação e Sociedade',
+      courseName: 'Engenharia de Software',
+      semester: '2026/2 - 4º Semestre',
+      shift: '• Noturno',
+      courseAndTerm: 'Engenharia de Software • 2026/2 • Noturno',
+      location: 'Sala 204 - Bloco A',
+      enrolled: 38,
+      maxCapacity: 45,
+      professor: 'Prof. Dr. Marcos Vinícius Ferreira',
+      formulaRegime: 'Autonomia Docente',
     ),
   ];
 
   static final List<AdminProtocolModel> protocols = [
     AdminProtocolModel(
-      id: 'PROT-2026/8850',
-      studentName: 'Lucas Silva Santos',
-      studentRa: '2024.1.00940',
-      requestType: 'SEGUNDA CHAMADA DE PROVA N1',
-      date: '18/10/2026',
-      status: 'Aguardando Parecer',
-      attachmentName: 'declaracao_empresa_trabalho.pdf',
-      justification: 'Discente em viagem de trabalho comprovada no dia da prova teórica P1 de APS-II.',
-    ),
-    AdminProtocolModel(
       id: 'PROT-2026/8841',
       studentName: 'Camila Duarte Fagundes',
       studentRa: '2024.1.00962',
-      requestType: 'ATESTADO MÉDICO COM ABONO',
-      date: '15/10/2026',
+      requestType: 'ATESTADO MÉDICO',
+      targetComponent: 'APS-II e BD-II (Afastamento 29 a 30/09)',
+      date: 'Hoje, 09:15',
       status: 'Deferido',
-      attachmentName: 'atestado_medico_crm_19821.pdf',
-      justification: 'Atestado médico de 3 dias por intervenção odontológica.',
-      decisionNote: 'Deferido formalmente. Faltas abonadas em diário eletrônico.',
+      attachmentName: 'atestado_medico_camila_fagundes.pdf',
+      justification:
+          'Apresentação de atestado médico com CID-10 J06.9 para abono e justificativa legal de ausências.',
+      decisionNote:
+          'Deferido. Falta justificada lançada no Diário de Classe dos docentes para as aulas do período informado.',
+      immediateImpact:
+          'Ao deferir atestado médico, o sistema automaticamente marca a falta como justificada no diário de classe do docente responsável pelas aulas do período.',
       signedBy: 'Carlos Eduardo Mendes - Secretaria Geral',
     ),
     AdminProtocolModel(
-      id: 'PROT-2026/8829',
-      studentName: 'Mariana Rios Costa',
-      studentRa: '2024.1.00912',
-      requestType: 'VALIDAÇÃO DE HORAS COMPLEMENTARES',
-      date: '12/10/2026',
+      id: 'PROT-2026/8835',
+      studentName: 'Gabriel Soares de Oliveira',
+      studentRa: '2024.1.00892',
+      requestType: 'HORAS COMPLEMENTARES',
+      targetComponent: 'Validação de Curso Extracurricular (40h)',
+      date: 'Ontem, 16:40',
       status: 'Deferido',
-      attachmentName: 'certificado_hackathon_2026.pdf',
-      justification: 'Participação no Hackathon Universitário de Cibersegurança (40h).',
-      decisionNote: '40h computadas no prontuário estudantil.',
+      attachmentName: 'certificado_curso_extracurricular.pdf',
+      justification:
+          'Comprovação de curso extracurricular de 40 horas em Cibersegurança Aplicada.',
+      decisionNote:
+          'Deferido formalmente. 40h computadas no prontuário estudantil.',
+      immediateImpact:
+          'Ao deferir horas complementares, a carga horária é creditada diretamente nas atividades extracurriculares do discente.',
       signedBy: 'Carlos Eduardo Mendes - Secretaria Geral',
+    ),
+    AdminProtocolModel(
+      id: 'PROT-2026/8850',
+      studentName: 'Rodrigo Antunes Nogueira',
+      studentRa: '2024.1.00938',
+      requestType: 'SEGUNDA CHAMADA',
+      targetComponent: 'APS-II - Prova Substitutiva',
+      date: 'Hoje, 11:20',
+      status: 'Aguardando',
+      attachmentName: 'declaracao_viagem_trabalho.pdf',
+      justification:
+          'Discente em viagem de trabalho comprovada no dia da prova teórica P1 de APS-II.',
+      decisionNote:
+          'Documentação idônea conferida perante os critérios da Resolução CONSEPE. Deferimento concedido com reflexo no diário.',
+      immediateImpact:
+          'Ao deferir segunda chamada, o professor regente é notificado para disponibilizar a avaliação substitutiva.',
+    ),
+    AdminProtocolModel(
+      id: 'PROT-2026/8820',
+      studentName: 'Lucas Mendes Santos',
+      studentRa: '2024.1.00915',
+      requestType: 'TRANCAMENTO',
+      targetComponent: 'Fundamentos de Sistemas Operacionais',
+      date: '18/10/2026',
+      status: 'Aguardando',
+      attachmentName: 'requerimento_trancamento_disciplina.pdf',
+      justification:
+          'Solicitação de trancamento tempestivo da disciplina dentro do prazo regimental CONSEPE.',
+      decisionNote: null,
+      immediateImpact:
+          'Ao deferir trancamento, a matrícula na disciplina é suspensa sem prejuízo no coeficiente de rendimento escolar.',
     ),
   ];
 
   static final List<AdminAuditLogModel> auditLogs = [
     const AdminAuditLogModel(
       id: 'LOG-0912',
-      timestamp: '20/10/2026 14:22:10',
+      timestamp: 'Hoje, 14:15:22',
       actor: 'Profa. Dra. Helena Bittencourt',
-      actionType: 'LANÇAMENTO NOTA',
-      description: 'Lançamento de nota de avaliação (9.5) para discente Mariana Rios Costa na disciplina APS-II.',
+      actorRole: 'Docente (DOC-88410)',
+      actionType: 'ALTERACAO NOTA',
+      description:
+          'Lançamento de nota de avaliação (9.5) para discente Mariana Rios Costa (RA 2024.1.00901) em APS-II.',
       ipAddress: '177.136.24.10',
       severity: 'INFO',
     ),
     const AdminAuditLogModel(
       id: 'LOG-0911',
-      timestamp: '20/10/2026 11:05:42',
+      timestamp: 'Hoje, 11:30:05',
       actor: 'Carlos Eduardo Mendes',
+      actorRole: 'Secretaria Geral (ADM-00129)',
       actionType: 'DEFERIMENTO PROTOCOLO',
-      description: 'Homologação e deferimento do protocolo PROT-2026/8841 (Atestado Médico Camila Duarte).',
-      ipAddress: '192.168.10.45',
+      description:
+          'Deferimento de atestado médico (PROT-2026/8841) para Camila Duarte Fagundes com anotação em diário.',
+      ipAddress: '10.0.4.15 (Rede Interna)',
       severity: 'INFO',
     ),
     const AdminAuditLogModel(
       id: 'LOG-0910',
-      timestamp: '19/10/2026 18:30:19',
-      actor: 'Sistema de Segurança WAF',
-      actionType: 'ALERTA 2FA',
-      description: 'Tentativa de login sem 2FA bloqueada na conta administrativa de coordenação.',
-      ipAddress: '189.44.112.5',
+      timestamp: 'Ontem, 23:48:11',
+      actor: 'Sistema de Segurança',
+      actorRole: 'Automação WAF',
+      actionType: 'RESET CREDENCIAIS',
+      description:
+          'Três tentativas incorretas de senha para o usuário DCC-88410. Bloqueio preventivo de 15 minutos ativado.',
+      ipAddress: '189.40.112.5',
       severity: 'ATENCAO',
     ),
     const AdminAuditLogModel(
       id: 'LOG-0909',
-      timestamp: '18/10/2026 09:12:00',
+      timestamp: '28/09/2026, 17:00:00',
       actor: 'Carlos Eduardo Mendes',
-      actionType: 'TRAVA REGIMENTAL',
-      description: 'Ativação do bloqueio de alterações em diários de classe para término da janela N1.',
-      ipAddress: '192.168.10.45',
+      actorRole: 'Secretaria Geral (ADM-00129)',
+      actionType: 'FECHAMENTO ATA',
+      description:
+          'Homologação e chancela da ata final do período especial de férias 2026/1 perante o sistema acadêmico.',
+      ipAddress: '10.0.4.15 (Rede Interna)',
       severity: 'INFO',
     ),
   ];

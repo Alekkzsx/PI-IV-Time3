@@ -3,11 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/docente_view/courses/presentation/pages/docente_course_hub_page.dart';
+import 'package:pi_iv_time3/features/docente_view/diary/presentation/pages/docente_diary_tab.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/academic_event.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/academic_notice.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/attendance_record.dart';
 import 'package:pi_iv_time3/features/docente_view/shell/presentation/pages/docente_shell_page.dart';
+import 'package:pi_iv_time3/features/docente_view/shell/presentation/widgets/docente_footer.dart';
 
 void main() {
   group('DocenteController Unit Tests', () {
@@ -124,6 +126,34 @@ void main() {
       expect(updatedCourse.materials.length, equals(initialCount + 1));
       expect(updatedCourse.materials.first.title, equals('Novo Guia de Arquitetura.pdf'));
     });
+
+    test('Course classWeekdays and classDaysLabel correctly map timetable days', () {
+      final apsCourse = controller.courses.firstWhere((c) => c.id == 'course-aps2');
+      expect(apsCourse.classWeekdays, containsAll([DateTime.monday, DateTime.wednesday]));
+      expect(apsCourse.classWeekdays.contains(DateTime.tuesday), isFalse);
+      expect(apsCourse.classWeekdays.contains(DateTime.sunday), isFalse);
+      expect(apsCourse.classDaysLabel, equals('Segundas e Quartas'));
+
+      final bdCourse = controller.courses.firstWhere((c) => c.id == 'course-bd2');
+      expect(bdCourse.classWeekdays, containsAll([DateTime.tuesday, DateTime.thursday]));
+      expect(bdCourse.classDaysLabel, equals('Terças e Quintas'));
+    });
+
+    test('Navigating between class sessions respects course sessions list', () {
+      expect(controller.currentSession.sessionNumber, equals(27));
+      expect(controller.canGoToPreviousSession, isTrue);
+
+      controller.goToPreviousSession();
+      expect(controller.currentSession.sessionNumber, equals(26));
+      expect(controller.currentSession.dateFormatted, contains('28 de Setembro de 2026 (Segunda-feira)'));
+
+      controller.goToPreviousSession();
+      expect(controller.currentSession.sessionNumber, equals(25));
+      expect(controller.canGoToPreviousSession, isFalse);
+
+      controller.goToNextSession();
+      expect(controller.currentSession.sessionNumber, equals(26));
+    });
   });
 
   group('Docente Shell & Widgets Rendering Tests', () {
@@ -153,6 +183,10 @@ void main() {
       // Verify Today Class card
       expect(find.text('Aula do Dia'), findsOneWidget);
       expect(find.text('Iniciar Transmissão'), findsOneWidget);
+
+      // Verify DocenteFooter is present
+      expect(find.byType(DocenteFooter), findsOneWidget);
+      expect(find.text('© 2026 AGMRM'), findsOneWidget);
     });
 
     testWidgets('Renders DocenteCourseHubPage and displays top navigation and metrics', (tester) async {
@@ -174,12 +208,123 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Voltar para Minhas Turmas'), findsOneWidget);
-      expect(find.text(course.name), findsOneWidget);
-      expect(find.text('Iniciar Transmissão ao Vivo'), findsOneWidget);
-      expect(find.text('Visão Geral & Cockpit'), findsOneWidget);
-      expect(find.text('Diário de Classe & Frequência'), findsOneWidget);
-      expect(find.text('Livro de Notas & Gradebook'), findsOneWidget);
+      expect(find.text('Minhas Turmas'), findsOneWidget);
+      expect(find.text('Livro de Notas (Gradebook)'), findsOneWidget);
+      expect(find.text('Diário de Presença'), findsOneWidget);
+      expect(find.text('Módulos & Conteúdos'), findsOneWidget);
+      expect(find.text('Tarefas & Submissões'), findsOneWidget);
+      expect(find.text('Fórum da Turma'), findsOneWidget);
+      expect(find.text('Alunos Matriculados'), findsOneWidget);
+      expect(find.text('Plano de Ensino'), findsOneWidget);
+      expect(find.text('Equipes de Projeto'), findsOneWidget);
+      expect(find.text('MÉDIA GERAL DA TURMA'), findsOneWidget);
+
+      // Verify DocenteFooter is rendered
+      expect(find.byType(DocenteFooter), findsOneWidget);
+      expect(find.text('© 2026 AGMRM'), findsOneWidget);
+
+      // Switch to Equipes de Projeto (tab index 7) to verify footer layout in short content
+      await tester.tap(find.text('Equipes de Projeto'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Equipes de Projeto & Squads Integradores'), findsOneWidget);
+      expect(find.byType(DocenteFooter), findsOneWidget);
+    });
+
+    testWidgets('DocenteFooter renders institutional copyright and triggers snackbars on help/privacy', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: DocenteFooter(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('© 2026 AGMRM'), findsOneWidget);
+      expect(find.text('Portal AVA AGMRM • Ambiente Virtual de Aprendizagem Universitário'), findsOneWidget);
+      expect(find.text('Ajuda'), findsOneWidget);
+      expect(find.text('Privacidade'), findsOneWidget);
+
+      await tester.tap(find.text('Ajuda'));
+      await tester.pump();
+      expect(find.text('Central de Ajuda ao Docente: suporte@agmrm.edu.br'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Privacidade'));
+      await tester.pump();
+      expect(find.text('Termos de Privacidade e Proteção de Dados (LGPD) • AGMRM 2026'), findsOneWidget);
+    });
+
+    testWidgets('Renders DocenteDiaryTab with MEC session card, attendance table, badges, mark all, and footer', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = DocenteController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DocenteDiaryTab(controller: controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Diário de Classe Eletrônico & Registro de Chamada'), findsOneWidget);
+      expect(find.text('AULA Nº 27 • CARGA: 2H/AULA'), findsOneWidget);
+      expect(find.text('30 de Setembro de 2026 (Quarta-feira)'), findsOneWidget);
+      expect(find.text('Aguardando Homologação'), findsOneWidget);
+      expect(find.text('Total: 8'), findsOneWidget);
+      expect(find.text('Presentes: 5'), findsOneWidget);
+      expect(find.text('Faltas: 2'), findsOneWidget);
+      expect(find.text('Justificadas: 1'), findsOneWidget);
+      expect(find.text('DISCENTE CONECTADO'), findsOneWidget);
+      expect(find.text('Marcar Todos como Presentes'), findsOneWidget);
+      expect(find.byType(DocenteFooter), findsOneWidget);
+
+      // Tap Marcar Todos como Presentes
+      await tester.tap(find.text('Marcar Todos como Presentes'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Presentes: 8'), findsOneWidget);
+      expect(find.text('Faltas: 0'), findsOneWidget);
+      expect(find.text('Justificadas: 0'), findsOneWidget);
+
+      // Tap Salvar e Homologar Aula
+      await tester.ensureVisible(find.text('Salvar e Homologar Aula'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Salvar e Homologar Aula'));
+      await tester.pumpAndSettle();
+
+      expect(controller.currentSession.isHomologated, isTrue);
+      expect(find.text('Homologado no Sistema'), findsOneWidget);
+
+      // Scroll back up and navigate to previous session via chevron left
+      await tester.ensureVisible(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      expect(find.text('AULA Nº 26 • CARGA: 2H/AULA'), findsOneWidget);
+      expect(find.text('28 de Setembro de 2026 (Segunda-feira)'), findsOneWidget);
+
+      // Open ClassSessionPickerModal via Trocar Aula
+      await tester.tap(find.text('Trocar Aula'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Grade de Aulas e Chamadas do Semestre'), findsOneWidget);
+      expect(find.text('Abrir Calendário Interativo'), findsOneWidget);
+
+      // Tap on Aula 25 inside modal to select it
+      await tester.tap(find.text('23 de Setembro de 2026 (Quarta-feira)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('AULA Nº 25 • CARGA: 2H/AULA'), findsOneWidget);
     });
   });
 }

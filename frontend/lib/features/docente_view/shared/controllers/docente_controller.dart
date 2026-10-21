@@ -32,6 +32,7 @@ class DocenteController extends ChangeNotifier {
   String _selectedCourseId = 'course-aps2';
 
   ClassSession _currentSession = DocenteMockData.initialClassSession;
+  List<ClassSession> _sessions = [];
   List<AssignmentItem> _assignments = [];
   String _selectedAssignmentId = 'asg-1';
 
@@ -48,6 +49,14 @@ class DocenteController extends ChangeNotifier {
     _gradebook = List.from(DocenteMockData.initialGradebook);
     _events = List.from(DocenteMockData.initialEvents);
     _notices = List.from(DocenteMockData.initialNotices);
+    _sessions = List.from(DocenteMockData.defaultSessions);
+    _currentSession = _sessions.firstWhere(
+      (s) => s.courseId == _selectedCourseId && s.sessionNumber == 27,
+      orElse: () => _sessions.firstWhere(
+        (s) => s.courseId == _selectedCourseId,
+        orElse: () => DocenteMockData.initialClassSession,
+      ),
+    );
   }
 
   // --- Getters ---
@@ -56,6 +65,9 @@ class DocenteController extends ChangeNotifier {
   List<DocenteCourse> get courses => List.unmodifiable(_courses);
   String get selectedCourseId => _selectedCourseId;
   ClassSession get currentSession => _currentSession;
+  List<ClassSession> get sessions => List.unmodifiable(_sessions);
+  List<ClassSession> get sessionsForSelectedCourse =>
+      _sessions.where((s) => s.courseId == _selectedCourseId).toList();
   List<AssignmentItem> get assignments => List.unmodifiable(_assignments);
   String get selectedAssignmentId => _selectedAssignmentId;
   List<StudentGrade> get gradebook => List.unmodifiable(_gradebook);
@@ -83,6 +95,13 @@ class DocenteController extends ChangeNotifier {
 
   void selectCourse(String courseId) {
     _selectedCourseId = courseId;
+    final courseSessions = _sessions.where((s) => s.courseId == courseId).toList();
+    if (courseSessions.isNotEmpty) {
+      _currentSession = courseSessions.firstWhere(
+        (s) => s.sessionNumber == 27,
+        orElse: () => courseSessions.first,
+      );
+    }
     notifyListeners();
   }
 
@@ -131,12 +150,113 @@ class DocenteController extends ChangeNotifier {
   }
 
   // --- Attendance & Diary Methods ---
-  void updateSessionContent(String content, String methodology) {
+  void _syncSessionInList() {
+    final idx = _sessions.indexWhere((s) => s.id == _currentSession.id);
+    if (idx != -1) {
+      _sessions[idx] = _currentSession;
+    }
+  }
+
+  String formatSessionDate(DateTime date) {
+    const months = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const weekdays = [
+      'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira',
+      'Sexta-feira', 'Sábado', 'Domingo'
+    ];
+    final dayStr = date.day.toString().padLeft(2, '0');
+    final monthStr = months[date.month - 1];
+    final weekdayStr = weekdays[date.weekday - 1];
+    return '$dayStr de $monthStr de ${date.year} ($weekdayStr)';
+  }
+
+  void selectSession(String sessionId) {
+    final found = _sessions.firstWhere((s) => s.id == sessionId, orElse: () => _currentSession);
+    _currentSession = found;
+    notifyListeners();
+  }
+
+  void selectSessionByDate(DateTime pickedDate) {
+    final existing = _sessions.firstWhere(
+      (s) => s.courseId == _selectedCourseId &&
+             s.sessionDate.year == pickedDate.year &&
+             s.sessionDate.month == pickedDate.month &&
+             s.sessionDate.day == pickedDate.day,
+      orElse: () => _createSessionForDate(pickedDate),
+    );
+    _currentSession = existing;
+    notifyListeners();
+  }
+
+  ClassSession _createSessionForDate(DateTime pickedDate) {
+    final list = sessionsForSelectedCourse;
+    final nextNumber = (list.map((s) => s.sessionNumber).fold<int>(0, (max, n) => n > max ? n : max)) + 1;
+    final formatted = formatSessionDate(pickedDate);
+    final newSession = ClassSession(
+      id: 'sess-${pickedDate.millisecondsSinceEpoch}',
+      courseId: _selectedCourseId,
+      sessionNumber: nextNumber,
+      hours: 2,
+      date: pickedDate,
+      dateFormatted: formatted,
+      contentProgram: 'Planejamento de aula para ${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}',
+      methodology: 'Aula expositiva dialogada e atividades práticas.',
+      location: selectedCourse.room,
+      isHomologated: false,
+      attendanceList: _currentSession.attendanceList.map((st) => st.copyWith(status: AttendanceStatus.presente)).toList(),
+    );
+    _sessions.add(newSession);
+    return newSession;
+  }
+
+  bool get canGoToPreviousSession {
+    final list = sessionsForSelectedCourse;
+    final index = list.indexWhere((s) => s.id == _currentSession.id);
+    return index > 0;
+  }
+
+  bool get canGoToNextSession {
+    final list = sessionsForSelectedCourse;
+    final index = list.indexWhere((s) => s.id == _currentSession.id);
+    return index != -1 && index < list.length - 1;
+  }
+
+  void goToPreviousSession() {
+    final list = sessionsForSelectedCourse;
+    final index = list.indexWhere((s) => s.id == _currentSession.id);
+    if (index > 0) {
+      _currentSession = list[index - 1];
+      notifyListeners();
+    }
+  }
+
+  void goToNextSession() {
+    final list = sessionsForSelectedCourse;
+    final index = list.indexWhere((s) => s.id == _currentSession.id);
+    if (index != -1 && index < list.length - 1) {
+      _currentSession = list[index + 1];
+      notifyListeners();
+    }
+  }
+
+  void updateSessionContent(String content, String methodology, [String? location]) {
     _currentSession = _currentSession.copyWith(
       contentProgram: content,
       methodology: methodology,
+      location: location ?? _currentSession.location,
     );
+    _syncSessionInList();
     notifyListeners();
+  }
+
+  void markAllPresent() {
+    for (final student in _currentSession.attendanceList) {
+      if (student.status != AttendanceStatus.presente) {
+        toggleAttendance(student.studentId, AttendanceStatus.presente);
+      }
+    }
   }
 
   void toggleAttendance(String studentId, AttendanceStatus newStatus) {
@@ -176,11 +296,13 @@ class DocenteController extends ChangeNotifier {
       attendanceList: updatedAttendance,
       isHomologated: false,
     );
+    _syncSessionInList();
     notifyListeners();
   }
 
   void homologateSession() {
     _currentSession = _currentSession.copyWith(isHomologated: true);
+    _syncSessionInList();
     notifyListeners();
   }
 

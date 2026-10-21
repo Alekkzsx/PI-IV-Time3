@@ -54,9 +54,9 @@ class InstitutionalKpiCard extends StatelessWidget {
           Text(
             title,
             style: jakarta(
-              size: 11,
+              size: 11.5,
               weight: FontWeight.w700,
-              color: const Color(0xFF71717A),
+              color: const Color(0xFF000000),
               letterSpacing: 0.8,
             ),
           ),
@@ -69,8 +69,8 @@ class InstitutionalKpiCard extends StatelessWidget {
                 value,
                 style: jakarta(
                   size: 30,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
+                  weight: FontWeight.w600,
+                  color: const Color(0xFF1A1A1A),
                   letterSpacing: -0.5,
                 ),
               ),
@@ -82,41 +82,26 @@ class InstitutionalKpiCard extends StatelessWidget {
                   style: jakarta(
                     size: 13,
                     weight: FontWeight.w500,
-                    color: const Color(0xFF71717A),
+                    color: const Color(0xFFA3A3A3),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (progress != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress!.clamp(0.0, 1.0),
-                minHeight: 6,
-                backgroundColor: const Color(0xFFF0EEE9),
-                valueColor: const AlwaysStoppedAnimation<Color>(InstColors.ink),
-              ),
-            ),
-            const SizedBox(height: 14),
-          ] else ...[
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            const SizedBox(height: 12),
-          ],
+          const SizedBox(height: 28),
           if (stackFooter)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   footerLabel,
-                  style: jakarta(size: 11, color: const Color(0xFF71717A)),
+                  style: jakarta(size: 13, color: const Color(0xFF737373)),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   footerValue,
                   style: jakarta(
-                    size: 12,
+                    size: 13.5,
                     weight: FontWeight.w600,
                     color: const Color(0xFF18181B),
                   ),
@@ -131,20 +116,37 @@ class InstitutionalKpiCard extends StatelessWidget {
                   child: Text(
                     footerLabel,
                     overflow: TextOverflow.ellipsis,
-                    style: jakarta(size: 12, color: const Color(0xFF71717A)),
+                    style: jakarta(
+                      size: 13.5,
+                      weight: FontWeight.w500,
+                      color: const Color(0xFF737373),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   footerValue,
                   style: jakarta(
-                    size: 12,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFF18181B),
+                    size: 13.5,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF000000),
                   ),
                 ),
               ],
             ),
+          const SizedBox(height: 10),
+          if (progress != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress!.clamp(0.0, 1.0),
+                minHeight: 4,
+                backgroundColor: const Color(0xFFF2F0EB),
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1A1A1A)),
+              ),
+            )
+          else
+            const Divider(height: 1, color: Color(0xFFF0F0F0)),
         ],
       ),
     );

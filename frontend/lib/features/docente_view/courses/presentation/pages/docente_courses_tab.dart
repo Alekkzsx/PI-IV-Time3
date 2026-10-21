@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/docente_course.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/theme/docente_colors.dart';
+import 'package:pi_iv_time3/features/docente_view/shell/presentation/widgets/docente_footer.dart';
 import '../widgets/syllabus_materials_modal.dart';
 
 /// Classes and curriculum management tab in the Docente Portal.
@@ -30,50 +31,65 @@ class DocenteCoursesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1400),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              const Text(
-                'Minhas Turmas e Componentes Curriculares',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: DocenteColors.textPrimary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Gerencie o plano de ensino, acompanhe a carga horária ministrada e disponibilize materiais didáticos.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: DocenteColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 28),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1400),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          const Text(
+                            'Minhas Turmas e Componentes Curriculares',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: DocenteColors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Gerencie o plano de ensino, acompanhe a carga horária ministrada e disponibilize materiais didáticos.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: DocenteColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
 
-              // Course Cards List
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: controller.courses.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 20),
-                itemBuilder: (context, index) {
-                  final course = controller.courses[index];
-                  return _buildDetailedCourseCard(context, course);
-                },
-              ),
-              const SizedBox(height: 48),
-            ],
+                          // Course Cards List
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: controller.courses.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 20),
+                            itemBuilder: (context, index) {
+                              final course = controller.courses[index];
+                              return _buildDetailedCourseCard(context, course);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const DocenteFooter(padding: EdgeInsets.symmetric(horizontal: 48, vertical: 20)),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

@@ -31,7 +31,7 @@ class LoginIdentityField extends StatelessWidget {
               child: Text(
                 label,
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppColors.slate800,
+                  color: const Color(0xFF1E293B),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -41,7 +41,7 @@ class LoginIdentityField extends StatelessWidget {
               example,
               style: const TextStyle(
                 fontFamily: 'monospace',
-                color: AppColors.textMuted,
+                color: Color(0xFF94A3B8),
                 fontSize: 11,
               ),
             ),
@@ -64,7 +64,7 @@ class LoginIdentityField extends StatelessWidget {
           },
           decoration: _loginInputDecoration(
             hintText: placeholder,
-            prefixIcon: Icons.assignment_ind_outlined,
+            prefixIcon: Icons.badge_outlined,
           ),
         ),
       ],
@@ -95,7 +95,7 @@ class LoginPasswordField extends StatelessWidget {
         Text(
           'Senha de Acesso',
           style: GoogleFonts.plusJakartaSans(
-            color: AppColors.slate800,
+            color: const Color(0xFF1E293B),
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -130,8 +130,8 @@ class LoginPasswordField extends StatelessWidget {
                 obscurePassword
                     ? Icons.visibility_outlined
                     : Icons.visibility_off_outlined,
-                color: AppColors.textMuted,
-                size: 17,
+                color: const Color(0xFF94A3B8),
+                size: 19,
               ),
             ),
           ),
@@ -168,26 +168,26 @@ class LoginCredentialRow extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: rememberCredential
-                          ? AppColors.buttonPrimary
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
                         color: rememberCredential
-                            ? AppColors.buttonPrimary
-                            : const Color(0xFFCBD5E1),
-                        width: 1.2,
+                            ? const Color(0xFF0F172A)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: rememberCredential
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFCBD5E1),
+                          width: 1.2,
+                        ),
                       ),
+                      child: rememberCredential
+                          ? const Icon(Icons.check, size: 12, color: Colors.white)
+                          : null,
                     ),
-                    child: rememberCredential
-                        ? const Icon(Icons.check, size: 11, color: Colors.white)
-                        : null,
-                  ),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
@@ -281,24 +281,24 @@ class LoginSubmitButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 52,
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1F0B1325),
-              blurRadius: 6,
-              offset: Offset(0, 3),
+              color: Color(0x260B1325),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
         ),
         child: ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonPrimary,
+            backgroundColor: const Color(0xFF0B1325),
             foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.buttonPrimary.withValues(
+            disabledBackgroundColor: const Color(0xFF0B1325).withValues(
               alpha: 0.75,
             ),
             elevation: 0,
@@ -318,13 +318,13 @@ class LoginSubmitButton extends StatelessWidget {
                         strokeWidth: 2,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Text(
                       'Autenticando...',
                       style: GoogleFonts.plusJakartaSans(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -337,7 +337,7 @@ class LoginSubmitButton extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
+                        fontSize: 14,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -361,24 +361,28 @@ InputDecoration _loginInputDecoration({
   return InputDecoration(
     hintText: hintText,
     hintStyle: GoogleFonts.plusJakartaSans(
-      color: AppColors.textMuted,
-      fontSize: 13,
+      color: const Color(0xFF94A3B8),
+      fontSize: 13.5,
     ),
-    prefixIcon: Icon(prefixIcon, color: AppColors.textMuted, size: 16),
+    prefixIcon: Padding(
+      padding: const EdgeInsets.only(left: 12, right: 10),
+      child: Icon(prefixIcon, color: const Color(0xFF94A3B8), size: 18),
+    ),
+    prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 20),
     filled: true,
     fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.borderLight),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.borderLight),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.slate800, width: 1.4),
+      borderSide: const BorderSide(color: Color(0xFF1E293B), width: 1.2),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
@@ -386,7 +390,7 @@ InputDecoration _loginInputDecoration({
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: AppColors.roseIcon, width: 1.4),
+      borderSide: const BorderSide(color: AppColors.roseIcon, width: 1.2),
     ),
   );
 }

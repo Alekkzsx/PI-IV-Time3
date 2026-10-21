@@ -198,24 +198,24 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                           StudentPortalController.instance.isGridView
                               ? Icons.view_list_rounded
                               : Icons.grid_view_rounded,
-                          size: 13,
-                          color: const Color(0xFF1A1A1A),
+                          size: 16,
+                          color: const Color(0xFF525252),
                         ),
                         label: Text(
                           StudentPortalController.instance.isGridView
                               ? 'Alterar para visualização em lista'
-                              : 'Alterar para visualização em grade',
-                          style: jakarta(size: 10.5, weight: FontWeight.w500),
+                              : 'Alterar para visualização em bloco',
+                          style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF1A1A1A)),
                         ),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
                           side: const BorderSide(color: Color(0xFFE5E5E5)),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
+                            horizontal: 14,
                             vertical: 10,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                       ),

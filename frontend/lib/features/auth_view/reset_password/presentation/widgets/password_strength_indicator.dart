@@ -57,37 +57,34 @@ class PasswordStrengthIndicator extends StatelessWidget {
   /// Determina a cor visual da barra de entropia conforme o score calculado.
   Color _getBarColor(int index) {
     if (index >= strengthScore) {
-      return const Color(0xFFE2E8F0); // slate-200 inativo
+      return const Color(0xFFE2E8F0); // bg-slate-200 inativo
     }
-    if (strengthScore <= 1) return const Color(0xFFEF4444); // red-500
-    if (strengthScore == 2) return const Color(0xFFF59E0B); // amber-500
-    if (strengthScore == 3) return const Color(0xFF3B82F6); // blue-500
-    return const Color(0xFF10B981); // green-500
+    return const Color(0xFF0B1325); // ativo #0B1325
   }
 
   /// Constrói o item de requisito da senha com texto e ícone de checkmark colorido.
   Widget _buildCheckItem(String label, bool isSatisfied) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Icon(
             Icons.check,
-            size: 15,
+            size: 16,
             color: isSatisfied
-                ? const Color(0xFF10B981)
-                : const Color(0xFF94A3B8), // slate-400
+                ? const Color(0xFF10B981) // emerald-500
+                : const Color(0xFFCBD5E1), // slate-300
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: isSatisfied
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
-                fontWeight: isSatisfied ? FontWeight.w500 : FontWeight.w400,
+                    ? const Color(0xFF334155) // slate-700
+                    : const Color(0xFF64748B), // slate-500
+                fontWeight: isSatisfied ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
           ),

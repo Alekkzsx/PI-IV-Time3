@@ -56,14 +56,14 @@ class LoginProfileTabs extends StatelessWidget {
           const SizedBox(width: 4), // gap-1 (4px)
           _ProfileTab(
             label: 'Docente',
-            icon: Icons.assignment_ind_outlined,
+            icon: Icons.badge_outlined,
             selected: selectedProfile == UserProfile.docente,
             onTap: () => onProfileChanged(UserProfile.docente),
           ),
           const SizedBox(width: 4), // gap-1 (4px)
           _ProfileTab(
             label: 'Admin',
-            icon: Icons.verified_user_outlined,
+            icon: Icons.shield_outlined,
             selected: selectedProfile == UserProfile.admin,
             onTap: () => onProfileChanged(UserProfile.admin),
           ),
