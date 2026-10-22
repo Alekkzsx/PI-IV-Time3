@@ -1,14 +1,9 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student_view/shell/presentation/widgets/student_sidebar.dart';
-
-const _ink = Color(0xFF1A1A1A);
-const _muted = Color(0xFF737373);
-const _border = Color(0xFFE5E5E5);
-const _track = Color(0xFFEFEDE8);
 
 class StudentDisciplineItemData {
   final String code;
@@ -46,20 +41,36 @@ class StudentDisciplinesGridSection extends StatelessWidget {
           children: [
             Text(
               'Minhas Disciplinas',
-              style: jakarta(size: 18, weight: FontWeight.w500),
+              style: jakarta(
+                size: 18,
+                weight: FontWeight.w700,
+                color: const Color(0xFF18181B),
+              ),
             ),
             InkWell(
               key: const Key('btn_ver_grade'),
               onTap: () => controller.setNavItem(StudentNavItem.disciplinas),
-              child: Row(
-                children: [
-                  Text(
-                    'Ver grade',
-                    style: jakarta(size: 13, weight: FontWeight.w500),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward, size: 14, color: _ink),
-                ],
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  children: [
+                    Text(
+                      'Ver grade',
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF18181B),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 14,
+                      color: Color(0xFF18181B),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -72,12 +83,12 @@ class StudentDisciplinesGridSection extends StatelessWidget {
 
   Widget _buildGrid() {
     return LayoutBuilder(
-      builder: (context, c) {
-        final single = c.maxWidth < 560;
-        final w = single ? c.maxWidth : (c.maxWidth - 12) / 2;
+      builder: (context, constraints) {
+        final single = constraints.maxWidth < 560;
+        final w = single ? constraints.maxWidth : (constraints.maxWidth - 14) / 2;
         return Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: 14,
+          runSpacing: 14,
           children: [
             for (final d in disciplines)
               SizedBox(width: w, child: _disciplineCard(d)),
@@ -89,8 +100,19 @@ class StudentDisciplinesGridSection extends StatelessWidget {
 
   Widget _disciplineCard(StudentDisciplineItemData d) {
     return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: _cardDecoration(),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -100,11 +122,23 @@ class StudentDisciplinesGridSection extends StatelessWidget {
             d.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: jakarta(size: 17, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+            style: jakarta(
+              size: 15,
+              weight: FontWeight.w700,
+              color: const Color(0xFF18181B),
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(d.professor, style: jakarta(size: 14, color: const Color(0xFF737373), weight: FontWeight.w500)),
-          const SizedBox(height: 24),
+          const SizedBox(height: 4),
+          Text(
+            d.professor,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: jakarta(
+              size: 12,
+              color: const Color(0xFF71717A),
+            ),
+          ),
+          const SizedBox(height: 22),
           _progressRow(d.progress),
         ],
       ),
@@ -118,7 +152,18 @@ class StudentDisciplinesGridSection extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
-            decoration: _cardDecoration(),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE4E4E7)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
             child: Row(
               children: [
                 _codeChip(d.code),
@@ -130,10 +175,20 @@ class StudentDisciplinesGridSection extends StatelessWidget {
                       Text(
                         d.name,
                         overflow: TextOverflow.ellipsis,
-                        style: jakarta(size: 13, weight: FontWeight.w600),
+                        style: jakarta(
+                          size: 13.5,
+                          weight: FontWeight.w600,
+                          color: const Color(0xFF18181B),
+                        ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(d.professor, style: jakarta(size: 10, color: _muted)),
+                      const SizedBox(height: 2),
+                      Text(
+                        d.professor,
+                        style: jakarta(
+                          size: 11,
+                          color: const Color(0xFF71717A),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -148,30 +203,44 @@ class StudentDisciplinesGridSection extends StatelessWidget {
 
   Widget _codeChip(String code) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF9F6),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        color: const Color(0xFFF4F4F5),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(code, style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF525252))),
+      child: Text(
+        code,
+        style: jakarta(
+          size: 11,
+          weight: FontWeight.w600,
+          color: const Color(0xFF52525B),
+        ),
+      ),
     );
   }
 
   Widget _progressRow(double p) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Progresso',
-              style: jakarta(size: 13, weight: FontWeight.w700, color: const Color(0xFF737373)),
+              style: jakarta(
+                size: 11.5,
+                weight: FontWeight.w500,
+                color: const Color(0xFF71717A),
+              ),
             ),
             Text(
               '${(p * 100).round()}%',
-              style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+              style: jakarta(
+                size: 11.5,
+                weight: FontWeight.w700,
+                color: const Color(0xFF18181B),
+              ),
             ),
           ],
         ),
@@ -180,26 +249,12 @@ class StudentDisciplinesGridSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: p.clamp(0.0, 1.0),
-            minHeight: 4,
-            backgroundColor: const Color(0xFFF2F0EB),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD4D4D4)),
+            minHeight: 3.5,
+            backgroundColor: const Color(0xFFF4F4F5),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD4D4D8)),
           ),
         ),
       ],
     );
   }
-
-  BoxDecoration _cardDecoration() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
-      );
 }
-

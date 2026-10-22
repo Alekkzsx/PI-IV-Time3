@@ -1,9 +1,9 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/rubric_model.dart';
-import 'package:pi_iv_time3/features/docente_view/shared/theme/docente_colors.dart';
 
 /// Modal dialog for creating a new assignment with an evaluation rubric matrix.
 class CreateAssignmentModal extends StatefulWidget {
@@ -131,8 +131,48 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: DocenteColors.success,
+        backgroundColor: Color(0xFF16A34A),
         content: Text('Atividade avaliativa e rubrica publicadas com sucesso!'),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({String? hintText}) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: jakarta(
+        size: 13,
+        weight: FontWeight.w400,
+        color: const Color(0xFFA1A1AA),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE4E4E7)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFF18181B), width: 1.5),
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: jakarta(
+          size: 12,
+          weight: FontWeight.w600,
+          color: const Color(0xFF475569),
+        ),
       ),
     );
   }
@@ -141,53 +181,55 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: DocenteColors.surface,
+      backgroundColor: Colors.white,
+      elevation: 12,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 860, maxHeight: 860),
+        constraints: const BoxConstraints(maxWidth: 820, maxHeight: 860),
         child: Form(
           key: _formKey,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(28, 24, 20, 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Cadastrar Nova Atividade Avaliativa',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: DocenteColors.textPrimary,
+                      style: jakarta(
+                        size: 19,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFF18181B),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
+                      icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF71717A)),
+                      tooltip: 'Fechar',
+                      splashRadius: 20,
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1, color: DocenteColors.border),
+              const Divider(height: 1, color: Color(0xFFF4F4F5)),
 
               // Form Scrollable Body
-              Expanded(
+              Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Course Selector
-                      const Text(
-                        'Componente Curricular / Turma',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      const SizedBox(height: 6),
+                      _buildFieldLabel('Componente Curricular / Turma'),
                       DropdownButtonFormField<String>(
-                        value: _selectedCourseId,
-                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                        initialValue: _selectedCourseId,
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF71717A)),
+                        decoration: _inputDecoration(),
+                        style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF18181B)),
                         items: widget.controller.courses.map((course) {
                           return DropdownMenuItem(
                             value: course.id,
@@ -201,50 +243,43 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                       const SizedBox(height: 18),
 
                       // Title
-                      const Text(
-                        'Título da Atividade Avaliativa',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      const SizedBox(height: 6),
+                      _buildFieldLabel('Título da Atividade Avaliativa'),
                       TextFormField(
                         controller: _titleController,
-                        decoration: const InputDecoration(
+                        style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF18181B)),
+                        decoration: _inputDecoration(
                           hintText: 'Ex: Entrega: Diagrama de Classes e Sequência',
-                          border: OutlineInputBorder(),
                         ),
                         validator: (val) => val == null || val.trim().isEmpty ? 'Informe o título' : null,
                       ),
                       const SizedBox(height: 18),
 
                       // Description
-                      const Text(
-                        'Descrição e Enunciado Pedagógico',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      const SizedBox(height: 6),
+                      _buildFieldLabel('Descrição e Enunciado Pedagógico'),
                       TextFormField(
                         controller: _descriptionController,
                         maxLines: 3,
-                        decoration: const InputDecoration(
+                        style: jakarta(size: 13, weight: FontWeight.w400, color: const Color(0xFF18181B)),
+                        decoration: _inputDecoration(
                           hintText: 'Descreva os objetivos de aprendizagem, escopo técnico e instruções...',
-                          border: OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 18),
 
                       // Weight, Stage and Due Date
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Peso da Nota (Pontos)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                const SizedBox(height: 6),
+                                _buildFieldLabel('Peso da Nota (Pontos)'),
                                 TextFormField(
                                   controller: _weightController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                                  style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF18181B)),
+                                  decoration: _inputDecoration(),
                                 ),
                               ],
                             ),
@@ -254,11 +289,12 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Etapa Avaliativa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                const SizedBox(height: 6),
+                                _buildFieldLabel('Etapa Avaliativa'),
                                 DropdownButtonFormField<String>(
-                                  value: _selectedStage,
-                                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                                  initialValue: _selectedStage,
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF71717A)),
+                                  decoration: _inputDecoration(),
+                                  style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF18181B)),
                                   items: const [
                                     DropdownMenuItem(value: 'N1', child: Text('Nota 1 (N1)')),
                                     DropdownMenuItem(value: 'N2', child: Text('Nota 2 (N2)')),
@@ -275,16 +311,17 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
 
                       // Due Date & Modality
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Prazo Limite', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                const SizedBox(height: 6),
+                                _buildFieldLabel('Prazo Limite'),
                                 TextFormField(
                                   controller: _dueDateController,
-                                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                                  style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF18181B)),
+                                  decoration: _inputDecoration(),
                                 ),
                               ],
                             ),
@@ -294,14 +331,21 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Modalidade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                const SizedBox(height: 6),
+                                _buildFieldLabel('Modalidade'),
                                 DropdownButtonFormField<String>(
-                                  value: _selectedModality,
-                                  decoration: const InputDecoration(border: OutlineInputBorder()),
+                                  initialValue: _selectedModality,
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF71717A)),
+                                  decoration: _inputDecoration(),
+                                  style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF18181B)),
                                   items: const [
-                                    DropdownMenuItem(value: 'Trabalho Individual', child: Text('Trabalho Individual')),
-                                    DropdownMenuItem(value: 'Trabalho em Grupo (Até 4 integrantes)', child: Text('Trabalho em Grupo (Até 4)')),
+                                    DropdownMenuItem(
+                                      value: 'Trabalho em Grupo (Até 4 integrantes)',
+                                      child: Text('Trabalho em Grupo (Até 4)'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'Trabalho Individual',
+                                      child: Text('Trabalho Individual'),
+                                    ),
                                   ],
                                   onChanged: (v) => setState(() => _selectedModality = v!),
                                 ),
@@ -310,23 +354,48 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _allowLate,
-                        onChanged: (v) => setState(() => _allowLate = v ?? true),
-                        title: const Text('Permitir submissão com penalidade após o prazo'),
-                        controlAffinity: ListTileControlAffinity.leading,
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 14),
 
-                      // Rubric Section
+                      // Checkbox late submission
+                      InkWell(
+                        onTap: () => setState(() => _allowLate = !_allowLate),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: Checkbox(
+                                  value: _allowLate,
+                                  onChanged: (v) => setState(() => _allowLate = v ?? true),
+                                  activeColor: const Color(0xFF3B82F6),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Permitir submissão com penalidade após o prazo',
+                                style: jakarta(
+                                  size: 12.5,
+                                  weight: FontWeight.w400,
+                                  color: const Color(0xFF3F3F46),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+
+                      // Rubric Section Box
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: DocenteColors.background,
+                          color: const Color(0xFFFAFAFA),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: DocenteColors.border),
+                          border: Border.all(color: const Color(0xFFF4F4F5)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,82 +403,194 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
+                                Text(
                                   'Matriz de Correção (Rubrica Avaliativa)',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: jakarta(
+                                    size: 13.5,
+                                    weight: FontWeight.w600,
+                                    color: const Color(0xFF475569),
+                                  ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: DocenteColors.surface,
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: DocenteColors.border),
+                                    border: Border.all(color: const Color(0xFFE4E4E7)),
                                   ),
                                   child: Text(
                                     'Soma: ${_totalRubricSum.toStringAsFixed(1)} pts',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                    style: jakarta(
+                                      size: 11.5,
+                                      weight: FontWeight.w600,
+                                      color: const Color(0xFF3F3F46),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Critérios transparentes que o discente consulta antes e depois da entrega.',
-                              style: TextStyle(fontSize: 12, color: DocenteColors.textSecondary),
+                              style: jakarta(
+                                size: 12,
+                                weight: FontWeight.w400,
+                                color: const Color(0xFF71717A),
+                              ),
                             ),
                             const SizedBox(height: 16),
 
-                            // Criteria builder list
+                            // Criteria Cards
                             ...List.generate(_rubricControllers.length, (idx) {
                               final c = _rubricControllers[idx];
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.all(14),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                 decoration: BoxDecoration(
-                                  color: DocenteColors.surface,
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: DocenteColors.border),
+                                  border: Border.all(color: const Color(0xFFE4E4E7)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.015),
+                                      blurRadius: 3,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
                                 child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
+                                        // Nome do Critério (Underlined like image)
                                         Expanded(
-                                          child: TextField(
-                                            controller: c['title'],
-                                            decoration: const InputDecoration(
-                                              labelText: 'Nome do critério',
-                                              isDense: true,
-                                            ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Nome do critério',
+                                                style: jakarta(
+                                                  size: 11,
+                                                  weight: FontWeight.w400,
+                                                  color: const Color(0xFF71717A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              TextField(
+                                                controller: c['title'],
+                                                style: jakarta(
+                                                  size: 13,
+                                                  weight: FontWeight.w400,
+                                                  color: const Color(0xFF18181B),
+                                                ),
+                                                decoration: const InputDecoration(
+                                                  isDense: true,
+                                                  contentPadding: EdgeInsets.symmetric(vertical: 4),
+                                                  border: UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+                                                  ),
+                                                  enabledBorder: UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+                                                  ),
+                                                  focusedBorder: UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Color(0xFF18181B), width: 1.5),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
+                                        const SizedBox(width: 16),
+                                        // Pontos (Underlined like image)
                                         SizedBox(
                                           width: 90,
-                                          child: TextField(
-                                            controller: c['points'],
-                                            keyboardType: TextInputType.number,
-                                            decoration: const InputDecoration(
-                                              labelText: 'Pontos',
-                                              suffixText: 'pts',
-                                              isDense: true,
-                                            ),
-                                            onChanged: (_) => setState(() {}),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Pontos',
+                                                style: jakarta(
+                                                  size: 11,
+                                                  weight: FontWeight.w400,
+                                                  color: const Color(0xFF71717A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              TextField(
+                                                controller: c['points'],
+                                                keyboardType: TextInputType.number,
+                                                style: jakarta(
+                                                  size: 13,
+                                                  weight: FontWeight.w400,
+                                                  color: const Color(0xFF18181B),
+                                                ),
+                                                decoration: InputDecoration(
+                                                  isDense: true,
+                                                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                                                  suffixText: 'pts',
+                                                  suffixStyle: jakarta(
+                                                    size: 12,
+                                                    weight: FontWeight.w400,
+                                                    color: const Color(0xFF71717A),
+                                                  ),
+                                                  border: const UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+                                                  ),
+                                                  enabledBorder: const UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+                                                  ),
+                                                  focusedBorder: const UnderlineInputBorder(
+                                                    borderSide: BorderSide(color: Color(0xFF18181B), width: 1.5),
+                                                  ),
+                                                ),
+                                                onChanged: (_) => setState(() {}),
+                                              ),
+                                            ],
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
+                                        // Delete Icon
                                         IconButton(
                                           onPressed: () => _removeCriterion(idx),
-                                          icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                                          color: DocenteColors.danger,
+                                          icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                          color: const Color(0xFFDC2626),
+                                          tooltip: 'Remover critério',
+                                          splashRadius: 18,
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 12),
+                                    // Descrição do que é esperado
+                                    Text(
+                                      'Descrição do que é esperado para pontuação máxima',
+                                      style: jakarta(
+                                        size: 11,
+                                        weight: FontWeight.w400,
+                                        color: const Color(0xFF71717A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
                                     TextField(
                                       controller: c['desc'],
+                                      style: jakarta(
+                                        size: 13,
+                                        weight: FontWeight.w400,
+                                        color: const Color(0xFF18181B),
+                                      ),
                                       decoration: const InputDecoration(
-                                        labelText: 'Descrição do que é esperado para pontuação máxima',
                                         isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(vertical: 4),
+                                        border: UnderlineInputBorder(
+                                          borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+                                        ),
+                                        enabledBorder: UnderlineInputBorder(
+                                          borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+                                        ),
+                                        focusedBorder: UnderlineInputBorder(
+                                          borderSide: BorderSide(color: Color(0xFF18181B), width: 1.5),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -417,12 +598,25 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                               );
                             }),
 
+                            const SizedBox(height: 6),
+                            // Botão Adicionar Critério Avaliativo
                             OutlinedButton.icon(
                               onPressed: () => _addCriterionControllers(),
-                              icon: const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('Adicionar Critério Avaliativo'),
+                              icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF3F3F46)),
+                              label: Text(
+                                'Adicionar Critério Avaliativo',
+                                style: jakarta(
+                                  size: 12,
+                                  weight: FontWeight.w500,
+                                  color: const Color(0xFF3F3F46),
+                                ),
+                              ),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: DocenteColors.borderDark),
+                                foregroundColor: const Color(0xFF3F3F46),
+                                side: const BorderSide(color: Color(0xFFE4E4E7)),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                backgroundColor: Colors.white,
                               ),
                             ),
                           ],
@@ -433,25 +627,50 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                 ),
               ),
 
-              // Footer
+              const Divider(height: 1, color: Color(0xFFF4F4F5)),
+
+              // Footer Actions
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancelar'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF475569),
+                        side: const BorderSide(color: Color(0xFF94A3B8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        backgroundColor: Colors.white,
+                      ),
+                      child: Text(
+                        'Cancelar',
+                        style: jakarta(
+                          size: 12.5,
+                          weight: FontWeight.w600,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
                       onPressed: _handleSubmit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: DocenteColors.textPrimary,
+                        backgroundColor: const Color(0xFF18181B),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
-                      child: const Text('Publicar Atividade para a Turma'),
+                      child: Text(
+                        'Publicar Atividade para a Turma',
+                        style: jakarta(
+                          size: 12.5,
+                          weight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -463,4 +682,3 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
     );
   }
 }
-

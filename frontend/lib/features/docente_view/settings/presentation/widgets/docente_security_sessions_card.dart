@@ -1,8 +1,9 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/docente_view/shared/theme/docente_colors.dart';
+import 'package:pi_iv_time3/features/docente_view/shared/domain/models/docente_profile.dart';
 
 /// Card de configurações de 2FA, gerenciamento de sessões ativas e histórico de auditoria.
 class DocenteSecuritySessionsCard extends StatelessWidget {
@@ -18,393 +19,582 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
     final profile = controller.profile;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 2FA Card
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: DocenteColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: DocenteColors.border),
+        // 1. Credencial de Acesso (Senha)
+        _buildPasswordCard(context),
+        const SizedBox(height: 20),
+
+        // 2. Autenticação em Duas Etapas (2FA)
+        _buildTwoFactorCard(context, profile),
+        const SizedBox(height: 20),
+
+        // 3. Códigos de Recuperação (Backup)
+        _buildBackupCodesCard(context),
+        const SizedBox(height: 20),
+
+        // 4. Sessões Ativas & Dispositivos Conectados
+        _buildActiveSessionsCard(context, profile),
+        const SizedBox(height: 20),
+
+        // 5. Histórico Recente de Acesso (Auditoria de Segurança)
+        _buildAuditLogsCard(context),
+      ],
+    );
+  }
+
+  Widget _buildPasswordCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: (profile.twoFactorEnabled
-                          ? DocenteColors.emerald
-                          : DocenteColors.crimson)
-                      .withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  profile.twoFactorEnabled
-                      ? Icons.security_rounded
-                      : Icons.gpp_maybe_rounded,
-                  color: profile.twoFactorEnabled
-                      ? DocenteColors.emerald
-                      : DocenteColors.crimson,
-                  size: 28,
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF18181B),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.key_rounded, size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Credencial de Acesso (Senha)',
+                        style: jakarta(size: 14, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                        ),
+                        child: Text(
+                          'Protegida',
+                          style: jakarta(size: 10, weight: FontWeight.w600, color: const Color(0xFF16A34A)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.lock_reset_rounded, size: 14, color: Colors.white),
+                label: Text('Alterar Senha', style: jakarta(size: 12, weight: FontWeight.w600, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF18181B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
               ),
-              const SizedBox(width: 18),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Utilizada para entrar no AVA, Portal Acadêmico e serviços da instituição.',
+            style: jakarta(size: 12, color: const Color(0xFF71717A)),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Autenticação em Dois Fatores (2FA)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: DocenteColors.charcoal,
-                          ),
+                    Text('Complexidade da Senha:', style: jakarta(size: 11, color: const Color(0xFF71717A))),
+                    const SizedBox(height: 2),
+                    Text('Forte (Criptografia SHA-256)', style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF18181B))),
+                    Text('Cumpre os requisitos institucionais de segurança', style: jakarta(size: 10.5, color: const Color(0xFFA1A1AA))),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Última Atualização:', style: jakarta(size: 11, color: const Color(0xFF71717A))),
+                    const SizedBox(height: 2),
+                    Text('Há 38 dias', style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF18181B))),
+                    Text('Recomendação: renovar a cada 90 dias', style: jakarta(size: 10.5, color: const Color(0xFFA1A1AA))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFF71717A)),
+              const SizedBox(width: 6),
+              Text(
+                'A troca de senha exige confirmação da sua senha atual e validação em dois fatores.',
+                style: jakarta(size: 11, color: const Color(0xFF71717A)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTwoFactorCard(BuildContext context, DocenteProfile profile) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF18181B),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.verified_user_rounded, size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Autenticação em Duas Etapas (2FA)',
+                        style: jakarta(size: 14, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF18181B),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: (profile.twoFactorEnabled
-                                    ? DocenteColors.emerald
-                                    : DocenteColors.crimson)
-                                .withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            profile.twoFactorEnabled
-                                ? 'Ativo (App Autenticador)'
-                                : 'Desativado',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: profile.twoFactorEnabled
-                                  ? DocenteColors.emerald
-                                  : DocenteColors.crimson,
+                        child: Text(
+                          profile.twoFactorEnabled ? 'Ativado' : 'Desativado',
+                          style: jakarta(size: 10, weight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              OutlinedButton(
+                onPressed: () => controller.toggleTwoFactor(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFDC2626),
+                  side: const BorderSide(color: Color(0xFFFECACA)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  backgroundColor: Colors.white,
+                ),
+                child: Text(
+                  profile.twoFactorEnabled ? 'Desativar 2FA' : 'Ativar 2FA',
+                  style: jakarta(size: 11.5, weight: FontWeight.w600, color: const Color(0xFFDC2626)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Exige um código de 6 dígitos gerado no seu celular ao realizar login.',
+            style: jakarta(size: 12, color: const Color(0xFF71717A)),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Método Configurado:', style: jakarta(size: 11, color: const Color(0xFF71717A))),
+                    const SizedBox(height: 2),
+                    Text('Aplicativo TOTP (Authenticator)', style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF18181B))),
+                    Text('Ativado em 15 de Agosto de 2026', style: jakarta(size: 10.5, color: const Color(0xFFA1A1AA))),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Status de Proteção:', style: jakarta(size: 11, color: const Color(0xFF71717A))),
+                    const SizedBox(height: 2),
+                    Text('Conta Blindada contra Phishing', style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF16A34A))),
+                    Text('Desativação exige autorização com senha e token.', style: jakarta(size: 10.5, color: const Color(0xFFA1A1AA))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackupCodesCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.key_outlined, size: 20, color: Color(0xFF18181B)),
+                  const SizedBox(width: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Códigos de Recuperação (Backup)',
+                        style: jakarta(size: 14, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF18181B),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '8 disponíveis',
+                          style: jakarta(size: 10, weight: FontWeight.w600, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.vpn_key_outlined, size: 13, color: Color(0xFF18181B)),
+                label: Text('Gerenciar Códigos', style: jakarta(size: 11.5, weight: FontWeight.w500, color: const Color(0xFF18181B))),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFD4D4D8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Chaves de segurança descartáveis para login caso você não tenha acesso ao seu smartphone.',
+            style: jakarta(size: 12, color: const Color(0xFF71717A)),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFF4F4F5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_outline_rounded, size: 14, color: Color(0xFF71717A)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Fluxo de Proteção Zero-Trust: Para sua segurança, a visualização ou regeneração dos códigos de backup exige reautenticação imediata por senha.',
+                    style: jakarta(size: 11, color: const Color(0xFF71717A)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveSessionsCard(BuildContext context, DocenteProfile profile) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.language_rounded, size: 18, color: Color(0xFF18181B)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Sessões Ativas & Dispositivos Conectados',
+                    style: jakarta(size: 14, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                  ),
+                ],
+              ),
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.logout_rounded, size: 12, color: Color(0xFFDC2626)),
+                label: Text('Encerrar Outras Sessões', style: jakarta(size: 11, weight: FontWeight.w600, color: const Color(0xFFDC2626))),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFFECACA)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Dispositivos com acesso autorizado à sua conta no AVA e Portal do Aluno.',
+            style: jakarta(size: 12, color: const Color(0xFF71717A)),
+          ),
+          const SizedBox(height: 18),
+          ...profile.activeSessions.map((session) {
+            final isMobile = session.device.toLowerCase().contains('iphone') || session.device.toLowerCase().contains('android') || session.device.toLowerCase().contains('mobile');
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE4E4E7)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isMobile ? Icons.smartphone_rounded : Icons.laptop_mac_rounded,
+                    size: 20,
+                    color: const Color(0xFF52525B),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              session.device,
+                              style: jakarta(size: 12.5, weight: FontWeight.w600, color: const Color(0xFF18181B)),
                             ),
-                          ),
+                            if (session.isCurrent) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF18181B),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'ESTA SESSÃO',
+                                  style: jakarta(size: 9, weight: FontWeight.w700, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${session.location} • IP ${session.ip} • ${session.lastActive}',
+                          style: jakarta(size: 11, color: const Color(0xFF71717A)),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'A autenticação em dois fatores protege seu lançamento de notas oficiais e dados sensíveis dos discentes exigindo um código TOTP a cada login.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: DocenteColors.slate,
-                        height: 1.4,
+                  ),
+                  if (!session.isCurrent)
+                    OutlinedButton(
+                      onPressed: () => controller.disconnectSession(session.id),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFD4D4D8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        backgroundColor: Colors.white,
+                      ),
+                      child: Text('Desconectar', style: jakarta(size: 11, weight: FontWeight.w500, color: const Color(0xFF18181B))),
+                    ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditLogsCard(BuildContext context) {
+    final auditLogs = [
+      {'data': '22/09/2026 às 08:14', 'device': 'Chrome / Windows 11', 'local': 'São Paulo, Brasil', 'ip': '177.136.***.42', 'status': 'Autorizado'},
+      {'data': '21/09/2026 às 20:30', 'device': 'Safari / iPhone 15', 'local': 'São Paulo, Brasil', 'ip': '189.40.***.118', 'status': 'Autorizado'},
+      {'data': '21/09/2026 às 18:45', 'device': 'Firefox / Linux', 'local': 'Campinas, Brasil', 'ip': '201.82.***.93', 'status': 'Autorizado'},
+      {'data': '19/09/2026 às 23:10', 'device': 'Desconhecido / Android', 'local': 'Belo Horizonte, Brasil', 'ip': '45.178.***.12', 'status': 'Bloqueado'},
+      {'data': '19/09/2026 às 14:02', 'device': 'Chrome / Windows 11', 'local': 'São Paulo, Brasil', 'ip': '177.136.***.42', 'status': 'Autorizado'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history_rounded, size: 18, color: Color(0xFF18181B)),
+              const SizedBox(width: 8),
+              Text(
+                'Histórico Recente de Acesso (Auditoria de Segurança)',
+                style: jakarta(size: 14, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Registro dos últimos logins efetuados com suas credenciais para monitoramento preventivo.',
+            style: jakarta(size: 12, color: const Color(0xFF71717A)),
+          ),
+          const SizedBox(height: 18),
+          // Audit Table
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFAFAFA),
+              border: Border(bottom: BorderSide(color: Color(0xFFF4F4F5), width: 1)),
+            ),
+            child: Row(
+              children: [
+                Expanded(flex: 3, child: Text('DATA & HORA', style: _tableHeaderStyle)),
+                Expanded(flex: 3, child: Text('DISPOSITIVO', style: _tableHeaderStyle)),
+                Expanded(flex: 3, child: Text('LOCALIZAÇÃO ESTIMADA', style: _tableHeaderStyle)),
+                Expanded(flex: 2, child: Text('ENDEREÇO IP', style: _tableHeaderStyle)),
+                Expanded(flex: 2, child: Text('STATUS', style: _tableHeaderStyle)),
+              ],
+            ),
+          ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: auditLogs.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF4F4F5)),
+            itemBuilder: (context, index) {
+              final log = auditLogs[index];
+              final isBloqueado = log['status'] == 'Bloqueado';
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: Text(log['data']!, style: jakarta(size: 11.5, color: const Color(0xFF52525B)))),
+                    Expanded(flex: 3, child: Text(log['device']!, style: jakarta(size: 11.5, weight: FontWeight.w500, color: const Color(0xFF18181B)))),
+                    Expanded(flex: 3, child: Text(log['local']!, style: jakarta(size: 11.5, color: const Color(0xFF52525B)))),
+                    Expanded(flex: 2, child: Text(log['ip']!, style: jakarta(size: 11.5, color: const Color(0xFF71717A)))),
+                    Expanded(
+                      flex: 2,
+                      child: Row(
+                        children: [
+                          Icon(
+                            isBloqueado ? Icons.cancel_outlined : Icons.check_rounded,
+                            size: 14,
+                            color: isBloqueado ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            log['status']!,
+                            style: jakarta(
+                              size: 11,
+                              weight: FontWeight.w600,
+                              color: isBloqueado ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 16),
-              OutlinedButton(
-                onPressed: () {
-                  controller.toggleTwoFactor();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        controller.profile.twoFactorEnabled
-                            ? 'Autenticação 2FA ativada com sucesso!'
-                            : 'Autenticação 2FA desativada temporariamente.',
-                      ),
-                      backgroundColor: DocenteColors.charcoal,
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: DocenteColors.charcoal,
-                  side: const BorderSide(color: DocenteColors.border),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  profile.twoFactorEnabled ? 'Desativar 2FA' : 'Configurar 2FA',
-                ),
-              ),
-            ],
+              );
+            },
           ),
-        ),
-        const SizedBox(height: 20),
-
-        // Active Sessions Card
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: DocenteColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: DocenteColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Sessões Ativas Conectadas',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: DocenteColors.charcoal,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Dispositivos atualmente autenticados no Portal do Docente',
-                style: TextStyle(fontSize: 13, color: DocenteColors.slate),
-              ),
-              const SizedBox(height: 16),
-              ...profile.activeSessions.map((session) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: DocenteColors.offWhite,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: DocenteColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        session.device.toLowerCase().contains('phone')
-                            ? Icons.phone_iphone
-                            : Icons.laptop_mac,
-                        color: DocenteColors.charcoal,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  session.device,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                if (session.isCurrent) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: DocenteColors.emerald
-                                          .withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'Esta Sessão (Atual)',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: DocenteColors.emerald,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            Text(
-                              'IP: ${session.ip} • ${session.location} • ${session.lastActive}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: DocenteColors.slate,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!session.isCurrent)
-                        TextButton(
-                          onPressed: () {
-                            controller.disconnectSession(session.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Sessão encerrada com sucesso.'),
-                                backgroundColor: DocenteColors.charcoal,
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Desconectar',
-                            style: TextStyle(
-                              color: DocenteColors.crimson,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Audit Trail Card
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: DocenteColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: DocenteColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Histórico de Auditoria & Logins Recentes',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: DocenteColors.charcoal,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Registro auditável de tentativas de autenticação para conformidade institucional',
-                style: TextStyle(fontSize: 13, color: DocenteColors.slate),
-              ),
-              const SizedBox(height: 16),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 800),
-                  child: DataTable(
-                    headingRowColor:
-                        MaterialStateProperty.all(DocenteColors.offWhite),
-                    columnSpacing: 24,
-                    columns: const [
-                      DataColumn(
-                        label: Text(
-                          'Data / Hora',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Dispositivo / Navegador',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Endereço IP',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Localização',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Status',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                    rows: profile.loginAudits.map((audit) {
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            Text(
-                              audit.timestamp,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              audit.device,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              audit.ip,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: DocenteColors.slate,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              audit.location,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: (audit.success
-                                        ? DocenteColors.emerald
-                                        : DocenteColors.crimson)
-                                    .withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                audit.success ? 'Sucesso' : 'Bloqueado',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: audit.success
-                                      ? DocenteColors.emerald
-                                      : DocenteColors.crimson,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
-}
 
+  static const TextStyle _tableHeaderStyle = TextStyle(
+    fontFamily: 'Plus Jakarta Sans',
+    fontSize: 10,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF71717A),
+  );
+}

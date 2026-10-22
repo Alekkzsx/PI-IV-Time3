@@ -8,6 +8,7 @@ import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_con
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/academic_event.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/academic_notice.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/docente_view/settings/presentation/pages/docente_settings_tab.dart';
 import 'package:pi_iv_time3/features/docente_view/shell/presentation/pages/docente_shell_page.dart';
 import 'package:pi_iv_time3/features/docente_view/shell/presentation/widgets/docente_footer.dart';
 
@@ -325,6 +326,55 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('AULA Nº 25 • CARGA: 2H/AULA'), findsOneWidget);
+    });
+
+    testWidgets('Renders DocenteSettingsTab and navigates between subtabs seamlessly', (tester) async {
+      tester.view.physicalSize = const Size(1440, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final controller = DocenteController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DocenteSettingsTab(controller: controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Default subtab is Perfil Docente
+      expect(find.text('Configurações da Conta Docente'), findsOneWidget);
+      expect(find.text('Perfil Docente'), findsWidgets);
+      expect(find.text('Identidade Visual & Foto'), findsOneWidget);
+
+      // Switch to Notificações
+      await tester.tap(find.text('Notificações Institucionais'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Canais de Comunicação'), findsOneWidget);
+      expect(find.text('Comunicados Institucionais & Rematrícula'), findsOneWidget);
+      expect(find.text('Salvar Preferências de Notificação'), findsOneWidget);
+
+      // Switch to Preferências do Sistema
+      await tester.tap(find.text('Preferências do Sistema'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aparência & Tema'), findsOneWidget);
+      expect(find.text('Acessibilidade & Leitura'), findsOneWidget);
+      expect(find.text('Preferências do Calendário Acadêmico'), findsOneWidget);
+      expect(find.text('Salvar Preferências do Sistema'), findsOneWidget);
+
+      // Switch to Privacidade & LGPD
+      await tester.tap(find.text('Privacidade & LGPD'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Visibilidade de Perfil & Dados entre Colegas'), findsOneWidget);
+      expect(find.text('Privacidade & Direitos do Titular (LGPD)'), findsOneWidget);
+      expect(find.text('Salvar Preferências de Privacidade'), findsOneWidget);
+      expect(find.text('Arquivo JSON'), findsOneWidget);
+      expect(find.text('Relatório (.txt)'), findsOneWidget);
     });
   });
 }

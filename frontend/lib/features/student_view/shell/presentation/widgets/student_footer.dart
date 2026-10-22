@@ -1,8 +1,9 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
-/// Rodapé institucional fixado na base do portal do estudante.
+/// Rodapé institucional padronizado do Portal AVA (Visão do Aluno).
 class StudentFooter extends StatelessWidget {
   final bool isDesktop;
 
@@ -15,58 +16,87 @@ class StudentFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 48 : 20,
+        horizontal: isDesktop ? 40 : 20,
         vertical: 16,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE4E4E7), width: 1),
+        ),
       ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        runSpacing: 8,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            children: const [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
                 '© 2026 AGMRM',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF18181B),
+                style: jakarta(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '|',
-                style: TextStyle(fontSize: 10, color: Color(0xFFD4D4D8)),
+                style: jakarta(
+                  size: 11,
+                  color: const Color(0xFFD4D4D8),
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 'Portal AVA AGMRM • Ambiente Virtual de Aprendizagem Universitário',
-                style: TextStyle(fontSize: 10, color: Color(0xFFA3A3A3)),
+                style: jakarta(
+                  size: 11,
+                  color: const Color(0xFF71717A),
+                ),
               ),
             ],
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text(
-                'Ajuda',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFFA3A3A3),
-                  fontWeight: FontWeight.w500,
+            children: [
+              InkWell(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Central de Ajuda do Estudante aberta.'),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Ajuda',
+                  style: jakarta(
+                    size: 11,
+                    weight: FontWeight.w500,
+                    color: const Color(0xFF71717A),
+                  ),
                 ),
               ),
-              SizedBox(width: 16),
-              Text(
-                'Privacidade',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Color(0xFFA3A3A3),
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 16),
+              InkWell(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Termos de Privacidade e LGPD abertos.'),
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Privacidade',
+                  style: jakarta(
+                    size: 11,
+                    weight: FontWeight.w500,
+                    color: const Color(0xFF71717A),
+                  ),
                 ),
               ),
             ],
@@ -76,4 +106,3 @@ class StudentFooter extends StatelessWidget {
     );
   }
 }
-

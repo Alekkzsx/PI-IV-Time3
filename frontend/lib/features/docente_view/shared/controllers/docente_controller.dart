@@ -41,7 +41,7 @@ class DocenteController extends ChangeNotifier {
   List<AcademicNotice> _notices = [];
   DocenteProfile _profile = DocenteMockData.initialProfile;
 
-  String _settingsSubtab = 'seguranca'; // 'perfil', 'seguranca', 'notificacoes', 'preferencias', 'privacidade'
+  String _settingsSubtab = 'perfil'; // 'perfil', 'seguranca', 'notificacoes', 'preferencias', 'privacidade'
 
   DocenteController() {
     _courses = List.from(DocenteMockData.initialCourses);

@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -8,15 +8,10 @@ import '../widgets/student_disciplines_grid_section.dart';
 import '../widgets/student_live_class_section.dart';
 import '../widgets/student_notices_panel.dart';
 
-const _ink = Color(0xFF1A1A1A);
-const _muted = Color(0xFF737373);
-const _faint = Color(0xFFA3A3A3);
-const _border = Color(0xFFE5E5E5);
-
 /// Painel Geral (Dashboard) da Visão do Aluno.
 ///
-/// Saudação, 4 indicadores, aula do dia, disciplinas (grade/lista),
-/// prazos pendentes e mural de avisos.
+/// Saudação, 4 indicadores de desempenho, aula do dia, disciplinas matriculadas,
+/// prazos pendentes e mural de avisos institucionais.
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
 
@@ -28,25 +23,53 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final StudentPortalController _controller = StudentPortalController.instance;
 
   static const _disciplines = [
-    StudentDisciplineItemData('218131 - APS-II', 'Análise e Projeto de Sistemas II',
-        'Profa. Dra. Helena Bittencourt', 0.68),
-    StudentDisciplineItemData('218131 - BD-II', 'Estudos de Banco de Dados II',
-        'Profa. Dra. Helena Bittencourt', 0.75),
-    StudentDisciplineItemData('218131 - FIS', 'Filosofia, Informação e Sociedade',
-        'Prof. Dr. Marcos Vinícius Ferreira', 0.82),
-    StudentDisciplineItemData('218131 - FSO', 'Fundamentos de Sistemas Operacionais',
-        'Prof. Esp. André Luiz Silveira', 0.54),
+    StudentDisciplineItemData(
+      '218131 - APS-II',
+      'Análise e Projeto de Sistemas II',
+      'Profa. Dra. Helena Bittencourt',
+      0.68,
+    ),
+    StudentDisciplineItemData(
+      '218131 - BD-II',
+      'Estudos de Banco de Dados II',
+      'Profa. Dra. Helena Bittencourt',
+      0.75,
+    ),
+    StudentDisciplineItemData(
+      '218131 - FIS',
+      'Filosofia, Informação e Sociedade',
+      'Prof. Dr. Marcos Vinicius Ferreira',
+      0.82,
+    ),
+    StudentDisciplineItemData(
+      '218131 - FSO',
+      'Fundamentos de Sistemas Operacionais',
+      'Prof. Esp. André Luiz Silveira',
+      0.54,
+    ),
   ];
 
   static const _deadlines = [
-    StudentDeadlineItemData('Entrega: Diagrama de Classes e Sequência',
-        'Análise e Projeto de Sistemas II', 'Hoje, 20/09 às 23:59'),
-    StudentDeadlineItemData('Fórum Temático: Ética na Inteligência Artificial',
-        'Filosofia, Informação e Sociedade', 'Amanhã, 21/09 às 18:00'),
-    StudentDeadlineItemData('Atividade Prática: Modelagem Relacional e Normalização',
-        'Estudos de Banco de Dados II', 'Quinta, 24/09 às 23:59'),
-    StudentDeadlineItemData('Avaliação Parcial: Gerenciamento de Memória',
-        'Fundamentos de Sistemas Operacionais', 'Terça, 29/09 às 20:40'),
+    StudentDeadlineItemData(
+      'Entrega: Diagrama de Classes e Sequência',
+      'Análise e Projeto de Sistemas II',
+      'Hoje, 20/09 às 23:59',
+    ),
+    StudentDeadlineItemData(
+      'Fórum Temático: Ética na Inteligência Artificial',
+      'Filosofia, Informação e Sociedade',
+      'Amanhã, 21/09 às 18:00',
+    ),
+    StudentDeadlineItemData(
+      'Atividade Prática: Modelagem Relacional e N...',
+      'Estudos de Banco de Dados II',
+      'Quinta, 24/09 às 23:59',
+    ),
+    StudentDeadlineItemData(
+      'Avaliação Parcial: Gerenciamento de Memória',
+      'Fundamentos de Sistemas Operacionais',
+      'Terça, 29/09 às 20:40',
+    ),
   ];
 
   static const _notices = [
@@ -68,7 +91,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       'Secretaria Acadêmica AGMRM',
       '18 de set',
       'Prazo para Validação de Atividades Complementares 2026/2',
-      'Lembramos a todos os estudantes que o envio de certificados de cursos e palestras para cômputo de horas complementares encerra em breve.',
+      'Lembramos a todos os estudantes que o envio de certificados de cursos e palestras para cômputo de..',
       false,
     ),
   ];
@@ -91,14 +114,14 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 960;
+    final isDesktop = MediaQuery.of(context).size.width >= 1024;
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHero(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           _buildKpis(isDesktop),
           const SizedBox(height: 32),
           if (isDesktop)
@@ -106,13 +129,13 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: _buildLeftColumn()),
-                const SizedBox(width: 24),
-                SizedBox(width: 280, child: _buildRightColumn()),
+                const SizedBox(width: 28),
+                SizedBox(width: 380, child: _buildRightColumn()),
               ],
             )
           else ...[
             _buildLeftColumn(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             _buildRightColumn(),
           ],
         ],
@@ -126,24 +149,41 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       children: [
         Text(
           'Bem-vindo, Gabriel.',
-          style: jakarta(size: 44, weight: FontWeight.w600, letterSpacing: -1.2),
+          style: jakarta(
+            size: 34,
+            weight: FontWeight.w700,
+            color: const Color(0xFF18181B),
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Row(
           children: [
-            Text('Engenharia de Software',
-                style: jakarta(size: 16, weight: FontWeight.w700, color: Colors.black)),
-            const SizedBox(width: 10),
-            Container(
-              width: 5,
-              height: 5,
-              decoration: const BoxDecoration(
-                  color: Color(0xFFD4D4D4), shape: BoxShape.circle),
+            Text(
+              'Engenharia de Software',
+              style: jakarta(
+                size: 13.5,
+                weight: FontWeight.w700,
+                color: const Color(0xFF18181B),
+              ),
             ),
-            const SizedBox(width: 10),
-            Text('5º Semestre',
-                style: jakarta(
-                    size: 16, weight: FontWeight.w600, color: _muted)),
+            const SizedBox(width: 8),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: const BoxDecoration(
+                color: Color(0xFFD4D4D8),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '5º Semestre',
+              style: jakarta(
+                size: 13.5,
+                weight: FontWeight.w400,
+                color: const Color(0xFF71717A),
+              ),
+            ),
           ],
         ),
       ],
@@ -152,73 +192,132 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   Widget _buildKpis(bool isDesktop) {
     final cards = [
-      _buildKpiCard('Disciplinas', '04', 'Ativas no Semestre', 'Frequência Média',
-          '94.8%', 0.948),
-      _buildKpiCard('Entregas do Mês', '04', 'Cadastradas', 'Próximo Vencimento',
-          'Hoje, 23:59', 0.50),
-      _buildKpiCard('Coeficiente de Rendimento (CR)', '8.8', '/ 10.0',
-          'Situação Acadêmica', 'Regular', 0.88),
-      _buildKpiCard('Horas Complementares', '140h', '/ 180h', 'Progresso Total',
-          '77.7%', 0.777),
+      _buildKpiCard(
+        'Disciplinas',
+        '04',
+        'Ativas no Semestre',
+        'Frequência Média',
+        '94.8%',
+        0.948,
+      ),
+      _buildKpiCard(
+        'Entregas do Mês',
+        '04',
+        'Cadastradas',
+        'Próximo Vencimento',
+        'Hoje, 23:59',
+        0.35,
+      ),
+      _buildKpiCard(
+        'Coeficiente de Rendimento (CR)',
+        '8.8',
+        '/ 10.0',
+        'Situação Acadêmica',
+        'Regular',
+        0.88,
+      ),
+      _buildKpiCard(
+        'Horas Complementares',
+        '140h',
+        '/ 180h',
+        'Progresso Total',
+        '77.7%',
+        0.777,
+      ),
     ];
+
     if (!isDesktop) {
-      return Column(children: [
-        Row(children: [
-          Expanded(child: cards[0]),
-          const SizedBox(width: 12),
-          Expanded(child: cards[1]),
-        ]),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: cards[2]),
-          const SizedBox(width: 12),
-          Expanded(child: cards[3]),
-        ]),
-      ]);
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: cards[0]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[1]),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: cards[2]),
+              const SizedBox(width: 12),
+              Expanded(child: cards[3]),
+            ],
+          ),
+        ],
+      );
     }
-    return Row(children: [
-      for (int i = 0; i < cards.length; i++) ...[
-        if (i > 0) const SizedBox(width: 16),
-        Expanded(child: cards[i]),
+
+    return Row(
+      children: [
+        for (int i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(width: 16),
+          Expanded(child: cards[i]),
+        ],
       ],
-    ]);
+    );
   }
 
-  Widget _buildKpiCard(String label, String value, String unit, String footLabel,
-      String footValue, double progress) {
+  Widget _buildKpiCard(
+    String label,
+    String value,
+    String unit,
+    String footLabel,
+    String footValue,
+    double progress,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: jakarta(
-                  size: 11, weight: FontWeight.w700, letterSpacing: 0.8, color: Colors.black)),
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: jakarta(
+              size: 11,
+              weight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: const Color(0xFF71717A),
+            ),
+          ),
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(value, style: jakarta(size: 28, weight: FontWeight.w600, color: const Color(0xFF1A1A1A))),
+              Text(
+                value,
+                style: jakarta(
+                  size: 28,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
+              ),
               const SizedBox(width: 8),
               Flexible(
-                child: Text(unit,
-                    overflow: TextOverflow.ellipsis,
-                    style: jakarta(size: 13, color: const Color(0xFFA3A3A3), weight: FontWeight.w500)),
+                child: Text(
+                  unit,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 12,
+                    color: const Color(0xFF71717A),
+                    weight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
           ),
@@ -226,9 +325,22 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(footLabel, style: jakarta(size: 13, color: const Color(0xFF737373), weight: FontWeight.w500)),
-              Text(footValue,
-                  style: jakarta(size: 13, weight: FontWeight.w600, color: Colors.black)),
+              Text(
+                footLabel,
+                style: jakarta(
+                  size: 12,
+                  color: const Color(0xFF71717A),
+                  weight: FontWeight.w400,
+                ),
+              ),
+              Text(
+                footValue,
+                style: jakarta(
+                  size: 12,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -236,9 +348,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
-              minHeight: 4,
-              backgroundColor: const Color(0xFFF2F0EB),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1A1A1A)),
+              minHeight: 3.5,
+              backgroundColor: const Color(0xFFF4F4F5),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF18181B)),
             ),
           ),
         ],
@@ -268,7 +380,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           controller: _controller,
           deadlines: _deadlines,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         const StudentNoticesPanel(notices: _notices),
       ],
     );

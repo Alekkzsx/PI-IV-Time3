@@ -1,13 +1,16 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/docente_view/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/docente_view/shared/theme/docente_colors.dart';
+import 'package:pi_iv_time3/features/docente_view/shell/presentation/widgets/docente_footer.dart';
 import '../widgets/docente_notification_prefs_card.dart';
+import '../widgets/docente_privacy_lgpd_card.dart';
 import '../widgets/docente_profile_settings_card.dart';
 import '../widgets/docente_security_sessions_card.dart';
+import '../widgets/docente_system_preferences_card.dart';
 
-/// Aba de gerenciamento de perfil, credenciais 2FA, sessões ativas, logs e conformidade LGPD.
+/// Aba principal de Configurações da Conta Docente com navegação lateral por categorias.
 class DocenteSettingsTab extends StatelessWidget {
   /// Controlador reativo com o estado do perfil e sessões.
   final DocenteController controller;
@@ -19,81 +22,188 @@ class DocenteSettingsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subtab = controller.settingsSubtab;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final subtab = controller.settingsSubtab;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 20),
-          _buildSubtabsBar(subtab),
-          const SizedBox(height: 24),
-          _buildSubtabContent(subtab),
-        ],
-      ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 28),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Menu lateral de categorias de configurações (coluna esquerda)
+                              SizedBox(
+                                width: 280,
+                                child: _buildSettingsSidebar(subtab),
+                              ),
+                              const SizedBox(width: 28),
+                              // Painel de conteúdo da categoria ativa (coluna direita)
+                              Expanded(
+                                child: _buildSubtabContent(subtab),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const DocenteFooter(),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildHeader() {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Configurações Docente & Segurança Institucional',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: DocenteColors.charcoal,
+          'Configurações da Conta Docente',
+          style: jakarta(
+            size: 20,
+            weight: FontWeight.w700,
+            color: const Color(0xFF18181B),
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
-          'Gestão de perfil, credenciais de acesso, 2FA, sessões ativas e privacidade LGPD',
-          style: TextStyle(
-            fontSize: 14,
-            color: DocenteColors.slate,
+          'Gerencie suas credenciais de acesso institucional, autenticação em duas etapas e preferências pedagógicas.',
+          style: jakarta(
+            size: 13,
+            weight: FontWeight.w400,
+            color: const Color(0xFF71717A),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSubtabsBar(String activeSubtab) {
-    final tabs = [
-      {'key': 'perfil', 'label': 'Perfil Docente'},
-      {'key': 'seguranca', 'label': 'Segurança & Acessos'},
-      {'key': 'notificacoes', 'label': 'Notificações'},
-      {'key': 'preferencias', 'label': 'Preferências'},
-      {'key': 'privacidade', 'label': 'Privacidade & LGPD'},
+  Widget _buildSettingsSidebar(String activeSubtab) {
+    final navItems = [
+      {
+        'key': 'perfil',
+        'title': 'Perfil Docente',
+        'subtitle': 'Nome, departamento, titulação e identificação',
+        'icon': Icons.person_outline_rounded,
+      },
+      {
+        'key': 'seguranca',
+        'title': 'Segurança & Acessos',
+        'subtitle': 'Senha, verificação em 2 etapas e sessões ativas',
+        'icon': Icons.shield_outlined,
+      },
+      {
+        'key': 'notificacoes',
+        'title': 'Notificações Institucionais',
+        'subtitle': 'Alertas de entregas, diários e prazos',
+        'icon': Icons.notifications_none_rounded,
+      },
+      {
+        'key': 'preferencias',
+        'title': 'Preferências do Sistema',
+        'subtitle': 'Tema, contraste e idioma da interface',
+        'icon': Icons.tune_rounded,
+      },
+      {
+        'key': 'privacidade',
+        'title': 'Privacidade & LGPD',
+        'subtitle': 'Visibilidade acadêmica e termos de uso',
+        'icon': Icons.lock_outline_rounded,
+      },
     ];
 
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: DocenteColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
-      child: Row(
-        children: tabs.map((tab) {
-          final isSelected = activeSubtab == tab['key'];
-          return InkWell(
-            onTap: () => controller.setSettingsSubtab(tab['key']!),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: isSelected ? DocenteColors.charcoal : Colors.transparent,
-                    width: 2.0,
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        children: navItems.map((item) {
+          final isSelected = activeSubtab == item['key'];
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => controller.setSettingsSubtab(item['key'] as String),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF18181B) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-              ),
-              child: Text(
-                tab['label']!,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? DocenteColors.charcoal : DocenteColors.slate,
+                  child: Row(
+                    children: [
+                      Icon(
+                        item['icon'] as IconData,
+                        size: 18,
+                        color: isSelected ? Colors.white : const Color(0xFF71717A),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['title'] as String,
+                              style: jakarta(
+                                size: 12.5,
+                                weight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected ? Colors.white : const Color(0xFF18181B),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item['subtitle'] as String,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: jakarta(
+                                size: 10.5,
+                                weight: FontWeight.w400,
+                                color: isSelected ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -110,11 +220,13 @@ class DocenteSettingsTab extends StatelessWidget {
       case 'seguranca':
         return DocenteSecuritySessionsCard(controller: controller);
       case 'notificacoes':
+        return const DocenteNotificationPrefsCard();
       case 'preferencias':
+        return const DocenteSystemPreferencesCard();
       case 'privacidade':
-        return DocenteNotificationPrefsCard(activeSubtab: subtab);
+        return const DocentePrivacyLgpdCard();
       default:
-        return DocenteSecuritySessionsCard(controller: controller);
+        return DocenteProfileSettingsCard(controller: controller);
     }
   }
 }

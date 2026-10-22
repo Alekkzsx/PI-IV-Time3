@@ -1,15 +1,9 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student_view/shell/presentation/widgets/student_sidebar.dart';
-
-const _ink = Color(0xFF1A1A1A);
-const _muted = Color(0xFF737373);
-const _faint = Color(0xFFA3A3A3);
-const _border = Color(0xFFE5E5E5);
-const _stone = Color(0xFFFAF9F6);
 
 class StudentDeadlineItemData {
   final String title;
@@ -33,16 +27,16 @@ class StudentDeadlinesPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x05000000),
-            blurRadius: 2,
-            offset: Offset(0, 1),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -54,89 +48,113 @@ class StudentDeadlinesPanel extends StatelessWidget {
             children: [
               Text(
                 'Prazos Pendentes',
-                style: jakarta(size: 18, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
+                style: jakarta(
+                  size: 16,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                  borderRadius: BorderRadius.circular(6),
+                  color: const Color(0xFFF4F4F5),
+                  border: Border.all(color: const Color(0xFFE4E4E7)),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '${deadlines.length}',
-                  style: jakarta(size: 13, weight: FontWeight.w700, color: const Color(0xFF1A1A1A)),
+                  style: jakarta(
+                    size: 11.5,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(height: 1, color: const Color(0xFFF2F0EB)),
-          const SizedBox(height: 18),
+          const Divider(height: 28, color: Color(0xFFF4F4F5)),
           for (final d in deadlines)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(width: 4, decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            d.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: jakarta(size: 14.5, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            d.discipline,
-                            style: jakarta(size: 13, color: const Color(0xFF737373)),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.access_time,
-                                size: 14,
-                                color: Color(0xFFA3A3A3),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                d.due,
-                                style: jakarta(size: 12, color: const Color(0xFF737373), weight: FontWeight.w500),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 3,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF18181B),
+                      borderRadius: BorderRadius.circular(1.5),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: jakarta(
+                            size: 12.5,
+                            weight: FontWeight.w700,
+                            color: const Color(0xFF18181B),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          d.discipline,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: jakarta(
+                            size: 11,
+                            color: const Color(0xFF71717A),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time_rounded,
+                              size: 12,
+                              color: Color(0xFFA1A1AA),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              d.due,
+                              style: jakarta(
+                                size: 10.5,
+                                color: const Color(0xFF71717A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           const SizedBox(height: 4),
-          Material(
-            color: const Color(0xFFFAF9F6),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
-              side: const BorderSide(color: Color(0xFFE5E5E5)),
+          OutlinedButton(
+            key: const Key('btn_abrir_calendario'),
+            onPressed: () => controller.setNavItem(StudentNavItem.calendario),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: const Color(0xFFFAFAFA),
+              side: const BorderSide(color: Color(0xFFE4E4E7)),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: InkWell(
-              key: const Key('btn_abrir_calendario'),
-              borderRadius: BorderRadius.circular(6),
-              onTap: () => controller.setNavItem(StudentNavItem.calendario),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Center(
-                  child: Text(
-                    'Abrir Calendário',
-                    style: jakarta(size: 14, weight: FontWeight.w600, color: const Color(0xFF1A1A1A)),
-                  ),
+            child: Center(
+              child: Text(
+                'Abrir Calendário',
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w600,
+                  color: const Color(0xFF18181B),
                 ),
               ),
             ),
@@ -146,4 +164,3 @@ class StudentDeadlinesPanel extends StatelessWidget {
     );
   }
 }
-

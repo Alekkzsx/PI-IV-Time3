@@ -183,7 +183,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                 InstitutionalTopHeader(
                   title: _currentHeaderTitle,
                   showMobileMenuButton: !isDesktop,
-                  horizontalPadding: isDesktop ? 28 : 16,
+                  horizontalPadding: isDesktop ? 40 : 20,
                   actions: [
                     if (_currentNavItem == StudentNavItem.painelGeral &&
                         isDesktop) ...[
@@ -270,19 +270,12 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Center(
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 1120,
-                                  ),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: isDesktop ? 48 : 20,
-                                      vertical: isDesktop ? 36 : 24,
-                                    ),
-                                    child: _buildSelectedPage(),
-                                  ),
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isDesktop ? 40 : 20,
+                                  vertical: isDesktop ? 32 : 20,
                                 ),
+                                child: _buildSelectedPage(),
                               ),
                               StudentFooter(isDesktop: isDesktop),
                             ],
