@@ -177,7 +177,7 @@ void main() {
       // Clica no card de retomada de aula (Fast-Resume) para entrar no AVA Cockpit
       await tester.tap(find.byKey(const Key('btn_retomar_aula_ava')));
       await tester.pumpAndSettle();
-      expect(find.text('Voltar para Minhas Disciplinas'), findsOneWidget);
+      expect(find.byKey(const Key('btn_voltar_minhas_disciplinas')), findsOneWidget);
       expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
 
       // Troca de disciplina diretamente dentro do Cockpit
@@ -188,7 +188,7 @@ void main() {
       // Retorna para a página principal de Minhas Disciplinas
       await tester.tap(find.byKey(const Key('btn_voltar_minhas_disciplinas')));
       await tester.pumpAndSettle();
-      expect(find.text('Minhas Disciplinas'), findsOneWidget);
+      expect(find.text('Minhas Disciplinas'), findsWidgets);
     });
 
     testWidgets('Renderiza StudentCalendarPage com visualização em mês e agenda', (tester) async {
@@ -248,11 +248,13 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
+      final fisDiscipline = StudentMockData.disciplines.firstWhere((d) => d.code == 'FIS');
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: StudentAvaCockpitPage(
-              discipline: StudentMockData.disciplines.first,
+              discipline: fisDiscipline,
               onBack: () {},
             ),
           ),
@@ -260,13 +262,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Análise e Projeto de Sistemas II'), findsOneWidget);
-      expect(find.text('Voltar para Minhas Disciplinas'), findsOneWidget);
-      expect(find.text('Módulos & Conteúdos'), findsOneWidget);
+      expect(find.text('Filosofia, Informação e Sociedade'), findsOneWidget);
+      expect(find.byKey(const Key('btn_voltar_minhas_disciplinas')), findsOneWidget);
+      expect(find.text('Página inicial'), findsOneWidget);
+      expect(find.text('Módulos & Conteúdos de Aprendizagem'), findsOneWidget);
       expect(find.text('Tarefas e Atividades'), findsOneWidget);
-      expect(find.text('Sala Virtual (Ao Vivo)'), findsOneWidget);
-      expect(find.text('Fórum de Dúvidas'), findsOneWidget);
-      expect(find.text('Notas & Boletim'), findsOneWidget);
+      expect(find.text('Sala Virtual'), findsOneWidget);
+      expect(find.text('Fóruns'), findsOneWidget);
+      expect(find.text('Notas'), findsOneWidget);
+      expect(find.text('Unidade 1: Ética na Sociedade Algorítmica e Inteligência Artificial'), findsOneWidget);
+      expect(find.text('Texto Base: O Dilema das Redes e a Automação do Julgamento Moral'), findsOneWidget);
+      expect(find.text('Fórum Temático: Vieses Algorítmicos e Responsabilidade Civil de IAs Autônomas'), findsOneWidget);
+      expect(find.text('DADOS DA MATRÍCULA DISCENTE'), findsOneWidget);
+      expect(find.text('FREQUÊNCIA & RENDIMENTO'), findsOneWidget);
+      expect(find.text('ATENDIMENTO COM DOCENTE'), findsOneWidget);
+      expect(find.text('PLANO DE ENSINO'), findsOneWidget);
     });
   });
 }
