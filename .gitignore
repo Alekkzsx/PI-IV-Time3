@@ -90,6 +90,26 @@ coverage/
 # Cache, ferramentas e arquivos gerados pelo Dart/Flutter
 .dart_tool/
 **/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Configuração local do Android e artefatos nativos gerados
+**/local.properties
+**/.gradle/
+**/.cxx/
+**/.externalNativeBuild/
+
+# Arquivos gerados pelas ferramentas de build das plataformas Flutter
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
 
 # ─── 4. Logs e Arquivos Temporários ───
 logs/
@@ -139,7 +159,6 @@ TEST_READY.md
 
 # ─── 7. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
 !.github/
-
 
 
 
