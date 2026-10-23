@@ -118,6 +118,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Quinta-feira, 17 de setembro'), findsOneWidget);
+      expect(find.text('Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional'), findsOneWidget);
+      expect(find.text('Sexta-feira, 18 de setembro'), findsOneWidget);
+      expect(find.text('Fórum Avaliativo: Impactos éticos da IA em Sistemas Críticos'), findsOneWidget);
+      expect(find.text('Ontem, 19 de setembro'), findsOneWidget);
+      expect(find.text('Material Complementar: Estudo de Caso de Microsserviços'), findsOneWidget);
+      expect(find.text('Hoje, 20 de setembro'), findsOneWidget);
+      expect(find.text('Atividade Prática 03: Implementação de API REST'), findsOneWidget);
+      expect(find.text('Fórum Temático: Desafios da Concorrência em Sistemas Distribuídos'), findsOneWidget);
       expect(find.text('Amanhã, 21 de setembro'), findsOneWidget);
       expect(find.text('Fórum de Dúvidas: Preparação para a Avaliação A1'), findsOneWidget);
       expect(find.text('Cálculo Diferencial e Integral • Profª. Sandra Helena'), findsOneWidget);
@@ -127,7 +136,7 @@ void main() {
       expect(find.text('Início das aulas do próximo período letivo'), findsOneWidget);
 
       // Toca na tarefa do fórum para alternar checkbox
-      await tester.tap(find.byKey(const Key('btn_toggle_forum_task')));
+      await tester.tap(find.byKey(const Key('btn_toggle_item_21_sep')));
       await tester.pumpAndSettle();
 
       // Restaura para modo bloco/grid
