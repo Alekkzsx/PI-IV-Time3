@@ -11,7 +11,12 @@ import 'package:pi_iv_time3/features/student_view/shell/presentation/widgets/stu
 /// - Mural de Avisos & Comunicados Docentes
 /// - Apoio Acadêmico & Recursos Oficiais
 class StudentDisciplinesScheduleTable extends StatelessWidget {
-  const StudentDisciplinesScheduleTable({super.key});
+  final void Function(String code, [int tab])? onSelectDisciplineByCode;
+
+  const StudentDisciplinesScheduleTable({
+    super.key,
+    this.onSelectDisciplineByCode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -170,10 +175,20 @@ class StudentDisciplinesScheduleTable extends StatelessWidget {
           const SizedBox(height: 18),
           const Divider(height: 1, color: Color(0xFFF4F4F5)),
           for (int i = 0; i < scheduleItems.length; i++) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                children: [
+            InkWell(
+              onTap: () {
+                final code = scheduleItems[i]['codigo']!;
+                if (code == 'MONITORIA') {
+                  Navigator.of(context).pushNamed('/video-call');
+                } else if (onSelectDisciplineByCode != null) {
+                  onSelectDisciplineByCode!(code, 0);
+                }
+              },
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                child: Row(
+                  children: [
                   SizedBox(
                     width: 110,
                     child: Column(
@@ -266,7 +281,8 @@ class StudentDisciplinesScheduleTable extends StatelessWidget {
                 ],
               ),
             ),
-            if (i < scheduleItems.length - 1)
+          ),
+          if (i < scheduleItems.length - 1)
               const Divider(height: 1, color: Color(0xFFF4F4F5)),
           ],
         ],
@@ -438,7 +454,13 @@ class StudentDisciplinesScheduleTable extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   OutlinedButton(
-                    onPressed: () => StudentPortalController.instance.setNavItem(StudentNavItem.entregas),
+                    onPressed: () {
+                      if (onSelectDisciplineByCode != null) {
+                        onSelectDisciplineByCode!(deliveries[i]['code'] as String, 1);
+                      } else {
+                        StudentPortalController.instance.setNavItem(StudentNavItem.entregas);
+                      }
+                    },
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
                       side: const BorderSide(color: Color(0xFFE5E7EB)),

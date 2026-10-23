@@ -32,16 +32,18 @@ class AvaForumCollaborationTab extends StatelessWidget {
 
   // --- ABA 4: Fórum de Dúvidas ---
   Widget _buildForumsTab(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -161,16 +163,18 @@ class AvaForumCollaborationTab extends StatelessWidget {
       },
     ];
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           const Text(
             'Participantes da Disciplina (34 Discentes Matriculados)',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -228,16 +232,18 @@ class AvaForumCollaborationTab extends StatelessWidget {
   Widget _buildNotebookTab(BuildContext context) {
     final textController =
         TextEditingController(text: controller.studentPersonalNotes);
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -283,16 +289,18 @@ class AvaForumCollaborationTab extends StatelessWidget {
   // --- ABA 11: Chat da Turma ---
   Widget _buildClassChatTab(BuildContext context) {
     final chatInput = TextEditingController();
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [

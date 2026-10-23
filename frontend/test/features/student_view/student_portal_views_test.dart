@@ -158,11 +158,37 @@ void main() {
 
       expect(find.text('Minhas Disciplinas'), findsOneWidget);
       expect(find.text('Boletim & Histórico Oficial'), findsOneWidget);
+      expect(find.text('SESSÃO ATIVA NO AVA • CONTINUAR DE ONDE PAROU'), findsOneWidget);
       expect(find.textContaining('Plano de Ensino & Ementa'), findsWidgets);
       expect(find.textContaining('Quadro Semanal de Horários'), findsOneWidget);
       expect(find.text('Próximas Avaliações & Entregas'), findsOneWidget);
       expect(find.text('Mural de Avisos & Comunicados Docentes'), findsOneWidget);
       expect(find.text('Apoio Acadêmico & Recursos Oficiais'), findsOneWidget);
+
+      // Alterna para visualização em lista
+      await tester.tap(find.byKey(const Key('btn_modo_lista_disciplinas')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('btn_entrar_disciplina_list_APS-II')), findsOneWidget);
+
+      // Alterna de volta para grade de cards
+      await tester.tap(find.byKey(const Key('btn_modo_grade_disciplinas')));
+      await tester.pumpAndSettle();
+
+      // Clica no card de retomada de aula (Fast-Resume) para entrar no AVA Cockpit
+      await tester.tap(find.byKey(const Key('btn_retomar_aula_ava')));
+      await tester.pumpAndSettle();
+      expect(find.text('Voltar para Minhas Disciplinas'), findsOneWidget);
+      expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
+
+      // Troca de disciplina diretamente dentro do Cockpit
+      await tester.tap(find.text('BD-II'));
+      await tester.pumpAndSettle();
+      expect(find.text('Estudos de Banco de Dados II'), findsWidgets);
+
+      // Retorna para a página principal de Minhas Disciplinas
+      await tester.tap(find.byKey(const Key('btn_voltar_minhas_disciplinas')));
+      await tester.pumpAndSettle();
+      expect(find.text('Minhas Disciplinas'), findsOneWidget);
     });
 
     testWidgets('Renderiza StudentCalendarPage com visualização em mês e agenda', (tester) async {

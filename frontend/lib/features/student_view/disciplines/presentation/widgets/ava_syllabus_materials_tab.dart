@@ -61,11 +61,14 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
-          child: ExpansionTile(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: ExpansionTile(
+              backgroundColor: Colors.white,
+              collapsedBackgroundColor: Colors.white,
             title: Text(
               m['titulo'] as String,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
@@ -111,7 +114,8 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
               ),
             ],
           ),
-        );
+        ),
+      );
       }).toList(),
     );
   }

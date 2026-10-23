@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student_view/shared/data/student_mock_data.dart';
 import '../widgets/ava_assignments_tab.dart';
@@ -10,15 +11,20 @@ import '../widgets/ava_live_classroom_tab.dart';
 import '../widgets/ava_syllabus_materials_tab.dart';
 
 /// Cockpit do Ambiente Virtual de Aprendizagem (AVA) do discente para a disciplina selecionada.
-/// Implementa as 12 seções pedagógicas com suporte a chat, fórum, notas, sala virtual e entregas.
+/// Implementa as seções pedagógicas com suporte a chat, fórum, notas, sala virtual,
+/// entregas e alternância rápida entre disciplinas ativas.
 class StudentAvaCockpitPage extends StatefulWidget {
   final StudentDisciplineModel discipline;
   final VoidCallback onBack;
+  final int initialTabIndex;
+  final ValueChanged<StudentDisciplineModel>? onSwitchDiscipline;
 
   const StudentAvaCockpitPage({
     super.key,
     required this.discipline,
     required this.onBack,
+    this.initialTabIndex = 0,
+    this.onSwitchDiscipline,
   });
 
   @override
@@ -27,6 +33,7 @@ class StudentAvaCockpitPage extends StatefulWidget {
 
 class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
   final StudentPortalController _controller = StudentPortalController.instance;
+  late StudentDisciplineModel _currentDiscipline;
 
   final List<String> _tabs = [
     'Módulos & Conteúdos',
@@ -45,7 +52,21 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
   @override
   void initState() {
     super.initState();
+    _currentDiscipline = widget.discipline;
+    if (widget.initialTabIndex != 0) {
+      _controller.setAvaTab(widget.initialTabIndex);
+    }
     _controller.addListener(_onControllerUpdate);
+  }
+
+  @override
+  void didUpdateWidget(StudentAvaCockpitPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.discipline.code != widget.discipline.code) {
+      setState(() {
+        _currentDiscipline = widget.discipline;
+      });
+    }
   }
 
   @override
@@ -56,6 +77,14 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
 
   void _onControllerUpdate() {
     if (mounted) setState(() {});
+  }
+
+  void _switchDiscipline(StudentDisciplineModel newDiscipline) {
+    setState(() {
+      _currentDiscipline = newDiscipline;
+    });
+    _controller.selectDiscipline(newDiscipline);
+    widget.onSwitchDiscipline?.call(newDiscipline);
   }
 
   @override
@@ -81,54 +110,71 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top row: Back button + Switcher pills + Live room badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               OutlinedButton.icon(
+                key: const Key('btn_voltar_minhas_disciplinas'),
                 onPressed: widget.onBack,
                 icon: const Icon(Icons.arrow_back, size: 16),
                 label: const Text('Voltar para Minhas Disciplinas'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF18181B),
                   side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF16A34A),
-                        shape: BoxShape.circle,
-                      ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'SALA VIRTUAL DISPONÍVEL',
-                      style: TextStyle(
-                        color: Color(0xFF16A34A),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF16A34A),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'SALA VIRTUAL DISPONÍVEL',
+                          style: TextStyle(
+                            color: Color(0xFF16A34A),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
+
+          // Course title and icon
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -141,11 +187,11 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  widget.discipline.code,
+                  _currentDiscipline.code,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
               ),
@@ -155,7 +201,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.discipline.name,
+                      _currentDiscipline.name,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -164,7 +210,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${widget.discipline.professor} • ${widget.discipline.location} • 2026/2',
+                      '${_currentDiscipline.professor} • ${_currentDiscipline.location} • 2026/2',
                       style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF64748B),
@@ -175,24 +221,74 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+
+          // Discipline quick switcher pills
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text(
+                  'Trocar disciplina no AVA:',
+                  style: jakarta(size: 11, color: const Color(0xFF71717A), weight: FontWeight.w500),
+                ),
+                const SizedBox(width: 10),
+                for (final d in StudentMockData.disciplines) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6.0),
+                    child: InkWell(
+                      onTap: () => _switchDiscipline(d),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _currentDiscipline.code == d.code
+                              ? const Color(0xFF18181B)
+                              : const Color(0xFFF4F4F5),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: _currentDiscipline.code == d.code
+                                ? const Color(0xFF18181B)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Text(
+                          d.code,
+                          style: jakarta(
+                            size: 10.5,
+                            weight: FontWeight.w600,
+                            color: _currentDiscipline.code == d.code
+                                ? Colors.white
+                                : const Color(0xFF52525B),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           const Divider(height: 1, color: Color(0xFFE5E7EB)),
           const SizedBox(height: 16),
+
+          // Header stats
           Row(
             children: [
               _buildHeaderStat(
                 'Progresso Geral',
-                '${(widget.discipline.progress * 100).toInt()}%',
+                '${(_currentDiscipline.progress * 100).toInt()}%',
               ),
               const SizedBox(width: 32),
               _buildHeaderStat(
                 'Frequência Homologada',
-                '${widget.discipline.attendancePercentage}% (${widget.discipline.absences} faltas)',
+                '${_currentDiscipline.attendancePercentage}% (${_currentDiscipline.absences} faltas)',
               ),
               const SizedBox(width: 32),
               _buildHeaderStat(
                 'Média Ponderada Parcial',
-                widget.discipline.partialAverage.toStringAsFixed(2),
+                _currentDiscipline.partialAverage.toStringAsFixed(2),
               ),
             ],
           ),
@@ -277,7 +373,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
           controller: _controller,
         );
       case 4:
-        return AvaEvaluationsGradesTab(discipline: widget.discipline);
+        return AvaEvaluationsGradesTab(discipline: _currentDiscipline);
       default:
         return AvaSyllabusMaterialsTab(activeTabIndex: 0);
     }

@@ -6,15 +6,19 @@ import 'package:pi_iv_time3/features/student_view/shared/data/student_mock_data.
 import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
 import 'student_ava_cockpit_page.dart';
 import '../widgets/student_disciplines_stats_card.dart';
+import '../widgets/student_disciplines_fast_resume_card.dart';
 import '../widgets/student_disciplines_grid_view.dart';
+import '../widgets/student_disciplines_list_view.dart';
 import '../widgets/student_disciplines_schedule_table.dart';
 import '../widgets/student_disciplines_modals.dart';
 
 /// Tela principal de Minhas Disciplinas da Visão do Aluno.
+/// Atua como o Portal Central de Entrada no Ambiente Virtual de Aprendizagem (AVA).
 ///
-/// Apresenta o cabeçalho institucional, card consolidado de indicadores (Carga Horária,
-/// Média Ponderada, Frequência e Situação), barra de filtros e busca, grade de disciplinas 2x2,
-/// quadro semanal de horários/laboratórios, próximas avaliações, mural e apoio acadêmico.
+/// Apresenta o cabeçalho institucional, card de indicadores globais, card de retomada
+/// imediata de estudos ("Continuar de Onde Parou"), filtros inteligentes, alternância
+/// entre grade 2x2 e lista tabular, quadro semanal de ensalamento físico, próximas
+/// avaliações e recursos acadêmicos integrados.
 class StudentDisciplinesPage extends StatefulWidget {
   const StudentDisciplinesPage({super.key});
 
@@ -26,12 +30,31 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
   final StudentPortalController _controller = StudentPortalController.instance;
   final TextEditingController _searchController = TextEditingController();
   StudentDisciplineModel? _activeDisciplineCockpit;
+  int _cockpitInitialTab = 0;
   String _selectedFilter = 'Todas as Disciplinas (4)';
+  bool _isGridView = true;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _openCockpit(StudentDisciplineModel discipline, [int targetTab = 0]) {
+    _controller.selectDiscipline(discipline);
+    _controller.setAvaTab(targetTab);
+    setState(() {
+      _activeDisciplineCockpit = discipline;
+      _cockpitInitialTab = targetTab;
+    });
+  }
+
+  void _openCockpitByCode(String code, [int targetTab = 0]) {
+    final discipline = StudentMockData.disciplines.firstWhere(
+      (d) => d.code == code,
+      orElse: () => StudentMockData.disciplines.first,
+    );
+    _openCockpit(discipline, targetTab);
   }
 
   List<StudentDisciplineModel> get _filteredDisciplines {
@@ -61,7 +84,9 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
     if (_activeDisciplineCockpit != null) {
       return StudentAvaCockpitPage(
         discipline: _activeDisciplineCockpit!,
+        initialTabIndex: _cockpitInitialTab,
         onBack: () => setState(() => _activeDisciplineCockpit = null),
+        onSwitchDiscipline: (d) => setState(() => _activeDisciplineCockpit = d),
       );
     }
 
@@ -72,18 +97,28 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           _buildHeader(),
           const SizedBox(height: 24),
           const StudentDisciplinesStatsCard(),
+          const SizedBox(height: 20),
+          StudentDisciplinesFastResumeCard(
+            discipline: StudentMockData.disciplines.first,
+            onResume: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+          ),
           const SizedBox(height: 24),
           _buildFilterAndSearchRow(),
-          const SizedBox(height: 24),
-          StudentDisciplinesGridView(
-            disciplines: _filteredDisciplines,
-            onSelectDiscipline: (discipline) {
-              _controller.selectDiscipline(discipline);
-              setState(() => _activeDisciplineCockpit = discipline);
-            },
-          ),
+          const SizedBox(height: 20),
+          if (_isGridView)
+            StudentDisciplinesGridView(
+              disciplines: _filteredDisciplines,
+              onSelectDiscipline: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+            )
+          else
+            StudentDisciplinesListView(
+              disciplines: _filteredDisciplines,
+              onSelectDiscipline: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+            ),
           const SizedBox(height: 32),
-          const StudentDisciplinesScheduleTable(),
+          StudentDisciplinesScheduleTable(
+            onSelectDisciplineByCode: (code, [tab = 0]) => _openCockpitByCode(code, tab),
+          ),
         ],
       ),
     );
@@ -154,7 +189,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isSmall = constraints.maxWidth < 768;
+        final isSmall = constraints.maxWidth < 900;
 
         if (isSmall) {
           return Column(
@@ -165,7 +200,13 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
                 child: Row(children: _buildFilterChips(filters)),
               ),
               const SizedBox(height: 12),
-              _buildSearchInput(),
+              Row(
+                children: [
+                  _buildViewModeToggle(),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildSearchInput()),
+                ],
+              ),
             ],
           );
         }
@@ -173,8 +214,21 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(children: _buildFilterChips(filters)),
-            SizedBox(width: 280, child: _buildSearchInput()),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: _buildFilterChips(filters)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildViewModeToggle(),
+                const SizedBox(width: 12),
+                SizedBox(width: 260, child: _buildSearchInput()),
+              ],
+            ),
           ],
         );
       },
@@ -210,6 +264,55 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
         ),
       );
     }).toList();
+  }
+
+  Widget _buildViewModeToggle() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            key: const Key('btn_modo_grade_disciplinas'),
+            onTap: () => setState(() => _isGridView = true),
+            borderRadius: const BorderRadius.horizontal(left: Radius.circular(6)),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _isGridView ? const Color(0xFF18181B) : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+              ),
+              child: Icon(
+                Icons.grid_view_rounded,
+                size: 16,
+                color: _isGridView ? Colors.white : const Color(0xFF71717A),
+              ),
+            ),
+          ),
+          InkWell(
+            key: const Key('btn_modo_lista_disciplinas'),
+            onTap: () => setState(() => _isGridView = false),
+            borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: !_isGridView ? const Color(0xFF18181B) : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+              ),
+              child: Icon(
+                Icons.view_agenda_outlined,
+                size: 16,
+                color: !_isGridView ? Colors.white : const Color(0xFF71717A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSearchInput() {
