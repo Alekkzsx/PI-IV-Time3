@@ -3,12 +3,12 @@
 import 'package:flutter/material.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth_view/forgot_password/domain/usecases/recover_password_usecase.dart';
-import 'features/auth_view/forgot_password/presentation/controllers/recover_password_controller.dart';
-import 'features/auth_view/login/domain/usecases/login_usecase.dart';
-import 'features/auth_view/login/presentation/controllers/login_controller.dart';
-import 'features/auth_view/shared/data/auth_repository_impl.dart';
-import 'features/auth_view/shared/external/auth_remote_datasource_impl.dart';
+import 'features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
+import 'features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
+import 'features/auth/login/domain/usecases/login_usecase.dart';
+import 'features/auth/login/presentation/controllers/login_controller.dart';
+import 'features/auth/shared/data/auth_repository_impl.dart';
+import 'features/auth/shared/external/auth_remote_datasource_impl.dart';
 
 /// Ponto de entrada da aplicação Flutter.
 ///
@@ -62,15 +62,42 @@ class PortalAvaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authRepository =
+        loginController?.loginUseCase.repository ??
+        AuthRepositoryImpl(AuthRemoteDataSourceImpl());
+    final effectiveLoginController =
+        loginController ??
+        LoginController(loginUseCase: LoginUseCase(authRepository));
+
     return MaterialApp(
       title: 'AGMRM - Portal Acadêmico',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: initialRoute,
-      routes: AppRouter.buildRoutes(
+      routes: const {},
+      onGenerateRoute: (settings) => AppRouter.onGenerateRoute(
+        settings: settings,
         recoverController: controller,
-        loginController: loginController,
+        authRepository: authRepository,
+        loginController: effectiveLoginController,
       ),
+      onGenerateInitialRoutes: (routeName) {
+        final route = AppRouter.onGenerateRoute(
+          settings: RouteSettings(name: routeName),
+          recoverController: controller,
+          authRepository: authRepository,
+          loginController: effectiveLoginController,
+        );
+        if (route != null) return [route];
+
+        final fallback = AppRouter.onGenerateRoute(
+          settings: const RouteSettings(name: AppRoutes.login),
+          recoverController: controller,
+          authRepository: authRepository,
+          loginController: effectiveLoginController,
+        );
+        return [fallback!];
+      },
     );
   }
 }

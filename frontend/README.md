@@ -2,13 +2,13 @@
 
 The `frontend` module houses the cross-platform client application for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3). Built with **Flutter 3** and Dart, this application provides a responsive, institutional user interface for Students (*Aluno*), Faculty (*Docente*), and Administrators (*Admin*).
 
-The codebase strictly adheres to **Feature-First Clean Architecture**, enforcing clear separation of concerns, modularity, framework independence in domain layers, and comprehensive automated testability across both authentication workflows (`auth_view`) and the student academic portal (`student_view`).
+The codebase strictly adheres to **Feature-First Clean Architecture**, enforcing clear separation of concerns, modularity, framework independence in domain layers, and comprehensive automated testability across both authentication workflows (`auth`) and the student academic portal (`student`).
 
 ---
 
 ## 🏛️ Architectural Overview (Feature-First Clean Architecture)
 
-The application organizes features by functional domain (`auth_view` and `student_view`), isolating business rules and entities from presentation widgets and external data sources:
+The application organizes features by functional domain (`auth` and `student`), isolating business rules and entities from presentation widgets and external data sources:
 
 $$\text{Presentation Layer} \longleftrightarrow \text{Domain Layer} \longleftrightarrow \text{Data Layer} \longleftrightarrow \text{External Layer}$$
 
@@ -23,7 +23,7 @@ frontend/
 │   │   └── utils/
 │   │       └── input_validators.dart
 │   ├── features/
-│   │   ├── auth_view/                           # Authentication & Password Recovery Flows
+│   │   ├── auth/                           # Authentication & Password Recovery Flows
 │   │   │   ├── login/
 │   │   │   │   ├── domain/usecases/
 │   │   │   │   │   └── login_usecase.dart
@@ -59,7 +59,7 @@ frontend/
 │   │   │               ├── academic_identity_card.dart
 │   │   │               ├── password_reset_field.dart
 │   │   │               └── password_strength_indicator.dart
-│   │   └── student_view/                        # Student Portal (Visão do Aluno - Portal AVA)
+│   │   └── student/                        # Student Portal (Visão do Aluno - Portal AVA)
 │   │       ├── student_messages/
 │   │       │   ├── domain/entities/
 │   │       │   │   └── academic_message.dart
@@ -101,7 +101,7 @@ frontend/
 │   └── main.dart                                # Application entry point, DI & route registry
 └── test/                                        # Unit and Widget test suites
     ├── features/
-    │   ├── auth_view/
+    │   ├── auth/
     │   │   ├── forgot_password/
     │   │   │   ├── domain/usecases/
     │   │   │   │   └── recover_password_usecase_test.dart
@@ -112,7 +112,7 @@ frontend/
     │   │       │   └── login_usecase_test.dart
     │   │       └── presentation/controllers/
     │   │           └── login_controller_test.dart
-    │   └── student_view/
+    │   └── student/
     │       └── student_portal_test.dart
     └── widget_test.dart
 ```
@@ -139,7 +139,7 @@ Encapsulates infrastructure, layouts, and UI components reused across multiple f
 - **`shared/widgets/`**:
   - `top_header_bar.dart` & `recovery_footer_links.dart`: Shared header and footer components for the authentication and recovery flows.
 
-### 3. Authentication & Password Recovery (`lib/features/auth_view/`)
+### 3. Authentication & Password Recovery (`lib/features/auth/`)
 Groups all screens, controllers, use cases, and widgets dedicated to user authentication and credential recovery:
 - **`login/`**:
   - `LoginUseCase`, `LoginController`, `LoginPage`, `BrandPanel`, and `LoginProfileTabs`.
@@ -152,7 +152,7 @@ Groups all screens, controllers, use cases, and widgets dedicated to user authen
 - **`reset_password/`**:
   - `ResetPasswordPage`, `AcademicIdentityCard`, `PasswordResetField`, and `PasswordStrengthIndicator` (4-level reactive password entropy scoring).
 
-### 4. Student Portal View (`lib/features/student_view/`)
+### 4. Student Portal View (`lib/features/student/`)
 Implements the authenticated student workspace (*Visão do Aluno* — Portal AVA AGMRM):
 - **`student_messages/`** (Route: `/student/messages`):
   - `AcademicMessage` entity (`MessageCategory.institutional` and `MessageCategory.discipline`).
@@ -164,9 +164,11 @@ Implements the authenticated student workspace (*Visão do Aluno* — Portal AVA
   - `StudentSecretariatPage`, `AcademicRecordCard`, and `ProtocolRequestsTable`: Displays the *Prontuário Acadêmico Regular* (R.A., course, CR, curriculum completion percentage, active enrollment badge), interactive modals for issuing digital enrollment declarations and submitting new requests, and the registered protocols table with official opinion viewer (*Ver Parecer*).
 
 ### 5. P2P Real-Time Video Call (`lib/features/video_call/`)
-Decoupled, zero-backend, zero-bot video conferencing (Teams/Meet style):
+WebRTC video conferencing with browser-native media capture:
 - **Lobby & Room Pages**: `VideoCallLobbyPage` (mic/cam preview & room creation) and `VideoCallRoomPage` (dynamic multi-peer conference).
-- **Zero-Bot Invariant**: Strictly displays genuine participants connected to the room via P2P BroadcastChannel signaling.
+- **Media compatibility**: Local capture requires HTTPS (or localhost), browser permission, and available devices. Incoming audio uses Web Audio after a user gesture, while video elements remain muted to avoid autoplay-policy failures.
+- **Network connectivity**: The default ICE configuration uses public STUN servers only. Networks that block direct P2P traffic require TURN servers; inject short-lived credentials from a trusted backend as `window.__AGMRM_ICE_SERVERS__` before `flutter_bootstrap.js`.
+- **Signaling limitation**: The current Web `BroadcastChannel` transport only connects compatible same-origin browser contexts; it is not a cross-device or cross-browser signaling service. Production calls between distinct browsers/devices require a shared signaling backend. BroadcastChannel and WebRTC support alone cannot provide that service.
 - **Collaborative Controls**: Dynamic video grid, active speaker highlighting, screen share spotlight, live chat drawer, rising animated emoji reactions, raised hands queue, and meeting recording with downloadable session export.
 
 ---
@@ -175,12 +177,12 @@ Decoupled, zero-backend, zero-bot video conferencing (Teams/Meet style):
 
 | Route | Page Widget | Feature Group | Description |
 |---|---|---|---|
-| `/` | `LoginPage` | `auth_view` | Main institutional login screen |
-| `/recover-password` | `RecoverPasswordPage` | `auth_view` | Password recovery identity request |
-| `/verify-code` | `VerifyCodePage` | `auth_view` | 6-digit verification code (OTP) entry |
-| `/reset-password` | `ResetPasswordPage` | `auth_view` | New password creation with strength meter |
-| `/student/messages` | `StudentMessagesPage` | `student_view` | Student Messages & Official Announcements Center |
-| `/student/secretaria` | `StudentSecretariatPage` | `student_view` | Virtual Secretariat, Academic Record & Protocols |
+| `/` | `LoginPage` | `auth` | Main institutional login screen |
+| `/recover-password` | `RecoverPasswordPage` | `auth` | Password recovery identity request |
+| `/verify-code` | `VerifyCodePage` | `auth` | 6-digit verification code (OTP) entry |
+| `/reset-password` | `ResetPasswordPage` | `auth` | New password creation with strength meter |
+| `/student/messages` | `StudentMessagesPage` | `student` | Student Messages & Official Announcements Center |
+| `/student/secretaria` | `StudentSecretariatPage` | `student` | Virtual Secretariat, Academic Record & Protocols |
 | `/video-call` | `VideoCallLobbyPage` | `video_call` | P2P Video Conferencing, Screen Share & Live Chat |
 
 ---
@@ -218,12 +220,12 @@ flutter pub get
 ## 🧪 Automated Testing Suite
 
 The test directory (`frontend/test/`) mirrors the feature organization of `lib/`:
-- **`test/features/auth_view/`**:
+- **`test/features/auth/`**:
   - `login/domain/usecases/login_usecase_test.dart`: Unit tests for `LoginUseCase`.
   - `login/presentation/controllers/login_controller_test.dart`: State transition tests for `LoginController`.
   - `forgot_password/domain/usecases/recover_password_usecase_test.dart`: Unit tests for `RecoverPasswordUseCase`.
   - `forgot_password/presentation/controllers/recover_password_controller_test.dart`: Validation and state tests for `RecoverPasswordController`.
-- **`test/features/student_view/`**:
+- **`test/features/student/`**:
   - `student_portal_test.dart`: Unit and widget tests for `StudentMessagesController`, `StudentMessagesPage`, `StudentSecretariatController`, and `StudentSecretariatPage`.
 - **`test/widget_test.dart`**:
   - End-to-end widget navigation tests covering the full authentication and password recovery lifecycle across desktop and mobile viewports.
