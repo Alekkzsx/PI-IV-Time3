@@ -158,8 +158,11 @@ void main() {
 
       expect(find.text('Minhas Disciplinas'), findsOneWidget);
       expect(find.text('Boletim & Histórico Oficial'), findsOneWidget);
-      expect(find.text('Plano de Ensino & Ementa'), findsOneWidget);
-      expect(find.text('Quadro Semanal de Horários & Ensalamento Físico'), findsOneWidget);
+      expect(find.textContaining('Plano de Ensino & Ementa'), findsWidgets);
+      expect(find.textContaining('Quadro Semanal de Horários'), findsOneWidget);
+      expect(find.text('Próximas Avaliações & Entregas'), findsOneWidget);
+      expect(find.text('Mural de Avisos & Comunicados Docentes'), findsOneWidget);
+      expect(find.text('Apoio Acadêmico & Recursos Oficiais'), findsOneWidget);
     });
 
     testWidgets('Renderiza StudentCalendarPage com visualização em mês e agenda', (tester) async {
