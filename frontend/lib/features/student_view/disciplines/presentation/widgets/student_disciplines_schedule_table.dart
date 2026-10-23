@@ -516,27 +516,30 @@ class StudentDisciplinesScheduleTable extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mural de Avisos & Comunicados Docentes',
-                    style: jakarta(
-                      size: 16,
-                      weight: FontWeight.w700,
-                      color: const Color(0xFF18181B),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mural de Avisos & Comunicados Docentes',
+                      style: jakarta(
+                        size: 16,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFF18181B),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Orientações recentes publicadas pelos professores das suas disciplinas.',
-                    style: jakarta(
-                      size: 11.5,
-                      color: const Color(0xFF71717A),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Orientações recentes publicadas pelos professores das suas disciplinas.',
+                      style: jakarta(
+                        size: 11.5,
+                        color: const Color(0xFF71717A),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '3 avisos',
                 style: jakarta(
@@ -557,33 +560,39 @@ class StudentDisciplinesScheduleTable extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF4F4F5),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Text(
-                              notices[i]['tag']!,
-                              style: jakarta(
-                                size: 10,
-                                weight: FontWeight.w600,
-                                color: const Color(0xFF71717A),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF4F4F5),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                notices[i]['tag']!,
+                                style: jakarta(
+                                  size: 10,
+                                  weight: FontWeight.w600,
+                                  color: const Color(0xFF71717A),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            notices[i]['author']!,
-                            style: jakarta(
-                              size: 11.5,
-                              color: const Color(0xFF71717A),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                notices[i]['author']!,
+                                overflow: TextOverflow.ellipsis,
+                                style: jakarta(
+                                  size: 11.5,
+                                  color: const Color(0xFF71717A),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         notices[i]['time']!,
                         style: jakarta(

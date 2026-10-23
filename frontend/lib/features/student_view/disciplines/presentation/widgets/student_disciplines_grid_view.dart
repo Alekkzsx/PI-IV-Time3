@@ -352,19 +352,23 @@ class StudentDisciplinesGridView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              InkWell(
-                key: Key('btn_plano_ensino_${d.code}'),
-                onTap: () => StudentDisciplinesModals.showPlanoEnsinoModal(context),
-                child: Text(
-                  'Ver Plano de Ensino & Ementa',
-                  style: jakarta(
-                    size: 11.5,
-                    weight: FontWeight.w500,
-                    color: const Color(0xFF71717A),
-                    decoration: TextDecoration.underline,
+              Flexible(
+                child: InkWell(
+                  key: Key('btn_plano_ensino_${d.code}'),
+                  onTap: () => StudentDisciplinesModals.showPlanoEnsinoModal(context),
+                  child: Text(
+                    'Ver Plano de Ensino & Ementa',
+                    overflow: TextOverflow.ellipsis,
+                    style: jakarta(
+                      size: 11.5,
+                      weight: FontWeight.w500,
+                      color: const Color(0xFF71717A),
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${d.absences} faltas (limite: ${d.maxAbsenceHours}h)',
                 style: jakarta(
