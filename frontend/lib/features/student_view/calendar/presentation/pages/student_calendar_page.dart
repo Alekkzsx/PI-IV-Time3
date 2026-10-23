@@ -3,13 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
 import '../widgets/student_calendar_month_grid.dart';
+import '../widgets/student_calendar_week_view.dart';
 import '../widgets/student_calendar_agenda_view.dart';
 import '../widgets/student_calendar_sidebar.dart';
 import '../widgets/student_calendar_modals.dart';
 
 /// Tela de Calendário Acadêmico da Visão do Aluno.
-/// Suporta alternância dinâmica entre visualização em Mês e visualização em Agenda,
-/// filtros por categoria e por disciplina, e modal de criação de novo evento.
+/// Suporta alternância dinâmica entre Semana, Mês e Agenda,
+/// visualização de prazos regimentais e modal de novo evento/tarefa.
 class StudentCalendarPage extends StatefulWidget {
   const StudentCalendarPage({super.key});
 
@@ -45,7 +46,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
           // Área Esquerda: Calendário Principal
           Expanded(flex: 3, child: _buildMainCalendarArea()),
           const SizedBox(width: 24),
-          // Área Direita: Mini Calendário e Filtros
+          // Área Direita: Mini Calendário e Lista de Calendários
           Expanded(
             flex: 1,
             child: StudentCalendarSidebar(controller: _controller),
@@ -62,7 +63,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Column(
@@ -73,6 +74,8 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
             _buildDaysOfWeek(),
             const Divider(height: 1, color: Color(0xFFE5E7EB)),
             const StudentCalendarMonthGrid(),
+          ] else if (_controller.calendarViewMode == 'Semana') ...[
+            const StudentCalendarWeekView(),
           ] else ...[
             StudentCalendarAgendaView(controller: _controller),
           ],
@@ -83,7 +86,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
 
   Widget _buildCalendarHeader() {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -92,23 +95,48 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  side: const BorderSide(color: Color(0xFFD1D5DB)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
-                child: const Text('Hoje',
-                    style: TextStyle(color: Color(0xFF18181B))),
+                child: const Text(
+                  'Hoje',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF374151)),
+                ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                  icon: const Icon(Icons.chevron_left), onPressed: () {}),
-              IconButton(
-                  icon: const Icon(Icons.chevron_right), onPressed: () {}),
-              const SizedBox(width: 12),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFD1D5DB)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () {},
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Icon(Icons.chevron_left, size: 18, color: Color(0xFF4B5563)),
+                      ),
+                    ),
+                    Container(width: 1, height: 18, color: const Color(0xFFD1D5DB)),
+                    InkWell(
+                      onTap: () {},
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        child: Icon(Icons.chevron_right, size: 18, color: Color(0xFF4B5563)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
               const Text(
-                'Outubro de 2026',
+                'SETEMBRO 2026',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                   color: Color(0xFF18181B),
                 ),
               ),
@@ -116,32 +144,37 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
           ),
           Row(
             children: [
-              // Alternador Mês / Agenda
+              // Alternador Semana / Mês / Agenda
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFD1D5DB)),
                 ),
                 child: Row(
                   children: [
+                    _buildModeButton('Semana'),
                     _buildModeButton('Mês'),
                     _buildModeButton('Agenda'),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              ElevatedButton.icon(
-                onPressed: () =>
-                    StudentCalendarModals.showCreateEventModal(context, _controller),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Novo Evento'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF18181B),
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              const SizedBox(width: 8),
+              // Botão '+' para novo evento
+              InkWell(
+                onTap: () => StudentCalendarModals.showCreateEventModal(context, _controller),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFD1D5DB)),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Tooltip(
+                    message: 'Novo Evento',
+                    child: Icon(Icons.add, size: 18, color: Color(0xFF374151)),
+                  ),
                 ),
               ),
             ],
@@ -155,23 +188,19 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
     final isSelected = _controller.calendarViewMode == mode;
     return InkWell(
       onTap: () => _controller.setCalendarViewMode(mode),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(5),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [const BoxShadow(color: Colors.black12, blurRadius: 2)]
-              : null,
+          color: isSelected ? const Color(0xFF26394A) : Colors.transparent,
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Text(
           mode,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color:
-                isSelected ? const Color(0xFF18181B) : const Color(0xFF64748B),
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            color: isSelected ? Colors.white : const Color(0xFF4B5563),
           ),
         ),
       ),
@@ -181,7 +210,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
   Widget _buildDaysOfWeek() {
     final days = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: days.map((d) {
           return Expanded(
@@ -189,9 +218,10 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
               d,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF64748B),
+                letterSpacing: 0.5,
+                color: Color(0xFF71717A),
               ),
             ),
           );

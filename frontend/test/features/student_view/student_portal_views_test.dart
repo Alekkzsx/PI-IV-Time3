@@ -202,10 +202,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Outubro de 2026'), findsOneWidget);
-      expect(find.text('Novo Evento'), findsOneWidget);
-      expect(find.text('Filtrar por Categoria'), findsOneWidget);
-      expect(find.text('Filtrar por Disciplina'), findsOneWidget);
+      expect(find.text('SETEMBRO 2026'), findsWidgets);
+      expect(find.byTooltip('Novo Evento'), findsOneWidget);
+      expect(find.text('CALENDÁRIOS'), findsOneWidget);
+      expect(find.text('Semana'), findsOneWidget);
+      expect(find.text('Mês'), findsOneWidget);
+      expect(find.text('Agenda'), findsOneWidget);
     });
 
     testWidgets('Renderiza StudentDeliveriesPage e modal de devolutiva', (tester) async {
