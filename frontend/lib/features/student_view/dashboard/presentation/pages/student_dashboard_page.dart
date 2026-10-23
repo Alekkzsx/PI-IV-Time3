@@ -38,7 +38,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     StudentDisciplineItemData(
       '218131 - FIS',
       'Filosofia, Informação e Sociedade',
-      'Prof. Dr. Marcos Vinicius Ferreira',
+      'Prof. Dr. Marcos Vinícius Ferreira',
       0.82,
     ),
     StudentDisciplineItemData(
@@ -54,44 +54,48 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       'Entrega: Diagrama de Classes e Sequência',
       'Análise e Projeto de Sistemas II',
       'Hoje, 20/09 às 23:59',
+      isUrgent: true,
     ),
     StudentDeadlineItemData(
       'Fórum Temático: Ética na Inteligência Artificial',
       'Filosofia, Informação e Sociedade',
       'Amanhã, 21/09 às 18:00',
+      isUrgent: false,
     ),
     StudentDeadlineItemData(
-      'Atividade Prática: Modelagem Relacional e N...',
+      'Atividade Prática: Modelagem Relacional e N..',
       'Estudos de Banco de Dados II',
       'Quinta, 24/09 às 23:59',
+      isUrgent: false,
     ),
     StudentDeadlineItemData(
       'Avaliação Parcial: Gerenciamento de Memória',
       'Fundamentos de Sistemas Operacionais',
       'Terça, 29/09 às 20:40',
+      isUrgent: false,
     ),
   ];
 
   static const _notices = [
     StudentNoticeItemData(
-      'Prof. Carlos Eduardo (APS-II)',
+      'Prof. Carlos Eduardo (APS-II) •',
       'Hoje, 14:10',
       'Feedback da Sprint 1 e Orientações para o Diagrama UML',
-      'Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já constam no ambiente de entrega.',
+      'Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já constam no ambiente de entrega...',
       true,
     ),
     StudentNoticeItemData(
-      'Profª. Eliane Ramos (BD-II)',
+      'Profª. Eliane Ramos (BD-II) •',
       'Ontem, 17:45',
       'Material de Apoio: Normalização em 3FN e BCNF',
-      'Disponibilizei os slides com os exercícios resolvidos em aula sobre dependências funcionais e índices.',
+      'Disponibilizei os slides com os exercícios resolvidos em aula sobre dependências funcionais e índices...',
       true,
     ),
     StudentNoticeItemData(
       'Secretaria Acadêmica AGMRM',
       '18 de set',
       'Prazo para Validação de Atividades Complementares 2026/2',
-      'Lembramos a todos os estudantes que o envio de certificados de cursos e palestras para cômputo de..',
+      'Lembramos a todos os estudantes que o envio de certificados de cursos e palestras para cômputo de...',
       false,
     ),
   ];
@@ -211,7 +215,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       _buildKpiCard(
         'Coeficiente de Rendimento (CR)',
         '8.8',
-        '/ 10.0',
+        '/10.0',
         'Situação Acadêmica',
         'Regular',
         0.88,

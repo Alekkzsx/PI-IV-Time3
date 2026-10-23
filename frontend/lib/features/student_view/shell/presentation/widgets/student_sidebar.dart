@@ -72,7 +72,7 @@ class StudentSidebar extends StatelessWidget {
     InstitutionalSidebarItem<StudentNavItem>(
       id: StudentNavItem.entregas,
       label: 'Entregas',
-      iconSvgBuilder: (c) => LucideSvgIcons.inbox(c),
+      iconSvgBuilder: (c) => LucideSvgIcons.clipboardCheck(c),
       key: const Key('sidebar_item_entregas'),
     ),
     InstitutionalSidebarItem<StudentNavItem>(
@@ -84,7 +84,7 @@ class StudentSidebar extends StatelessWidget {
     InstitutionalSidebarItem<StudentNavItem>(
       id: StudentNavItem.secretaria,
       label: 'Secretaria',
-      iconSvgBuilder: (c) => LucideSvgIcons.fileText(c),
+      iconSvgBuilder: (c) => LucideSvgIcons.landmark(c),
       key: const Key('sidebar_item_secretaria'),
     ),
     InstitutionalSidebarItem<StudentNavItem>(

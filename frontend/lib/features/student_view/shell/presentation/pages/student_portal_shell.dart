@@ -196,7 +196,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                         },
                         icon: Icon(
                           StudentPortalController.instance.isGridView
-                              ? Icons.view_list_rounded
+                              ? Icons.format_list_bulleted_rounded
                               : Icons.grid_view_rounded,
                           size: 16,
                           color: const Color(0xFF525252),
@@ -205,14 +205,18 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                           StudentPortalController.instance.isGridView
                               ? 'Alterar para visualização em lista'
                               : 'Alterar para visualização em bloco',
-                          style: jakarta(size: 13, weight: FontWeight.w500, color: const Color(0xFF1A1A1A)),
+                          style: jakarta(
+                            size: 12.5,
+                            weight: FontWeight.w500,
+                            color: const Color(0xFF1A1A1A),
+                          ),
                         ),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
                           side: const BorderSide(color: Color(0xFFE5E5E5)),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
-                            vertical: 10,
+                            vertical: 9,
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -230,31 +234,31 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                         color: Color(0xFF52525B),
                       ),
                     ),
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        IconButton(
-                          onPressed: () {},
-                          tooltip: 'Notificações',
-                          icon: const Icon(
+                    IconButton(
+                      onPressed: () {},
+                      tooltip: 'Notificações',
+                      icon: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
                             Icons.notifications_none_rounded,
                             size: 20,
                             color: Color(0xFF52525B),
                           ),
-                        ),
-                        Positioned(
-                          right: 11,
-                          top: 11,
-                          child: Container(
-                            width: 7,
-                            height: 7,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF18181B),
-                              shape: BoxShape.circle,
+                          Positioned(
+                            right: -5,
+                            top: -4,
+                            child: Text(
+                              '0',
+                              style: jakarta(
+                                size: 10,
+                                weight: FontWeight.w700,
+                                color: const Color(0xFF52525B),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),

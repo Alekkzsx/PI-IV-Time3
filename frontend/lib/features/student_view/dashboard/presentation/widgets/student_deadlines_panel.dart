@@ -9,8 +9,14 @@ class StudentDeadlineItemData {
   final String title;
   final String discipline;
   final String due;
+  final bool isUrgent;
 
-  const StudentDeadlineItemData(this.title, this.discipline, this.due);
+  const StudentDeadlineItemData(
+    this.title,
+    this.discipline,
+    this.due, {
+    this.isUrgent = false,
+  });
 }
 
 /// Painel lateral de "Prazos Pendentes" com acesso rápido ao Calendário Acadêmico.
@@ -83,7 +89,9 @@ class StudentDeadlinesPanel extends StatelessWidget {
                     width: 3,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF18181B),
+                      color: d.isUrgent
+                          ? const Color(0xFF18181B)
+                          : const Color(0xFFE4E4E7),
                       borderRadius: BorderRadius.circular(1.5),
                     ),
                   ),

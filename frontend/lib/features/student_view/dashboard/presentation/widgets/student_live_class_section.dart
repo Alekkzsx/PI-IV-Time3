@@ -196,33 +196,51 @@ class StudentLiveClassSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(context).pushNamed('/video-call'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF18181B),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            elevation: 0,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Entrar na Videochamada',
-                                style: jakarta(
-                                  size: 11,
-                                  weight: FontWeight.w600,
+                        InkWell(
+                          key: const Key('btn_entrar_videochamada'),
+                          onTap: () => Navigator.of(context).pushNamed('/video-call'),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF18181B),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Entrar na',
+                                      style: jakarta(
+                                        size: 10.5,
+                                        weight: FontWeight.w600,
+                                        color: Colors.white,
+                                        height: 1.15,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Videochamada',
+                                      style: jakarta(
+                                        size: 10.5,
+                                        weight: FontWeight.w600,
+                                        color: Colors.white,
+                                        height: 1.15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 13,
                                   color: Colors.white,
                                 ),
-                              ),
-                              const SizedBox(width: 5),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 13,
-                                color: Colors.white,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],

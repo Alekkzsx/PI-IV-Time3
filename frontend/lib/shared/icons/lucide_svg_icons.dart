@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 // Biblioteca de vetores SVG oficiais do Lucide Icons (lucide-react)
 
 import 'dart:ui';
@@ -153,6 +153,19 @@ class LucideSvgIcons {
       <path d="M18 17V9"/>
       <path d="M13 17V5"/>
       <path d="M8 17v-3"/>
+    </svg>''';
+  }
+
+  // Landmark (Colunas / Prédio Governamental / Secretaria)
+  static String landmark(Color color, {double size = 28}) {
+    final h = _hex(color);
+    return '''<svg xmlns="http://www.w3.org/2000/svg" width="$size" height="$size" viewBox="0 0 24 24" fill="none" stroke="$h" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" x2="21" y1="22" y2="22"/>
+      <line x1="6" x2="6" y1="18" y2="11"/>
+      <line x1="10" x2="10" y1="18" y2="11"/>
+      <line x1="14" x2="14" y1="18" y2="11"/>
+      <line x1="18" x2="18" y1="18" y2="11"/>
+      <polygon points="12 2 20 7 4 7"/>
     </svg>''';
   }
 }

@@ -103,7 +103,7 @@ class StudentBoletimPeriod {
 class StudentMockData {
   static const String studentName = 'Gabriel Soares de Oliveira';
   static const String studentRa = '2024.1.00892';
-  static const String studentCourse = 'Engenharia de Software (4º Semestre • Matutino)';
+  static const String studentCourse = 'Engenharia de Software (5º Semestre • Matutino)';
   static const double studentCr = 8.8;
   static const double studentGlobalAttendance = 95.7;
   static const int studentAbsences = 12;

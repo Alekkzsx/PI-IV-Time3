@@ -88,7 +88,7 @@ class StudentNoticesPanel extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '${n.author}  •  ${n.time}',
+                n.author,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: jakarta(
@@ -96,6 +96,15 @@ class StudentNoticesPanel extends StatelessWidget {
                   weight: FontWeight.w500,
                   color: const Color(0xFF71717A),
                 ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              n.time,
+              style: jakarta(
+                size: 11,
+                weight: FontWeight.w400,
+                color: const Color(0xFF71717A),
               ),
             ),
           ],
