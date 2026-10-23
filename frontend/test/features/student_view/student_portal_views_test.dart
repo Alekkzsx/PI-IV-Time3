@@ -104,6 +104,38 @@ void main() {
       expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
     });
 
+    testWidgets('Renderiza StudentDashboardPage em modo lista e permite alternar', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final controller = StudentPortalController.instance;
+      controller.toggleDashboardView(false); // Ativa modo lista
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: StudentDashboardPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Amanhã, 21 de setembro'), findsOneWidget);
+      expect(find.text('Fórum de Dúvidas: Preparação para a Avaliação A1'), findsOneWidget);
+      expect(find.text('Cálculo Diferencial e Integral • Profª. Sandra Helena'), findsOneWidget);
+      expect(find.text('setembro 22 a dezembro 12'), findsOneWidget);
+      expect(find.text('Término das avaliações semestrais'), findsOneWidget);
+      expect(find.text('Férias e encerramento de notas'), findsOneWidget);
+      expect(find.text('Início das aulas do próximo período letivo'), findsOneWidget);
+
+      // Toca na tarefa do fórum para alternar checkbox
+      await tester.tap(find.byKey(const Key('btn_toggle_forum_task')));
+      await tester.pumpAndSettle();
+
+      // Restaura para modo bloco/grid
+      controller.toggleDashboardView(true);
+      await tester.pumpAndSettle();
+      expect(find.text('Bem-vindo, Gabriel.'), findsOneWidget);
+    });
+
     testWidgets('Renderiza StudentDisciplinesPage com estatísticas e ensalamento', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));

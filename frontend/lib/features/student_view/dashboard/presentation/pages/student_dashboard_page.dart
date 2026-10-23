@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student_view/shared/controllers/student_portal_controller.dart';
+import '../widgets/student_dashboard_list_view.dart';
 import '../widgets/student_deadlines_panel.dart';
 import '../widgets/student_disciplines_grid_section.dart';
 import '../widgets/student_live_class_section.dart';
@@ -118,6 +119,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_controller.isGridView) {
+      return const StudentDashboardListView();
+    }
+
     final isDesktop = MediaQuery.of(context).size.width >= 1024;
 
     return SingleChildScrollView(
