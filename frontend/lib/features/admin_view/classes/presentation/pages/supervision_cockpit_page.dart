@@ -213,66 +213,70 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 1: Diretriz & Regime Avaliativo (Print 49) ---
   Widget _buildRegimeTab() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Diretrizes Institucionais de Cálculo da Nota', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          // ignore: deprecated_member_use
-          RadioListTile<String>(
-            title: const Text('Fórmula Ponderada Regimental (N1 40% / N2 60%)'),
-            subtitle: const Text('Padrão CONSEPE: Média Final = (N1 x 0.4) + (N2 x 0.6) • Presença Mínima: 75%'),
-            value: 'Ponderada (N1 40% / N2 60%)',
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Diretrizes Institucionais de Cálculo da Nota', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             // ignore: deprecated_member_use
-            groupValue: _controller.selectedEvaluationFormula,
-            // ignore: deprecated_member_use
-            onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
-          ),
-          // ignore: deprecated_member_use
-          RadioListTile<String>(
-            title: const Text('Fórmula Equitativa (N1 50% / N2 50%)'),
-            subtitle: const Text('Média Final = (N1 + N2) / 2'),
-            value: 'Equitativa (N1 50% / N2 50%)',
-            // ignore: deprecated_member_use
-            groupValue: _controller.selectedEvaluationFormula,
-            // ignore: deprecated_member_use
-            onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
-          ),
-          // ignore: deprecated_member_use
-          RadioListTile<String>(
-            title: const Text('Média Aritmética de Instrumentos Contínuos'),
-            subtitle: const Text('Média de todas as atividades, provas e trabalhos lançados'),
-            value: 'Aritmética Simples',
-            // ignore: deprecated_member_use
-            groupValue: _controller.selectedEvaluationFormula,
-            // ignore: deprecated_member_use
-            onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
-          ),
-          const SizedBox(height: 20),
-          const Divider(height: 1),
-          const SizedBox(height: 20),
-          const Text('Despacho Administrativo de Auditoria:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 8),
-          const TextField(
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Registro de autorização da Secretaria Geral sobre eventuais flexibilizações regimentais...',
-              border: OutlineInputBorder(),
+            RadioListTile<String>(
+              title: const Text('Fórmula Ponderada Regimental (N1 40% / N2 60%)'),
+              subtitle: const Text('Padrão CONSEPE: Média Final = (N1 x 0.4) + (N2 x 0.6) • Presença Mínima: 75%'),
+              value: 'Ponderada (N1 40% / N2 60%)',
+              // ignore: deprecated_member_use
+              groupValue: _controller.selectedEvaluationFormula,
+              // ignore: deprecated_member_use
+              onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
             ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              _controller.updateFormulaRegime(widget.classModel.code, 'Impor pelo Admin');
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Diretriz de cálculo gravada e homologada.')));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
-            child: const Text('Salvar Diretriz Regimental'),
-          ),
-        ],
+            // ignore: deprecated_member_use
+            RadioListTile<String>(
+              title: const Text('Fórmula Equitativa (N1 50% / N2 50%)'),
+              subtitle: const Text('Média Final = (N1 + N2) / 2'),
+              value: 'Equitativa (N1 50% / N2 50%)',
+              // ignore: deprecated_member_use
+              groupValue: _controller.selectedEvaluationFormula,
+              // ignore: deprecated_member_use
+              onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
+            ),
+            // ignore: deprecated_member_use
+            RadioListTile<String>(
+              title: const Text('Média Aritmética de Instrumentos Contínuos'),
+              subtitle: const Text('Média de todas as atividades, provas e trabalhos lançados'),
+              value: 'Aritmética Simples',
+              // ignore: deprecated_member_use
+              groupValue: _controller.selectedEvaluationFormula,
+              // ignore: deprecated_member_use
+              onChanged: (val) => setState(() => _controller.selectedEvaluationFormula = val!),
+            ),
+            const SizedBox(height: 20),
+            const Divider(height: 1),
+            const SizedBox(height: 20),
+            const Text('Despacho Administrativo de Auditoria:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const SizedBox(height: 8),
+            const TextField(
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Registro de autorização da Secretaria Geral sobre eventuais flexibilizações regimentais...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                _controller.updateFormulaRegime(widget.classModel.code, 'Impor pelo Admin');
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Diretriz de cálculo gravada e homologada.')));
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white),
+              child: const Text('Salvar Diretriz Regimental'),
+            ),
+          ],
+        ),
       ),
     );
   }

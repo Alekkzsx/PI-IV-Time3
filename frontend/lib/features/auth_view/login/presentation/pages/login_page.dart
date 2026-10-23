@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../../core/theme/app_theme.dart';
 import '../controllers/login_controller.dart';
 import '../widgets/brand_panel.dart';
 import '../widgets/login_form_fields.dart';
