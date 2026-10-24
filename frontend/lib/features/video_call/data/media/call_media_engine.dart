@@ -17,6 +17,9 @@ abstract class ICallMediaEngine {
   /// Stream notificando que o vídeo de um participante (local, remoto ou tela) está pronto para renderização.
   Stream<String> get onVideoStreamUpdated;
 
+  /// Stream com diagnósticos de captura e reprodução de mídia para a interface.
+  Stream<String> get onMediaStatus;
+
   /// Indica se a captura de mídia local (câmera/microfone) já está inicializada.
   bool get isInitialized;
 
@@ -33,6 +36,9 @@ abstract class ICallMediaEngine {
     bool audioMuted = false,
     bool videoOff = false,
   });
+
+  /// Libera a reprodução de áudio do navegador a partir de um gesto do usuário.
+  Future<void> unlockAudioPlayback();
 
   /// Habilita ou silencia a trilha real de áudio do microfone local.
   Future<void> setMicrophoneMuted(bool muted);
@@ -71,4 +77,3 @@ abstract class ICallMediaEngine {
   /// Libera todas as trilhas de câmera, microfone, WebRTC e timers.
   Future<void> dispose();
 }
-

@@ -1,111 +1,112 @@
 // Desenvolvido por Guilherme Henrique Moreira
-// Importa a biblioteca de componentes visuais do Flutter.
+
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/admin/secretary/presentation/widgets/secretary_filter_bar.dart';
+import 'package:pi_iv_time3/features/admin/secretary/presentation/widgets/secretary_protocols_table.dart';
+import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
+import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 
-// Cria a classe SecretaryPage, responsável pela tela da Secretaria.
-// StatelessWidget indica que a tela não possui estado mutável próprio.
-class SecretaryPage extends StatelessWidget {
+/// Tela da Secretaria Acadêmica Geral & Mesa de Protocolos da Visão do Administrador.
+/// Permite filtrar protocolos por status, inspecionar documentos digitalizados
+/// anexados e emitir deferimento ou indeferimento oficial com despacho formal.
+class SecretaryPage extends StatefulWidget {
+  const SecretaryPage({super.key});
 
-  // Construtor da classe.
-  // O parâmetro Key é opcional e ajuda o Flutter a identificar o widget.
-  const SecretaryPage({Key? key}) : super(key: key);
+  @override
+  State<SecretaryPage> createState() => _SecretaryPageState();
+}
 
-  // Método responsável por construir e retornar a interface da tela.
+class _SecretaryPageState extends State<SecretaryPage> {
+  final AdminPortalController _controller = AdminPortalController.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredProtocols = _controller.filteredProtocols;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1100;
 
-    // Permite rolar a tela verticalmente caso o conteúdo não caiba.
-    return SingleChildScrollView(
-
-      // Define um espaçamento de 32 pixels entre o conteúdo e as bordas.
-      padding: const EdgeInsets.all(32.0),
-
-      // Organiza os elementos filhos em uma coluna vertical.
-      child: Column(
-
-        // Alinha os elementos à esquerda.
-        crossAxisAlignment: CrossAxisAlignment.start,
-
-        // Lista de elementos que serão exibidos na tela.
-        children: [
-
-          // Exibe a categoria "Secretaria" em tamanho pequeno e cinza.
-          const Text(
-            'Secretaria',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-
-          // Adiciona um espaço vertical de 8 pixels.
-          const SizedBox(height: 8),
-
-          // Exibe o título principal da página em negrito.
-          const Text(
-            'Secretaria Acadêmica Geral & Protocolos',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          // Adiciona um espaço vertical de 4 pixels.
-          const SizedBox(height: 4),
-
-          // Exibe uma descrição das atividades realizadas pela secretaria.
-          // O texto utiliza a cor cinza para ter menos destaque.
-          const Text(
-            'Mesa de análise de atestados médicos, pedidos de segunda '
-            'chamada, trancamentos e validação de horas complementares.',
-            style: TextStyle(color: Colors.grey),
-          ),
-
-          // Adiciona um espaço vertical de 24 pixels antes do protocolo.
-          const SizedBox(height: 24),
-
-          // Cria um contêiner que funciona como um cartão visual.
-          Container(
-
-            // Define um espaçamento interno de 16 pixels.
-            padding: const EdgeInsets.all(16),
-
-            // Configura a aparência do cartão.
-            decoration: BoxDecoration(
-
-              // Define o fundo do cartão como branco.
-              color: Colors.white,
-
-              // Arredonda os cantos do cartão em 12 pixels.
-              borderRadius: BorderRadius.circular(12),
-
-              // Adiciona uma borda cinza-clara ao redor do cartão.
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-
-            // Organiza as informações do protocolo em uma única linha.
-            child: const ListTile(
-
-              // Exibe o número de identificação do protocolo.
-              title: Text('PROT-2026/8841'),
-
-              // Exibe o nome da pessoa, a matrícula e o tipo de solicitação.
-              subtitle: Text(
-                'Camila Duarte Fagundes (2024.1.00962) • '
-                'ATESTADO MÉDICO',
+    return Container(
+      color: Colors.white,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
               ),
-
-              // Exibe um indicador de status no lado direito do cartão.
-              trailing: Chip(
-                // Define o texto do indicador como "Deferido".
-                label: Text(
-                  'Deferido',
-
-                  // Define a cor do texto do status como verde.
-                  style: TextStyle(color: Colors.green),
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 48.0 : 20.0,
+                      vertical: 36.0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(isDesktop),
+                        const SizedBox(height: 24),
+                        SecretaryFilterBar(controller: _controller),
+                        const SizedBox(height: 24),
+                        SecretaryProtocolsTable(
+                          protocols: filteredProtocols,
+                          controller: _controller,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const AdminFooter(),
+                ],
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildHeader(bool isDesktop) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Secretaria Acadêmica Geral & Protocolos',
+          style: jakarta(
+            size: isDesktop ? 26 : 22,
+            weight: FontWeight.w700,
+            color: const Color(0xFF18181B),
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Mesa de análise de atestados médicos, pedidos de segunda chamada, trancamentos e validação de horas complementares',
+          style: jakarta(
+            size: 14,
+            weight: FontWeight.w400,
+            color: const Color(0xFF737373),
+          ),
+        ),
+      ],
     );
   }
 }

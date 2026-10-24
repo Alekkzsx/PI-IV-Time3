@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/emoji_reaction.dart';
 import '../errors/video_call_failures.dart';

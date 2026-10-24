@@ -1,75 +1,137 @@
 // Desenvolvido por Guilherme Henrique Moreira
-import 'package:flutter/material.dart'; // Importa o pacote principal do Material Design para Flutter
 
-// Declaração da tela de Turmas como um StatelessWidget (componente estático sem estado interno complexo)
-class ClassesPage extends StatelessWidget {
-  const ClassesPage({Key? key}) : super(key: key); // Construtor padrão com suporte a chave (key)
+import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_alocar_docente_modal.dart';
+import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_list_table.dart';
+import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_regime_formula_modal.dart';
+import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
+import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'supervision_cockpit_page.dart';
+
+/// Tela de Gestão de Turmas, Ensalamento e Atribuição Docente na Visão do Administrador.
+/// Refatorada com arquitetura limpa e subcomponentes desacoplados em `widgets/`.
+class ClassesPage extends StatefulWidget {
+  const ClassesPage({super.key});
+
+  @override
+  State<ClassesPage> createState() => _ClassesPageState();
+}
+
+class _ClassesPageState extends State<ClassesPage> {
+  final AdminPortalController _controller = AdminPortalController.instance;
+  AdminClassModel? _activeSupervisedClass;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  void _showRegimeFormulaModal(BuildContext context, AdminClassModel c) {
+    ClassRegimeFormulaModal.show(
+      context: context,
+      classModel: c,
+      onSaveRegime: (regime) => _controller.updateFormulaRegime(c.code, regime),
+    );
+  }
+
+  void _showAlocarDocenteModal(BuildContext context, AdminClassModel c) {
+    ClassAlocarDocenteModal.show(
+      context: context,
+      classModel: c,
+      onConfirmAllocation: (prof) => _controller.reallocateProfessor(c.code, prof),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Componente que permite a rolagem da página inteira caso o conteúdo exceda a altura da tela
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32.0), // Margem interna de 32 pixels em toda a volta do conteúdo principal
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, // Alinha todos os elementos filhos à esquerda
-        children: [
-          // Rótulo de contexto superior indicando a seção atual
-          const Text('Turmas', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8), // Espaçamento vertical
-          
-          // Título principal da página de gestão de turmas e ensalamento
-          const Text('Gestão de Turmas, Ensalamento & Atribuição Docente', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4), // Pequeno espaçamento vertical
-          
-          // Subtítulo descritivo detalhando o propósito funcional da tela
-          const Text('Abertura de turmas no período letivo, alocação de salas/laboratórios e vinculação do professor regente.', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 24), // Espaçamento antes de exibir a tabela de dados
-          
-          // Container estilizado para envolver a tabela, dando aspecto de cartão (card) com borda arredondada e sutil
-          Container(
-            padding: const EdgeInsets.all(16), // Espaçamento interno dentro do container da tabela
-            decoration: BoxDecoration(
-              color: Colors.white, 
-              borderRadius: BorderRadius.circular(12), // Bordas arredondadas de 12 pixels
-              border: Border.all(color: Colors.grey[200]!) // Borda cinza bem clara para destaque sutil
+    if (_activeSupervisedClass != null) {
+      return SupervisionCockpitPage(
+        classModel: _activeSupervisedClass!,
+        onBack: () => setState(() => _activeSupervisedClass = null),
+      );
+    }
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 1100;
+
+    return Container(
+      color: Colors.white,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 48.0 : 20.0,
+                      vertical: 36.0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(isDesktop),
+                        const SizedBox(height: 28),
+                        ClassListTable(
+                          classes: _controller.classes,
+                          onSupervise: (c) => setState(() => _activeSupervisedClass = c),
+                          onOpenRegime: (c) => _showRegimeFormulaModal(context, c),
+                          onOpenAlocar: (c) => _showAlocarDocenteModal(context, c),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const AdminFooter(),
+                ],
+              ),
             ),
-            // Widget de Tabela estruturada (DataTable) para exibição de dados tabulares
-            child: DataTable(
-              // Definição das colunas da tabela acadêmica
-              columns: const [
-                DataColumn(label: Text('CÓDIGO / DISCIPLINA')),
-                DataColumn(label: Text('CURSO & TURNO')),
-                DataColumn(label: Text('LOCAL')),
-                DataColumn(label: Text('VAGAS')),
-                DataColumn(label: Text('DOCENTE')),
-                DataColumn(label: Text('AÇÕES')),
-              ],
-              // Linhas de dados contidas na tabela
-              rows: [
-                DataRow(cells: [
-                  // Célula 1: Nome da disciplina e código correspondente em duas linhas
-                  const DataCell(Text('Análise e Projeto de Sistemas II\n218131 - APS-II')),
-                  
-                  // Célula 2: Curso, período letivo (2026/2) e turno (Noturno)
-                  const DataCell(Text('Engenharia de Software\n2026/2 • Noturno')),
-                  
-                  // Célula 3: Local físico da aula (Laboratório e Bloco)
-                  const DataCell(Text('Lab Informática 04 - Bloco C')),
-                  
-                  // Célula 4: Contagem de vagas ocupadas em relação ao total disponível
-                  const DataCell(Text('34 / 40 vagas')),
-                  
-                  // Célula 5: Nome do docente responsável pela turma
-                  const DataCell(Text('Profa. Dra. Helena Bittencourt')),
-                  
-                  // Célula 6: Botão de ação rápida para supervisão da turma
-                  DataCell(ElevatedButton(onPressed: () {}, child: const Text('Supervisionar'))),
-                ]),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildHeader(bool isDesktop) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Gestão de Turmas, Ensalamento & Atribuição Docente',
+          style: jakarta(
+            size: isDesktop ? 26 : 22,
+            weight: FontWeight.w700,
+            color: const Color(0xFF18181B),
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Abertura de turmas no período letivo, alocação de salas/laboratórios e vinculação do professor regente.',
+          style: jakarta(
+            size: 14,
+            weight: FontWeight.w400,
+            color: const Color(0xFF737373),
+          ),
+        ),
+      ],
     );
   }
 }

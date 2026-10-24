@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -24,15 +24,19 @@ class VideoCallLobbyController extends ChangeNotifier {
   double _audioLevel = 0.05;
   bool _handedOffMediaEngine = false;
   bool _isDisposed = false;
+  late final Future<bool> _mediaInitialization;
+  bool _isInitializingMedia = true;
+  bool _isMediaReady = false;
+  String? _mediaStatus;
 
   final List<StreamSubscription> _subscriptions = [];
 
   VideoCallLobbyController({
     VideoCallRepository? repository,
     ICallMediaEngine? mediaEngine,
-  })  : _injectedRepository = repository,
-        _mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
-    _initHardwarePreview();
+  }) : _injectedRepository = repository,
+       _mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
+    _mediaInitialization = _initHardwarePreview();
   }
 
   String get name => _name;
@@ -43,8 +47,11 @@ class VideoCallLobbyController extends ChangeNotifier {
   double get audioLevel => _isAudioMuted ? 0.0 : _audioLevel;
   ICallMediaEngine get mediaEngine => _mediaEngine;
   String? get localVideoViewType => _mediaEngine.getVideoViewType('local');
+  bool get isInitializingMedia => _isInitializingMedia;
+  bool get isMediaReady => _isMediaReady;
+  String? get mediaStatus => _mediaStatus;
 
-  Future<void> _initHardwarePreview() async {
+  Future<bool> _initHardwarePreview() async {
     _subscriptions.add(
       _mediaEngine.onLocalAudioLevel.listen((level) {
         if (!_isDisposed && !_isAudioMuted) {
@@ -60,13 +67,52 @@ class VideoCallLobbyController extends ChangeNotifier {
         }
       }),
     );
-    await _mediaEngine.initializeLocalMedia(
+    _subscriptions.add(
+      _mediaEngine.onMediaStatus.listen((message) {
+        if (!_isDisposed) {
+          _mediaStatus = message;
+          notifyListeners();
+        }
+      }),
+    );
+    final ready = await _mediaEngine.initializeLocalMedia(
       audioMuted: _isAudioMuted,
       videoOff: _isVideoOff,
     );
     if (!_isDisposed) {
+      _isMediaReady = ready;
+      _isInitializingMedia = false;
+      if (!ready && _mediaStatus == null) {
+        _mediaStatus =
+            'Não foi possível acessar câmera ou microfone. Verifique as permissões do navegador e tente novamente.';
+      }
       notifyListeners();
     }
+    return ready;
+  }
+
+  Future<bool> ensureMediaReady() async {
+    if (_isMediaReady) return true;
+    await _mediaInitialization;
+    if (_isMediaReady || _isDisposed) return _isMediaReady;
+
+    _isInitializingMedia = true;
+    _mediaStatus = null;
+    notifyListeners();
+    final ready = await _mediaEngine.initializeLocalMedia(
+      audioMuted: _isAudioMuted,
+      videoOff: _isVideoOff,
+    );
+    if (!_isDisposed) {
+      _isMediaReady = ready;
+      _isInitializingMedia = false;
+      if (!ready && _mediaStatus == null) {
+        _mediaStatus =
+            'Não foi possível acessar câmera ou microfone. Verifique as permissões do navegador e tente novamente.';
+      }
+      notifyListeners();
+    }
+    return ready;
   }
 
   void setName(String value) {
@@ -157,10 +203,9 @@ class VideoCallLobbyController extends ChangeNotifier {
       title: 'Sala $sanitizedRoom',
     );
 
-    final repo = _injectedRepository ??
-        VideoCallRepositoryImpl(
-          dataSource: VideoCallSignalingDataSource(),
-        );
+    final repo =
+        _injectedRepository ??
+        VideoCallRepositoryImpl(dataSource: VideoCallSignalingDataSource());
 
     _handedOffMediaEngine = true;
 

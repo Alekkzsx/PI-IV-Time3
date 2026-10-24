@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'dart:async';
 import '../entities/recording_state.dart';

@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter_test/flutter_test.dart';
 import '../helpers/video_call_test_harness.dart';

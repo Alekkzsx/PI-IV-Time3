@@ -30,6 +30,8 @@ class WebCallMediaEngine implements ICallMediaEngine {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<String> _videoStreamUpdatedController =
       StreamController<String>.broadcast();
+  final StreamController<String> _mediaStatusController =
+      StreamController<String>.broadcast();
 
   final Map<String, String> _registeredViewTypes = {};
   Timer? _videoPlaybackWatchdog;
@@ -74,7 +76,11 @@ class WebCallMediaEngine implements ICallMediaEngine {
           window.__agmrmMediaBridge = {
             streams: {},
             peers: {},
+            remoteAudioSources: {},
+            remoteAudioElements: {},
+            pendingIceCandidates: {},
             audioCtx: null,
+            playbackAudioCtx: null,
             analyser: null,
             audioTimer: null,
             audioMuted: false,
@@ -82,6 +88,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
             mediaRecorder: null,
             recordedChunks: [],
             onAudioLevelCb: null,
+            onMediaStatusCb: null,
             onRemoteStreamCb: null,
             onOutboundSignalCb: null,
 
@@ -105,6 +112,96 @@ class WebCallMediaEngine implements ICallMediaEngine {
               }
               scan(document);
               return result;
+            },
+
+            reportMediaStatus: function(message) {
+              if (this.onMediaStatusCb && message) {
+                this.onMediaStatusCb(String(message));
+              }
+            },
+
+            unlockAudioPlayback: function() {
+              var self = this;
+              var AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                try {
+                  if (!this.playbackAudioCtx || this.playbackAudioCtx.state === 'closed') {
+                    this.playbackAudioCtx = new AudioCtx();
+                  }
+                  if (this.playbackAudioCtx.state === 'suspended') {
+                    this.playbackAudioCtx.resume().catch(function() {
+                      self.reportMediaStatus('O navegador bloqueou a reprodução de áudio. Toque novamente na tela e confira as permissões de som.');
+                    });
+                  }
+                } catch (e) {
+                  this.reportMediaStatus('O navegador bloqueou a reprodução de áudio. Toque novamente na tela e confira as permissões de som.');
+                }
+              }
+              this.resumeAllStreams();
+            },
+
+            attachRemoteAudio: function(peerId, track) {
+              var self = this;
+              if (!track || track.kind !== 'audio') return;
+              var AudioCtx = window.AudioContext || window.webkitAudioContext;
+              if (AudioCtx) {
+                try {
+                  if (!self.playbackAudioCtx || self.playbackAudioCtx.state === 'closed') {
+                    self.playbackAudioCtx = new AudioCtx();
+                  }
+                  var audioStream = new MediaStream([track]);
+                  var source = self.playbackAudioCtx.createMediaStreamSource(audioStream);
+                  source.connect(self.playbackAudioCtx.destination);
+                  var key = peerId + ':' + track.id;
+                  self.remoteAudioSources[key] = source;
+                  if (self.playbackAudioCtx.state === 'suspended') {
+                    self.playbackAudioCtx.resume().catch(function() {
+                      self.reportMediaStatus('O navegador bloqueou o áudio recebido. Toque na tela para liberar o som.');
+                    });
+                  }
+                  return;
+                } catch (e) {
+                  self.reportMediaStatus('Não foi possível iniciar o áudio recebido neste navegador.');
+                }
+              }
+
+              try {
+                var audio = document.createElement('audio');
+                audio.autoplay = true;
+                audio.playsInline = true;
+                audio.setAttribute('playsinline', 'true');
+                audio.srcObject = new MediaStream([track]);
+                audio.style.display = 'none';
+                document.body.appendChild(audio);
+                self.remoteAudioElements[peerId] = audio;
+                var playPromise = audio.play();
+                if (playPromise && playPromise.catch) {
+                  playPromise.catch(function() {
+                    self.reportMediaStatus('O navegador bloqueou o áudio recebido. Interaja com a página para liberar a reprodução.');
+                  });
+                }
+              } catch (e) {
+                self.reportMediaStatus('Este navegador não conseguiu reproduzir o áudio recebido.');
+              }
+            },
+
+            clearRemoteAudio: function(peerId) {
+              var self = this;
+              Object.keys(self.remoteAudioSources).forEach(function(key) {
+                if (key.indexOf(peerId + ':') === 0) {
+                  try { self.remoteAudioSources[key].disconnect(); } catch (e) {}
+                  delete self.remoteAudioSources[key];
+                }
+              });
+              var audio = self.remoteAudioElements[peerId];
+              if (audio) {
+                try {
+                  audio.pause();
+                  audio.srcObject = null;
+                  audio.remove();
+                } catch (e) {}
+                delete self.remoteAudioElements[peerId];
+              }
             },
 
             attachStreamToElement: function(rawVideoEl, key, muted) {
@@ -177,8 +274,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
               var keys = Object.keys(this.streams);
               for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
-                var isMuted = (k === 'local' || k === 'screen');
-                this.resumeAllForKey(k, isMuted);
+                this.resumeAllForKey(k, true);
               }
             },
 
@@ -186,6 +282,11 @@ class WebCallMediaEngine implements ICallMediaEngine {
               var self = this;
               self.audioMuted = !!audioMuted;
               self.videoOff = !!videoOff;
+
+              if (!window.isSecureContext) {
+                onError('A câmera e o microfone exigem HTTPS ou localhost neste navegador.');
+                return;
+              }
 
               var existing = unwrap(self.streams['local']);
               if (existing && existing.getTracks && existing.getTracks().some(function(t) { return t.readyState === 'live'; })) {
@@ -197,7 +298,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
               }
 
               if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                onError('mediaDevices.getUserMedia indisponivel');
+                onError('Este navegador não oferece suporte à captura de câmera e microfone.');
                 return;
               }
 
@@ -207,38 +308,71 @@ class WebCallMediaEngine implements ICallMediaEngine {
                 self.setCamOff(self.videoOff);
                 self.startAudioAnalyser(stream);
                 self.resumeAllForKey('local', true);
+                var hasAudio = stream.getAudioTracks && stream.getAudioTracks().length > 0;
+                var hasVideo = stream.getVideoTracks && stream.getVideoTracks().length > 0;
+                if (!hasAudio || !hasVideo) {
+                  var unavailable = [];
+                  if (!hasAudio) unavailable.push('microfone');
+                  if (!hasVideo) unavailable.push('câmera');
+                  self.reportMediaStatus('A captura foi iniciada sem ' + unavailable.join(' e ') + '. Verifique as permissões e os dispositivos disponíveis.');
+                }
                 onSuccess(true);
               };
 
-              navigator.mediaDevices.getUserMedia({
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true
+              var captureAttempts = [
+                {
+                  audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                  },
+                  video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                  }
                 },
-                video: {
-                  width: { ideal: 1280 },
-                  height: { ideal: 720 },
-                  facingMode: 'user'
+                { audio: true, video: true },
+                { audio: true, video: false },
+                { audio: false, video: true }
+              ];
+              var attemptCapture = function(index, lastError) {
+                if (index >= captureAttempts.length) {
+                  onError(self.describeMediaError(lastError));
+                  return;
                 }
-              }).then(applyStream).catch(function() {
-                navigator.mediaDevices.getUserMedia({
-                  audio: true,
-                  video: true
-                }).then(applyStream).catch(function() {
-                  navigator.mediaDevices.getUserMedia({
-                    audio: false,
-                    video: true
-                  }).then(applyStream).catch(function() {
-                    navigator.mediaDevices.getUserMedia({
-                      audio: true,
-                      video: false
-                    }).then(applyStream).catch(function(err) {
-                      onError(String(err));
-                    });
+                navigator.mediaDevices.getUserMedia(captureAttempts[index])
+                  .then(applyStream)
+                  .catch(function(error) {
+                    if (error && (
+                      error.name === 'NotAllowedError' ||
+                      error.name === 'PermissionDeniedError' ||
+                      error.name === 'SecurityError'
+                    )) {
+                      onError(self.describeMediaError(error));
+                      return;
+                    }
+                    attemptCapture(index + 1, error);
                   });
-                });
-              });
+              };
+              attemptCapture(0, null);
+            },
+
+            describeMediaError: function(error) {
+              var name = error && error.name ? error.name : '';
+              if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+                return 'A permissão para câmera ou microfone foi negada. Libere o acesso nas configurações do navegador e tente novamente.';
+              }
+              if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+                return 'Nenhuma câmera ou entrada de microfone compatível foi encontrada.';
+              }
+              if (name === 'NotReadableError' || name === 'TrackStartError') {
+                return 'A câmera ou o microfone está sendo usado por outro aplicativo ou não pode ser iniciado.';
+              }
+              if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+                return 'O navegador não conseguiu atender às configurações de câmera solicitadas.';
+              }
+              return error && error.message ? error.message : 'Falha ao acessar câmera e microfone.';
             },
 
             startAudioAnalyser: function(rawStream) {
@@ -410,25 +544,41 @@ class WebCallMediaEngine implements ICallMediaEngine {
               if (self.peers[remotePeerId]) {
                 return self.peers[remotePeerId];
               }
+              if (typeof RTCPeerConnection === 'undefined') {
+                self.reportMediaStatus('Este navegador não oferece suporte a chamadas WebRTC.');
+                throw new Error('RTCPeerConnection is unavailable');
+              }
+              var configuredIceServers = window.__AGMRM_ICE_SERVERS__;
               var pc = new RTCPeerConnection({
-                iceServers: [
+                iceServers: Array.isArray(configuredIceServers) && configuredIceServers.length
+                  ? configuredIceServers
+                  : [
                   { urls: 'stun:stun.l.google.com:19302' },
                   { urls: 'stun:stun1.l.google.com:19302' }
-                ]
+                  ]
               });
               self.peers[remotePeerId] = pc;
+              self.pendingIceCandidates[remotePeerId] = [];
 
               var localStream = unwrap(self.streams['local']);
               var screenStream = unwrap(self.streams['screen']);
               var activeStream = screenStream || localStream;
               if (activeStream && activeStream.getTracks) {
                 activeStream.getTracks().forEach(function(track) {
-                  try { pc.addTrack(track, activeStream); } catch (e) {}
+                  try {
+                    pc.addTrack(track, activeStream);
+                  } catch (e) {
+                    self.reportMediaStatus('Não foi possível compartilhar a trilha de ' + track.kind + ' com o outro participante.');
+                  }
                 });
               }
               if (screenStream && localStream && localStream.getAudioTracks) {
                 localStream.getAudioTracks().forEach(function(audioTrack) {
-                  try { pc.addTrack(audioTrack, screenStream); } catch (e) {}
+                  try {
+                    pc.addTrack(audioTrack, screenStream);
+                  } catch (e) {
+                    self.reportMediaStatus('Não foi possível compartilhar o áudio durante o compartilhamento de tela.');
+                  }
                 });
               }
 
@@ -451,13 +601,40 @@ class WebCallMediaEngine implements ICallMediaEngine {
                   ? event.streams[0]
                   : new MediaStream([event.track]);
                 self.streams[remotePeerId] = remoteStream;
+                if (event.track.kind === 'audio') {
+                  self.attachRemoteAudio(remotePeerId, event.track);
+                }
+                event.track.addEventListener('ended', function() {
+                  if (event.track.kind === 'audio') {
+                    self.clearRemoteAudio(remotePeerId);
+                  }
+                }, { once: true });
                 if (self.onRemoteStreamCb) {
                   self.onRemoteStreamCb(remotePeerId);
                 }
-                self.resumeAllForKey(remotePeerId, false);
+                self.resumeAllForKey(remotePeerId, true);
+              };
+
+              pc.oniceconnectionstatechange = function() {
+                if (pc.iceConnectionState === 'failed') {
+                  self.reportMediaStatus('A conexão de mídia falhou. Verifique a rede ou a configuração de um servidor TURN.');
+                }
               };
 
               return pc;
+            },
+
+            flushPendingIceCandidates: function(remotePeerId, pc) {
+              var self = this;
+              var queued = self.pendingIceCandidates[remotePeerId] || [];
+              self.pendingIceCandidates[remotePeerId] = [];
+              return queued.reduce(function(chain, candidate) {
+                return chain.then(function() {
+                  return pc.addIceCandidate(candidate);
+                });
+              }, Promise.resolve()).catch(function(error) {
+                self.reportMediaStatus('Não foi possível aplicar os candidatos de rede WebRTC recebidos.');
+              });
             },
 
             connectPeer: function(remotePeerId, isInitiator) {
@@ -482,9 +659,13 @@ class WebCallMediaEngine implements ICallMediaEngine {
                         );
                       }
                     });
-                  }).catch(function() {});
+                  }).catch(function(error) {
+                    self.reportMediaStatus('Não foi possível iniciar a conexão de mídia: ' + (error.message || error.name || 'erro WebRTC') + '.');
+                  });
                 }
-              } catch (e) {}
+              } catch (e) {
+                self.reportMediaStatus('Não foi possível criar a conexão WebRTC com o participante.');
+              }
             },
 
             handleSignal: function(remotePeerId, signalType, sdpType, sdp, candidate, sdpMid, sdpMLineIndex) {
@@ -496,6 +677,8 @@ class WebCallMediaEngine implements ICallMediaEngine {
                   pc.setRemoteDescription({
                     type: sdpType || 'offer',
                     sdp: sdp
+                  }).then(function() {
+                    return self.flushPendingIceCandidates(remotePeerId, pc);
                   }).then(function() {
                     return pc.createAnswer();
                   }).then(function(answer) {
@@ -512,22 +695,37 @@ class WebCallMediaEngine implements ICallMediaEngine {
                         );
                       }
                     });
-                  }).catch(function() {});
+                  }).catch(function(error) {
+                    self.reportMediaStatus('Não foi possível negociar a chamada WebRTC: ' + (error.message || error.name || 'erro WebRTC') + '.');
+                  });
                 } else if (signalType === 'answer') {
                   if (!sdp) return;
                   pc.setRemoteDescription({
                     type: sdpType || 'answer',
                     sdp: sdp
-                  }).catch(function() {});
+                  }).then(function() {
+                    return self.flushPendingIceCandidates(remotePeerId, pc);
+                  }).catch(function(error) {
+                    self.reportMediaStatus('Não foi possível aplicar a resposta WebRTC recebida.');
+                  });
                 } else if (signalType === 'ice') {
                   if (!candidate) return;
-                  pc.addIceCandidate({
+                  var iceCandidate = {
                     candidate: candidate,
                     sdpMid: sdpMid || '0',
                     sdpMLineIndex: sdpMLineIndex || 0
-                  }).catch(function() {});
+                  };
+                  if (!pc.remoteDescription) {
+                    self.pendingIceCandidates[remotePeerId].push(iceCandidate);
+                    return;
+                  }
+                  pc.addIceCandidate(iceCandidate).catch(function() {
+                    self.reportMediaStatus('Não foi possível aplicar um candidato de rede WebRTC.');
+                  });
                 }
-              } catch (e) {}
+              } catch (e) {
+                self.reportMediaStatus('Não foi possível processar a sinalização da conexão WebRTC.');
+              }
             },
 
             disconnectPeer: function(remotePeerId) {
@@ -537,6 +735,8 @@ class WebCallMediaEngine implements ICallMediaEngine {
                 delete this.peers[remotePeerId];
               }
               delete this.streams[remotePeerId];
+              delete this.pendingIceCandidates[remotePeerId];
+              this.clearRemoteAudio(remotePeerId);
             },
 
             startRecording: function() {
@@ -623,6 +823,20 @@ class WebCallMediaEngine implements ICallMediaEngine {
                 try { this.audioCtx.close(); } catch (e) {}
                 this.audioCtx = null;
               }
+              if (this.playbackAudioCtx && this.playbackAudioCtx.close) {
+                try { this.playbackAudioCtx.close(); } catch (e) {}
+                this.playbackAudioCtx = null;
+              }
+              var audioPeerIds = Object.keys(this.remoteAudioElements);
+              for (var a = 0; a < audioPeerIds.length; a++) {
+                this.clearRemoteAudio(audioPeerIds[a]);
+              }
+              Object.keys(this.remoteAudioSources).forEach(function(key) {
+                try { this.remoteAudioSources[key].disconnect(); } catch (e) {}
+              }, this);
+              this.remoteAudioSources = {};
+              this.remoteAudioElements = {};
+              this.pendingIceCandidates = {};
               var peerIds = Object.keys(this.peers);
               for (var i = 0; i < peerIds.length; i++) {
                 try { this.peers[peerIds[i]].close(); } catch (e) {}
@@ -663,51 +877,53 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
     bridge['onRemoteStreamCb'] = (String remotePeerId) {
       if (_isDisposed) return;
-      _registerStreamViewFactory(
-        remotePeerId,
-        muted: false,
-        mirror: false,
-      );
+      _registerStreamViewFactory(remotePeerId, muted: true, mirror: false);
     };
 
-    bridge['onOutboundSignalCb'] = (
-      String targetPeerId,
-      String signalType,
-      String sdpType,
-      String sdp,
-      String candidate,
-      String sdpMid,
-      num sdpMLineIndex,
-    ) {
-      if (_isDisposed || _outboundWebRtcController.isClosed) return;
-      if (signalType == 'ice') {
-        _outboundWebRtcController.add({
-          'targetPeerId': targetPeerId,
-          'signalType': 'ice',
-          'candidate': candidate,
-          'sdpMid': sdpMid,
-          'sdpMLineIndex': sdpMLineIndex.toInt(),
-        });
-      } else {
-        _outboundWebRtcController.add({
-          'targetPeerId': targetPeerId,
-          'signalType': signalType,
-          'type': sdpType,
-          'sdp': sdp,
-        });
+    bridge['onMediaStatusCb'] = (String message) {
+      if (!_isDisposed && !_mediaStatusController.isClosed) {
+        _mediaStatusController.add(message);
       }
     };
+
+    bridge['onOutboundSignalCb'] =
+        (
+          String targetPeerId,
+          String signalType,
+          String sdpType,
+          String sdp,
+          String candidate,
+          String sdpMid,
+          num sdpMLineIndex,
+        ) {
+          if (_isDisposed || _outboundWebRtcController.isClosed) return;
+          if (signalType == 'ice') {
+            _outboundWebRtcController.add({
+              'targetPeerId': targetPeerId,
+              'signalType': 'ice',
+              'candidate': candidate,
+              'sdpMid': sdpMid,
+              'sdpMLineIndex': sdpMLineIndex.toInt(),
+            });
+          } else {
+            _outboundWebRtcController.add({
+              'targetPeerId': targetPeerId,
+              'signalType': signalType,
+              'type': sdpType,
+              'sdp': sdp,
+            });
+          }
+        };
   }
 
   void _startVideoPlaybackWatchdog() {
     _videoPlaybackWatchdog?.cancel();
-    _videoPlaybackWatchdog = Timer.periodic(
-      const Duration(milliseconds: 500),
-      (_) {
-        if (_isDisposed) return;
-        _bridge?.callMethod('resumeAllStreams', []);
-      },
-    );
+    _videoPlaybackWatchdog = Timer.periodic(const Duration(milliseconds: 500), (
+      _,
+    ) {
+      if (_isDisposed) return;
+      _bridge?.callMethod('resumeAllStreams', []);
+    });
   }
 
   @override
@@ -724,6 +940,9 @@ class WebCallMediaEngine implements ICallMediaEngine {
   @override
   Stream<String> get onVideoStreamUpdated =>
       _videoStreamUpdatedController.stream;
+
+  @override
+  Stream<String> get onMediaStatus => _mediaStatusController.stream;
 
   @override
   bool get isInitialized => _isInitialized;
@@ -743,46 +962,44 @@ class WebCallMediaEngine implements ICallMediaEngine {
       final viewType = 'agmrm-video-$streamKey-${++_viewSequence}';
       _registeredViewTypes[streamKey] = viewType;
 
-      ui_web.platformViewRegistry.registerViewFactory(
-        viewType,
-        (int viewId) {
-          final element = html.VideoElement()
-            ..autoplay = true
-            ..muted = muted
-            ..controls = false
-            ..style.width = '100%'
-            ..style.height = '100%'
-            ..style.objectFit = streamKey == 'screen' ? 'contain' : 'cover'
-            ..style.backgroundColor = '#09090B'
-            ..style.pointerEvents = 'none';
+      ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+        final element = html.VideoElement()
+          ..autoplay = true
+          ..muted = muted
+          ..controls = false
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..style.objectFit = streamKey == 'screen' ? 'contain' : 'cover'
+          ..style.backgroundColor = '#09090B'
+          ..style.pointerEvents = 'none';
 
-          element.setAttribute('playsinline', 'true');
-          element.setAttribute('webkit-playsinline', 'true');
-          element.setAttribute('data-agmrm-key', streamKey);
-          if (muted) {
-            element.setAttribute('muted', 'true');
+        element.setAttribute('playsinline', 'true');
+        element.setAttribute('webkit-playsinline', 'true');
+        element.setAttribute('data-agmrm-key', streamKey);
+        if (muted) {
+          element.setAttribute('muted', 'true');
+        }
+        if (mirror) {
+          element.style.transform = 'scaleX(-1)';
+        }
+
+        try {
+          _bridge?.callMethod('attachStreamToElement', [
+            element,
+            streamKey,
+            muted,
+          ]);
+        } catch (_) {}
+
+        // Também agenda varredura no próximo microtask/frame após inserção no Shadow DOM
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (!_isDisposed) {
+            _bridge?.callMethod('resumeAllForKey', [streamKey, muted]);
           }
-          if (mirror) {
-            element.style.transform = 'scaleX(-1)';
-          }
+        });
 
-          try {
-            _bridge?.callMethod(
-              'attachStreamToElement',
-              [element, streamKey, muted],
-            );
-          } catch (_) {}
-
-          // Também agenda varredura no próximo microtask/frame após inserção no Shadow DOM
-          Future.delayed(const Duration(milliseconds: 50), () {
-            if (!_isDisposed) {
-              _bridge?.callMethod('resumeAllForKey', [streamKey, muted]);
-            }
-          });
-
-          return element;
-        },
-      );
+        return element;
+      });
     } else {
       _bridge?.callMethod('resumeAllForKey', [streamKey, muted]);
     }
@@ -804,11 +1021,7 @@ class WebCallMediaEngine implements ICallMediaEngine {
 
     // Registra imediatamente a viewFactory 'local' para que o HtmlElementView
     // já esteja montado no DOM assim que o stream da câmera ficar pronto.
-    _registerStreamViewFactory(
-      'local',
-      muted: true,
-      mirror: true,
-    );
+    _registerStreamViewFactory('local', muted: true, mirror: true);
 
     if (_isInitialized) {
       _registerStreamViewFactory(
@@ -843,6 +1056,11 @@ class WebCallMediaEngine implements ICallMediaEngine {
     final bridge = _bridge;
     if (bridge == null) {
       _initFuture = null;
+      if (!_mediaStatusController.isClosed) {
+        _mediaStatusController.add(
+          'O mecanismo de mídia não pôde ser iniciado neste navegador.',
+        );
+      }
       completer.complete(false);
       return false;
     }
@@ -853,31 +1071,45 @@ class WebCallMediaEngine implements ICallMediaEngine {
         videoOff,
         (dynamic _) {
           _isInitialized = true;
-          _registerStreamViewFactory(
-            'local',
-            muted: true,
-            mirror: true,
-          );
+          _registerStreamViewFactory('local', muted: true, mirror: true);
           _bridge?.callMethod('resumeAllForKey', ['local', true]);
           if (!completer.isCompleted) {
             completer.complete(true);
           }
         },
-        (dynamic _) {
+        (dynamic error) {
           _initFuture = null;
+          if (!_mediaStatusController.isClosed) {
+            _mediaStatusController.add(
+              error?.toString() ??
+                  'Não foi possível acessar câmera ou microfone.',
+            );
+          }
           if (!completer.isCompleted) {
             completer.complete(false);
           }
         },
       ]);
-    } catch (_) {
+    } catch (error) {
       _initFuture = null;
+      if (!_mediaStatusController.isClosed) {
+        _mediaStatusController.add(
+          'Falha ao iniciar câmera ou microfone: $error',
+        );
+      }
       if (!completer.isCompleted) {
         completer.complete(false);
       }
     }
 
     return completer.future;
+  }
+
+  @override
+  Future<void> unlockAudioPlayback() async {
+    if (_isDisposed) return;
+    _ensureJsBridge();
+    _bridge?.callMethod('unlockAudioPlayback', []);
   }
 
   @override
@@ -1088,5 +1320,6 @@ class WebCallMediaEngine implements ICallMediaEngine {
     await _screenShareStoppedController.close();
     await _outboundWebRtcController.close();
     await _videoStreamUpdatedController.close();
+    await _mediaStatusController.close();
   }
 }

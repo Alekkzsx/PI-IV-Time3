@@ -18,6 +18,8 @@ class StubCallMediaEngine implements ICallMediaEngine {
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<String> _videoStreamUpdatedController =
       StreamController<String>.broadcast();
+  final StreamController<String> _mediaStatusController =
+      StreamController<String>.broadcast();
 
   bool _isInitialized = false;
   bool _isDisposed = false;
@@ -38,6 +40,9 @@ class StubCallMediaEngine implements ICallMediaEngine {
       _videoStreamUpdatedController.stream;
 
   @override
+  Stream<String> get onMediaStatus => _mediaStatusController.stream;
+
+  @override
   bool get isInitialized => _isInitialized;
 
   @override
@@ -54,6 +59,9 @@ class StubCallMediaEngine implements ICallMediaEngine {
   }
 
   @override
+  Future<void> unlockAudioPlayback() async {}
+
+  @override
   Future<void> setMicrophoneMuted(bool muted) async {}
 
   @override
@@ -66,7 +74,10 @@ class StubCallMediaEngine implements ICallMediaEngine {
   Future<void> stopScreenShare() async {}
 
   @override
-  Future<void> connectToPeer(String remotePeerId, {required bool isInitiator}) async {}
+  Future<void> connectToPeer(
+    String remotePeerId, {
+    required bool isInitiator,
+  }) async {}
 
   @override
   Future<void> handleInboundWebRtcSignal(
@@ -100,6 +111,6 @@ class StubCallMediaEngine implements ICallMediaEngine {
     await _screenShareStoppedController.close();
     await _outboundWebRtcController.close();
     await _videoStreamUpdatedController.close();
+    await _mediaStatusController.close();
   }
 }
-

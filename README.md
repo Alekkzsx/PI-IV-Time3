@@ -115,7 +115,20 @@ cp security/.env.example security/.env
 
 ---
 
-### 3. Start the backend server
+### 3. Install project dependencies
+
+After cloning, from the repository root, run `flutter pub get` once in each Dart/Flutter package directory. This downloads the packages declared in each `pubspec.yaml` and generates the local Flutter/Dart package configuration:
+
+```bash
+cd frontend
+flutter pub get
+
+cd ../security
+flutter pub get
+cd ..
+```
+
+### 4. Start the backend server
 
 The server uses native Java SE with no external framework dependencies (no Maven or Gradle required):
 
@@ -149,17 +162,6 @@ server\test-server.bat
 ```bash
 chmod +x server/test-server.sh
 ./server/test-server.sh
-```
-
----
-
-### 4. Set up the frontend
-
-Navigate to the `frontend` directory and install dependencies:
-
-```bash
-cd frontend
-flutter pub get
 ```
 
 ---

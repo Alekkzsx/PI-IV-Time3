@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../../domain/entities/chat_message.dart';
 

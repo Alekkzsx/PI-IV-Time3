@@ -1,26 +1,14 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth_view/forgot_password/domain/usecases/recover_password_usecase.dart';
-import 'features/auth_view/forgot_password/presentation/controllers/recover_password_controller.dart';
-import 'features/auth_view/forgot_password/presentation/pages/recover_password_page.dart';
-import 'features/auth_view/login/domain/usecases/login_usecase.dart';
-import 'features/auth_view/login/presentation/controllers/login_controller.dart';
-import 'features/auth_view/login/presentation/pages/login_page.dart';
-import 'features/auth_view/reset_password/presentation/pages/reset_password_page.dart';
-import 'features/auth_view/verify_code/presentation/pages/verify_code_page.dart';
-import 'features/student_view/student_messages/presentation/pages/student_messages_page.dart';
-import 'features/student_view/student_secretariat/presentation/pages/student_secretariat_page.dart';
-import 'features/video_call/presentation/pages/video_call_lobby_page.dart';
-import 'shared/auth/data/auth_repository_impl.dart';
-import 'shared/auth/external/auth_remote_datasource_impl.dart';
-import 'shared/student_layout/student_sidebar.dart';
-
-// Importação correta com base na árvore de pastas da sua imagem:
-import 'features/admin/admin_shell/presentation/pages/admin_shell_page.dart';
-import 'features/docente_view/presentation/pages/docente_shell_page.dart';
-import 'shared/student_layout/student_portal_shell.dart';
+import 'features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
+import 'features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
+import 'features/auth/login/domain/usecases/login_usecase.dart';
+import 'features/auth/login/presentation/controllers/login_controller.dart';
+import 'features/auth/shared/data/auth_repository_impl.dart';
+import 'features/auth/shared/external/auth_remote_datasource_impl.dart';
 
 /// Ponto de entrada da aplicação Flutter.
 ///
@@ -29,7 +17,7 @@ import 'shared/student_layout/student_portal_shell.dart';
 void main() {
   const initialRoute = String.fromEnvironment(
     'INITIAL_ROUTE',
-    defaultValue: '/',
+    defaultValue: AppRoutes.login,
   );
 
   // Inicialização da injeção de dependências (Clean Architecture)
@@ -69,34 +57,46 @@ class PortalAvaApp extends StatelessWidget {
     super.key,
     required this.controller,
     this.loginController,
-    this.initialRoute = '/',
+    this.initialRoute = AppRoutes.login,
   });
 
   @override
   Widget build(BuildContext context) {
+    final authRepository =
+        loginController?.loginUseCase.repository ??
+        AuthRepositoryImpl(AuthRemoteDataSourceImpl());
+    final effectiveLoginController =
+        loginController ??
+        LoginController(loginUseCase: LoginUseCase(authRepository));
+
     return MaterialApp(
       title: 'AGMRM - Portal Acadêmico',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: initialRoute,
-      routes: {
-        '/': (context) => LoginPage(controller: loginController),
-        '/recover-password': (context) =>
-            RecoverPasswordPage(controller: controller),
-        '/verify-code': (context) => const VerifyCodePage(),
-        '/reset-password': (context) => const ResetPasswordPage(),
-        '/student/home': (context) => StudentPortalShell(
-          headerTitle: 'Painel Geral',
-          activeNavItem: StudentNavItem.painelGeral,
-          // Como não sei o nome do seu widget do painel geral, coloquei um texto provisório.
-          // Depois, substitua esse Center(...) pela sua página real do Painel Geral!
-          child: Center(child: Text('Tela do Painel Geral provisória')),
-        ),
-        '/student/messages': (context) => const StudentMessagesPage(),
-        '/student/secretaria': (context) => const StudentSecretariatPage(),
-        '/video-call': (context) => const VideoCallLobbyPage(),
-        '/admin-shell': (context) => const AdminShellPage(),
-        '/docente/home': (context) => const DocenteShellPage(),
+      routes: const {},
+      onGenerateRoute: (settings) => AppRouter.onGenerateRoute(
+        settings: settings,
+        recoverController: controller,
+        authRepository: authRepository,
+        loginController: effectiveLoginController,
+      ),
+      onGenerateInitialRoutes: (routeName) {
+        final route = AppRouter.onGenerateRoute(
+          settings: RouteSettings(name: routeName),
+          recoverController: controller,
+          authRepository: authRepository,
+          loginController: effectiveLoginController,
+        );
+        if (route != null) return [route];
+
+        final fallback = AppRouter.onGenerateRoute(
+          settings: const RouteSettings(name: AppRoutes.login),
+          recoverController: controller,
+          authRepository: authRepository,
+          loginController: effectiveLoginController,
+        );
+        return [fallback!];
       },
     );
   }

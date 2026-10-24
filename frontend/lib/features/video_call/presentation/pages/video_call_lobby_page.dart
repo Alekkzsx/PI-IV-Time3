@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/repositories/video_call_repository.dart';
@@ -19,7 +19,8 @@ class VideoCallLobbyPage extends StatefulWidget {
     String roomCode,
     bool isAudioMuted,
     bool isVideoOff,
-  )? onJoin;
+  )?
+  onJoin;
 
   const VideoCallLobbyPage({
     super.key,
@@ -47,15 +48,17 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
     if (widget.controller != null) {
       _lobbyController = widget.controller!;
     } else {
-      _lobbyController =
-          VideoCallLobbyController(repository: widget.repository);
+      _lobbyController = VideoCallLobbyController(
+        repository: widget.repository,
+      );
       _ownsController = true;
     }
 
     _nameController = TextEditingController(text: _lobbyController.name);
     _raController = TextEditingController(text: _lobbyController.ra);
-    _roomCodeController =
-        TextEditingController(text: _lobbyController.roomCode);
+    _roomCodeController = TextEditingController(
+      text: _lobbyController.roomCode,
+    );
 
     _lobbyController.addListener(_onControllerUpdate);
   }
@@ -78,6 +81,21 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
 
   Future<void> _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
+      await _lobbyController.mediaEngine.unlockAudioPlayback();
+      final mediaReady = await _lobbyController.ensureMediaReady();
+      if (!mounted) return;
+      if (!mediaReady) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _lobbyController.mediaStatus ??
+                  'Ative a câmera ou o microfone nas permissões do navegador para entrar.',
+            ),
+          ),
+        );
+        return;
+      }
+
       final name = _nameController.text.trim();
       final ra = _raController.text.trim();
       final roomCode = _roomCodeController.text.trim().toUpperCase();
@@ -122,8 +140,10 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide:
-            const BorderSide(color: VideoCallColors.accentWhite, width: 1.5),
+        borderSide: const BorderSide(
+          color: VideoCallColors.accentWhite,
+          width: 1.5,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -131,8 +151,10 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide:
-            const BorderSide(color: VideoCallColors.accentWhite, width: 1.5),
+        borderSide: const BorderSide(
+          color: VideoCallColors.accentWhite,
+          width: 1.5,
+        ),
       ),
       errorStyle: const TextStyle(color: VideoCallColors.textSecondary),
     );
@@ -239,11 +261,29 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                             : VideoCallColors.accentWhite,
                       ),
                       const SizedBox(width: 8),
-                      AudioLevelMeter(
-                        level: _lobbyController.audioLevel,
-                      ),
+                      AudioLevelMeter(level: _lobbyController.audioLevel),
                     ],
                   ),
+                  if (_lobbyController.mediaStatus case final status?) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      key: const Key('lobby_media_status'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: VideoCallColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: VideoCallColors.border),
+                      ),
+                      child: Text(
+                        status,
+                        style: const TextStyle(
+                          color: VideoCallColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   // Botões de alternância de hardware
                   Wrap(
@@ -309,8 +349,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     key: const Key('lobby_name_field'),
                     controller: _nameController,
                     style: const TextStyle(color: VideoCallColors.textPrimary),
-                    decoration:
-                        _buildMonochromeInputDecoration('Nome de Exibição'),
+                    decoration: _buildMonochromeInputDecoration(
+                      'Nome de Exibição',
+                    ),
                     onChanged: (val) {
                       _lobbyController.setName(val);
                       setState(() {});
@@ -323,8 +364,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     key: const Key('lobby_ra_field'),
                     controller: _raController,
                     style: const TextStyle(color: VideoCallColors.textPrimary),
-                    decoration:
-                        _buildMonochromeInputDecoration('RA Institucional'),
+                    decoration: _buildMonochromeInputDecoration(
+                      'RA Institucional',
+                    ),
                     onChanged: _lobbyController.setRa,
                     validator: _lobbyController.validateRa,
                   ),
@@ -355,15 +397,23 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: _submit,
-                      child: const Text(
-                        'Entrar na Reunião',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: VideoCallColors.background,
-                        ),
-                      ),
+                      onPressed: _lobbyController.isInitializingMedia
+                          ? null
+                          : _submit,
+                      child: _lobbyController.isInitializingMedia
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Entrar na Reunião',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: VideoCallColors.background,
+                              ),
+                            ),
                     ),
                   ),
                 ],
