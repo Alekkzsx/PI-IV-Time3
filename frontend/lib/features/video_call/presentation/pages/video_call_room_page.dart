@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../controllers/video_call_controller.dart';
@@ -77,6 +77,24 @@ class VideoCallRoomPage extends StatelessWidget {
                             ),
                           ),
                         ),
+                      if (controller.mediaStatus case final status?)
+                        Container(
+                          key: const Key('call_media_status'),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 16,
+                          ),
+                          color: VideoCallColors.surfaceElevated,
+                          child: Text(
+                            status,
+                            style: const TextStyle(
+                              color: VideoCallColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       // Banner superior da fila de mãos levantadas (nunca sobreposto pelo chat)
                       RaisedHandsBanner(queue: controller.raisedHandsQueue),
                       // Área de vídeo + overlays do palco
@@ -116,8 +134,9 @@ class VideoCallRoomPage extends StatelessWidget {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: VideoCallColors.surface
-                                      .withValues(alpha: 0.90),
+                                  color: VideoCallColors.surface.withValues(
+                                    alpha: 0.90,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: VideoCallColors.border,
@@ -141,8 +160,9 @@ class VideoCallRoomPage extends StatelessWidget {
                                       onTap: () async {
                                         await controller.copyRoomInfo();
                                         if (context.mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(
                                               backgroundColor: VideoCallColors
                                                   .surfaceElevated,
@@ -153,8 +173,9 @@ class VideoCallRoomPage extends StatelessWidget {
                                                       .textPrimary,
                                                 ),
                                               ),
-                                              duration:
-                                                  const Duration(seconds: 2),
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
                                             ),
                                           );
                                         }
