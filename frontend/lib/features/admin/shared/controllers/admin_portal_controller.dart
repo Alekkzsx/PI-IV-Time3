@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import '../data/admin_mock_data.dart';
