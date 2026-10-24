@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -7,10 +7,7 @@ import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 class StudentFooter extends StatelessWidget {
   final bool isDesktop;
 
-  const StudentFooter({
-    super.key,
-    required this.isDesktop,
-  });
+  const StudentFooter({super.key, required this.isDesktop});
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +18,18 @@ class StudentFooter extends StatelessWidget {
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          top: BorderSide(color: Color(0xFFE4E4E7), width: 1),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE4E4E7), width: 1)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 12,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Text(
                 '© 2026 AGMRM',
@@ -39,21 +39,13 @@ class StudentFooter extends StatelessWidget {
                   color: const Color(0xFF18181B),
                 ),
               ),
-              const SizedBox(width: 8),
               Text(
                 '|',
-                style: jakarta(
-                  size: 11,
-                  color: const Color(0xFFD4D4D8),
-                ),
+                style: jakarta(size: 11, color: const Color(0xFFD4D4D8)),
               ),
-              const SizedBox(width: 8),
               Text(
                 'Portal AVA AGMRM • Ambiente Virtual de Aprendizagem Universitário',
-                style: jakarta(
-                  size: 11,
-                  color: const Color(0xFF71717A),
-                ),
+                style: jakarta(size: 11, color: const Color(0xFF71717A)),
               ),
             ],
           ),

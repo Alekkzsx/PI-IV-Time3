@@ -1,27 +1,19 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 // Especialização do componente compartilhado InstitutionalSidebar para o Portal do Aluno
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/shared/icons/lucide_svg_icons.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_sidebar.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_sidebar_item.dart';
+import 'package:pi_iv_time3/core/router/app_router.dart';
+import '../models/student_nav_item.dart';
+
+export '../models/student_nav_item.dart';
 
 // Reexporta os componentes compartilhados para fácil acesso em módulos externos
 export 'package:pi_iv_time3/shared/icons/lucide_svg_icons.dart';
 export 'package:pi_iv_time3/shared/layout/institutional_sidebar.dart';
 export 'package:pi_iv_time3/shared/layout/institutional_sidebar_item.dart';
-
-/// Identificadores dos itens de navegação da barra lateral da visão do aluno.
-enum StudentNavItem {
-  painelGeral,
-  disciplinas,
-  calendario,
-  entregas,
-  mensagens,
-  secretaria,
-  configuracoes,
-  sair,
-}
 
 /// Barra lateral de navegação institucional do Portal AVA (Visão do Aluno).
 ///
@@ -91,7 +83,8 @@ class StudentSidebar extends StatelessWidget {
       id: StudentNavItem.configuracoes,
       label: 'Configurações',
       iconSvgBuilder: (c) => LucideSvgIcons.settings(c),
-      showDividerAfter: true, // Renderiza divisor de 1px entre configurações e sair
+      showDividerAfter:
+          true, // Renderiza divisor de 1px entre configurações e sair
       key: const Key('sidebar_item_configuracoes'),
     ),
     InstitutionalSidebarItem<StudentNavItem>(
@@ -110,57 +103,42 @@ class StudentSidebar extends StatelessWidget {
     }
 
     switch (item) {
-      case StudentNavItem.mensagens:
-        if (activeItem != StudentNavItem.mensagens) {
-          Navigator.of(context).pushReplacementNamed('/student/messages');
-        }
-        break;
-      case StudentNavItem.secretaria:
-        if (activeItem != StudentNavItem.secretaria) {
-          Navigator.of(context).pushReplacementNamed('/student/secretaria');
-        }
-        break;
+      case StudentNavItem.painelGeral:
+      case StudentNavItem.disciplinas:
+      case StudentNavItem.calendario:
       case StudentNavItem.entregas:
-        if (activeItem != StudentNavItem.entregas) {
-          Navigator.of(context).pushReplacementNamed('/student/entregas');
+      case StudentNavItem.mensagens:
+      case StudentNavItem.secretaria:
+      case StudentNavItem.configuracoes:
+        final route = _routeFor(item);
+        if (route != null && item != activeItem) {
+          Navigator.of(context).pushReplacementNamed(route);
         }
         break;
       case StudentNavItem.sair:
-        Navigator.of(context).pushReplacementNamed('/');
-        break;
-      default:
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Módulo "${_labelFor(item)}" disponível no Painel Geral.',
-            ),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
         break;
     }
   }
 
-  String _labelFor(StudentNavItem item) {
+  String? _routeFor(StudentNavItem item) {
     switch (item) {
       case StudentNavItem.painelGeral:
-        return 'Painel Geral';
+        return AppRoutes.studentHome;
       case StudentNavItem.disciplinas:
-        return 'Disciplinas';
+        return AppRoutes.studentDisciplines;
       case StudentNavItem.calendario:
-        return 'Calendário';
+        return AppRoutes.studentCalendar;
       case StudentNavItem.entregas:
-        return 'Entregas';
+        return AppRoutes.studentDeliveries;
       case StudentNavItem.mensagens:
-        return 'Mensagens';
+        return AppRoutes.studentMessages;
       case StudentNavItem.secretaria:
-        return 'Secretaria';
+        return AppRoutes.studentSecretaria;
       case StudentNavItem.configuracoes:
-        return 'Configurações';
+        return AppRoutes.studentSettings;
       case StudentNavItem.sair:
-        return 'Sair';
+        return null;
     }
   }
 
