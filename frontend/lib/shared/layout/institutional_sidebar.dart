@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Componente compartilhado e desacoplado da Barra Lateral (Sidebar) Institucional
 
 import 'package:flutter/material.dart';

@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 // Biblioteca de vetores SVG oficiais do Lucide Icons (lucide-react)
 
 import 'dart:ui';
