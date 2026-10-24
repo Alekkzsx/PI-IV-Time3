@@ -1,11 +1,11 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Conjunto de validadores utilitários para campos de entrada e formulários institucionais.
 class InputValidators {
   InputValidators._();
 
   /// Expressão regular para validação sintática de endereços de e-mail institucionais.
-  static final RegExp _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  static final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,63}$');
 
   /// Valida a identidade acadêmica ou corporativa informada (R.A., Matrícula ou E-mail Institucional).
   ///
@@ -38,4 +38,3 @@ class InputValidators {
     return null;
   }
 }
-
