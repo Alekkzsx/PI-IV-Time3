@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira e Murillo Caravita - RA: 25014012
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
