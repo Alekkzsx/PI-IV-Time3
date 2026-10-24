@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Guilherme Henrique Moreira e Murillo Caravita - RA: 25014012
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/shared/icons/lucide_svg_icons.dart';
