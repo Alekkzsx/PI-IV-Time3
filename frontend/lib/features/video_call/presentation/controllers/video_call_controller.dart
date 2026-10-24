@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -41,6 +41,7 @@ class VideoCallController extends ChangeNotifier {
   int _unreadChatCount = 0;
   Duration _callDuration = Duration.zero;
   String? _pinnedParticipantId;
+  String? _mediaStatus;
 
   Timer? _callDurationTimer;
   Timer? _recordingTimer;
@@ -54,8 +55,8 @@ class VideoCallController extends ChangeNotifier {
     required this.room,
     required Participant localParticipant,
     ICallMediaEngine? mediaEngine,
-  })  : _localParticipant = localParticipant,
-        mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
+  }) : _localParticipant = localParticipant,
+       mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
     _init();
   }
 
@@ -72,7 +73,8 @@ class VideoCallController extends ChangeNotifier {
       List.unmodifiable([_localParticipant, ..._remoteParticipants.values]);
 
   List<ChatMessage> get chatMessages => List.unmodifiable(_chatMessages);
-  List<EmojiReaction> get activeReactions => List.unmodifiable(_activeReactions);
+  List<EmojiReaction> get activeReactions =>
+      List.unmodifiable(_activeReactions);
   List<HandRaiseItem> get raisedHandsQueue =>
       List.unmodifiable(_raisedHandsQueue);
   RecordingState get recordingState => _recordingState;
@@ -88,6 +90,7 @@ class VideoCallController extends ChangeNotifier {
   int get unreadChatCount => _unreadChatCount;
   Duration get callDuration => _callDuration;
   String? get pinnedParticipantId => _pinnedParticipantId;
+  String? get mediaStatus => _mediaStatus;
 
   /// Retorna o `viewType` de vídeo registrado para um participante (local ou remoto).
   String? getParticipantVideoViewType(Participant participant) {
@@ -134,9 +137,7 @@ class VideoCallController extends ChangeNotifier {
     _subscriptions.add(
       repository.emojiReactionStream.listen(_onEmojiReactionReceived),
     );
-    _subscriptions.add(
-      repository.handRaiseStream.listen(_onHandRaiseReceived),
-    );
+    _subscriptions.add(repository.handRaiseStream.listen(_onHandRaiseReceived));
     _subscriptions.add(
       repository.mediaStateStream.listen(_onMediaStateReceived),
     );
@@ -162,8 +163,9 @@ class VideoCallController extends ChangeNotifier {
       mediaEngine.onScreenShareStoppedExternally.listen((_) {
         if (!_isDisposed && _isScreenSharing) {
           _isScreenSharing = false;
-          _localParticipant =
-              _localParticipant.copyWith(isScreenSharing: false);
+          _localParticipant = _localParticipant.copyWith(
+            isScreenSharing: false,
+          );
           repository.updateMediaState(
             room.code,
             _localParticipant.id,
@@ -183,6 +185,14 @@ class VideoCallController extends ChangeNotifier {
     _subscriptions.add(
       mediaEngine.onVideoStreamUpdated.listen((_) {
         if (!_isDisposed) {
+          notifyListeners();
+        }
+      }),
+    );
+    _subscriptions.add(
+      mediaEngine.onMediaStatus.listen((message) {
+        if (!_isDisposed) {
+          _mediaStatus = message;
           notifyListeners();
         }
       }),
@@ -270,8 +280,9 @@ class VideoCallController extends ChangeNotifier {
 
   void _onHandRaiseReceived(HandRaiseItem item) {
     if (item.peerId == _localParticipant.id) return;
-    final existingIndex =
-        _raisedHandsQueue.indexWhere((h) => h.peerId == item.peerId);
+    final existingIndex = _raisedHandsQueue.indexWhere(
+      (h) => h.peerId == item.peerId,
+    );
     final bool shouldLower = !item.isRaised || existingIndex >= 0;
     if (shouldLower) {
       if (existingIndex >= 0) {
@@ -283,9 +294,7 @@ class VideoCallController extends ChangeNotifier {
 
     if (_remoteParticipants.containsKey(item.peerId)) {
       final p = _remoteParticipants[item.peerId]!;
-      _remoteParticipants[item.peerId] = p.copyWith(
-        isHandRaised: !shouldLower,
-      );
+      _remoteParticipants[item.peerId] = p.copyWith(isHandRaised: !shouldLower);
     }
     notifyListeners();
   }
@@ -365,8 +374,7 @@ class VideoCallController extends ChangeNotifier {
   void toggleScreenShare() {
     if (_isScreenSharing) {
       _isScreenSharing = false;
-      _localParticipant =
-          _localParticipant.copyWith(isScreenSharing: false);
+      _localParticipant = _localParticipant.copyWith(isScreenSharing: false);
       repository.updateMediaState(
         room.code,
         _localParticipant.id,
@@ -376,8 +384,7 @@ class VideoCallController extends ChangeNotifier {
       mediaEngine.stopScreenShare();
     } else {
       _isScreenSharing = true;
-      _localParticipant =
-          _localParticipant.copyWith(isScreenSharing: true);
+      _localParticipant = _localParticipant.copyWith(isScreenSharing: true);
       repository.updateMediaState(
         room.code,
         _localParticipant.id,
@@ -387,8 +394,9 @@ class VideoCallController extends ChangeNotifier {
       mediaEngine.startScreenShare().then((started) {
         if (!started && !_isDisposed && _isScreenSharing) {
           _isScreenSharing = false;
-          _localParticipant =
-              _localParticipant.copyWith(isScreenSharing: false);
+          _localParticipant = _localParticipant.copyWith(
+            isScreenSharing: false,
+          );
           repository.updateMediaState(
             room.code,
             _localParticipant.id,
@@ -428,9 +436,7 @@ class VideoCallController extends ChangeNotifier {
         isSpeaking: true,
       );
     } else {
-      _localParticipant = _localParticipant.copyWith(
-        audioLevel: level,
-      );
+      _localParticipant = _localParticipant.copyWith(audioLevel: level);
       if (_localParticipant.isSpeaking && _speakingHysteresisTimer == null) {
         _speakingHysteresisTimer = Timer(const Duration(milliseconds: 800), () {
           if (!_localParticipant.isAudioMuted &&
@@ -466,15 +472,12 @@ class VideoCallController extends ChangeNotifier {
         ),
       );
     } else {
-      _raisedHandsQueue
-          .removeWhere((item) => item.peerId == _localParticipant.id);
+      _raisedHandsQueue.removeWhere(
+        (item) => item.peerId == _localParticipant.id,
+      );
     }
 
-    repository.toggleHandRaise(
-      room.code,
-      _localParticipant.id,
-      newHandRaised,
-    );
+    repository.toggleHandRaise(room.code, _localParticipant.id, newHandRaised);
     notifyListeners();
   }
 
