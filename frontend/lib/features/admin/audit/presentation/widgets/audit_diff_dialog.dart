@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
