@@ -1,6 +1,8 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'core/backend/backend_process_launcher.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
@@ -15,6 +17,11 @@ import 'features/auth/shared/external/auth_remote_datasource_impl.dart';
 /// Inicializa e injeta as dependências de Clean Architecture (DataSources, Repositories,
 /// UseCases e Controllers) e inicia a execução do [PortalAvaApp].
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicia automaticamente o backend nativo em Java se ainda não estiver em execução
+  unawaited(BackendProcessLauncher.ensureBackendRunning());
+
   const initialRoute = String.fromEnvironment(
     'INITIAL_ROUTE',
     defaultValue: AppRoutes.login,
