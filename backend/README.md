@@ -50,7 +50,7 @@ The file `.../PI-IV-Time3/backend/backend-config.json` parameterizes the automat
   "modules": {
     "server": {
       "path": "../server",
-      "entrypoint": "main.Main",
+      "entrypoint": "Main",
       "port": 8080,
       "protocol": "HTTP/1.1",
       "auto_start": true,

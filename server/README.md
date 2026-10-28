@@ -18,8 +18,7 @@ The server is structured into cohesive packages with strict separation of concer
 .../PI-IV-Time3/server/
 ├── bin/                          # Compiled Java bytecode (.class)
 ├── src/                          # Modular Java source code
-│   ├── main/
-│   │   └── Main.java             # Central entry point and orchestrator on port 8080
+│   ├── Main.java                 # Central entry point and orchestrator on port 8080
 │   ├── core/                     # Native HTTP socket abstractions, Request/Response, and CORS
 │   │   ├── HttpUtils.java
 │   │   ├── ManipuladorHttp.java
@@ -50,7 +49,7 @@ The server is structured into cohesive packages with strict separation of concer
 
 ## 🧩 Package Responsibilities
 
-- **`main` (`.../PI-IV-Time3/server/src/main/Main.java`)**:
+- **`Main.java` (`.../PI-IV-Time3/server/src/Main.java`)**:
   - Unified application entry point.
   - Registers and routes all 15 endpoints across the academic, video conference, and authentication modules on port 8080.
 - **`core` (`.../PI-IV-Time3/server/src/core/`)**:
@@ -83,13 +82,13 @@ The server **does not require manual startup** during standard development:
 2. Flutter triggers the automated pre-run orchestration via CMake and `BackendProcessLauncher`:
    - Checks if port `8080` is already active.
    - If inactive, compiles `.java` sources into `server/bin/` using `javac --release 8`.
-   - Starts `java -cp bin main.Main` as an independent background process (*detached*), allowing the Flutter client to immediately communicate with all endpoints.
+   - Starts `java -cp bin Main` as an independent background process (*detached*), allowing the Flutter client to immediately communicate with all endpoints.
 
 *(Optional / Manual Execution)*: To run the server independently in a dedicated terminal:
 ```bash
 cd .../PI-IV-Time3/server
-javac --release 8 -encoding UTF-8 -d bin src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java src/main/*.java
-java -cp bin main.Main
+javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
+java -cp bin Main
 ```
 
 ---

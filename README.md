@@ -59,10 +59,10 @@ The platform solves the fragmentation of educational tools by integrating presen
 │   └── test/         # Comprehensive test suite (396 tests)
 ├── server/           # Native autonomous Java HTTP server (zero external frameworks)
 │   ├── src/
-│   │   ├── main/     # Main.java — Central orchestrator on port 8080
+│   │   ├── Main.java # Central orchestrator on port 8080
 │   │   ├── core/     # Low-level TCP sockets, HTTP handlers, and CORS
 │   │   ├── academic/ # Grades, Attendance, Tasks, and Data Types
-│   │   ├── auth/     # Real email OTP recovery via SMTP SSL/TLS (port 465)
+│   │   ├── auth/     # Real email OTP recovery via SMTP SSL/TLS and HTTPS webhook
 │   │   └── videocall/# Virtual rooms, WebRTC signaling, Chat, Raised hands, Attendance
 │   └── tests/        # Documented cURL validation commands (testeServidor.txt)
 ├── security/         # Enterprise cyber defense module (37 tests)
@@ -140,15 +140,15 @@ The Java server is automatically launched when running `flutter run`, or can be 
 #### On Windows:
 ```bash
 cd server
-javac --release 8 -encoding UTF-8 -d bin src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java src/main/*.java
-java -cp bin main.Main
+javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
+java -cp bin Main
 ```
 
 #### On Linux / macOS:
 ```bash
 cd server
-javac --release 8 -encoding UTF-8 -d bin src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java src/main/*.java
-java -cp bin main.Main
+javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
+java -cp bin Main
 ```
 
 *The server will start on port 8080.*

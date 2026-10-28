@@ -8,8 +8,8 @@ Como compilar e executar o servidor:
 
   2. Ou manualmente no terminal:
      cd server
-     javac -encoding UTF-8 -d bin src\core\*.java src\academic\*.java src\videocall\*.java src\main\*.java
-     java -cp bin main.Main
+     javac -encoding UTF-8 -d bin src\Main.java src\core\*.java src\academic\*.java src\auth\*.java src\videocall\*.java
+     java -cp bin Main
 
 --------------------------------------------------------------------
 A. MODULO ACADEMICO (ENDPOINTS EXISTENTES)

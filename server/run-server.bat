@@ -3,7 +3,7 @@ REM Desenvolvido por Guilherme Henrique Moreira
 setlocal
 cd /d "%~dp0"
 
-if not exist "src\main\Main.java" (
+if not exist "src\Main.java" (
   echo ERRO: execute este script dentro da pasta server do projeto.
   pause
   exit /b 1
@@ -22,6 +22,9 @@ if not "%ERRO%"=="0" (
   exit /b %ERRO%
 )
 
-echo Iniciando servidor nativo AGMRM (Modulos Academicos e Videochamada)...
-java -cp "bin" main.Main
+set "ENTRYPOINT=Main"
+if exist "bin\main\Main.class" if not exist "bin\Main.class" set "ENTRYPOINT=main.Main"
+
+echo Iniciando servidor nativo AGMRM (Modulos Academicos, Videochamada e Autenticacao)...
+java -cp "bin" %ENTRYPOINT%
 pause

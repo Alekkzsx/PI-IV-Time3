@@ -46,10 +46,13 @@ class BackendProcessLauncher {
 
       // 3. Garante que os arquivos Java estejam compilados na pasta server/bin
       final binDir = Directory('${serverDir.path}${Platform.pathSeparator}bin');
-      final mainClass = File('${binDir.path}${Platform.pathSeparator}main${Platform.pathSeparator}Main.class');
-      if (!mainClass.existsSync()) {
+      final mainClassDirect = File('${binDir.path}${Platform.pathSeparator}Main.class');
+      final mainClassPackage = File('${binDir.path}${Platform.pathSeparator}main${Platform.pathSeparator}Main.class');
+      if (!mainClassDirect.existsSync() && !mainClassPackage.existsSync()) {
         await _compileJavaSources(serverDir, binDir);
       }
+
+      final entrypoint = mainClassDirect.existsSync() ? 'Main' : 'main.Main';
 
       // 4. Inicializa o servidor Java como processo independente (detached)
       if (Platform.isWindows) {
@@ -61,7 +64,7 @@ class BackendProcessLauncher {
             '-WindowStyle',
             'Hidden',
             '-Command',
-            'Start-Process -FilePath "java" -ArgumentList "-cp bin main.Main" -WorkingDirectory "${serverDir.path}" -WindowStyle Hidden',
+            'Start-Process -FilePath "java" -ArgumentList "-cp bin $entrypoint" -WorkingDirectory "${serverDir.path}" -WindowStyle Hidden',
           ],
           workingDirectory: serverDir.path,
           mode: ProcessStartMode.detached,
@@ -69,7 +72,7 @@ class BackendProcessLauncher {
       } else {
         await Process.start(
           'java',
-          ['-cp', 'bin', 'main.Main'],
+          ['-cp', 'bin', entrypoint],
           workingDirectory: serverDir.path,
           mode: ProcessStartMode.detached,
         );
