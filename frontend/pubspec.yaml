@@ -40,6 +40,7 @@ dependencies:
   # Vinculação da pasta mãe de Segurança Empresarial (security/)
   agmrm_security:
     path: ../security
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
