@@ -1,47 +1,48 @@
 # Backend — Enterprise Academic Services, Persistence & Orchestration (AGMRM)
 
-> **Módulo**: `.../PI-IV-Time3/backend/`  
-> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
+> **Module**: `.../PI-IV-Time3/backend/`  
+> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
+> **Engineering Standards**: Enterprise Persistence, Transparent Orchestration, Clean Architecture  
 
 ---
 
-## 🏛️ Propósito Arquitetural e Orquestração
+## 🏛️ Architectural Purpose & Orchestration
 
-O módulo `backend` define a camada corporativa de persistência, regras de negócio distribuídas, gestão de identidade e orquestração de serviços para a **Plataforma Educacional Integrada AGMRM**.
+The `backend` module defines the enterprise persistence layer, distributed business rules, identity management, and service orchestration for the **Integrated Educational Platform AGMRM**.
 
-Enquanto o servidor nativo em `.../PI-IV-Time3/server/` provê execução de alta performance e cálculo síncrono em sockets HTTP (rotas acadêmicas e sinalização WebRTC de videochamada), o módulo `backend` orquestra:
+While the native server in `.../PI-IV-Time3/server/` provides high-performance, zero-dependency socket communication (academic calculations, real email OTP dispatch, and WebRTC video call signaling), the `backend` module orchestrates:
 
-1. **Configuração Unificada de Serviços (`backend-config.json`)**: Especificação declarativa de portas, endpoints, health checks e contratos de comunicação.
-2. **Camada de Persistência e Entidades (`target/classes/`)**: Modelos e repositórios acadêmicos (`models/Usuario`, `admin/repositories/UsuarioRepository`, `database/MongoDBConnection`).
-3. **Orquestração Automática no `flutter run`**: Interligação para que a execução do Flutter no frontend levante todos os módulos de backend de forma transparente.
+1. **Unified Service Configuration (`backend-config.json`)**: Declarative specification of ports, endpoints, health checks, and communication contracts.
+2. **Persistence Layer & Entities (`target/classes/`)**: Academic models and repositories (`models/Usuario`, `admin/repositories/UsuarioRepository`, `database/MongoDBConnection`).
+3. **Automated `flutter run` Orchestration**: Seamless integration ensuring that running Flutter in the frontend transparently initializes all backend parent modules.
 
 ---
 
-## 📂 Estrutura de Arquivos
+## 📂 File Structure
 
 ```
 .../PI-IV-Time3/backend/
-├── backend-config.json           # Configuração de orquestração institucional
-├── target/classes/               # Classes compiladas de modelos, repositórios e banco
-│   ├── academico/                # Controllers acadêmicos
-│   ├── admin/                    # Controllers e UsuarioRepository
-│   ├── database/                 # Conexão MongoDB (MongoDBConnection)
-│   ├── models/                   # Modelo Usuario
-│   ├── server/                   # ServidorHttpNativo e utilitários
-│   └── utils/                    # JsonSimples e parsers
-├── .gitkeep                      # Preservação de controle de versão
-└── README.md                     # Documentação técnica do backend (este arquivo)
+├── backend-config.json           # Declarative orchestration configuration
+├── target/classes/               # Compiled bytecode of models, repositories, and DB connectors
+│   ├── academico/                # Academic controllers
+│   ├── admin/                    # Controllers and UsuarioRepository
+│   ├── database/                 # MongoDB database connector (MongoDBConnection)
+│   ├── models/                   # Core domain models (Usuario)
+│   ├── server/                   # ServidorHttpNativo and utility classes
+│   └── utils/                    # JsonSimples and payload parsers
+├── .gitkeep                      # Version control anchor
+└── README.md                     # Backend technical manual (this file)
 ```
 
 ---
 
-## ⚙️ Configuração Institucional (`backend-config.json`)
+## ⚙️ Institutional Configuration (`backend-config.json`)
 
-O arquivo `.../PI-IV-Time3/backend/backend-config.json` parametriza a inicialização das pastas mães do ecossistema:
+The file `.../PI-IV-Time3/backend/backend-config.json` parameterizes the automated startup of all parent modules:
 
 ```json
 {
-  "_description": "Configuracao institucional do ecossistema de backend AGMRM para integracao transparente ao 'flutter run'",
+  "_description": "Institutional configuration of the AGMRM backend ecosystem for transparent integration with 'flutter run'",
   "environment": {
     "profile": "development",
     "orchestrator": "frontend_integrated_launcher"
@@ -58,7 +59,8 @@ O arquivo `.../PI-IV-Time3/backend/backend-config.json` parametriza a inicializa
         "videocall_webrtc_signaling",
         "academic_boletim_calculation",
         "academic_attendance_tracking",
-        "academic_task_grading"
+        "academic_task_grading",
+        "auth_smtp_recovery_otp"
       ]
     },
     "security": {
@@ -81,14 +83,14 @@ O arquivo `.../PI-IV-Time3/backend/backend-config.json` parametriza a inicializa
   "flutter_run_hook": {
     "enabled": true,
     "strategy": "dual_trigger_cmake_and_dart_vm",
-    "description": "Ao executar 'cd frontend' e 'flutter run', os servicos do server e backend iniciam automaticamente em background."
+    "description": "When executing 'cd frontend' and 'flutter run', server and backend services initialize automatically in the background."
   }
 }
 ```
 
 ---
 
-## 🔄 Inicialização Integrada ao `flutter run`
+## 🔄 Integrated Initialization with `flutter run`
 
-Não há necessidade de inicializadores manuais ou scripts avulsos:
-- Ao entrar em `.../PI-IV-Time3/frontend` e executar `flutter run`, o Flutter lê as configurações de orquestração do backend, assegura a integridade das pastas mães e levanta os serviços em background na porta 8080.
+No manual initializers or separate scripts are necessary:
+- Navigating to `.../PI-IV-Time3/frontend` and executing `flutter run` reads the backend orchestration specifications, verifies the integrity of all parent modules, and starts the native services in the background on port 8080.

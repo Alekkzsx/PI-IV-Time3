@@ -1,87 +1,91 @@
 # Server — Zero-Dependency Native Java HTTP Server (AGMRM)
 
-O módulo `server` contém o servidor HTTP nativo, autônomo e de alta performance desenvolvido para a **Plataforma Educacional Integrada AGMRM** (*PI-IV Time 3*). 
+> **Core Server Module**: `.../PI-IV-Time3/server/`  
+> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
+> **Engineering Standards**: Pure Java SE standard library, Zero external dependencies, Deterministic TCP sockets  
 
-Opera 100% sobre a biblioteca padrão do **Java SE** (compatível com Java 8 a 21+) sem dependência de frameworks externos ou containers pesados de aplicação (zero Spring, Quarkus, Maven ou Tomcat).
+The `server` module contains the native, autonomous, and high-performance HTTP server developed for the **Integrated Educational Platform AGMRM** (*PI-IV Team 3*).
+
+It operates 100% on the **Java SE standard library** (compatible with Java 8 through 21+) with zero third-party dependencies or heavy application containers (no Spring, Quarkus, Maven, or Tomcat).
 
 ---
 
-## 🏛️ Arquitetura e Organização Modular
+## 🏛️ Modular Architecture and Organization
 
-O servidor está estruturado em pacotes coesos com separação estrita de responsabilidades:
+The server is structured into cohesive packages with strict separation of concerns:
 
 ```
 .../PI-IV-Time3/server/
-├── bin/                          # Bytecode compilado (.class)
-├── src/                          # Código-fonte Java modular
+├── bin/                          # Compiled Java bytecode (.class)
+├── src/                          # Modular Java source code
 │   ├── main/
-│   │   └── Main.java             # Ponto de entrada central e orquestrador na porta 8080
-│   ├── core/                     # Abstração de Sockets HTTP nativos, Request/Response e CORS
+│   │   └── Main.java             # Central entry point and orchestrator on port 8080
+│   ├── core/                     # Native HTTP socket abstractions, Request/Response, and CORS
 │   │   ├── HttpUtils.java
 │   │   ├── ManipuladorHttp.java
 │   │   ├── RequisicaoHttp.java
 │   │   ├── RespostaHttp.java
 │   │   └── ServidorHttpNativo.java
-│   ├── academic/                 # Handlers acadêmicos (Frequência, Boletim, Tarefas e Tipos)
+│   ├── academic/                 # Academic handlers (Attendance, Report Card, Tasks, and Data Types)
 │   │   ├── BoletimHandler.java
 │   │   ├── PresencaHandler.java
 │   │   ├── TarefasHandler.java
 │   │   └── TesteTiposHandler.java
-│   ├── auth/                     # Módulo de Autenticação e Disparo Real de E-mails via SMTP
+│   ├── auth/                     # Authentication & Real SMTP Email OTP Dispatch
 │   │   ├── AuthRecoveryHandler.java
 │   │   └── EmailService.java
-│   └── videocall/                # Módulo de Videochamada, Sinalização WebRTC e Frequência
+│   └── videocall/                # Video Conference, WebRTC Signaling, and Presence Telemetry
 │       ├── VideoCallAttendanceHandler.java
 │       ├── VideoCallInteractionHandler.java
 │       ├── VideoCallRoomHandler.java
 │       ├── VideoCallService.java
 │       └── VideoCallSignalingHandler.java
 ├── tests/
-│   └── testeServidor.txt         # Bateria com comandos cURL documentados
-├── README.md                     # Documentação técnica do servidor
-└── run-server.bat                # Script utilitário opcional legado
+│   └── testeServidor.txt         # Documented test suite with cURL commands
+├── README.md                     # Server technical manual (this file)
+└── run-server.bat                # Optional legacy utility script
 ```
 
 ---
 
-## 🧩 Responsabilidades por Pacote
+## 🧩 Package Responsibilities
 
 - **`main` (`.../PI-IV-Time3/server/src/main/Main.java`)**:
-  - Ponto de entrada unificado da aplicação Java.
-  - Orquestra e registra todas as 15 rotas nos módulos acadêmico, videochamada e autenticação na porta 8080.
+  - Unified application entry point.
+  - Registers and routes all 15 endpoints across the academic, video conference, and authentication modules on port 8080.
 - **`core` (`.../PI-IV-Time3/server/src/core/`)**:
-  - Abstrações nativas de baixo nível sobre `ServerSocket` e sockets TCP.
-  - Gerenciamento de ciclo de vida HTTP (Request, Response, Headers, CORS e body parser).
+  - Low-level network abstractions built over native TCP `ServerSocket` and `Socket`.
+  - HTTP lifecycle management (Request headers/body parsing, Response status codes, CORS headers, and payload boundaries).
 - **`academic` (`.../PI-IV-Time3/server/src/academic/`)**:
-  - Regras de negócio de notas semestrais e cálculo de média ponderada regimental.
-  - Apuração de faltas, horas-aula e cálculo de frequência com suporte a abono docente.
-  - Lógica de dedução automática por entrega de tarefas em atraso.
+  - Semester grade computation and regimental weighted average calculation.
+  - Absence ledger, lecture hours, and attendance percentage computation with faculty allowance.
+  - Automated grade deductions for late assignment submissions.
 - **`auth` (`.../PI-IV-Time3/server/src/auth/`)**:
-  - `EmailService.java`: Cliente SMTP nativo sobre SSL Socket (porta 465) em Java puro (RFC 5321). Disparo real de e-mails com código de confirmação OTP de 6 dígitos em template HTML responsivo.
-  - `AuthRecoveryHandler.java`: Endpoints de envio e validação com TTL de 300 segundos (5 minutos) e bloqueio contra força bruta (máximo de 3 tentativas).
+  - `EmailService.java`: Native Java SE SMTP client over SSL Socket (port 465) (RFC 5321). Dispatches real OTP emails with a responsive HTML template and cryptographic 6-digit codes.
+  - `AuthRecoveryHandler.java`: Endpoints for OTP generation and verification with 300s TTL (5 minutes) and 3-attempt brute-force threshold.
 - **`videocall` (`.../PI-IV-Time3/server/src/videocall/`)**:
-  - Gestão do ciclo de vida de salas de aula virtuais (abertura regimental restrita a Docente ou Admin).
-  - Hub de sinalização WebRTC (troca de SDP Offer/Answer e ICE Candidates).
-  - Fila FIFO ordenada de dúvidas ("Mãos Levantadas") e chat em tempo real.
-  - Apuração automática de presença dos discentes com base no tempo de conexão na videochamada.
+  - Virtual classroom lifecycle (room opening regimental restricted to Teacher or Admin).
+  - WebRTC signaling hub (SDP Offer/Answer and ICE Candidates exchange).
+  - Ordered FIFO doubt queue ("Raised Hands") and real-time classroom chat.
+  - Presence tracking and attendance computation based on active connected duration.
 
 ---
 
-## 🚀 Inicialização Transparente (`cd frontend` & `flutter run`)
+## 🚀 Transparent Startup (`cd frontend` & `flutter run`)
 
-O servidor **não requer inicialização manual** no fluxo de trabalho padrão de desenvolvimento:
+The server **does not require manual startup** during standard development:
 
-1. Ao abrir o terminal na pasta do frontend e executar:
+1. Open your terminal in the frontend directory and run:
    ```bash
    cd frontend
    flutter run
    ```
-2. O Flutter aciona a automação pré-execução via CMake e `BackendProcessLauncher`:
-   - Verifica se a porta `8080` já está ativa.
-   - Caso esteja inativa, compila os arquivos `.java` para `server/bin/` utilizando `javac --release 8`.
-   - Inicializa `java -cp bin main.Main` em background (*detached*), liberando a aplicação Flutter para se comunicar com todos os endpoints instantaneamente.
+2. Flutter triggers the automated pre-run orchestration via CMake and `BackendProcessLauncher`:
+   - Checks if port `8080` is already active.
+   - If inactive, compiles `.java` sources into `server/bin/` using `javac --release 8`.
+   - Starts `java -cp bin main.Main` as an independent background process (*detached*), allowing the Flutter client to immediately communicate with all endpoints.
 
-*(Opcional / Manual)*: Caso deseje executar o servidor isoladamente no terminal:
+*(Optional / Manual Execution)*: To run the server independently in a dedicated terminal:
 ```bash
 cd .../PI-IV-Time3/server
 javac --release 8 -encoding UTF-8 -d bin src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java src/main/*.java
@@ -90,30 +94,30 @@ java -cp bin main.Main
 
 ---
 
-## 📡 Catálogo Completo de Endpoints Registrados (15 Rotas)
+## 📡 Registered API Endpoints Catalog (15 Routes)
 
-O servidor responde em `http://localhost:8080` com as seguintes rotas ativas:
+The server listens on `http://localhost:8080` with the following active endpoints:
 
-| Método | Endpoint | Módulo | Descrição / Payload |
+| Method | Endpoint | Module | Description / Payload |
 |---|---|---|---|
-| `GET`/`POST` | `/api/teste-tipos` | Acadêmico | Diagnóstico e eco de tipos primitivos (texto, numérico, booleano) |
-| `POST` | `/api/presenca` | Acadêmico | Cálculo de frequência percentual e abono de faltas |
-| `POST` | `/api/tarefas/calcular-nota` | Acadêmico | Cálculo de nota com dedução regimental por entrega em atraso |
-| `POST` | `/api/notas/boletim` | Acadêmico | Média ponderada semestral e verificação de aprovação |
-| `GET` | `/api/videocall/rooms` | Videochamada | Listagem de salas de aula virtuais ativas e status de saúde |
-| `POST` | `/api/videocall/open` | Videochamada | Abertura de sala institucional (**apenas Docente ou Admin**) |
-| `POST` | `/api/videocall/close` | Videochamada | Encerramento regimental de sala (**apenas Docente ou Admin**) |
-| `POST` | `/api/videocall/join` | Videochamada | Entrada de discente/docente com registro de telemetria |
-| `POST` | `/api/videocall/leave` | Videochamada | Saída de participante e gravação de tempo de permanência |
-| `POST` | `/api/videocall/signal` | Videochamada | Sinalização WebRTC P2P (troca de SDP Offer/Answer e ICE candidates) |
-| `POST` | `/api/videocall/hand-raise` | Videochamada | Gestão de fila FIFO de dúvidas e mãos levantadas |
-| `POST` | `/api/videocall/chat` | Videochamada | Mensageria instantânea com timestamp da sala virtual |
-| `POST` | `/api/videocall/attendance`| Videochamada | Homologação de presença baseada nos minutos conectados na chamada |
-| `POST` | `/api/auth/send-recovery-otp` | Autenticação & E-mail | Geração de OTP de 6 dígitos e disparo real via SMTP SSL/TLS (5 min TTL) |
-| `POST` | `/api/auth/verify-recovery-otp` | Autenticação & E-mail | Validação de código OTP com limitação estrita de até 3 tentativas |
+| `GET`/`POST` | `/api/teste-tipos` | Academic | Diagnostic and echo of primitive types (text, numeric, boolean) |
+| `POST` | `/api/presenca` | Academic | Calculates presence percentage and excused absence allowance |
+| `POST` | `/api/tarefas/calcular-nota` | Academic | Computes final task grade deducting penalty for late submissions |
+| `POST` | `/api/notas/boletim` | Academic | Calculates semester weighted average and passing status |
+| `GET` | `/api/videocall/rooms` | Video Call | Lists active virtual classrooms and room health status |
+| `POST` | `/api/videocall/open` | Video Call | Opens virtual classroom (**Teacher or Admin only**) |
+| `POST` | `/api/videocall/close` | Video Call | Closes virtual classroom (**Teacher or Admin only**) |
+| `POST` | `/api/videocall/join` | Video Call | Joins session and records attendance telemetry |
+| `POST` | `/api/videocall/leave` | Video Call | Leaves session and logs connected duration |
+| `POST` | `/api/videocall/signal` | Video Call | P2P WebRTC signaling (SDP offer/answer, ICE candidates) |
+| `POST` | `/api/videocall/hand-raise` | Video Call | Manages FIFO queue of raised hands and doubts |
+| `POST` | `/api/videocall/chat` | Video Call | Real-time chat messages with room timestamps |
+| `POST` | `/api/videocall/attendance`| Video Call | Homologates presence based on connected duration |
+| `POST` | `/api/auth/send-recovery-otp` | Auth & Email | Generates 6-digit OTP and dispatches real SMTP email (5-min TTL) |
+| `POST` | `/api/auth/verify-recovery-otp` | Auth & Email | Validates OTP with 300s TTL and 3-attempt brute-force limit |
 
 ---
 
-## 🧪 Testes e Validação de Endpoints
+## 🧪 Endpoint Validation & Testing
 
-Para validar todos os endpoints via terminal, consulte o arquivo `.../PI-IV-Time3/server/tests/testeServidor.txt`, que contém 16 comandos `curl` documentados cobrindo fluxos de sucesso e restrições regimentais.
+To validate all endpoints from the command line, refer to `.../PI-IV-Time3/server/tests/testeServidor.txt`, which contains documented `curl` commands covering successful executions and regimental edge cases.

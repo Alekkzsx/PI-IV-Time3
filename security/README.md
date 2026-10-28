@@ -1,47 +1,47 @@
 # Security — Enterprise Defense Architecture & Governance (AGMRM)
 
-> **Módulo Central de Segurança**: `.../PI-IV-Time3/security/`  
-> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
-> **Padrões de Engenharia**: Defesa em Profundidade, Clean Architecture, Zero Dependências Externas Desnecessárias  
+> **Central Security Module**: `.../PI-IV-Time3/security/`  
+> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
+> **Engineering Standards**: Defense-in-Depth, Clean Architecture, Zero Unnecessary External Dependencies  
 
 ---
 
-## 1. Visão Geral e Propósito Arquitetural
+## 1. Architectural Overview & Purpose
 
-O módulo `security` centraliza a arquitetura corporativa de **Defesa em Profundidade** (*Defense-in-Depth*) e as políticas de governança cibernética da plataforma AGMRM. Protege os fluxos de autenticação, recuperação de credenciais e comunicação HTTP contra as principais vulnerabilidades (OWASP Top 10), incluindo:
+The `security` module centralizes the enterprise **Defense-in-Depth** architecture and cyber governance policies of the AGMRM platform. It protects authentication workflows, credential recovery mechanisms, and HTTP socket communications against critical vulnerabilities (OWASP Top 10), including:
 
-- Ataques de força bruta e *credential stuffing*.
-- Injeções SQL (SQLi) e Cross-Site Scripting (XSS).
-- Ataques de canal lateral por análise de tempo (*timing attacks*).
-- Enumeração de identidades discentes/docentes/administrativas.
-- Sequestro de sessão e falsificação de tokens efêmeros de recuperação.
-- Esgotamento de memória e negação de serviço (DoS) via payloads HTTP inflados.
+- Brute-force attacks and credential stuffing.
+- SQL Injection (SQLi) and Cross-Site Scripting (XSS).
+- Side-channel timing attacks on credential and token validation.
+- User identity harvesting and account enumeration across student, teacher, and admin roles.
+- Session hijacking and ephemeral token tampering.
+- Memory amplification and Denial-of-Service (DoS) via inflated HTTP payloads.
 
 ---
 
-## 2. Estrutura de Pastas Organizada e Limpa
+## 2. Directory Structure
 
-A estrutura do módulo é padronizada conforme as melhores práticas de pacotes Dart/Flutter e módulos Java corporativos:
+The module structure strictly aligns with Dart/Flutter package standards and enterprise Java backend conventions:
 
 ```
 .../PI-IV-Time3/security/
-├── lib/                          # Defesas do lado cliente (Dart / Flutter)
-│   ├── auth/                     # Controladores de autenticação e estados
+├── lib/                          # Client-side defenses (Dart / Flutter)
+│   ├── auth/                     # Authentication controllers and defensive state guards
 │   │   ├── lockout_state.dart
 │   │   ├── rate_limiter.dart
 │   │   ├── timing_attack_mitigation.dart
 │   │   └── token_lifecycle_manager.dart
-│   ├── policies/                 # Invariantes e políticas de resposta opaca
+│   ├── policies/                 # Invariants and opaque response policies
 │   │   ├── generic_feedback_policy.dart
 │   │   └── security_constants.dart
-│   ├── validators/               # Sanitizadores de entrada e avaliador de entropia
+│   ├── validators/               # Input sanitizers and password entropy scorers
 │   │   ├── input_sanitizer.dart
 │   │   └── password_entropy_validator.dart
-│   ├── widgets/                  # Componentes visuais institucionais
+│   ├── widgets/                  # Institutional UI defensive components
 │   │   ├── lockout_countdown_banner.dart
 │   │   └── token_timer_widget.dart
-│   └── security.dart             # Barril de exportação unificado do pacote
-├── test/                         # 37 testes automatizados Flutter/Dart nativos
+│   └── security.dart             # Unified package barrel export
+├── test/                         # 37 native automated tests (unit and integration)
 │   ├── cross_feature_security_test.dart
 │   ├── e2e_test_runner.dart
 │   ├── generic_feedback_test.dart
@@ -53,81 +53,81 @@ A estrutura do módulo é padronizada conforme as melhores práticas de pacotes 
 │   ├── security_constants_test.dart
 │   ├── timing_attack_test.dart
 │   └── token_lifecycle_test.dart
-├── server/                       # Guardas defensivos do servidor (Java SE)
+├── server/                       # Server-side security filters (Java SE)
 │   ├── src/security/
 │   │   ├── auth/                 # AccountLockoutManager, ConstantTimeComparator, EphemeralRecoveryTokenManager
 │   │   ├── middleware/           # SecurityHeadersFilter, BoundedBodyReader, ServerErrorSanitizer
 │   │   ├── policies/             # GenericFeedbackPolicy, SecurityConstants
 │   │   └── validators/           # ServerInputSanitizer, ServerPasswordEntropyValidator
-│   └── test/                     # Testes de estresse e adversariais do servidor
+│   └── test/                     # Adversarial and stress tests for Java server
 │       ├── M1AdversarialChallengeTest.java
 │       └── SecurityServerTestSuite.java
-├── analysis_options.yaml         # Regras de linter estrito
-├── pubspec.yaml                  # Manifesto do pacote agmrm_security
-└── README.md                     # Manual técnico de segurança (este arquivo)
+├── analysis_options.yaml         # Strict linter rules
+├── pubspec.yaml                  # agmrm_security package manifest
+└── README.md                     # Security technical manual (this file)
 ```
 
 ---
 
-## 3. Os 4 Níveis de Proteção Defensiva
+## 3. Four Tiers of Defensive Protection
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        NÍVEL 1: CLIENT DEFENSE                         │
+│                        TIER 1: CLIENT DEFENSE                          │
 │                    (Flutter Client / security/lib/)                    │
-│  • Banner interativo de contagem regressiva de lockout (30s)           │
-│  • Validação de entropia de senha em 4 fatores (Score >= 3)            │
-│  • Temporizador regressivo de token efêmero de recuperação (300s TTL)  │
-│  • Sanitização pré-flight de RA, e-mail e strings (neutraliza XSS/SQLi)│
+│  • Interactive 30-second lockout countdown banner                      │
+│  • 4-factor password entropy validation (Score >= 3)                   │
+│  • Ephemeral recovery token countdown timer (300s TTL)                 │
+│  • Pre-flight input sanitization of ID, email, and strings (XSS/SQLi)  │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ TLS 1.3 / HTTPS
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                  NÍVEL 2: MIDDLEWARE DEFENSIVO                         │
+│                      TIER 2: DEFENSIVE MIDDLEWARE                      │
 │                   (security/server/src/security/middleware/)           │
-│  • Cabeçalhos defensivos HTTP (nosniff, DENY, CSP, HSTS)               │
-│  • Teto máximo de payload de 64 KB (65.536 bytes -> HTTP 413)          │
-│  • Sanitizador de erros suprime stack traces internos e do banco       │
+│  • HTTP defensive security headers (nosniff, DENY, CSP, HSTS)          │
+│  • Strict 64 KB payload boundary (65,536 bytes -> HTTP 413)            │
+│  • Error sanitizer suppressing internal stack traces and DB logs       │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                     NÍVEL 3: POLÍTICAS INSTITUCIONAIS                  │
+│                    TIER 3: INSTITUTIONAL POLICIES                      │
 │                     (security/server/src/security/policies/)           │
-│  • Respostas opacas anti-enumeração idênticas para contas válidas/falsas│
-│  • Invariantes numéricas e limites regimentais centralizados           │
+│  • Opaque anti-enumeration responses identical for valid and fake IDs   │
+│  • Centralized numeric invariants and regimental boundaries            │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                  NÍVEL 4: RESILIÊNCIA E HARDENING                      │
+│                   TIER 4: RESILIENCE & HARDENING                       │
 │                      (security/server/src/security/auth/)              │
-│  • Comparador de tempo constante (mitigação de side-channel)           │
-│  • Rate Limiter com trava de 30s após 5 falhas de autenticação         │
-│  • Invalidação de token OTP de recuperação após 3 tentativas erradas   │
+│  • Constant-time string comparator (side-channel mitigation)           │
+│  • Rate limiter with 30s lockout after 5 consecutive auth failures     │
+│  • OTP token invalidation and session revocation after 3 bad attempts  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Como Executar os Testes de Segurança
+## 4. Running Security Tests
 
-Graças à organização padronizada da pasta `test/`, os testes rodam diretamente com os comandos padrão do ecossistema Flutter:
+Thanks to the standardized `test/` directory layout, all automated tests execute using standard Flutter tooling:
 
 ```bash
-# Executa a suíte de testes de segurança (37 testes automatizados)
+# Execute security test suite (37 automated tests)
 cd .../PI-IV-Time3/security
 flutter test
 
-# Executa a análise estática (0 issues)
+# Execute static analysis (0 issues)
 flutter analyze
 ```
 
 ---
 
-## 5. Integração com o Frontend
+## 5. Frontend Integration
 
-O pacote `agmrm_security` está vinculado como dependência local no arquivo `.../PI-IV-Time3/frontend/pubspec.yaml`:
+The `agmrm_security` package is linked as a local path dependency in `.../PI-IV-Time3/frontend/pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -135,4 +135,4 @@ dependencies:
     path: ../security
 ```
 
-Dessa forma, qualquer atualização nas políticas ou widgets de segurança reflete instantaneamente em tempo real na interface Flutter durante `flutter run`.
+Any update to security policies, rate-limit thresholds, or defensive widgets instantly reflects across the Flutter application during `flutter run`.
