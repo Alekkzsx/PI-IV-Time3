@@ -70,6 +70,8 @@ backend/target/
 
 # ─── 4. Dependências de Outros Ecossistemas (Node / Python / .NET) ───
 node_modules/
+\$npmCache/
+.npm/
 jspm_packages/
 .pnp
 .pnp.js

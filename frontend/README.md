@@ -78,7 +78,7 @@ flutter run
 
 Ao executar `flutter run`:
 - O Flutter compila e inicializa a aplicação desktop/web.
-- Os serviços das pastas mães (`server/` com os 13 endpoints e `backend/` com a persistência) são **iniciados automaticamente em segundo plano**.
+- Os serviços das pastas mães (`server/` com os 15 endpoints incluindo rotas de recuperação real com OTP via SMTP e `backend/` com a persistência) são **iniciados automaticamente em segundo plano**.
 - A biblioteca de segurança corporativa (`security/`) é resolvida e vinculada via `pubspec.yaml`.
 
 ---

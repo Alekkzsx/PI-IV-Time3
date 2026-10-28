@@ -27,6 +27,9 @@ O servidor está estruturado em pacotes coesos com separação estrita de respon
 │   │   ├── PresencaHandler.java
 │   │   ├── TarefasHandler.java
 │   │   └── TesteTiposHandler.java
+│   ├── auth/                     # Módulo de Autenticação e Disparo Real de E-mails via SMTP
+│   │   ├── AuthRecoveryHandler.java
+│   │   └── EmailService.java
 │   └── videocall/                # Módulo de Videochamada, Sinalização WebRTC e Frequência
 │       ├── VideoCallAttendanceHandler.java
 │       ├── VideoCallInteractionHandler.java
@@ -34,7 +37,7 @@ O servidor está estruturado em pacotes coesos com separação estrita de respon
 │       ├── VideoCallService.java
 │       └── VideoCallSignalingHandler.java
 ├── tests/
-│   └── testeServidor.txt         # Bateria com 16 comandos cURL documentados
+│   └── testeServidor.txt         # Bateria com comandos cURL documentados
 ├── README.md                     # Documentação técnica do servidor
 └── run-server.bat                # Script utilitário opcional legado
 ```
@@ -45,7 +48,7 @@ O servidor está estruturado em pacotes coesos com separação estrita de respon
 
 - **`main` (`.../PI-IV-Time3/server/src/main/Main.java`)**:
   - Ponto de entrada unificado da aplicação Java.
-  - Orquestra e registra todas as 13 rotas nos módulos acadêmico e de videochamada na porta 8080.
+  - Orquestra e registra todas as 15 rotas nos módulos acadêmico, videochamada e autenticação na porta 8080.
 - **`core` (`.../PI-IV-Time3/server/src/core/`)**:
   - Abstrações nativas de baixo nível sobre `ServerSocket` e sockets TCP.
   - Gerenciamento de ciclo de vida HTTP (Request, Response, Headers, CORS e body parser).
@@ -53,6 +56,9 @@ O servidor está estruturado em pacotes coesos com separação estrita de respon
   - Regras de negócio de notas semestrais e cálculo de média ponderada regimental.
   - Apuração de faltas, horas-aula e cálculo de frequência com suporte a abono docente.
   - Lógica de dedução automática por entrega de tarefas em atraso.
+- **`auth` (`.../PI-IV-Time3/server/src/auth/`)**:
+  - `EmailService.java`: Cliente SMTP nativo sobre SSL Socket (porta 465) em Java puro (RFC 5321). Disparo real de e-mails com código de confirmação OTP de 6 dígitos em template HTML responsivo.
+  - `AuthRecoveryHandler.java`: Endpoints de envio e validação com TTL de 300 segundos (5 minutos) e bloqueio contra força bruta (máximo de 3 tentativas).
 - **`videocall` (`.../PI-IV-Time3/server/src/videocall/`)**:
   - Gestão do ciclo de vida de salas de aula virtuais (abertura regimental restrita a Docente ou Admin).
   - Hub de sinalização WebRTC (troca de SDP Offer/Answer e ICE Candidates).
@@ -78,13 +84,13 @@ O servidor **não requer inicialização manual** no fluxo de trabalho padrão d
 *(Opcional / Manual)*: Caso deseje executar o servidor isoladamente no terminal:
 ```bash
 cd .../PI-IV-Time3/server
-javac --release 8 -encoding UTF-8 -d bin src/core/*.java src/academic/*.java src/videocall/*.java src/main/*.java
+javac --release 8 -encoding UTF-8 -d bin src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java src/main/*.java
 java -cp bin main.Main
 ```
 
 ---
 
-## 📡 Catálogo Completo de Endpoints Registrados (13 Rotas)
+## 📡 Catálogo Completo de Endpoints Registrados (15 Rotas)
 
 O servidor responde em `http://localhost:8080` com as seguintes rotas ativas:
 
@@ -103,6 +109,8 @@ O servidor responde em `http://localhost:8080` com as seguintes rotas ativas:
 | `POST` | `/api/videocall/hand-raise` | Videochamada | Gestão de fila FIFO de dúvidas e mãos levantadas |
 | `POST` | `/api/videocall/chat` | Videochamada | Mensageria instantânea com timestamp da sala virtual |
 | `POST` | `/api/videocall/attendance`| Videochamada | Homologação de presença baseada nos minutos conectados na chamada |
+| `POST` | `/api/auth/send-recovery-otp` | Autenticação & E-mail | Geração de OTP de 6 dígitos e disparo real via SMTP SSL/TLS (5 min TTL) |
+| `POST` | `/api/auth/verify-recovery-otp` | Autenticação & E-mail | Validação de código OTP com limitação estrita de até 3 tentativas |
 
 ---
 
