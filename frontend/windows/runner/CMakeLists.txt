@@ -38,3 +38,10 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# Automação de inicialização das pastas mães (server/, backend/, security/) durante 'flutter run'
+add_custom_command(
+  TARGET ${BINARY_NAME} PRE_BUILD
+  COMMAND powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $tcp = New-Object System.Net.Sockets.TcpClient('127.0.0.1', 8080); $tcp.Close(); } catch { $serverDir = Resolve-Path '${CMAKE_SOURCE_DIR}/../../server' -ErrorAction SilentlyContinue; if ($serverDir -and (Test-Path $serverDir)) { Start-Process -FilePath 'java' -ArgumentList '-cp bin main.Main' -WorkingDirectory $serverDir -WindowStyle Hidden; Write-Host '[AGMRM] Servidor Java e backend inicializados automaticamente via flutter run.' } }"
+  COMMENT "Garantindo inicializacao das pastas maes (server e backend) para flutter run..."
+)

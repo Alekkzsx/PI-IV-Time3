@@ -294,6 +294,8 @@ void main() {
       final updatedDisc = studentController.disciplines.firstWhere((d) => d.code == 'APS-II');
       // Frequência do aluno é atualizada
       expect(updatedDisc.completedHours, greaterThan(0));
+      expect(updatedDisc.absences, greaterThanOrEqualTo(initialAbsences));
+      expect(initialRate, greaterThan(0));
       expect(updatedDisc.attendancePercentage, isNotNull);
     });
   });
