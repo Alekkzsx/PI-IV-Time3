@@ -101,17 +101,19 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                           .isSessionOpen(widget.classModel.code);
                       return ElevatedButton.icon(
                         key: const Key('btn_admin_supervisionar_chamada'),
-                        onPressed: () {
-                          Navigator.of(context).pushNamed(
-                            '/video-call',
-                            arguments: {
-                              'name': 'Coordenação Geral (Admin)',
-                              'ra': 'ADM-00123',
-                              'roomCode': widget.classModel.code,
-                              'role': 'admin',
-                            },
-                          );
-                        },
+                        onPressed: _controller.canPerform('manage_video_calls')
+                            ? () {
+                                Navigator.of(context).pushNamed(
+                                  '/video-call',
+                                  arguments: {
+                                    'name': 'Coordenação Geral (Admin)',
+                                    'ra': 'ADM-00123',
+                                    'roomCode': widget.classModel.code,
+                                    'role': 'admin',
+                                  },
+                                );
+                              }
+                            : null,
                         icon: Icon(
                           isLive ? Icons.videocam : Icons.video_call_outlined,
                           size: 16,

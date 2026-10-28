@@ -251,9 +251,15 @@ void main() {
       test(
         'Docente corrige entrega com rubrica e Aluno vê status Avaliada e notas recalculadas',
         () {
+          studentController.submitDelivery(
+            deliveryId: 'DEL-01',
+            fileName: 'modelagem_gof_gabriel_oliveira.pdf',
+            gitUrl: 'https://github.com/gabriel/aps-gof',
+          );
+
           // Docente avalia submissão
           docenteController.evaluateRubric(
-            assignmentId: 'DEL-01',
+            assignmentId: 'asg-1',
             submissionId: 'sub-DEL-01-2024.1.00892',
             calculatedGrade: 9.8,
             feedback:

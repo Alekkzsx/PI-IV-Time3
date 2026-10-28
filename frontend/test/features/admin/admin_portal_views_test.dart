@@ -33,6 +33,24 @@ void main() {
       controller.setUserSearchQuery('');
     });
 
+    test('RBAC bloqueia ações sem permissão e libera as ações autorizadas', () {
+      final controller = AdminPortalController();
+      final user = controller.users.first;
+      final initialStatus = user.status;
+
+      expect(controller.setCurrentOperatorRole('Discente'), isTrue);
+      expect(controller.toggleUserStatus(user.id), isFalse);
+      expect(user.status, initialStatus);
+      expect(controller.canPerform('manage_classes'), isFalse);
+
+      expect(controller.setCurrentOperatorRole('Admin Operacional'), isTrue);
+      expect(controller.canPerform('manage_users'), isTrue);
+      expect(controller.toggleUserStatus(user.id), isTrue);
+      expect(user.status, isNot(initialStatus));
+      expect(controller.setCurrentOperatorRole('Perfil Desconhecido'), isFalse);
+      controller.setCurrentOperatorRole('Super Admin');
+    });
+
     test('Alterna suspensão de usuário e cadastra novo discente com 2FA', () {
       final controller = AdminPortalController();
       final targetUser = controller.users.first;

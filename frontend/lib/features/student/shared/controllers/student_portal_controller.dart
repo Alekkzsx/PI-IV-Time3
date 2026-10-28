@@ -243,15 +243,18 @@ class StudentPortalController extends ChangeNotifier {
       notifyListeners();
     };
 
-    AcademicBridgeService.instance.onGradedReceivedByStudent = (deliveryId, finalScore, feedback, rubrics) {
-      int idx = deliveries.indexWhere((d) => d.id == deliveryId);
-      if (idx == -1) {
-        idx = deliveries.indexWhere((d) => d.id == 'DEL-01' || d.disciplineCode == 'APS-II');
-      }
+    AcademicBridgeService.instance.onGradedReceivedByStudent = (
+      deliveryId,
+      finalScore,
+      feedback,
+      rubrics,
+    ) {
+      final idx = deliveries.indexWhere((d) => d.id == deliveryId);
       if (idx != -1) {
         final old = deliveries[idx];
         deliveries[idx] = StudentDeliveryItem(
           id: old.id,
+          sourceAssignmentId: old.sourceAssignmentId,
           activityCode: old.activityCode,
           title: old.title,
           disciplineCode: old.disciplineCode,
@@ -427,8 +430,21 @@ class StudentPortalController extends ChangeNotifier {
       final generatedProtocol =
           'AGR-${now.year}-${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-$randomSuffix';
 
+      final accepted = AcademicBridgeService.instance.notifySubmissionToDocente(
+        deliveryId: deliveryId,
+        assignmentId: old.sourceAssignmentId ?? old.id,
+        courseCode: old.disciplineCode,
+        studentName: StudentMockData.studentName,
+        studentRa: StudentMockData.studentRa,
+        fileName: fileName,
+        protocol: generatedProtocol,
+        comments: comments,
+      );
+      if (!accepted) return '';
+
       deliveries[index] = StudentDeliveryItem(
         id: old.id,
+        sourceAssignmentId: old.sourceAssignmentId,
         activityCode: old.activityCode,
         title: old.title,
         disciplineCode: old.disciplineCode,
@@ -449,16 +465,6 @@ class StudentPortalController extends ChangeNotifier {
         protocol: generatedProtocol,
         attachmentCount: 1,
         rubrics: old.rubrics,
-      );
-
-      // Transmite a submissão e o protocolo gerado para a visão do Docente
-      AcademicBridgeService.instance.notifySubmissionToDocente(
-        deliveryId: deliveryId,
-        studentName: StudentMockData.studentName,
-        studentRa: StudentMockData.studentRa,
-        fileName: fileName,
-        protocol: generatedProtocol,
-        comments: comments,
       );
 
       notifyListeners();

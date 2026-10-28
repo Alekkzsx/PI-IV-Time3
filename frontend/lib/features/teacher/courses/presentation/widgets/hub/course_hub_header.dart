@@ -8,7 +8,7 @@ class CourseHubHeader extends StatelessWidget {
   final DocenteCourse course;
   final VoidCallback onBack;
   final VoidCallback onQuickNotice;
-  final VoidCallback onNewContent;
+  final VoidCallback? onNewContent;
   final VoidCallback onLiveClass;
 
   const CourseHubHeader({

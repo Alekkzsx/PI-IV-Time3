@@ -48,6 +48,7 @@ class StudentDisciplineModel {
 
 class StudentDeliveryItem {
   final String id;
+  final String? sourceAssignmentId;
   final String title;
   final String disciplineCode;
   final String disciplineName;
@@ -72,6 +73,7 @@ class StudentDeliveryItem {
 
   const StudentDeliveryItem({
     required this.id,
+    this.sourceAssignmentId,
     required this.title,
     required this.disciplineCode,
     required this.disciplineName,
@@ -226,6 +228,7 @@ class StudentMockData {
   static final List<StudentDeliveryItem> deliveries = [
     const StudentDeliveryItem(
       id: 'DEL-01',
+      sourceAssignmentId: 'asg-1',
       activityCode: 'APS - ATV - 04',
       title: 'Modelagem de Domínio e Diagramas de Casos de Uso com Padrões GoF',
       disciplineCode: 'APS-II',
@@ -465,4 +468,3 @@ class StudentMockData {
     ),
   ];
 }
-

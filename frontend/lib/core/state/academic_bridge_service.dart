@@ -213,12 +213,19 @@ class AcademicBridgeService extends ChangeNotifier {
     return _courseCodeAliases[trimmed] ?? trimmed;
   }
 
+  bool courseCodesMatch(String first, String second) =>
+      _normalizeCourseCode(first) == _normalizeCourseCode(second);
+
   // ===========================================================================
   // 2. ATIVIDADES, TAREFAS, UPLOADS E AVALIAÇÃO COM RUBRICA (DOCENTE <-> ALUNO)
   // ===========================================================================
 
   /// Callback registrado pelo DocenteController para receber notificações de novas submissões do aluno.
-  void Function(String assignmentId, StudentSubmission submission)?
+  bool Function(
+    String assignmentId,
+    String courseCode,
+    StudentSubmission submission,
+  )?
   onDocenteSubmissionReceived;
 
   /// Callback registrado pelo StudentPortalController para incorporar nova atividade do professor.
@@ -239,6 +246,7 @@ class AcademicBridgeService extends ChangeNotifier {
 
   /// Callback registrado pelo StudentPortalController para receber atividades publicadas ou notas.
   VoidCallback? onStudentDataChanged;
+  final Map<String, String> _deliveryIdsByAssignment = {};
 
   /// Publica uma nova atividade do Docente para a visão do Aluno.
   void publishAssignmentToStudent({
@@ -253,11 +261,16 @@ class AcademicBridgeService extends ChangeNotifier {
     required List<RubricCriterion> rubricCriteria,
     required String modality,
   }) {
-    final cleanDiscCode = courseCode.contains('APS')
-        ? 'APS-II'
-        : (courseCode.contains('BD') ? 'BD-II' : 'FSO');
+    final cleanDiscCode = _normalizeCourseCode(courseCode);
+    if (!_liveSessions.containsKey(cleanDiscCode)) {
+      debugPrint(
+        '[AcademicBridge] Publicação de atividade recusada para turma desconhecida: $courseCode.',
+      );
+      return;
+    }
     final delivery = StudentDeliveryItem(
       id: assignmentId,
+      sourceAssignmentId: assignmentId,
       activityCode: '${cleanDiscCode.split('-').first} - ATV - 05',
       title: title,
       disciplineCode: cleanDiscCode,
@@ -312,14 +325,23 @@ class AcademicBridgeService extends ChangeNotifier {
   }
 
   /// O Aluno realiza o upload de uma entrega e notifica o Docente responsável.
-  void notifySubmissionToDocente({
+  bool notifySubmissionToDocente({
     required String deliveryId,
+    required String assignmentId,
+    required String courseCode,
     required String studentName,
     required String studentRa,
     required String fileName,
     required String protocol,
     String? comments,
   }) {
+    final cleanCourseCode = _normalizeCourseCode(courseCode);
+    if (cleanCourseCode.isEmpty || assignmentId.trim().isEmpty) {
+      debugPrint(
+        '[AcademicBridge] Submissão recusada: atividade ou turma inválida.',
+      );
+      return false;
+    }
     final submission = StudentSubmission(
       id: 'sub-$deliveryId-$studentRa',
       studentId: 'st-1',
@@ -337,13 +359,25 @@ class AcademicBridgeService extends ChangeNotifier {
       rubricEvaluations: const [],
     );
 
-    if (onDocenteSubmissionReceived != null) {
-      onDocenteSubmissionReceived!(deliveryId, submission);
+    final accepted =
+        onDocenteSubmissionReceived?.call(
+          assignmentId,
+          cleanCourseCode,
+          submission,
+        ) ??
+        false;
+    if (!accepted) {
+      debugPrint(
+        '[AcademicBridge] Submissão recusada: atividade, turma ou matrícula não conferem.',
+      );
+      return false;
     }
+    _deliveryIdsByAssignment[assignmentId] = deliveryId;
     notifyListeners();
     debugPrint(
       '[AcademicBridge] Aluno $studentName submeteu arquivo "$fileName" com protocolo $protocol.',
     );
+    return true;
   }
 
   /// O Docente avalia a atividade com rubricas e notas, sincronizando a visão do Aluno.
@@ -353,9 +387,11 @@ class AcademicBridgeService extends ChangeNotifier {
     required String feedback,
     required List<RubricCriterion> evaluatedRubrics,
   }) {
+    final studentDeliveryId =
+        _deliveryIdsByAssignment[deliveryId] ?? deliveryId;
     if (onGradedReceivedByStudent != null) {
       onGradedReceivedByStudent!(
-        deliveryId,
+        studentDeliveryId,
         finalScore,
         feedback,
         evaluatedRubrics,
@@ -483,6 +519,20 @@ class AcademicBridgeService extends ChangeNotifier {
 
   List<Map<String, dynamic>> get broadcastNotices =>
       List.unmodifiable(_broadcastNotices);
+
+  List<Map<String, dynamic>> noticesForCourses(Iterable<String> courseCodes) {
+    final normalizedCourses = courseCodes.map(_normalizeCourseCode).toSet();
+    return _broadcastNotices
+        .where((notice) {
+          final target = (notice['targetCourse'] as String? ?? 'GERAL')
+              .trim()
+              .toUpperCase();
+          return target == 'GERAL' ||
+              target == 'INSTITUCIONAL' ||
+              normalizedCourses.contains(_normalizeCourseCode(target));
+        })
+        .toList(growable: false);
+  }
 
   void Function(Map<String, dynamic> notice)? onNoticeBroadcasted;
 

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 /// Aba de Módulos & Conteúdos de Aprendizagem do curso no Portal Docente.
 class CourseHubModulesTab extends StatelessWidget {
-  final VoidCallback onNewUnit;
-  final VoidCallback onUploadSlides;
+  final VoidCallback? onNewUnit;
+  final VoidCallback? onUploadSlides;
   final VoidCallback onPublishAssignment;
   final VoidCallback onQuickNotice;
   final VoidCallback onReviewSyllabus;
@@ -203,7 +203,7 @@ class CourseHubModulesTab extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildActionDocenteButton(
                       Icons.upload_file,
-                      'Upload de Slides ou Apostila',
+                      'Upload de material (indisponível)',
                       onTap: onUploadSlides,
                     ),
                     const SizedBox(height: 8),
@@ -344,10 +344,10 @@ class CourseHubModulesTab extends StatelessWidget {
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, size: 12),
+                  onPressed: null,
+                  icon: const Icon(Icons.lock_outline, size: 12),
                   label: const Text(
-                    'Adicionar Item',
+                    'Indisponível',
                     style: TextStyle(fontSize: 11),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -405,7 +405,7 @@ class CourseHubModulesTab extends StatelessWidget {
                               size: 14,
                               color: Color(0xFF71717A),
                             ),
-                            onPressed: () {},
+                            onPressed: null,
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(4),
                           ),
@@ -416,7 +416,7 @@ class CourseHubModulesTab extends StatelessWidget {
                               size: 14,
                               color: Color(0xFF71717A),
                             ),
-                            onPressed: () {},
+                            onPressed: null,
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(4),
                           ),
@@ -450,20 +450,30 @@ class CourseHubModulesTab extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFBFBFC),
+          color: onTap == null
+              ? const Color(0xFFF4F4F5)
+              : const Color(0xFFFBFBFC),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(color: const Color(0xFFE4E4E7)),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 14, color: const Color(0xFF09090B)),
+            Icon(
+              icon,
+              size: 14,
+              color: onTap == null
+                  ? const Color(0xFFA1A1AA)
+                  : const Color(0xFF09090B),
+            ),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF09090B),
+                color: onTap == null
+                    ? const Color(0xFFA1A1AA)
+                    : const Color(0xFF09090B),
               ),
             ),
           ],

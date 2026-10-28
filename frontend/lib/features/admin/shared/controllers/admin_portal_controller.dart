@@ -36,6 +36,31 @@ class AdminPortalController extends ChangeNotifier {
   bool isGradeLockedFor(String classCode) =>
       _gradeLocksByClass[classCode.trim().toUpperCase()] ?? false;
   String selectedEvaluationFormula = 'Ponderada (N1 40% / N2 60%)';
+  String _currentOperatorRole = 'Super Admin';
+
+  String get currentOperatorRole => _currentOperatorRole;
+
+  bool setCurrentOperatorRole(String role) {
+    final isKnownRole = rbacMatrix.values.any(
+      (permissions) => permissions.containsKey(role),
+    );
+    if (!isKnownRole) return false;
+    _currentOperatorRole = role;
+    notifyListeners();
+    return true;
+  }
+
+  bool hasPermission(String role, String permission) =>
+      rbacMatrix[permission]?[role] ?? false;
+
+  bool canPerform(String permission) =>
+      hasPermission(currentOperatorRole, permission);
+
+  void _denyPermission(String permission) {
+    debugPrint(
+      '[AdminPortal] Ação "$permission" negada para $currentOperatorRole.',
+    );
+  }
 
   // Protocolos de Secretaria
   late List<AdminProtocolModel> protocols = List.from(AdminMockData.protocols);
@@ -76,7 +101,11 @@ class AdminPortalController extends ChangeNotifier {
     }).toList();
   }
 
-  void toggleUserStatus(String id) {
+  bool toggleUserStatus(String id) {
+    if (!canPerform('manage_users')) {
+      _denyPermission('manage_users');
+      return false;
+    }
     final index = users.indexWhere((u) => u.id == id);
     if (index != -1) {
       users[index].status = users[index].status == 'Ativo'
@@ -88,16 +117,22 @@ class AdminPortalController extends ChangeNotifier {
         'Status do usuário $id alterado para ${users[index].status}',
       );
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void addUser({
+  bool addUser({
     required String name,
     required String email,
     required String profile,
     required String department,
     required bool require2FA,
   }) {
+    if (!canPerform('manage_users')) {
+      _denyPermission('manage_users');
+      return false;
+    }
     final newId = profile == 'Discente'
         ? '2024.2.0${1040 + users.length}'
         : 'DOC-${88420 + users.length}';
@@ -119,16 +154,21 @@ class AdminPortalController extends ChangeNotifier {
       'Criação de credencial institucional para $name ($newId)',
     );
     notifyListeners();
+    return true;
   }
 
   // --- MÉTODOS DE COMUNICADOS ---
 
-  void broadcastAnnouncement({
+  bool broadcastAnnouncement({
     required String title,
     required String audience,
     required String category,
     required String body,
   }) {
+    if (!canPerform('publish_announcements')) {
+      _denyPermission('publish_announcements');
+      return false;
+    }
     _logAudit(
       'Carlos Eduardo Mendes',
       'COMUNICADO CAMPUS',
@@ -145,6 +185,7 @@ class AdminPortalController extends ChangeNotifier {
     );
 
     notifyListeners();
+    return true;
   }
 
   // --- MÉTODOS DE GESTÃO DE TURMAS & SUPERVISÃO ---
@@ -165,7 +206,11 @@ class AdminPortalController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateFormulaRegime(String classCode, String newRegime) {
+  bool updateFormulaRegime(String classCode, String newRegime) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return false;
+    }
     final index = classes.indexWhere((c) => c.code == classCode);
     if (index != -1) {
       classes[index].formulaRegime = newRegime;
@@ -175,10 +220,16 @@ class AdminPortalController extends ChangeNotifier {
         'Regime de notas da turma $classCode alterado para $newRegime',
       );
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void reallocateProfessor(String classCode, String newProfessor) {
+  bool reallocateProfessor(String classCode, String newProfessor) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return false;
+    }
     final index = classes.indexWhere((c) => c.code == classCode);
     if (index != -1) {
       final oldProfessor = classes[index].professor;
@@ -189,15 +240,21 @@ class AdminPortalController extends ChangeNotifier {
         'Substituição na turma $classCode: $oldProfessor -> $newProfessor',
       );
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void lockAndHomologateClassPauta(String classCode) {
+  bool lockAndHomologateClassPauta(String classCode) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return false;
+    }
     final normalizedClassCode = classCode.trim().toUpperCase();
     if (!classes.any(
       (classModel) => classModel.code.toUpperCase() == normalizedClassCode,
     )) {
-      return;
+      return false;
     }
     _gradeLocksByClass[normalizedClassCode] = true;
     _logAudit(
@@ -206,6 +263,7 @@ class AdminPortalController extends ChangeNotifier {
       'Pauta oficial e notas da turma $classCode homologadas e lacradas.',
     );
     notifyListeners();
+    return true;
   }
 
   // --- MÉTODOS DE SECRETARIA ACADÊMICA ---
@@ -236,11 +294,15 @@ class AdminPortalController extends ChangeNotifier {
     return protocols.where((p) => p.status == protocolFilter).toList();
   }
 
-  void decideProtocol({
+  bool decideProtocol({
     required String protocolId,
     required bool defer,
     required String parecerNote,
   }) {
+    if (!canPerform('dispatch_protocols')) {
+      _denyPermission('dispatch_protocols');
+      return false;
+    }
     final index = protocols.indexWhere((p) => p.id == protocolId);
     if (index != -1) {
       protocols[index].status = defer ? 'Deferido' : 'Indeferido';
@@ -261,7 +323,9 @@ class AdminPortalController extends ChangeNotifier {
       );
 
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
   // Suporte & Impersonation
@@ -336,12 +400,40 @@ class AdminPortalController extends ChangeNotifier {
         'Admin Operacional': true,
         'Super Admin': true,
       },
+      'manage_classes': {
+        'Discente': false,
+        'Docente': false,
+        'Coordenador': true,
+        'Secretaria': false,
+        'Admin Operacional': true,
+        'Super Admin': true,
+      },
+      'publish_announcements': {
+        'Discente': false,
+        'Docente': false,
+        'Coordenador': true,
+        'Secretaria': false,
+        'Admin Operacional': true,
+        'Super Admin': true,
+      },
+      'manage_video_calls': {
+        'Discente': false,
+        'Docente': false,
+        'Coordenador': true,
+        'Secretaria': false,
+        'Admin Operacional': true,
+        'Super Admin': true,
+      },
     };
   }
 
   // --- MÉTODOS DE GOVERNANÇA AVANÇADA DE USUÁRIOS ---
 
   void terminateUserSessions(String userId) {
+    if (!canPerform('reset_passwords')) {
+      _denyPermission('reset_passwords');
+      return;
+    }
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -376,6 +468,10 @@ class AdminPortalController extends ChangeNotifier {
     required String reason,
     required bool suspend,
   }) {
+    if (!canPerform('manage_users')) {
+      _denyPermission('manage_users');
+      return;
+    }
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -413,6 +509,10 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void impersonateUser(AdminUserModel user) {
+    if (!canPerform('impersonate_support')) {
+      _denyPermission('impersonate_support');
+      return;
+    }
     activeImpersonatedUser = user;
     _logAudit(
       'Carlos Eduardo Mendes',
@@ -435,6 +535,10 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void exitImpersonation() {
+    if (!canPerform('impersonate_support')) {
+      _denyPermission('impersonate_support');
+      return;
+    }
     if (activeImpersonatedUser != null) {
       final user = activeImpersonatedUser!;
       _logAudit(
@@ -455,6 +559,10 @@ class AdminPortalController extends ChangeNotifier {
     required bool sendRecoveryEmail,
     required bool revokeActiveSessions,
   }) {
+    if (!canPerform('reset_passwords')) {
+      _denyPermission('reset_passwords');
+      return;
+    }
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -495,6 +603,10 @@ class AdminPortalController extends ChangeNotifier {
   // --- MÉTODOS DA MATRIZ RBAC ---
 
   void toggleRbacPermission(String role, String permKey) {
+    if (!canPerform('system_settings_2fa')) {
+      _denyPermission('system_settings_2fa');
+      return;
+    }
     if (rbacMatrix.containsKey(permKey) &&
         rbacMatrix[permKey]!.containsKey(role)) {
       final current = rbacMatrix[permKey]![role] ?? false;
@@ -504,6 +616,10 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void saveRbacMatrixChanges() {
+    if (!canPerform('system_settings_2fa')) {
+      _denyPermission('system_settings_2fa');
+      return;
+    }
     _logAudit(
       'Carlos Eduardo Mendes',
       'ATUALIZAÇÃO POLÍTICA RBAC',
@@ -520,6 +636,10 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void resetRbacToDefault() {
+    if (!canPerform('system_settings_2fa')) {
+      _denyPermission('system_settings_2fa');
+      return;
+    }
     rbacMatrix = _getDefaultRbacMatrix();
     _logAudit(
       'Carlos Eduardo Mendes',
@@ -533,6 +653,10 @@ class AdminPortalController extends ChangeNotifier {
   // --- MÉTODOS DE CALENDÁRIO & AUDITORIA ---
 
   void toggleRegimentalLock() {
+    if (!canPerform('system_settings_2fa')) {
+      _denyPermission('system_settings_2fa');
+      return;
+    }
     isRegimentalLockActive = !isRegimentalLockActive;
     _logAudit(
       'Carlos Eduardo Mendes',

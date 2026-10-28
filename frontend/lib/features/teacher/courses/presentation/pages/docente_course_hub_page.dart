@@ -188,20 +188,8 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
         );
       case 2:
         return CourseHubModulesTab(
-          onNewUnit: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Criando nova unidade didática de ensino...'),
-              ),
-            );
-          },
-          onUploadSlides: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Upload de novos slides iniciado...'),
-              ),
-            );
-          },
+          onNewUnit: null,
+          onUploadSlides: null,
           onPublishAssignment: () {
             setState(() => _activeTabIndex = 3);
           },
@@ -216,7 +204,14 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
       case 4:
         return const CourseHubForumTab();
       case 5:
-        return const CourseHubStudentsTab();
+        return AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, _) => CourseHubStudentsTab(
+            course: widget.course,
+            students: widget.controller.studentsForSelectedCourse,
+            grades: widget.controller.gradebook,
+          ),
+        );
       case 6:
         return CourseHubSyllabusTab(onEditSyllabus: _openSyllabusModal);
       case 7:
@@ -251,16 +246,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                       course: widget.course,
                       onBack: () => Navigator.of(context).pop(),
                       onQuickNotice: _showQuickNoticeDialog,
-                      onNewContent: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Abrindo assistente de criação de novo conteúdo didático...',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
+                      onNewContent: null,
                       onLiveClass: () {
                         Navigator.of(context).pushNamed(
                           '/video-call',

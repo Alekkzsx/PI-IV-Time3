@@ -105,17 +105,39 @@ class DocenteController extends ChangeNotifier {
     );
 
     // Registro da ponte institucional para receber submissões e arquivos do Aluno
-    AcademicBridgeService.instance.onDocenteSubmissionReceived = (assignmentId, submission) {
-      final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId || a.courseId == 'course-aps2');
+    AcademicBridgeService.instance.onDocenteSubmissionReceived = (
+      assignmentId,
+      courseCode,
+      submission,
+    ) {
+      final asgIndex = _assignments.indexWhere(
+        (assignment) =>
+            assignment.id == assignmentId &&
+            AcademicBridgeService.instance.courseCodesMatch(
+              assignment.courseCode,
+              courseCode,
+            ),
+      );
       if (asgIndex != -1) {
         final assignment = _assignments[asgIndex];
+        final enrolledStudent = _sessions
+            .where((session) => session.courseId == assignment.courseId)
+            .expand((session) => session.attendanceList)
+            .where((student) => student.ra == submission.ra)
+            .firstOrNull;
+        if (enrolledStudent == null) return false;
+        final enrolledSubmission = submission.copyWith(
+          studentId: enrolledStudent.studentId,
+        );
         final exists = assignment.submissions.any((s) => s.ra == submission.ra);
         final updatedSubmissions = exists
-            ? assignment.submissions.map((s) => s.ra == submission.ra ? submission : s).toList()
-            : [submission, ...assignment.submissions];
+            ? assignment.submissions.map((s) => s.ra == submission.ra ? enrolledSubmission : s).toList()
+            : [enrolledSubmission, ...assignment.submissions];
         _assignments[asgIndex] = assignment.copyWith(submissions: updatedSubmissions);
         notifyListeners();
+        return true;
       }
+      return false;
     };
   }
 
@@ -169,6 +191,16 @@ class DocenteController extends ChangeNotifier {
               ? dateOrder
               : a.sessionNumber.compareTo(b.sessionNumber);
         }));
+  List<AttendanceStudent> get studentsForSelectedCourse {
+    final studentsByRa = <String, AttendanceStudent>{};
+    for (final session in sessionsForSelectedCourse) {
+      for (final student in session.attendanceList) {
+        studentsByRa.putIfAbsent(student.ra, () => student);
+      }
+    }
+    return studentsByRa.values.toList()
+      ..sort((first, second) => first.name.compareTo(second.name));
+  }
   List<AssignmentItem> get assignments => List.unmodifiable(_assignments);
   String get selectedAssignmentId => _selectedAssignmentId;
   List<StudentGrade> get gradebook => List.unmodifiable(_gradebook);
@@ -633,12 +665,20 @@ class DocenteController extends ChangeNotifier {
     required String feedback,
     required List<RubricCriterion> evaluatedCriteria,
   }) {
-    final asgIndex = _assignments.indexWhere(
-      (a) => a.id == assignmentId || a.id == 'asg-1',
-    );
+    final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId);
     if (asgIndex == -1) return;
 
     final assignment = _assignments[asgIndex];
+    if (!calculatedGrade.isFinite ||
+        calculatedGrade < 0 ||
+        calculatedGrade > 10 ||
+        !assignment.submissions.any(
+          (submission) =>
+              submission.id == submissionId &&
+              submission.status == SubmissionStatus.aguardandoCorrecao,
+        )) {
+      return;
+    }
     final updatedSubmissions = assignment.submissions.map((sub) {
       if (sub.id == submissionId) {
         return sub.copyWith(

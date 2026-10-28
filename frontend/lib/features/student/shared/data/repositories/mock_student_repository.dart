@@ -77,6 +77,7 @@ class MockStudentRepository implements IStudentRepository {
       final current = _deliveries[idx];
       _deliveries[idx] = StudentDeliveryItem(
         id: current.id,
+        sourceAssignmentId: current.sourceAssignmentId,
         title: current.title,
         disciplineCode: current.disciplineCode,
         disciplineName: current.disciplineName,
@@ -92,4 +93,3 @@ class MockStudentRepository implements IStudentRepository {
     }
   }
 }
-

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -30,50 +30,78 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
     _RbacPermissionItem(
       key: 'view_grades',
       label: 'Visualizar Boletim & Notas',
-      description: 'Consulta de notas, faltas e coeficientes acadêmicos das turmas.',
+      description:
+          'Consulta de notas, faltas e coeficientes acadêmicos das turmas.',
       category: 'Acadêmico',
     ),
     _RbacPermissionItem(
       key: 'edit_grades',
       label: 'Editar & Lançar Notas no Diário',
-      description: 'Digitação de avaliações P1/P2/Sub e homologação de presenças.',
+      description:
+          'Digitação de avaliações P1/P2/Sub e homologação de presenças.',
       category: 'Acadêmico',
     ),
     _RbacPermissionItem(
       key: 'manage_users',
       label: 'Gerenciar Usuários (Criar / Editar)',
-      description: 'Cadastro de discentes, docentes e alteração de lotação funcional.',
+      description:
+          'Cadastro de discentes, docentes e alteração de lotação funcional.',
       category: 'Governança',
     ),
     _RbacPermissionItem(
       key: 'reset_passwords',
       label: 'Reset de Senhas & Revogar Sessões',
-      description: 'Emissão de links de recuperação e término forçado de sessões.',
+      description:
+          'Emissão de links de recuperação e término forçado de sessões.',
       category: 'Segurança',
     ),
     _RbacPermissionItem(
       key: 'impersonate_support',
       label: 'Modo Suporte / Impersonation',
-      description: 'Visualização diagnóstica sob a perspectiva exata do discente/docente.',
+      description:
+          'Visualização diagnóstica sob a perspectiva exata do discente/docente.',
       category: 'Segurança',
     ),
     _RbacPermissionItem(
       key: 'audit_diff_inspect',
       label: 'Auditoria & Trilha Forense (Diff)',
-      description: 'Inspeção do antes e depois de lançamentos de notas e cadastros.',
+      description:
+          'Inspeção do antes e depois de lançamentos de notas e cadastros.',
       category: 'Governança',
     ),
     _RbacPermissionItem(
       key: 'system_settings_2fa',
       label: 'Configurações de Servidor & 2FA',
-      description: 'Políticas de segurança, travas regimentais CONSEPE e backup.',
+      description:
+          'Políticas de segurança, travas regimentais CONSEPE e backup.',
       category: 'Sistema',
     ),
     _RbacPermissionItem(
       key: 'dispatch_protocols',
       label: 'Despacho de Protocolos e Atestados',
-      description: 'Deferimento de requerimentos da secretaria com reflexo em diário.',
+      description:
+          'Deferimento de requerimentos da secretaria com reflexo em diário.',
       category: 'Secretaria',
+    ),
+    _RbacPermissionItem(
+      key: 'manage_classes',
+      label: 'Gerenciar Turmas e Alocação Docente',
+      description:
+          'Alteração de regime acadêmico, ensalamento e docente responsável.',
+      category: 'Acadêmico',
+    ),
+    _RbacPermissionItem(
+      key: 'publish_announcements',
+      label: 'Publicar Comunicados',
+      description:
+          'Envio de comunicados institucionais ou direcionados a turmas.',
+      category: 'Governança',
+    ),
+    _RbacPermissionItem(
+      key: 'manage_video_calls',
+      label: 'Abrir Videochamadas Administrativas',
+      description: 'Iniciar chamadas em turmas sob supervisão administrativa.',
+      category: 'Acadêmico',
     ),
   ];
 
@@ -153,7 +181,11 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF2563EB)),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 18,
+                  color: Color(0xFF2563EB),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -185,7 +217,10 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                   children: [
                     // Cabeçalho dos Perfis
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       color: const Color(0xFFF1F5F9),
                       child: Row(
                         children: [
@@ -258,8 +293,13 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF475569),
                   side: const BorderSide(color: Color(0xFFCBD5E1)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               ElevatedButton.icon(
@@ -284,8 +324,13 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E3A8A),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -338,11 +383,7 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
 
           // Colunas dos Perfis com Checkboxes Interativos
           for (final role in _roles)
-            Expanded(
-              child: Center(
-                child: _buildCheckbox(role, item.key),
-              ),
-            ),
+            Expanded(child: Center(child: _buildCheckbox(role, item.key))),
         ],
       ),
     );
@@ -370,12 +411,16 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
           height: 28,
           decoration: BoxDecoration(
             color: isAllowed
-                ? (isSuperAdmin ? const Color(0xFFDC2626) : const Color(0xFF2563EB))
+                ? (isSuperAdmin
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFF2563EB))
                 : Colors.white,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
               color: isAllowed
-                  ? (isSuperAdmin ? const Color(0xFFDC2626) : const Color(0xFF2563EB))
+                  ? (isSuperAdmin
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFF2563EB))
                   : const Color(0xFFCBD5E1),
               width: 1.5,
             ),

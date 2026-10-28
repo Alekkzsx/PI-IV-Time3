@@ -10,6 +10,7 @@ import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/stud
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
 import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 
 void main() {
   group('StudentPortalController Unit Tests', () {
@@ -48,6 +49,7 @@ void main() {
 
     test('Protocolar submissão de atividade gera protocolo e muda status', () {
       final controller = StudentPortalController();
+      DocenteController();
       controller.submitDelivery(
         deliveryId: 'DEL-01',
         fileName: 'teste_entrega.zip',

@@ -394,7 +394,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         AnimatedBuilder(
           animation: AcademicBridgeService.instance,
           builder: (context, _) {
-            final liveNotices = AcademicBridgeService.instance.broadcastNotices.map((n) {
+            final liveNotices = AcademicBridgeService.instance
+                .noticesForCourses(_controller.disciplines.map((d) => d.code))
+                .map((n) {
               return StudentNoticeItemData(
                 n['senderName'] as String? ?? 'Coordenação Institucional',
                 n['date'] as String? ?? 'Hoje',
