@@ -1,0 +1,44 @@
+{
+  "_description": "Configuracao institucional do ecossistema de backend AGMRM para integracao transparente ao 'flutter run'",
+  "environment": {
+    "profile": "development",
+    "orchestrator": "frontend_integrated_launcher"
+  },
+  "modules": {
+    "server": {
+      "path": "../server",
+      "entrypoint": "main.Main",
+      "port": 8080,
+      "protocol": "HTTP/1.1",
+      "auto_start": true,
+      "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
+      "features": [
+        "videocall_webrtc_signaling",
+        "academic_boletim_calculation",
+        "academic_attendance_tracking",
+        "academic_task_grading"
+      ]
+    },
+    "security": {
+      "path": "../security",
+      "package": "agmrm_security",
+      "auto_bind": true,
+      "features": [
+        "generic_feedback_policy",
+        "rate_limiting_lockout",
+        "input_sanitizer",
+        "timing_attack_mitigation"
+      ]
+    },
+    "backend_persistence": {
+      "target_classes": "target/classes",
+      "database": "mongodb_integrated",
+      "status": "ready"
+    }
+  },
+  "flutter_run_hook": {
+    "enabled": true,
+    "strategy": "dual_trigger_cmake_and_dart_vm",
+    "description": "Ao executar 'cd frontend' e 'flutter run', os servicos do server e backend iniciam automaticamente em background."
+  }
+}
