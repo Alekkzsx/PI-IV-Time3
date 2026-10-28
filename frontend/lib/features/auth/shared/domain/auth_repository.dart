@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Resultado detalhado de uma tentativa de autenticação, suportando prontidão para 2FA.
 class AuthResult {

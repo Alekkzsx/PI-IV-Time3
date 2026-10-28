@@ -1,13 +1,23 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import '../data/admin_mock_data.dart';
 
 /// Controlador reativo unificado em memória para o Portal do Administrador.
 class AdminPortalController extends ChangeNotifier {
   static final AdminPortalController instance = AdminPortalController._internal();
-  AdminPortalController._internal();
+  AdminPortalController._internal() {
+    _initAcademicBridge();
+  }
   factory AdminPortalController() => instance;
+
+  void _initAcademicBridge() {
+    AcademicBridgeService.instance.onAdminProtocolReceived = (newProtocol) {
+      protocols.insert(0, newProtocol);
+      notifyListeners();
+    };
+  }
 
   // Usuários
   late List<AdminUserModel> users = List.from(AdminMockData.users);
@@ -100,6 +110,16 @@ class AdminPortalController extends ChangeNotifier {
     required String body,
   }) {
     _logAudit('Carlos Eduardo Mendes', 'COMUNICADO CAMPUS', 'Disparo de comunicado: "$title" para $audience ($category)');
+    
+    // Dispara institucionalmente para os murais discentes
+    AcademicBridgeService.instance.broadcastNotice(
+      title: title.trim(),
+      content: body.trim(),
+      senderRole: 'admin',
+      senderName: 'Carlos Eduardo Mendes (Coordenação Geral / $audience)',
+      targetCourse: 'Institucional',
+    );
+
     notifyListeners();
   }
 
@@ -184,6 +204,15 @@ class AdminPortalController extends ChangeNotifier {
         defer ? 'DEFERIMENTO PROTOCOLO' : 'INDEFERIMENTO PROTOCOLO',
         'Protocolo $protocolId decidido: ${protocols[index].status}',
       );
+
+      // Transmite a decisão homologada com parecer oficial para o Portal do Aluno
+      AcademicBridgeService.instance.dispatchProtocolDecision(
+        protocolCode: protocolId,
+        isApproved: defer,
+        decisionNote: parecerNote,
+        approverName: 'Carlos Eduardo Mendes - Secretaria Geral',
+      );
+
       notifyListeners();
     }
   }

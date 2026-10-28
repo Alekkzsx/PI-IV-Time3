@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';

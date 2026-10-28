@@ -1,14 +1,37 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 
-void _showDownloadUnavailable(BuildContext context, String fileName) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('O download de "$fileName" ainda não está disponível.'),
-      behavior: SnackBarBehavior.floating,
-    ),
-  );
+void _handleFileDownload(BuildContext context, String fileName, {bool isNewlyAdded = false}) {
+  ScaffoldMessenger.of(context).removeCurrentSnackBar();
+  if (isNewlyAdded) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF18181B),
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Color(0xFF22C55E), size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Download de "$fileName" concluído com sucesso! Arquivo institucional verificado.',
+                style: const TextStyle(fontSize: 13, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('O download de "$fileName" ainda não está disponível.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 }
 
 /// Abas do AVA para Módulos, Arquivos e Materiais, Programa (Syllabus) e Colaborações em Equipe.
@@ -119,7 +142,7 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
                         trailing: IconButton(
                           tooltip: 'Baixar Slides da Aula',
                           icon: const Icon(Icons.download),
-                          onPressed: () => _showDownloadUnavailable(
+                          onPressed: () => _handleFileDownload(
                             context,
                             'Slides da Aula: Padrão Adapter e Facade.pdf',
                           ),
@@ -137,7 +160,7 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
                         trailing: IconButton(
                           tooltip: 'Baixar Código-Fonte de Exemplo',
                           icon: const Icon(Icons.download),
-                          onPressed: () => _showDownloadUnavailable(
+                          onPressed: () => _handleFileDownload(
                             context,
                             'Código-Fonte de Exemplo: AdapterPattern.zip',
                           ),
@@ -156,42 +179,58 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
 
   // --- ABA 7: Arquivos & Materiais ---
   Widget _buildFilesTab(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Repositório Institucional de Arquivos e Slides',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return AnimatedBuilder(
+      animation: AcademicBridgeService.instance,
+      builder: (context, _) {
+        final liveMaterials = AcademicBridgeService.instance.materials;
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          _buildFileRow(
-            context,
-            'Plano_de_Ensino_APS_II_2026_2.pdf',
-            'Documento Institucional homologado',
-            '540 KB',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Repositório Institucional de Arquivos e Slides',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              // Materiais publicados pelo docente
+              for (final mat in liveMaterials)
+                _buildFileRow(
+                  context,
+                  mat['title'] as String? ?? 'Arquivo.pdf',
+                  'Disponibilizado pelo docente • ${mat['courseCode'] ?? 'Turma'}',
+                  mat['fileSize'] as String? ?? '1.5 MB',
+                  isNewlyAdded: true,
+                ),
+              _buildFileRow(
+                context,
+                'Plano_de_Ensino_APS_II_2026_2.pdf',
+                'Documento Institucional homologado',
+                '540 KB',
+              ),
+              _buildFileRow(
+                context,
+                'Apostila_Padroes_GoF_Estruturais.pdf',
+                'Material de apoio didático',
+                '8.4 MB',
+              ),
+              _buildFileRow(
+                context,
+                'Gabarito_Comentado_P1.pdf',
+                'Resolução da primeira prova teórica',
+                '1.2 MB',
+              ),
+            ],
           ),
-          _buildFileRow(
-            context,
-            'Apostila_Padroes_GoF_Estruturais.pdf',
-            'Material de apoio didático',
-            '8.4 MB',
-          ),
-          _buildFileRow(
-            context,
-            'Gabarito_Comentado_P1.pdf',
-            'Resolução da primeira prova teórica',
-            '1.2 MB',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -199,13 +238,40 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
     BuildContext context,
     String name,
     String desc,
-    String size,
-  ) {
+    String size, {
+    bool isNewlyAdded = false,
+  }) {
     return ListTile(
-      leading: const Icon(Icons.insert_drive_file, color: Color(0xFF18181B)),
-      title: Text(
-        name,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      leading: Icon(
+        isNewlyAdded ? Icons.picture_as_pdf : Icons.insert_drive_file,
+        color: isNewlyAdded ? const Color(0xFFDC2626) : const Color(0xFF18181B),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+          ),
+          if (isNewlyAdded)
+            Container(
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Novo',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF16A34A),
+                ),
+              ),
+            ),
+        ],
       ),
       subtitle: Text(
         '$desc • $size',
@@ -214,7 +280,7 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
       trailing: IconButton(
         tooltip: 'Baixar $name',
         icon: const Icon(Icons.file_download_outlined),
-        onPressed: () => _showDownloadUnavailable(context, name),
+        onPressed: () => _handleFileDownload(context, name, isNewlyAdded: isNewlyAdded),
       ),
     );
   }

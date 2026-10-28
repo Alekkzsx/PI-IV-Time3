@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 

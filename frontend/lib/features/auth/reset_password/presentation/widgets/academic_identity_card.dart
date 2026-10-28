@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';

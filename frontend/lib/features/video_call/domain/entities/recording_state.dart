@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Estados possíveis do ciclo de vida da gravação da conferência.
 enum RecordingStatus {

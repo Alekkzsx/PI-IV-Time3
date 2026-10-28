@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import '../../domain/models/academic_event.dart';
 import '../../domain/models/academic_notice.dart';

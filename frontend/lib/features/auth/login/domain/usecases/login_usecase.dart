@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 import 'package:pi_iv_time3/core/utils/input_validators.dart';

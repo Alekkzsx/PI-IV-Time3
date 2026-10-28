@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../models/academic_event.dart';
 import '../models/academic_notice.dart';

@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/schedule/student_academic_support_card.dart';

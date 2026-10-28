@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../errors/video_call_failures.dart';
 import '../repositories/video_call_repository.dart';

@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 /// Represents a syllabus unit within a course curriculum.
 class SyllabusUnit {

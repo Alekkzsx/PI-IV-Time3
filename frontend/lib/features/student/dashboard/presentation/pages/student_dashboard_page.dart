@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import '../widgets/student_dashboard_list_view.dart';
@@ -390,7 +391,24 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
           deadlines: _deadlines,
         ),
         const SizedBox(height: 24),
-        const StudentNoticesPanel(notices: _notices),
+        AnimatedBuilder(
+          animation: AcademicBridgeService.instance,
+          builder: (context, _) {
+            final liveNotices = AcademicBridgeService.instance.broadcastNotices.map((n) {
+              return StudentNoticeItemData(
+                n['senderName'] as String? ?? 'Coordenação Institucional',
+                n['date'] as String? ?? 'Hoje',
+                n['title'] as String? ?? 'Comunicado Oficial',
+                n['content'] as String? ?? '',
+                true,
+              );
+            }).toList();
+
+            return StudentNoticesPanel(
+              notices: [...liveNotices, ..._notices],
+            );
+          },
+        ),
       ],
     );
   }

@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 // Especialização do componente compartilhado InstitutionalSidebar para o Portal do Aluno
 
 import 'package:flutter/material.dart';

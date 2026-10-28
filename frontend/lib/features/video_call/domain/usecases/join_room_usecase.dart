@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/meeting_room.dart';
 import '../entities/participant.dart';

@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 

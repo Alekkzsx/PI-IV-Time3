@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'call_media_engine.dart';
 import 'call_media_engine_stub.dart'

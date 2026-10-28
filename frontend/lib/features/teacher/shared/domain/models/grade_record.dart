@@ -1,4 +1,4 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
 /// Academic standing of a student in the official gradebook.
 enum AcademicStatus { aprovado, exame, reprovadoPorNota, reprovadoPorFalta }

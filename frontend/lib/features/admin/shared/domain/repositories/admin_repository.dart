@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import '../../data/admin_mock_data.dart';
 

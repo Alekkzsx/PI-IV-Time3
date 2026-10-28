@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/foundation.dart';
 import '../../domain/usecases/login_usecase.dart';

@@ -1,6 +1,7 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import '../../../../core/state/academic_bridge_service.dart';
 import '../../domain/repositories/video_call_repository.dart';
 import '../controllers/video_call_lobby_controller.dart';
 import '../theme/video_call_theme.dart';
@@ -41,6 +42,34 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   late final VideoCallLobbyController _lobbyController;
   bool _ownsController = false;
   bool _isInRoom = false;
+  String? _userRole;
+  bool _argumentsApplied = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_argumentsApplied) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        if (args['name'] != null && _nameController.text.isEmpty) {
+          _nameController.text = args['name'].toString();
+          _lobbyController.setName(_nameController.text);
+        }
+        if (args['ra'] != null && _raController.text.isEmpty) {
+          _raController.text = args['ra'].toString();
+          _lobbyController.setRa(_raController.text);
+        }
+        if (args['roomCode'] != null) {
+          _roomCodeController.text = args['roomCode'].toString();
+          _lobbyController.setRoomCode(_roomCodeController.text);
+        }
+        if (args['role'] != null) {
+          _userRole = args['role'].toString();
+        }
+      }
+      _argumentsApplied = true;
+    }
+  }
 
   @override
   void initState() {
@@ -102,6 +131,66 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
       final isAudioMuted = _lobbyController.isAudioMuted;
       final isVideoOff = _lobbyController.isVideoOff;
 
+      // Validação de Permissão Institucional: Quem pode abrir a sala é o Docente da turma ou Admin.
+      final isClassroomSession = roomCode.contains('APS') ||
+          roomCode.contains('BD') ||
+          roomCode.contains('FSO') ||
+          _userRole == 'aluno';
+
+      final isTeacherOrAdmin = _userRole == 'docente' ||
+          _userRole == 'admin' ||
+          ra.toUpperCase().startsWith('DOC-') ||
+          ra.toUpperCase().startsWith('ADM-');
+
+      if (isClassroomSession && !isTeacherOrAdmin && widget.onJoin == null) {
+        final isRoomOpen = AcademicBridgeService.instance.isSessionOpen(roomCode);
+        if (!isRoomOpen) {
+          showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: const Color(0xFF18181B),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFF3F3F46)),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.lock_clock_outlined, color: Color(0xFFF59E0B)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Sessão Aguardando Início',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+              content: Text(
+                'A videochamada da turma $roomCode ainda não foi aberta pelo docente responsável nem pela administração.\n\nApenas o professor titular ou a coordenação podem iniciar esta sessão ao vivo.',
+                style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 13.5),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Compreendi', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+      } else if (isTeacherOrAdmin) {
+        // Docente ou Admin abre a sala automaticamente no barramento institucional
+        AcademicBridgeService.instance.openSession(
+          rawCourseCode: roomCode,
+          openedByRole: _userRole ?? (ra.toUpperCase().startsWith('ADM') ? 'admin' : 'docente'),
+          openedByName: name,
+          roomCode: roomCode,
+        );
+      }
+
+      final resolvedRole = isTeacherOrAdmin
+          ? (_userRole ?? (ra.toUpperCase().startsWith('ADM') ? 'admin' : 'docente'))
+          : 'participant';
+
       if (widget.onJoin != null) {
         widget.onJoin!(name, ra, roomCode, isAudioMuted, isVideoOff);
       } else {
@@ -109,6 +198,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
           name: name,
           ra: ra,
           roomCode: roomCode,
+          role: resolvedRole,
         );
         setState(() {
           _isInRoom = true;

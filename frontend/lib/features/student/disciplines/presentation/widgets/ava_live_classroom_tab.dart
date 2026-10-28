@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Aba do AVA com transmissão ao vivo da aula, exibição de slides e controles multimídia.
@@ -14,55 +15,109 @@ class AvaLiveClassroomTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF18181B),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return AnimatedBuilder(
+      animation: AcademicBridgeService.instance,
+      builder: (context, _) {
+        final disciplineCode = controller.selectedDiscipline.code;
+        final isOpen = AcademicBridgeService.instance.isSessionOpen(disciplineCode);
+        final session = AcademicBridgeService.instance.getSession(disciplineCode);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF18181B),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: isOpen ? Colors.greenAccent : const Color(0xFFF59E0B),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isOpen
+                            ? 'AULA AO VIVO: Padrões de Projeto (Aberta por ${session.openedByName ?? "Docente"})'
+                            : 'AULA AO VIVO: Aguardando abertura pelo Docente',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'AULA AO VIVO: Padrões de Projeto Estruturais',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      if (isOpen) {
+                        Navigator.of(context).pushNamed(
+                          '/video-call',
+                          arguments: {
+                            'name': 'Gabriel Soares de Oliveira',
+                            'ra': '2024.1.00892',
+                            'roomCode': disciplineCode,
+                            'role': 'aluno',
+                          },
+                        );
+                      } else {
+                        showDialog<void>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: const Color(0xFF18181B),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Color(0xFF3F3F46)),
+                            ),
+                            title: const Row(
+                              children: [
+                                Icon(Icons.info_outline, color: Color(0xFFF59E0B)),
+                                SizedBox(width: 10),
+                                Text('Sessão Não Iniciada', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                            content: Text(
+                              'A videochamada da disciplina $disciplineCode ainda não foi iniciada pelo docente responsável nem pela administração.\n\nApenas o professor da disciplina ou a coordenação podem abrir a chamada da turma.',
+                              style: const TextStyle(color: Color(0xFFA1A1AA)),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text('Compreendido', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                    },
+                    icon: Icon(
+                      isOpen ? Icons.open_in_new : Icons.lock_clock,
+                      size: 16,
+                      color: isOpen ? Colors.greenAccent : Colors.white70,
+                    ),
+                    label: Text(
+                      isOpen ? 'Ingressar na Sala WebRTC' : 'Sala em Espera',
+                      style: TextStyle(
+                        color: isOpen ? Colors.greenAccent : Colors.white,
+                        fontWeight: isOpen ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: isOpen ? Colors.greenAccent.withValues(alpha: 0.5) : Colors.white24,
+                      ),
                     ),
                   ),
                 ],
               ),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.of(context).pushNamed('/video-call'),
-                icon: const Icon(
-                  Icons.open_in_new,
-                  size: 16,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  'Abrir Sala Completa WebRTC',
-                  style: TextStyle(color: Colors.white),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white24),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 20),
           Container(
             height: 380,
@@ -179,6 +234,8 @@ class AvaLiveClassroomTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

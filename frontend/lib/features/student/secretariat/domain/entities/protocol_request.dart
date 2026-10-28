@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 /// Status possíveis de um protocolo formal submetido à Secretaria Acadêmica.
 enum ProtocolStatus {

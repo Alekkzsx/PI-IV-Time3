@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 /// An active login session on a user's device.
 class ActiveSession {

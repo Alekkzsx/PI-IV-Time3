@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 /// Modelos de dados e repositório simulado (mock) para a Visão do Administrador (Coordenação & Secretaria).
 class AdminUserModel {

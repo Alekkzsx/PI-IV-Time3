@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Snapshot e registro contábil da sessão gravada da reunião para fins de auditoria acadêmica.
 class SessionExport {

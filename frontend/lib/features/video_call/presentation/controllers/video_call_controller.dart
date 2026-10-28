@@ -481,11 +481,13 @@ class VideoCallController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static int _reactionSequenceCounter = 0;
+
   /// Dispara reação animada de emoji e transmite aos pares conectados.
   void sendReaction(String emoji) {
     _totalReactionsCount++;
     final reaction = EmojiReaction(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: '${DateTime.now().microsecondsSinceEpoch}_${++_reactionSequenceCounter}',
       peerId: _localParticipant.id,
       peerName: _localParticipant.name,
       emoji: emoji,

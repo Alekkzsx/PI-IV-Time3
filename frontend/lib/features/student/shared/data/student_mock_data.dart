@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 /// Modelos e repositório de dados simulados (mock) em memória para a Visão do Aluno.
 /// Fornece fidelidade aos fluxos de disciplinas, AVA, entregas, calendário e histórico.

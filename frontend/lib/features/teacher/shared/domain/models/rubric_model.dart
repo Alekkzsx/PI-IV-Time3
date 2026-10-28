@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 /// Represents a single grading criterion in an evaluation rubric matrix.
 class RubricCriterion {

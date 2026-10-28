@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Contrato para comunicação remota com serviços e APIs de autenticação no backend.
 abstract class AuthRemoteDataSource {

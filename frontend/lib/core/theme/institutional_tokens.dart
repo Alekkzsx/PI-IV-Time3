@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 // Design tokens compartilhados (cores, medidas e tipografia) dos portais institucionais
 
 import 'package:flutter/material.dart';

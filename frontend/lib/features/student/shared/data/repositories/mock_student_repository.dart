@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import '../../domain/repositories/student_repository.dart';
 import '../student_mock_data.dart';

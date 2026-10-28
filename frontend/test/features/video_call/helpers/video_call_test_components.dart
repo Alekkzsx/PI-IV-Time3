@@ -271,9 +271,11 @@ class VideoCallTestController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static int _testReactionSeq = 0;
+
   void sendReaction(String emoji) {
     final reaction = EmojiReaction(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: '${DateTime.now().microsecondsSinceEpoch}_${++_testReactionSeq}',
       peerId: _localParticipant.id,
       peerName: _localParticipant.name,
       emoji: emoji,
@@ -749,11 +751,12 @@ class FloatingReactionsOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return IgnorePointer(
       child: Stack(
-        children: reactions.map((r) {
+        children: reactions.asMap().entries.map((entry) {
+          final r = entry.value;
           return Positioned(
             key: Key('reaction_item_${r.id}'),
             bottom: 80,
-            right: 40 + (reactions.indexOf(r) * 30.0) % 200,
+            right: 40 + (entry.key * 30.0) % 200,
             child: Text(
               r.emoji,
               style: const TextStyle(fontSize: 32),

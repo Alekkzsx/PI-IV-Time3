@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/widgets/hub/course_hub_assignments_tab.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/widgets/hub/course_hub_attendance_tab.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/widgets/hub/course_hub_forum_tab.dart';
@@ -261,8 +262,26 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                           ),
                         );
                       },
-                      onLiveClass: () =>
-                          Navigator.of(context).pushNamed('/video-call'),
+                      onLiveClass: () {
+                        final room = widget.course.code.contains('APS')
+                            ? 'APS-II'
+                            : (widget.course.code.contains('BD') ? 'BD-II' : 'FSO');
+                        AcademicBridgeService.instance.openSession(
+                          rawCourseCode: room,
+                          openedByRole: 'docente',
+                          openedByName: 'Profa. Dra. Helena Bittencourt',
+                          roomCode: room,
+                        );
+                        Navigator.of(context).pushNamed(
+                          '/video-call',
+                          arguments: {
+                            'name': 'Profa. Dra. Helena Bittencourt',
+                            'ra': 'DOC-40892',
+                            'roomCode': room,
+                            'role': 'docente',
+                          },
+                        );
+                      },
                     ),
                     Expanded(
                       child: Row(

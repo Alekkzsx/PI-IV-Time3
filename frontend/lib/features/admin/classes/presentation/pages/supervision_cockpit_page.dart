@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
@@ -90,16 +91,64 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                   side: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
               ),
-              Chip(
-                label: Text(
-                  _controller.isGradeLocked ? 'PAUTA LACRADA & HOMOLOGADA' : 'EM AUDITORIA ACADÊMICA',
-                  style: TextStyle(
-                    color: _controller.isGradeLocked ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedBuilder(
+                    animation: AcademicBridgeService.instance,
+                    builder: (context, _) {
+                      final isLive = AcademicBridgeService.instance.isSessionOpen(widget.classModel.code);
+                      return ElevatedButton.icon(
+                        key: const Key('btn_admin_supervisionar_chamada'),
+                        onPressed: () {
+                          AcademicBridgeService.instance.openSession(
+                            rawCourseCode: widget.classModel.code,
+                            openedByRole: 'admin',
+                            openedByName: 'Coordenação Acadêmica (Admin)',
+                            roomCode: widget.classModel.code,
+                          );
+                          Navigator.of(context).pushNamed(
+                            '/video-call',
+                            arguments: {
+                              'name': 'Coordenação Geral (Admin)',
+                              'ra': 'ADM-00123',
+                              'roomCode': widget.classModel.code,
+                              'role': 'admin',
+                            },
+                          );
+                        },
+                        icon: Icon(
+                          isLive ? Icons.videocam : Icons.video_call_outlined,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          isLive ? 'Supervisionar Ao Vivo' : 'Abrir Videochamada (Admin)',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isLive ? const Color(0xFF16A34A) : const Color(0xFF0F172A),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                        ),
+                      );
+                    },
                   ),
-                ),
-                backgroundColor: _controller.isGradeLocked ? const Color(0xFFDCFCE7) : const Color(0xFFDBEAFE),
+                  const SizedBox(width: 10),
+                  Chip(
+                    label: Text(
+                      _controller.isGradeLocked ? 'PAUTA LACRADA & HOMOLOGADA' : 'EM AUDITORIA ACADÊMICA',
+                      style: TextStyle(
+                        color: _controller.isGradeLocked ? const Color(0xFF16A34A) : const Color(0xFF2563EB),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    backgroundColor: _controller.isGradeLocked ? const Color(0xFFDCFCE7) : const Color(0xFFDBEAFE),
+                  ),
+                ],
               ),
             ],
           ),

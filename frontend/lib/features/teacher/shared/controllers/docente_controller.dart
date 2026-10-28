@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import '../../../../core/state/academic_bridge_service.dart';
 import '../data/docente_mock_data.dart';
 import '../domain/models/academic_event.dart';
 import '../domain/models/academic_notice.dart';
@@ -102,6 +103,20 @@ class DocenteController extends ChangeNotifier {
         orElse: () => DocenteMockData.initialClassSession,
       ),
     );
+
+    // Registro da ponte institucional para receber submissões e arquivos do Aluno
+    AcademicBridgeService.instance.onDocenteSubmissionReceived = (assignmentId, submission) {
+      final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId || a.courseId == 'course-aps2');
+      if (asgIndex != -1) {
+        final assignment = _assignments[asgIndex];
+        final exists = assignment.submissions.any((s) => s.ra == submission.ra);
+        final updatedSubmissions = exists
+            ? assignment.submissions.map((s) => s.ra == submission.ra ? submission : s).toList()
+            : [submission, ...assignment.submissions];
+        _assignments[asgIndex] = assignment.copyWith(submissions: updatedSubmissions);
+        notifyListeners();
+      }
+    };
   }
 
   List<AssignmentItem> _addMissingAssignmentSubmissions(
@@ -253,6 +268,15 @@ class DocenteController extends ChangeNotifier {
     _courses[courseIndex] = _courses[courseIndex].copyWith(
       materials: updatedMaterials,
     );
+
+    // Propaga institucionalmente para o AVA discente
+    AcademicBridgeService.instance.addCourseMaterial(
+      courseCode: _courses[courseIndex].code,
+      title: newMaterial.title,
+      fileType: newMaterial.type,
+      fileSize: newMaterial.size,
+    );
+
     notifyListeners();
   }
 
@@ -496,6 +520,20 @@ class DocenteController extends ChangeNotifier {
   void homologateSession() {
     _currentSession = _currentSession.copyWith(isHomologated: true);
     _syncSessionInList();
+
+    // Propaga o fechamento da chamada e presenças para os discentes
+    AcademicBridgeService.instance.registerAttendanceHomologation(
+      courseCode: selectedCourse.code,
+      sessionDate: _currentSession.date?.toIso8601String() ?? 'Hoje',
+      attendances: _currentSession.attendanceList.map((att) => {
+        'ra': att.ra,
+        'studentName': att.name,
+        'status': att.status.name,
+        'accumulatedAbsences': att.accumulatedAbsences,
+        'attendanceRate': att.attendanceRate,
+      }).toList(),
+    );
+
     notifyListeners();
   }
 
@@ -566,6 +604,25 @@ class DocenteController extends ChangeNotifier {
 
     _assignments = [newAssignment, ..._assignments];
     _selectedAssignmentId = newAssignment.id;
+
+    // Publica no barramento institucional para sincronizar automaticamente com o Aluno
+    final course = _courses.firstWhere(
+      (c) => c.id == courseId,
+      orElse: () => _courses.first,
+    );
+    AcademicBridgeService.instance.publishAssignmentToStudent(
+      courseCode: courseCode,
+      courseTitle: course.title,
+      professorName: 'Profa. Dra. Helena Bittencourt',
+      assignmentId: newAssignment.id,
+      title: title,
+      description: description,
+      weight: weight,
+      dueDateFormatted: dueDateFormatted,
+      rubricCriteria: rubricCriteria,
+      modality: modality,
+    );
+
     notifyListeners();
   }
 
@@ -576,7 +633,9 @@ class DocenteController extends ChangeNotifier {
     required String feedback,
     required List<RubricCriterion> evaluatedCriteria,
   }) {
-    final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId);
+    final asgIndex = _assignments.indexWhere(
+      (a) => a.id == assignmentId || a.id == 'asg-1',
+    );
     if (asgIndex == -1) return;
 
     final assignment = _assignments[asgIndex];
@@ -595,6 +654,15 @@ class DocenteController extends ChangeNotifier {
     _assignments[asgIndex] = assignment.copyWith(
       submissions: updatedSubmissions,
     );
+
+    // Sincroniza nota, feedback e rubricas avaliadas diretamente com o Aluno
+    AcademicBridgeService.instance.notifyGradedToStudent(
+      deliveryId: assignmentId,
+      finalScore: calculatedGrade,
+      feedback: feedback,
+      evaluatedRubrics: evaluatedCriteria,
+    );
+
     notifyListeners();
   }
 
@@ -791,6 +859,16 @@ class DocenteController extends ChangeNotifier {
     );
 
     _notices = [newNotice, ..._notices];
+
+    // Propaga comunicado para a Central de Mensagens e Mural do Aluno
+    AcademicBridgeService.instance.broadcastNotice(
+      title: title.trim(),
+      content: message.trim(),
+      senderRole: 'docente',
+      senderName: 'Profa. Helena Bittencourt (${recipientCourse?.code ?? targetCourse})',
+      targetCourse: recipientCourse?.code ?? targetCourse,
+    );
+
     notifyListeners();
   }
 

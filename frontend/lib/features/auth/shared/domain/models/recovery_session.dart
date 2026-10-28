@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa, Marcelo Zarpelon, Murillo Caravita e Rafael Henrique Inácio
+﻿// Desenvolvido por Alex Gabriel Soares Sousa, Marcelo Zarpelon, Murillo Caravita e Rafael Henrique Inácio
 
 import 'package:flutter/material.dart';
 

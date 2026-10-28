@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 export 'deliveries_kpi_row.dart';
 export 'deliveries_filter_bar.dart';

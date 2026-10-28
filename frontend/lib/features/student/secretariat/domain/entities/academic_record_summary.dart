@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 /// Entidade de domínio que sintetiza os dados do Prontuário Acadêmico Regular do aluno.
 class AcademicRecordSummary {

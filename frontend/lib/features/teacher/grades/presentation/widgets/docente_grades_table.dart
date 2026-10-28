@@ -1,4 +1,4 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/grade_record.dart';

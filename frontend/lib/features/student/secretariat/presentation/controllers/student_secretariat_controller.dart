@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import '../../../../../core/state/academic_bridge_service.dart';
 import '../../domain/entities/academic_record_summary.dart';
 import '../../domain/entities/protocol_request.dart';
 
@@ -19,7 +20,28 @@ class StudentSecretariatController extends ChangeNotifier {
   }) : _recordSummary = recordSummary ?? defaultRecordSummary,
        _protocols = List<ProtocolRequest>.from(
          initialProtocols ?? defaultProtocols,
-       );
+       ) {
+    // Escuta despachos e pareceres oficiais emitidos pela Secretaria Geral (Admin)
+    AcademicBridgeService.instance.onStudentProtocolUpdated = (protocolCode, isApproved, officialNote, approverName) {
+      final index = _protocols.indexWhere((p) => p.protocolCode == protocolCode);
+      if (index != -1) {
+        final old = _protocols[index];
+        _protocols[index] = ProtocolRequest(
+          protocolCode: old.protocolCode,
+          submittedAt: old.submittedAt,
+          subjectType: old.subjectType,
+          componentObject: old.componentObject,
+          justification: old.justification,
+          attachmentName: old.attachmentName,
+          status: isApproved ? ProtocolStatus.approved : ProtocolStatus.rejected,
+          officialOpinion: officialNote,
+          approverName: approverName,
+          responseDate: 'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+        );
+        notifyListeners();
+      }
+    };
+  }
 
   /// Resumo do prontuário acadêmico regular do estudante.
   AcademicRecordSummary get recordSummary => _recordSummary;
@@ -79,6 +101,18 @@ class StudentSecretariatController extends ChangeNotifier {
       responseDate: 'Aguardando Despacho',
     );
     _protocols.insert(0, newProtocol);
+
+    // Encaminha imediatamente para a Mesa da Secretaria Central do Administrador
+    AcademicBridgeService.instance.submitProtocolFromStudent(
+      protocolCode: newProtocol.protocolCode,
+      studentName: 'Gabriel Soares de Oliveira',
+      studentRa: '2024.1.00892',
+      studentCourse: 'Engenharia de Software (5º Semestre)',
+      subjectType: subjectType.trim(),
+      justification: newProtocol.justification,
+      attachmentName: attachmentName,
+    );
+
     notifyListeners();
   }
 
