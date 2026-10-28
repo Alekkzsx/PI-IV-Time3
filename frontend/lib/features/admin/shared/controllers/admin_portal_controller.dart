@@ -6,7 +6,8 @@ import '../data/admin_mock_data.dart';
 
 /// Controlador reativo unificado em memória para o Portal do Administrador.
 class AdminPortalController extends ChangeNotifier {
-  static final AdminPortalController instance = AdminPortalController._internal();
+  static final AdminPortalController instance =
+      AdminPortalController._internal();
   AdminPortalController._internal() {
     _initAcademicBridge();
   }
@@ -28,7 +29,12 @@ class AdminPortalController extends ChangeNotifier {
   late List<AdminClassModel> classes = List.from(AdminMockData.classes);
   AdminClassModel? activeSupervisedClass;
   int supervisionTabIndex = 0;
-  bool isGradeLocked = false;
+  final Map<String, bool> _gradeLocksByClass = {};
+  bool get isGradeLocked =>
+      _gradeLocksByClass.values.any((isLocked) => isLocked);
+
+  bool isGradeLockedFor(String classCode) =>
+      _gradeLocksByClass[classCode.trim().toUpperCase()] ?? false;
   String selectedEvaluationFormula = 'Ponderada (N1 40% / N2 60%)';
 
   // Protocolos de Secretaria
@@ -56,12 +62,14 @@ class AdminPortalController extends ChangeNotifier {
 
   List<AdminUserModel> get filteredUsers {
     return users.where((u) {
-      final matchesFilter = userFilter == 'Todos' ||
+      final matchesFilter =
+          userFilter == 'Todos' ||
           u.profile == userFilter ||
           (userFilter == 'Discentes' && u.profile == 'Discente') ||
           (userFilter == 'Docentes' && u.profile == 'Docente') ||
           (userFilter == 'Administração' && u.profile == 'Administrador');
-      final matchesSearch = u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
+      final matchesSearch =
+          u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.id.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.email.toLowerCase().contains(userSearchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
@@ -71,8 +79,14 @@ class AdminPortalController extends ChangeNotifier {
   void toggleUserStatus(String id) {
     final index = users.indexWhere((u) => u.id == id);
     if (index != -1) {
-      users[index].status = users[index].status == 'Ativo' ? 'Suspenso' : 'Ativo';
-      _logAudit('Carlos Eduardo Mendes', 'ALTERAÇÃO STATUS', 'Status do usuário $id alterado para ${users[index].status}');
+      users[index].status = users[index].status == 'Ativo'
+          ? 'Suspenso'
+          : 'Ativo';
+      _logAudit(
+        'Carlos Eduardo Mendes',
+        'ALTERAÇÃO STATUS',
+        'Status do usuário $id alterado para ${users[index].status}',
+      );
       notifyListeners();
     }
   }
@@ -84,7 +98,9 @@ class AdminPortalController extends ChangeNotifier {
     required String department,
     required bool require2FA,
   }) {
-    final newId = profile == 'Discente' ? '2024.2.0${1040 + users.length}' : 'DOC-${88420 + users.length}';
+    final newId = profile == 'Discente'
+        ? '2024.2.0${1040 + users.length}'
+        : 'DOC-${88420 + users.length}';
     users.insert(
       0,
       AdminUserModel(
@@ -97,7 +113,11 @@ class AdminPortalController extends ChangeNotifier {
         twoFactorRequired: require2FA,
       ),
     );
-    _logAudit('Carlos Eduardo Mendes', 'NOVO CADASTRO', 'Criação de credencial institucional para $name ($newId)');
+    _logAudit(
+      'Carlos Eduardo Mendes',
+      'NOVO CADASTRO',
+      'Criação de credencial institucional para $name ($newId)',
+    );
     notifyListeners();
   }
 
@@ -109,8 +129,12 @@ class AdminPortalController extends ChangeNotifier {
     required String category,
     required String body,
   }) {
-    _logAudit('Carlos Eduardo Mendes', 'COMUNICADO CAMPUS', 'Disparo de comunicado: "$title" para $audience ($category)');
-    
+    _logAudit(
+      'Carlos Eduardo Mendes',
+      'COMUNICADO CAMPUS',
+      'Disparo de comunicado: "$title" para $audience ($category)',
+    );
+
     // Dispara institucionalmente para os murais discentes
     AcademicBridgeService.instance.broadcastNotice(
       title: title.trim(),
@@ -145,7 +169,11 @@ class AdminPortalController extends ChangeNotifier {
     final index = classes.indexWhere((c) => c.code == classCode);
     if (index != -1) {
       classes[index].formulaRegime = newRegime;
-      _logAudit('Carlos Eduardo Mendes', 'REGIME AVALIAÇÃO', 'Regime de notas da turma $classCode alterado para $newRegime');
+      _logAudit(
+        'Carlos Eduardo Mendes',
+        'REGIME AVALIAÇÃO',
+        'Regime de notas da turma $classCode alterado para $newRegime',
+      );
       notifyListeners();
     }
   }
@@ -155,14 +183,28 @@ class AdminPortalController extends ChangeNotifier {
     if (index != -1) {
       final oldProfessor = classes[index].professor;
       classes[index].professor = newProfessor;
-      _logAudit('Carlos Eduardo Mendes', 'ATRIBUIÇÃO DOCENTE', 'Substituição na turma $classCode: $oldProfessor -> $newProfessor');
+      _logAudit(
+        'Carlos Eduardo Mendes',
+        'ATRIBUIÇÃO DOCENTE',
+        'Substituição na turma $classCode: $oldProfessor -> $newProfessor',
+      );
       notifyListeners();
     }
   }
 
   void lockAndHomologateClassPauta(String classCode) {
-    isGradeLocked = true;
-    _logAudit('Carlos Eduardo Mendes', 'FECHAMENTO ATA', 'Pauta oficial e notas da turma $classCode homologadas e lacradas.');
+    final normalizedClassCode = classCode.trim().toUpperCase();
+    if (!classes.any(
+      (classModel) => classModel.code.toUpperCase() == normalizedClassCode,
+    )) {
+      return;
+    }
+    _gradeLocksByClass[normalizedClassCode] = true;
+    _logAudit(
+      'Carlos Eduardo Mendes',
+      'FECHAMENTO ATA',
+      'Pauta oficial e notas da turma $classCode homologadas e lacradas.',
+    );
     notifyListeners();
   }
 
@@ -177,8 +219,13 @@ class AdminPortalController extends ChangeNotifier {
     if (protocolFilter == 'Todos' || protocolFilter == 'Todos Os Protocolos') {
       return protocols;
     }
-    if (protocolFilter == 'Aguardando' || protocolFilter == 'Aguardando Parecer') {
-      return protocols.where((p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer').toList();
+    if (protocolFilter == 'Aguardando' ||
+        protocolFilter == 'Aguardando Parecer') {
+      return protocols
+          .where(
+            (p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer',
+          )
+          .toList();
     }
     if (protocolFilter == 'Deferidos' || protocolFilter == 'Deferido') {
       return protocols.where((p) => p.status == 'Deferido').toList();
@@ -309,7 +356,9 @@ class AdminPortalController extends ChangeNotifier {
         targetUserName: user.name,
         diffBefore: {
           'sessoesAtivas': previousCount,
-          'estadoSessao': previousCount > 0 ? 'Conectado em dispositivos' : 'Sem sessões ativas',
+          'estadoSessao': previousCount > 0
+              ? 'Conectado em dispositivos'
+              : 'Sem sessões ativas',
         },
         diffAfter: {
           'sessoesAtivas': 0,
@@ -322,7 +371,11 @@ class AdminPortalController extends ChangeNotifier {
     }
   }
 
-  void suspendUserWithReason(String userId, {required String reason, required bool suspend}) {
+  void suspendUserWithReason(
+    String userId, {
+    required String reason,
+    required bool suspend,
+  }) {
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -434,13 +487,16 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   List<AdminAuditLogModel> getUserAuditLogs(String userId) {
-    return auditLogs.where((l) => l.targetUserId == userId || l.actor.contains(userId)).toList();
+    return auditLogs
+        .where((l) => l.targetUserId == userId || l.actor.contains(userId))
+        .toList();
   }
 
   // --- MÉTODOS DA MATRIZ RBAC ---
 
   void toggleRbacPermission(String role, String permKey) {
-    if (rbacMatrix.containsKey(permKey) && rbacMatrix[permKey]!.containsKey(role)) {
+    if (rbacMatrix.containsKey(permKey) &&
+        rbacMatrix[permKey]!.containsKey(role)) {
       final current = rbacMatrix[permKey]![role] ?? false;
       rbacMatrix[permKey]![role] = !current;
       notifyListeners();
@@ -452,9 +508,7 @@ class AdminPortalController extends ChangeNotifier {
       'Carlos Eduardo Mendes',
       'ATUALIZAÇÃO POLÍTICA RBAC',
       'Alteração manual na matriz institucional de privilégios e permissões de acesso por perfil.',
-      diffBefore: {
-        'matrizStatus': 'Revisão Anterior Homologada',
-      },
+      diffBefore: {'matrizStatus': 'Revisão Anterior Homologada'},
       diffAfter: {
         'matrizStatus': 'Nova Política Ativa e Propagada',
         'dataHomologacao': DateTime.now().toIso8601String(),
@@ -520,4 +574,3 @@ class AdminPortalController extends ChangeNotifier {
     );
   }
 }
-

@@ -69,6 +69,17 @@ void main() {
       expect(classModel.professor, 'Prof. Substituto Teste');
     });
 
+    test('Fechamento de pauta fica restrito à turma homologada', () {
+      final controller = AdminPortalController();
+      const apsClassCode = '218131 - APS-II';
+      const bdClassCode = '218131 - BD-II';
+
+      controller.lockAndHomologateClassPauta(apsClassCode);
+
+      expect(controller.isGradeLockedFor(apsClassCode), isTrue);
+      expect(controller.isGradeLockedFor(bdClassCode), isFalse);
+    });
+
     test('Decide protocolo na secretaria acadêmica com despacho', () {
       final controller = AdminPortalController();
       final protocol = controller.protocols.firstWhere(

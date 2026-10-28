@@ -96,6 +96,12 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
     if (mounted) setState(() {});
   }
 
+  void _showAccessDenied(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   void dispose() {
     _lobbyController.removeListener(_onControllerUpdate);
@@ -110,6 +116,41 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
 
   Future<void> _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
+      final name = _nameController.text.trim();
+      final ra = _raController.text.trim();
+      final requestedRoomCode = _roomCodeController.text.trim().toUpperCase();
+      final role = _userRole?.toLowerCase().trim();
+      final bridge = AcademicBridgeService.instance;
+      final roomCode = bridge.getSession(requestedRoomCode).roomCode;
+      final canOpen =
+          role != null &&
+          bridge.canUserOpenSessionForCourse(
+            role: role,
+            rawCourseCode: roomCode,
+          );
+      final canJoin =
+          role != null &&
+          bridge.canUserJoinSession(
+            role: role,
+            rawCourseCode: roomCode,
+            studentRa: ra,
+          );
+
+      if (!canOpen && !canJoin) {
+        if (role == 'aluno' || role == 'student') {
+          _showAccessDenied(
+            bridge.isSessionOpen(roomCode)
+                ? 'Seu vínculo acadêmico não permite entrar nesta turma.'
+                : 'A videochamada desta turma ainda não foi aberta pelo docente responsável ou pela administração.',
+          );
+        } else {
+          _showAccessDenied(
+            'Não foi possível validar seu perfil ou a turma desta videochamada.',
+          );
+        }
+        return;
+      }
+
       await _lobbyController.mediaEngine.unlockAudioPlayback();
       final mediaReady = await _lobbyController.ensureMediaReady();
       if (!mounted) return;
@@ -125,71 +166,33 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         return;
       }
 
-      final name = _nameController.text.trim();
-      final ra = _raController.text.trim();
-      final roomCode = _roomCodeController.text.trim().toUpperCase();
-      final isAudioMuted = _lobbyController.isAudioMuted;
-      final isVideoOff = _lobbyController.isVideoOff;
-
-      // Validação de Permissão Institucional: Quem pode abrir a sala é o Docente da turma ou Admin.
-      final isClassroomSession = roomCode.contains('APS') ||
-          roomCode.contains('BD') ||
-          roomCode.contains('FSO') ||
-          _userRole == 'aluno';
-
-      final isTeacherOrAdmin = _userRole == 'docente' ||
-          _userRole == 'admin' ||
-          ra.toUpperCase().startsWith('DOC-') ||
-          ra.toUpperCase().startsWith('ADM-');
-
-      if (isClassroomSession && !isTeacherOrAdmin && widget.onJoin == null) {
-        final isRoomOpen = AcademicBridgeService.instance.isSessionOpen(roomCode);
-        if (!isRoomOpen) {
-          showDialog<void>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: const Color(0xFF18181B),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFF3F3F46)),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.lock_clock_outlined, color: Color(0xFFF59E0B)),
-                  SizedBox(width: 10),
-                  Text(
-                    'Sessão Aguardando Início',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ],
-              ),
-              content: Text(
-                'A videochamada da turma $roomCode ainda não foi aberta pelo docente responsável nem pela administração.\n\nApenas o professor titular ou a coordenação podem iniciar esta sessão ao vivo.',
-                style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 13.5),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Compreendi', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          );
-          return;
-        }
-      } else if (isTeacherOrAdmin) {
-        // Docente ou Admin abre a sala automaticamente no barramento institucional
-        AcademicBridgeService.instance.openSession(
+      if (canOpen) {
+        final opened = bridge.openSession(
           rawCourseCode: roomCode,
-          openedByRole: _userRole ?? (ra.toUpperCase().startsWith('ADM') ? 'admin' : 'docente'),
+          openedByRole: role,
           openedByName: name,
           roomCode: roomCode,
         );
+        if (!opened) {
+          _showAccessDenied(
+            'Seu perfil não pode iniciar a videochamada desta turma.',
+          );
+          return;
+        }
+      } else if (!bridge.canUserJoinSession(
+        role: role,
+        rawCourseCode: roomCode,
+        studentRa: ra,
+      )) {
+        _showAccessDenied(
+          'A sessão foi encerrada ou seu vínculo não permite entrar nesta turma.',
+        );
+        return;
       }
 
-      final resolvedRole = isTeacherOrAdmin
-          ? (_userRole ?? (ra.toUpperCase().startsWith('ADM') ? 'admin' : 'docente'))
-          : 'participant';
+      final isAudioMuted = _lobbyController.isAudioMuted;
+      final isVideoOff = _lobbyController.isVideoOff;
+      final resolvedRole = role == 'teacher' ? 'docente' : role;
 
       if (widget.onJoin != null) {
         widget.onJoin!(name, ra, roomCode, isAudioMuted, isVideoOff);
@@ -438,6 +441,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   TextFormField(
                     key: const Key('lobby_name_field'),
                     controller: _nameController,
+                    readOnly: _userRole != null,
                     style: const TextStyle(color: VideoCallColors.textPrimary),
                     decoration: _buildMonochromeInputDecoration(
                       'Nome de Exibição',
@@ -453,6 +457,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   TextFormField(
                     key: const Key('lobby_ra_field'),
                     controller: _raController,
+                    readOnly: _userRole != null,
                     style: const TextStyle(color: VideoCallColors.textPrimary),
                     decoration: _buildMonochromeInputDecoration(
                       'RA Institucional',
@@ -465,6 +470,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   TextFormField(
                     key: const Key('lobby_room_code_field'),
                     controller: _roomCodeController,
+                    readOnly: _userRole != null,
                     style: const TextStyle(color: VideoCallColors.textPrimary),
                     decoration: _buildMonochromeInputDecoration(
                       'Código da Sala (ex: SALA-101)',

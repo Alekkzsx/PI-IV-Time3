@@ -1,7 +1,6 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/pages/docente_assignments_tab.dart';
 import 'package:pi_iv_time3/features/teacher/calendar/presentation/pages/docente_calendar_tab.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/pages/docente_course_hub_page.dart';
@@ -59,18 +58,13 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   }
 
   void _openVideoCall() {
-    AcademicBridgeService.instance.openSession(
-      rawCourseCode: 'APS-II',
-      openedByRole: 'docente',
-      openedByName: 'Profa. Dra. Helena Bittencourt',
-      roomCode: 'APS-II',
-    );
+    final course = _controller.selectedCourse;
     Navigator.of(context).pushNamed(
       '/video-call',
       arguments: {
         'name': 'Profa. Dra. Helena Bittencourt',
         'ra': 'DOC-40892',
-        'roomCode': 'APS-II',
+        'roomCode': course.code,
         'role': 'docente',
       },
     );

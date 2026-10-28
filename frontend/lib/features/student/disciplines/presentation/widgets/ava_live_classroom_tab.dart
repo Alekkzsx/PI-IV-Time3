@@ -2,16 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Aba do AVA com transmissão ao vivo da aula, exibição de slides e controles multimídia.
 class AvaLiveClassroomTab extends StatelessWidget {
   final StudentPortalController controller;
 
-  const AvaLiveClassroomTab({
-    super.key,
-    required this.controller,
-  });
+  const AvaLiveClassroomTab({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +17,12 @@ class AvaLiveClassroomTab extends StatelessWidget {
       animation: AcademicBridgeService.instance,
       builder: (context, _) {
         final disciplineCode = controller.selectedDiscipline.code;
-        final isOpen = AcademicBridgeService.instance.isSessionOpen(disciplineCode);
-        final session = AcademicBridgeService.instance.getSession(disciplineCode);
+        final isOpen = AcademicBridgeService.instance.isSessionOpen(
+          disciplineCode,
+        );
+        final session = AcademicBridgeService.instance.getSession(
+          disciplineCode,
+        );
 
         return Container(
           decoration: BoxDecoration(
@@ -39,7 +41,9 @@ class AvaLiveClassroomTab extends StatelessWidget {
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: isOpen ? Colors.greenAccent : const Color(0xFFF59E0B),
+                          color: isOpen
+                              ? Colors.greenAccent
+                              : const Color(0xFFF59E0B),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -62,8 +66,8 @@ class AvaLiveClassroomTab extends StatelessWidget {
                         Navigator.of(context).pushNamed(
                           '/video-call',
                           arguments: {
-                            'name': 'Gabriel Soares de Oliveira',
-                            'ra': '2024.1.00892',
+                            'name': StudentMockData.studentName,
+                            'ra': StudentMockData.studentRa,
                             'roomCode': disciplineCode,
                             'role': 'aluno',
                           },
@@ -79,9 +83,15 @@ class AvaLiveClassroomTab extends StatelessWidget {
                             ),
                             title: const Row(
                               children: [
-                                Icon(Icons.info_outline, color: Color(0xFFF59E0B)),
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Color(0xFFF59E0B),
+                                ),
                                 SizedBox(width: 10),
-                                Text('Sessão Não Iniciada', style: TextStyle(color: Colors.white)),
+                                Text(
+                                  'Sessão Não Iniciada',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ],
                             ),
                             content: Text(
@@ -91,7 +101,10 @@ class AvaLiveClassroomTab extends StatelessWidget {
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.of(ctx).pop(),
-                                child: const Text('Compreendido', style: TextStyle(color: Colors.white)),
+                                child: const Text(
+                                  'Compreendido',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
                             ],
                           ),
@@ -107,136 +120,147 @@ class AvaLiveClassroomTab extends StatelessWidget {
                       isOpen ? 'Ingressar na Sala WebRTC' : 'Sala em Espera',
                       style: TextStyle(
                         color: isOpen ? Colors.greenAccent : Colors.white,
-                        fontWeight: isOpen ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isOpen
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: isOpen ? Colors.greenAccent.withValues(alpha: 0.5) : Colors.white24,
+                        color: isOpen
+                            ? Colors.greenAccent.withValues(alpha: 0.5)
+                            : Colors.white24,
                       ),
                     ),
                   ),
                 ],
               ),
-          const SizedBox(height: 20),
-          Container(
-            height: 380,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Stack(
-              children: [
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.slideshow,
-                        size: 64,
-                        color: Colors.white54,
+              const SizedBox(height: 20),
+              Container(
+                height: 380,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.slideshow,
+                            size: 64,
+                            color: Colors.white54,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Slide ${controller.currentSlideIndex} de ${controller.totalSlides}: Padrão Adapter em Arquitetura Limpa',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Profa. Dra. Helena Bittencourt compartilhando tela',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Slide ${controller.currentSlideIndex} de ${controller.totalSlides}: Padrão Adapter em Arquitetura Limpa',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    Positioned(
+                      bottom: 16,
+                      left: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'CC (Legenda Automática): "...o padrão adapter permite que interfaces incompatíveis colaborem sem refatorar o código existente..."',
+                          style: TextStyle(
+                            color: Colors.amberAccent,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Profa. Dra. Helena Bittencourt compartilhando tela',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      controller.isMicMuted ? Icons.mic_off : Icons.mic,
+                      color: controller.isMicMuted
+                          ? Colors.redAccent
+                          : Colors.white,
+                    ),
+                    onPressed: controller.toggleMic,
+                    tooltip: 'Microfone',
                   ),
-                ),
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: Icon(
+                      controller.isCameraOff
+                          ? Icons.videocam_off
+                          : Icons.videocam,
+                      color: controller.isCameraOff
+                          ? Colors.redAccent
+                          : Colors.white,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(6),
+                    onPressed: controller.toggleCamera,
+                    tooltip: 'Câmera',
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: Icon(
+                      Icons.pan_tool,
+                      color: controller.isHandRaised
+                          ? Colors.amberAccent
+                          : Colors.white,
                     ),
-                    child: const Text(
-                      'CC (Legenda Automática): "...o padrão adapter permite que interfaces incompatíveis colaborem sem refatorar o código existente..."',
-                      style: TextStyle(color: Colors.amberAccent, fontSize: 12),
+                    onPressed: controller.toggleHandRaise,
+                    tooltip: 'Levantar a Mão',
+                  ),
+                  const SizedBox(width: 16),
+                  OutlinedButton.icon(
+                    onPressed: controller.prevSlide,
+                    icon: const Icon(Icons.chevron_left, color: Colors.white),
+                    label: const Text(
+                      'Anterior',
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  controller.isMicMuted ? Icons.mic_off : Icons.mic,
-                  color: controller.isMicMuted
-                      ? Colors.redAccent
-                      : Colors.white,
-                ),
-                onPressed: controller.toggleMic,
-                tooltip: 'Microfone',
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: Icon(
-                  controller.isCameraOff ? Icons.videocam_off : Icons.videocam,
-                  color: controller.isCameraOff
-                      ? Colors.redAccent
-                      : Colors.white,
-                ),
-                onPressed: controller.toggleCamera,
-                tooltip: 'Câmera',
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: Icon(
-                  Icons.pan_tool,
-                  color: controller.isHandRaised
-                      ? Colors.amberAccent
-                      : Colors.white,
-                ),
-                onPressed: controller.toggleHandRaise,
-                tooltip: 'Levantar a Mão',
-              ),
-              const SizedBox(width: 16),
-              OutlinedButton.icon(
-                onPressed: controller.prevSlide,
-                icon: const Icon(Icons.chevron_left, color: Colors.white),
-                label: const Text(
-                  'Anterior',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: controller.nextSlide,
-                icon: const Icon(Icons.chevron_right, color: Colors.white),
-                label: const Text(
-                  'Próximo',
-                  style: TextStyle(color: Colors.white),
-                ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: controller.nextSlide,
+                    icon: const Icon(Icons.chevron_right, color: Colors.white),
+                    label: const Text(
+                      'Próximo',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
+        );
       },
     );
   }
 }
-

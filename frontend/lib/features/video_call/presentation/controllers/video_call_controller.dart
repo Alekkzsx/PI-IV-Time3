@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../../core/state/academic_bridge_service.dart';
 import '../../data/media/call_media_engine.dart';
 import '../../data/media/call_media_engine_factory.dart';
 import '../../domain/entities/chat_message.dart';
@@ -61,6 +62,14 @@ class VideoCallController extends ChangeNotifier {
   }
 
   Participant get localParticipant => _localParticipant;
+  bool get canManageMeeting {
+    final bridge = AcademicBridgeService.instance;
+    return !bridge.hasSession(room.code) ||
+        bridge.canUserOpenSessionForCourse(
+          role: _localParticipant.role,
+          rawCourseCode: room.code,
+        );
+  }
 
   List<Participant> get remoteParticipants =>
       List.unmodifiable(_remoteParticipants.values);
@@ -372,6 +381,7 @@ class VideoCallController extends ChangeNotifier {
 
   /// Alterna o modo de compartilhamento de tela local (`getDisplayMedia`).
   void toggleScreenShare() {
+    if (!canManageMeeting) return;
     if (_isScreenSharing) {
       _isScreenSharing = false;
       _localParticipant = _localParticipant.copyWith(isScreenSharing: false);
@@ -527,6 +537,7 @@ class VideoCallController extends ChangeNotifier {
 
   /// Alterna a gravação real da reunião (`MediaRecorder`) e propaga o estado aos peers.
   void toggleRecording() {
+    if (!canManageMeeting) return;
     if (_recordingState.isRecording) {
       _recordingTimer?.cancel();
       _recordingTimer = null;

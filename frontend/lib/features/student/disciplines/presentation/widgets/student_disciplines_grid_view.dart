@@ -1,11 +1,13 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'student_disciplines_modals.dart';
 
-typedef DisciplineSelectCallback = void Function(StudentDisciplineModel discipline, [int targetTab]);
+typedef DisciplineSelectCallback =
+    void Function(StudentDisciplineModel discipline, [int targetTab]);
 
 /// Grade institucional de cards detalhados das disciplinas ativas do estudante.
 /// Atua como portal de entrada direto no AVA de cada matéria, com suporte a
@@ -41,7 +43,9 @@ class StudentDisciplinesGridView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSingleColumn = constraints.maxWidth < 900;
-        final cardWidth = isSingleColumn ? constraints.maxWidth : (constraints.maxWidth - 20) / 2;
+        final cardWidth = isSingleColumn
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 20) / 2;
 
         return Wrap(
           spacing: 20,
@@ -87,7 +91,10 @@ class StudentDisciplinesGridView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF4F4F5),
                         borderRadius: BorderRadius.circular(4),
@@ -109,16 +116,25 @@ class StudentDisciplinesGridView extends StatelessWidget {
                             onTap: () => onSelectDiscipline(d, 1),
                             borderRadius: BorderRadius.circular(4),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFEF3C7),
-                                border: Border.all(color: const Color(0xFFFDE68A)),
+                                border: Border.all(
+                                  color: const Color(0xFFFDE68A),
+                                ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.assignment_outlined, size: 12, color: Color(0xFFB45309)),
+                                  const Icon(
+                                    Icons.assignment_outlined,
+                                    size: 12,
+                                    color: Color(0xFFB45309),
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '1 tarefa pendente',
@@ -135,7 +151,10 @@ class StudentDisciplinesGridView extends StatelessWidget {
                           const SizedBox(width: 6),
                         ],
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFDCFCE7),
                             border: Border.all(color: const Color(0xFFBBF7D0)),
@@ -172,10 +191,7 @@ class StudentDisciplinesGridView extends StatelessWidget {
                   d.professor,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: jakarta(
-                    size: 12.5,
-                    color: const Color(0xFF71717A),
-                  ),
+                  style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
                 ),
                 const SizedBox(height: 8),
 
@@ -232,14 +248,19 @@ class StudentDisciplinesGridView extends StatelessWidget {
                     value: d.progress.clamp(0.0, 1.0),
                     minHeight: 4,
                     backgroundColor: const Color(0xFFF4F4F5),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF18181B)),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF18181B),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 // Grades Box (N1, N2, Média Parcial)
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     border: Border.all(color: const Color(0xFFE5E7EB)),
@@ -252,7 +273,10 @@ class StudentDisciplinesGridView extends StatelessWidget {
                           children: [
                             Text(
                               'Avaliação N1',
-                              style: jakarta(size: 10.5, color: const Color(0xFF71717A)),
+                              style: jakarta(
+                                size: 10.5,
+                                color: const Color(0xFF71717A),
+                              ),
                             ),
                             const SizedBox(height: 3),
                             Text(
@@ -266,13 +290,20 @@ class StudentDisciplinesGridView extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(width: 1, height: 26, color: const Color(0xFFE5E7EB)),
+                      Container(
+                        width: 1,
+                        height: 26,
+                        color: const Color(0xFFE5E7EB),
+                      ),
                       Expanded(
                         child: Column(
                           children: [
                             Text(
                               'Avaliação N2',
-                              style: jakarta(size: 10.5, color: const Color(0xFF71717A)),
+                              style: jakarta(
+                                size: 10.5,
+                                color: const Color(0xFF71717A),
+                              ),
                             ),
                             const SizedBox(height: 3),
                             Text(
@@ -286,13 +317,20 @@ class StudentDisciplinesGridView extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(width: 1, height: 26, color: const Color(0xFFE5E7EB)),
+                      Container(
+                        width: 1,
+                        height: 26,
+                        color: const Color(0xFFE5E7EB),
+                      ),
                       Expanded(
                         child: Column(
                           children: [
                             Text(
                               'Média Parcial',
-                              style: jakarta(size: 10.5, color: const Color(0xFF71717A)),
+                              style: jakarta(
+                                size: 10.5,
+                                color: const Color(0xFF71717A),
+                              ),
                             ),
                             const SizedBox(height: 3),
                             Text(
@@ -320,7 +358,10 @@ class StudentDisciplinesGridView extends StatelessWidget {
                         onTap: () => onSelectDiscipline(d, 0),
                         borderRadius: BorderRadius.circular(6),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF18181B),
                             borderRadius: BorderRadius.circular(6),
@@ -357,30 +398,50 @@ class StudentDisciplinesGridView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    OutlinedButton.icon(
-                      key: Key('btn_sala_virtual_${d.code}'),
-                      onPressed: () => Navigator.of(context).pushNamed('/video-call'),
-                      icon: const Icon(
-                        Icons.videocam_outlined,
-                        size: 15,
-                        color: Color(0xFF16A34A),
-                      ),
-                      label: Text(
-                        'Sala Virtual',
-                        style: jakarta(
-                          size: 12,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF166534),
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF0FDF4),
-                        side: const BorderSide(color: Color(0xFFBBF7D0)),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
+                    AnimatedBuilder(
+                      animation: AcademicBridgeService.instance,
+                      builder: (context, _) {
+                        final isOpen = AcademicBridgeService.instance
+                            .isSessionOpen(d.code);
+                        return OutlinedButton.icon(
+                          key: Key('btn_sala_virtual_${d.code}'),
+                          onPressed: isOpen
+                              ? () => Navigator.of(context).pushNamed(
+                                  '/video-call',
+                                  arguments: {
+                                    'name': StudentMockData.studentName,
+                                    'ra': StudentMockData.studentRa,
+                                    'roomCode': d.code,
+                                    'role': 'aluno',
+                                  },
+                                )
+                              : null,
+                          icon: const Icon(
+                            Icons.videocam_outlined,
+                            size: 15,
+                            color: Color(0xFF16A34A),
+                          ),
+                          label: Text(
+                            isOpen ? 'Sala Virtual' : 'Aguardando',
+                            style: jakarta(
+                              size: 12,
+                              weight: FontWeight.w600,
+                              color: const Color(0xFF166534),
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF0FDF4),
+                            side: const BorderSide(color: Color(0xFFBBF7D0)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -417,7 +478,10 @@ class StudentDisciplinesGridView extends StatelessWidget {
                     Flexible(
                       child: InkWell(
                         key: Key('btn_plano_ensino_${d.code}'),
-                        onTap: () => StudentDisciplinesModals.showPlanoEnsinoModal(context),
+                        onTap: () =>
+                            StudentDisciplinesModals.showPlanoEnsinoModal(
+                              context,
+                            ),
                         child: Text(
                           'Ver Plano de Ensino & Ementa',
                           overflow: TextOverflow.ellipsis,

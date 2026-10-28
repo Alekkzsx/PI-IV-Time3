@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'student_disciplines_modals.dart';
@@ -10,7 +11,8 @@ import 'student_disciplines_modals.dart';
 /// frequência e atalhos diretos para as salas virtuais.
 class StudentDisciplinesListView extends StatelessWidget {
   final List<StudentDisciplineModel> disciplines;
-  final void Function(StudentDisciplineModel discipline, [int targetTab]) onSelectDiscipline;
+  final void Function(StudentDisciplineModel discipline, [int targetTab])
+  onSelectDiscipline;
 
   const StudentDisciplinesListView({
     super.key,
@@ -79,7 +81,10 @@ class StudentDisciplinesListView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF4F4F5),
                           borderRadius: BorderRadius.circular(4),
@@ -116,7 +121,10 @@ class StudentDisciplinesListView extends StatelessWidget {
                     children: [
                       Text(
                         'Progresso: ${(d.progress * 100).toInt()}%',
-                        style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
+                        style: jakarta(
+                          size: 11.5,
+                          color: const Color(0xFF71717A),
+                        ),
                       ),
                       Text(
                         'Média: ${d.partialAverage.toStringAsFixed(1)} | Freq: ${d.attendancePercentage.toStringAsFixed(1)}%',
@@ -204,7 +212,10 @@ class StudentDisciplinesListView extends StatelessWidget {
                         children: [
                           Text(
                             'Progresso',
-                            style: jakarta(size: 11, color: const Color(0xFF71717A)),
+                            style: jakarta(
+                              size: 11,
+                              color: const Color(0xFF71717A),
+                            ),
                           ),
                           Text(
                             '${(d.progress * 100).toInt()}%',
@@ -223,13 +234,18 @@ class StudentDisciplinesListView extends StatelessWidget {
                           value: d.progress.clamp(0.0, 1.0),
                           minHeight: 4,
                           backgroundColor: const Color(0xFFF4F4F5),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF18181B)),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFF18181B),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${d.completedHours}h de ${d.totalHours}h',
-                        style: jakarta(size: 10.5, color: const Color(0xFFA1A1AA)),
+                        style: jakarta(
+                          size: 10.5,
+                          color: const Color(0xFFA1A1AA),
+                        ),
                       ),
                     ],
                   ),
@@ -244,14 +260,20 @@ class StudentDisciplinesListView extends StatelessWidget {
                     children: [
                       Text(
                         'N1: ${d.n1.toStringAsFixed(1)} | N2: ${d.n2.toStringAsFixed(1)}',
-                        style: jakarta(size: 11, color: const Color(0xFF71717A)),
+                        style: jakarta(
+                          size: 11,
+                          color: const Color(0xFF71717A),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           Text(
                             'Média: ',
-                            style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
+                            style: jakarta(
+                              size: 11.5,
+                              color: const Color(0xFF71717A),
+                            ),
                           ),
                           Text(
                             d.partialAverage.toStringAsFixed(1),
@@ -266,7 +288,10 @@ class StudentDisciplinesListView extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'Freq: ${d.attendancePercentage.toStringAsFixed(1)}% (${d.absences} faltas)',
-                        style: jakarta(size: 10.5, color: const Color(0xFFA1A1AA)),
+                        style: jakarta(
+                          size: 10.5,
+                          color: const Color(0xFFA1A1AA),
+                        ),
                       ),
                     ],
                   ),
@@ -333,39 +358,78 @@ class StudentDisciplinesListView extends StatelessWidget {
         ElevatedButton.icon(
           key: Key('btn_entrar_disciplina_list_${d.code}'),
           onPressed: () => onSelectDiscipline(d, 0),
-          icon: const Icon(Icons.menu_book_outlined, size: 14, color: Colors.white),
+          icon: const Icon(
+            Icons.menu_book_outlined,
+            size: 14,
+            color: Colors.white,
+          ),
           label: Text(
             'Entrar no AVA',
-            style: jakarta(size: 11.5, weight: FontWeight.w600, color: Colors.white),
+            style: jakarta(
+              size: 11.5,
+              weight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF18181B),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        OutlinedButton(
-          key: Key('btn_sala_virtual_list_${d.code}'),
-          onPressed: () => Navigator.of(context).pushNamed('/video-call'),
-          style: OutlinedButton.styleFrom(
-            backgroundColor: const Color(0xFFF0FDF4),
-            side: const BorderSide(color: Color(0xFFBBF7D0)),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          ),
-          child: const Icon(Icons.videocam_outlined, size: 16, color: Color(0xFF16A34A)),
+        AnimatedBuilder(
+          animation: AcademicBridgeService.instance,
+          builder: (context, _) {
+            final isOpen = AcademicBridgeService.instance.isSessionOpen(d.code);
+            return OutlinedButton(
+              key: Key('btn_sala_virtual_list_${d.code}'),
+              onPressed: isOpen
+                  ? () => Navigator.of(context).pushNamed(
+                      '/video-call',
+                      arguments: {
+                        'name': StudentMockData.studentName,
+                        'ra': StudentMockData.studentRa,
+                        'roomCode': d.code,
+                        'role': 'aluno',
+                      },
+                    )
+                  : null,
+              style: OutlinedButton.styleFrom(
+                backgroundColor: const Color(0xFFF0FDF4),
+                side: const BorderSide(color: Color(0xFFBBF7D0)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              child: Icon(
+                isOpen ? Icons.videocam_outlined : Icons.lock_clock_outlined,
+                size: 16,
+                color: const Color(0xFF16A34A),
+              ),
+            );
+          },
         ),
         const SizedBox(width: 8),
         IconButton(
           key: Key('btn_plano_ensino_list_${d.code}'),
           tooltip: 'Ver Plano de Ensino & Ementa',
-          onPressed: () => StudentDisciplinesModals.showPlanoEnsinoModal(context),
-          icon: const Icon(Icons.description_outlined, size: 18, color: Color(0xFF71717A)),
+          onPressed: () =>
+              StudentDisciplinesModals.showPlanoEnsinoModal(context),
+          icon: const Icon(
+            Icons.description_outlined,
+            size: 18,
+            color: Color(0xFF71717A),
+          ),
         ),
       ],
     );
   }
 }
-

@@ -71,24 +71,25 @@ class MeetingControlsToolbar extends StatelessWidget {
               ),
               onPressed: controller.toggleVideo,
             ),
-            IconButton(
-              key: const Key('toolbar_screen_share_button'),
-              tooltip: controller.isScreenSharing
-                  ? 'Parar Apresentação'
-                  : 'Compartilhar Tela',
-              style: IconButton.styleFrom(
-                backgroundColor: controller.isScreenSharing
-                    ? VideoCallColors.accentWhite
-                    : Colors.transparent,
+            if (controller.canManageMeeting)
+              IconButton(
+                key: const Key('toolbar_screen_share_button'),
+                tooltip: controller.isScreenSharing
+                    ? 'Parar Apresentação'
+                    : 'Compartilhar Tela',
+                style: IconButton.styleFrom(
+                  backgroundColor: controller.isScreenSharing
+                      ? VideoCallColors.accentWhite
+                      : Colors.transparent,
+                ),
+                icon: Icon(
+                  Icons.screen_share,
+                  color: controller.isScreenSharing
+                      ? VideoCallColors.background
+                      : VideoCallColors.accentWhite,
+                ),
+                onPressed: controller.toggleScreenShare,
               ),
-              icon: Icon(
-                Icons.screen_share,
-                color: controller.isScreenSharing
-                    ? VideoCallColors.background
-                    : VideoCallColors.accentWhite,
-              ),
-              onPressed: controller.toggleScreenShare,
-            ),
             IconButton(
               key: const Key('toolbar_hand_raise_button'),
               tooltip: controller.localParticipant.isHandRaised
@@ -143,24 +144,25 @@ class MeetingControlsToolbar extends StatelessWidget {
               icon: const Text('🎉', style: TextStyle(fontSize: 18)),
               onPressed: () => controller.sendReaction('🎉'),
             ),
-            IconButton(
-              key: const Key('toolbar_record_button'),
-              tooltip: controller.recordingState.isRecording
-                  ? 'Parar Gravação e Baixar'
-                  : 'Gravar Reunião',
-              style: IconButton.styleFrom(
-                backgroundColor: controller.recordingState.isRecording
-                    ? VideoCallColors.accentWhite
-                    : Colors.transparent,
+            if (controller.canManageMeeting)
+              IconButton(
+                key: const Key('toolbar_record_button'),
+                tooltip: controller.recordingState.isRecording
+                    ? 'Parar Gravação e Baixar'
+                    : 'Gravar Reunião',
+                style: IconButton.styleFrom(
+                  backgroundColor: controller.recordingState.isRecording
+                      ? VideoCallColors.accentWhite
+                      : Colors.transparent,
+                ),
+                icon: Icon(
+                  Icons.fiber_manual_record,
+                  color: controller.recordingState.isRecording
+                      ? VideoCallColors.background
+                      : VideoCallColors.accentWhite,
+                ),
+                onPressed: controller.toggleRecording,
               ),
-              icon: Icon(
-                Icons.fiber_manual_record,
-                color: controller.recordingState.isRecording
-                    ? VideoCallColors.background
-                    : VideoCallColors.accentWhite,
-              ),
-              onPressed: controller.toggleRecording,
-            ),
             Stack(
               children: [
                 IconButton(
