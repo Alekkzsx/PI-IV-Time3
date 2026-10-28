@@ -1,213 +1,126 @@
 # Integrated Educational Platform (AGMRM)
 
-Project developed for the **Integrator Project 4** course in Software Engineering at **PUC-Campinas** (2026).
+Projeto desenvolvido para a disciplina de **Projeto Integrador 4** do curso de Engenharia de Software da **PUC-Campinas** (2026).
 
 ---
 
-## About
+## 🏛️ Sobre o Projeto
 
-**Integrated Educational Platform (AGMRM)** is a unified academic mobile and web platform developed for Integrator Project IV (Team 3).
+A **Plataforma Educacional Integrada (AGMRM)** é um ecossistema acadêmico unificado e multiplataforma desenvolvido pela Equipe 3. 
 
-The platform addresses the fragmentation of educational tools by consolidating attendance tracking, flexible weighted grade calculation, assignment submissions with automated late penalties, secure authentication with strict token expiration, and multi-platform access.
+A plataforma soluciona a fragmentação de ferramentas educacionais integrando controle de frequência regimental, diário de classe digital, cálculo de notas e médias ponderadas, submissão de tarefas com penalidade por atraso, salas virtuais de videochamada institucional com sinalização WebRTC, e uma sólida arquitetura de defesa cibernética em profundidade.
 
-### Key features
+### Principais Funcionalidades
 
-- **Student Academic Portal (`student_view`)** — dedicated student workspace with official **Messages & Announcements** (`student_messages`) and **Virtual Secretariat & Protocol Requests** (`student_secretariat`)
-- **Academic Report & Grades** — real-time query of report cards (`/api/notas/boletim`) with exams (P1, P2), assignments, custom weights, and automatic pass/recovery status
-- **Attendance Tracking** — automated attendance calculation (`/api/presenca`) with thresholds for full attendance ($\ge 75\%$), half attendance ($\ge 50\%$), absence, and instructor manual overrides
-- **Assignment Submissions** — automated late penalty calculation (`/api/tarefas/calcular-nota`) deducting 20% of base grade per late day down to zero
-- **Security & Authentication (`auth_view` & `security/`)** — multi-layer defense-in-depth architecture featuring brute-force rate limiting (5 attempts $\rightarrow$ 30s lockout), password recovery with strict 5-minute token TTL and 3-attempt OTP revocation, anti-enumeration generic responses, constant-time comparison, input sanitization, and HTTP security headers
-- **Type Processing API** — endpoint (`/api/teste-tipos`) demonstrating multi-type data parsing and type validation over HTTP
+- **Portais Específicos por Perfil de Usuário**:
+  - **Portal do Aluno**: Boletim com médias ponderadas, faltas, quadro de horários, comunicados e secretaria virtual.
+  - **Portal do Docente**: Lançamento de notas, diário de classe com chamada digital, homologação de presença e abertura de salas virtuais.
+  - **Portal do Administrador**: Gestão de identidades, cockpits de auditoria, secretaria acadêmica e lacre regimental de pautas CONSEPE.
+- **Módulo de Videochamada Institucional (`video_call`)**:
+  - Conferência P2P WebRTC integrada ao servidor nativo Java (`server/`).
+  - Detecção de orador ativo com histerese (*Active Speaker*), fila FIFO de dúvidas (mãos levantadas), chat em tempo real e verificação de presença por minutos conectados.
+  - Restrição regimental: apenas docentes e administradores podem abrir salas de aula virtuais.
+- **Servidor HTTP Nativo em Java SE (`server/`)**:
+  - Servidor construído do zero sobre sockets padrão Java SE (zero dependência de frameworks externos).
+  - 13 endpoints ativos na porta `8080` cobrindo módulos acadêmicos e sinalização WebRTC.
+- **Segurança Corporativa e Defesa em Profundidade (`security/`)**:
+  - Bloqueio por força bruta (5 tentativas falhas $\rightarrow$ 30s de lockout).
+  - Mitigação de ataques de temporização (*timing attacks*).
+  - Respostas opacas anti-enumeração e sanitização pré-flight contra XSS e injeção SQL.
 
 ---
 
-## Team
+## 👥 Equipe do Projeto Integrador IV (Time 3)
 
-| Full name | Student ID (RA) |
+| Nome Completo | RA |
 |---|---|
-| *Alex Gabriel Soares Sousa* | *24802449* |
-| *Guilherme Moreira* | *25006702* | 
-| *Marcelo Zarpelon* | *25015323* | 
-| *Murillo Caravita* | *25014012* |
-| *Rafael Henrique Inácio* | *25009719* | 
+| Alex Gabriel Soares Sousa | 24802449 |
+| Guilherme Henrique Moreira | 25006702 |
+| Marcelo Zarpelon | 25015323 |
+| Murillo Caravita | 25014012 |
+| Rafael Henrique Inácio | 25009719 |
 
 ---
 
-## Tech stack
-
-| Layer | Technology |
-|---|---|
-| App (Frontend) | Flutter + Dart (Feature-First Clean Architecture) |
-| Native Server | Java SE 17+ (Native HTTP Server built from scratch) |
-| Security Module | Dart/Flutter Client Guards + Native Java SE Server Guards |
-| Server Runtime | Native Sockets + Scripts (Batch / Shell) |
-| Version control | Git + GitHub |
-
----
-
-## Repository structure
+## 📂 Estrutura do Repositório
 
 ```
-PI-IV-Time3/
-├── .github/                  # CI/CD workflows, CODEOWNERS, and branch protection policies (see [.github/GOVERNANCE.md](.github/GOVERNANCE.md))
-├── frontend/                 # Multi-platform Flutter app (Feature-First Clean Architecture)
+.../PI-IV-Time3/
+├── .github/                  # CI/CD workflows, CODEOWNERS, GOVERNANCE.md e configurações de IDE (.vscode)
+├── frontend/                 # Aplicação multiplataforma Flutter (Feature-First Clean Architecture, 396 testes)
 │   ├── lib/
-│   │   ├── core/             # Shared theme tokens, failure models, and input validators
-│   │   ├── features/
-│   │   │   ├── auth_view/    # Login, Forgot Password, Verify OTP Code, and Reset Password
-│   │   │   └── student_view/ # Student Portal: Messages & Announcements, Virtual Secretariat
-│   │   └── shared/           # Shared auth repository, student sidebar/shell layout, and widgets
-│   └── test/                 # Unit and widget tests mirroring auth_view and student_view
-├── server/                   # Autonomous native Java HTTP server (built from scratch, no frameworks)
-│   ├── src/                  # Java sources: ServidorHttpNativo, handlers, and HttpUtils
-│   └── tests/                # Compilation and automated cURL verification suite
-├── security/                 # Enterprise defense-in-depth security module (Dart & Native Java SE)
-│   ├── lib/                  # Client-side rate limiters, token lifecycle, sanitizers, and widgets
-│   ├── auth/                 # Server-side lockout manager, constant-time comparator, and token TTL
-│   ├── middleware/           # Security HTTP headers, 64 KB body ceiling, and error sanitizer
-│   ├── validators/           # Server-side input sanitization and password entropy evaluation
-│   ├── policies/             # Immutable security constants, generic feedback, and config loader
-│   ├── tests/                # End-to-end Dart and Java security verification suites
-│   └── .env.example          # Standardized security and server environment template
-└── backend/                  # Target architecture for enterprise backend services & persistence
+│   │   ├── core/             # Design tokens, backend launcher automático, rotas e tema
+│   │   ├── features/         # auth, student, teacher, admin, video_call, multiperfil
+│   │   └── main.dart         # Ponto de entrada com disparo transparente das pastas mães
+│   └── test/                 # Suíte completa com 396 testes automatizados
+├── server/                   # Servidor HTTP nativo autônomo em Java SE (zero frameworks externos)
+│   ├── src/
+│   │   ├── main/             # Main.java — Registro central dos 13 endpoints na porta 8080
+│   │   ├── core/             # Sockets nativos, manipuladores HTTP e CORS
+│   │   ├── academic/         # Boletim, Presença, Tarefas e Tipos
+│   │   └── videocall/        # Salas, Sinalização WebRTC, Chat, Mãos Levantadas e Presença
+│   └── tests/                # 16 comandos cURL documentados (testeServidor.txt)
+├── security/                 # Arquitetura corporativa de Defesa em Profundidade (37 testes)
+│   ├── lib/                  # Pacote Dart/Flutter (auth, policies, validators, widgets)
+│   ├── test/                 # Testes unitários e de integração de segurança
+│   └── server/               # Guardas de segurança do servidor em Java SE (src e test)
+├── backend/                  # Orquestração institucional e camada de persistência
+│   ├── backend-config.json   # Configuração dos módulos para integração transparente ao 'flutter run'
+│   └── target/classes/       # Entidades, modelos e repositórios acadêmicos
+└── .env-example              # Modelo mestre unificado de variáveis de ambiente de todo o projeto
 ```
 
 ---
 
-## Running locally (dev environment)
+## 🚀 Executando o Projeto Localmente
 
-### Prerequisites
+### Pré-requisitos
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x or later)
-- [Java Development Kit (JDK 17+)](https://www.oracle.com/java/technologies/downloads/)
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x ou superior)
+- [Java Development Kit (JDK 8 ou superior / JDK 17/21 recomendado)](https://www.oracle.com/java/technologies/downloads/)
 - Git
-- Android Studio, VS Code with Flutter extension, or a browser (Chrome)
 
 ---
 
-### 1. Clone the repository
+### Inicialização Transparente (`cd frontend` & `flutter run`)
+
+**Não é necessário rodar scripts avulsos ou abrir múltiplos terminais.** Ao executar `flutter run`, o Flutter e o sistema operacional coordenam a inicialização de todos os serviços automaticamente:
 
 ```bash
+# 1. Clone o repositório
 git clone https://github.com/Alekkzsx/PI-IV-Time3.git
-cd PI-IV-Time3
-```
+cd .../PI-IV-Time3
 
----
-
-### 2. Configure environment variables (optional)
-
-Review the example configuration file in the `security` directory:
-
-```bash
-cp security/.env.example security/.env
-```
-
-| Variable | Description | Default value |
-|---|---|---|
-| `SERVER_PORT` | HTTP server port | `8080` |
-| `REQUEST_TIMEOUT_SECONDS` | Request timeout for DoS mitigation | `30` |
-| `MAX_REQUEST_BODY_SIZE_BYTES` | Maximum request body size (64 KB) | `65536` |
-| `MAX_FAILED_LOGIN_ATTEMPTS` | Failed logins before temporary lockout | `5` |
-| `LOCKOUT_DURATION_SECONDS` | Account lockout cooldown duration | `30` |
-| `RECOVERY_TOKEN_TTL_SECONDS` | Ephemeral recovery token expiration (5 min) | `300` |
-| `MAX_VERIFICATION_ATTEMPTS` | Max OTP attempts before token revocation | `3` |
-| `PASSWORD_MIN_ENTROPY_SCORE` | Minimum required password strength score | `3` |
-
----
-
-### 3. Install project dependencies
-
-After cloning, from the repository root, run `flutter pub get` once in each Dart/Flutter package directory. This downloads the packages declared in each `pubspec.yaml` and generates the local Flutter/Dart package configuration:
-
-```bash
-cd frontend
-flutter pub get
-
-cd ../security
-flutter pub get
-cd ..
-```
-
-### 4. Start the backend server
-
-The server uses native Java SE with no external framework dependencies (no Maven or Gradle required):
-
-**On Windows:**
-
-```cmd
-server\run-server.bat
-```
-
-**On Linux / macOS:**
-
-```bash
-chmod +x server/run-server.sh
-./server/run-server.sh
-```
-
-The server will listen on port `8080`.
-
-#### Automated API verification (test suite)
-
-With the server running, open a second terminal and run:
-
-**On Windows:**
-
-```cmd
-server\test-server.bat
-```
-
-**On Linux / macOS:**
-
-```bash
-chmod +x server/test-server.sh
-./server/test-server.sh
-```
-
----
-
-### 5. Run the app
-
-**In the browser (Chrome):**
-
-```bash
-cd frontend
-flutter run -d chrome
-```
-
-**On a connected Android/iOS device or emulator:**
-
-```bash
+# 2. Acesse a pasta do frontend e execute
 cd frontend
 flutter run
 ```
 
-**Run unit and widget tests:**
+O comando irá:
+1. Compilar e abrir a aplicação Flutter (desktop Windows ou navegador Web).
+2. Inicializar o servidor nativo Java (`server/`) e o backend na porta **8080** em segundo plano.
+3. Resolver os contratos corporativos da biblioteca de segurança (`security/`).
+
+---
+
+## 🧪 Qualidade, Análise Estática e Testes
+
+O projeto conta com mais de 430 testes automatizados distribuídos entre o cliente Flutter, as rotas do servidor e a biblioteca de segurança:
 
 ```bash
-cd frontend
+# 1. Testes e análise do Frontend (396 testes, 0 issues)
+cd .../PI-IV-Time3/frontend
+flutter analyze
+flutter test
+
+# 2. Testes e análise do módulo Security (37 testes, 0 issues)
+cd .../PI-IV-Time3/security
+flutter analyze
 flutter test
 ```
 
-**List available devices:**
-
-```bash
-flutter devices
-```
+Para verificar o servidor nativo Java via cURL, consulte a bateria com 16 comandos em `.../PI-IV-Time3/server/tests/testeServidor.txt`.
 
 ---
 
-## API Endpoints
-
-The native HTTP server provides 4 REST endpoints on port **8080**:
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/teste-tipos` | Processes and validates primitive types (`texto`, `inteiro`, `flutuante`, `duplo`, `caractere`) |
-| `POST` | `/api/presenca` | Calculates attendance rate (`minutosAssistidos`, `duracaoTotal`, optional `statusManual`) |
-| `POST` | `/api/tarefas/calcular-nota` | Computes grade deduction based on late days (20% penalty per late day) |
-| `POST` | `/api/notas/boletim` | Calculates weighted final grade (`p1`, `p2`, `trabalho`) and academic status |
-
----
-
-*Integrator Project 4 — Software Engineering — PUC-Campinas — 2026*
+*Projeto Integrador 4 — Engenharia de Software — PUC-Campinas — 2026*

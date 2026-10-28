@@ -1,5 +1,5 @@
 # =============================================================================
-# .gitignore — Padrão de Projeto Robusto e Seguro
+# .gitignore — Padrão de Projeto Robusto e Seguro (AGMRM)
 # =============================================================================
 
 # ─── 1. Segredos e Variáveis de Ambiente (CRÍTICO: NUNCA COMMITAR) ───
@@ -16,116 +16,91 @@
 *.pfx
 secrets/
 
-# Permitir template de exemplo de variáveis de ambiente
-!.env.example
-!.env.template
+# Permitir exclusivamente o template mestre unificado de variáveis de ambiente
+!.env-example
 
-# ─── 2. Dependências e Pacotes ───
-# Node.js / Frontend
+# ─── 2. Artefatos de Build e Cache das Pastas Mães (Flutter / Dart) ───
+# Previne reinstalação ou download forçado de dependências entre máquinas
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+**/.flutter-plugins
+.flutter-plugins-dependencies
+**/.flutter-plugins-dependencies
+.packages
+**/.packages
+.pub-cache/
+**/.pub-cache/
+.pub/
+**/.pub/
+build/
+**/build/
+
+# Preservar o lockfile das dependências (garante paridade exata de versões)
+!**/pubspec.lock
+!lib/
+!lib/**
+
+# Artefatos nativos e efêmeros de plataformas
+**/ephemeral/
+**/windows/flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/ios/Flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/.symlinks/
+**/android/.gradle/
+**/android/local.properties
+**/android/app/build/
+**/.cxx/
+**/.externalNativeBuild/
+
+# ─── 3. Artefatos de Compilação do Java e Backend (server/ e backend/) ───
+server/bin/
+**/bin/
+*.class
+**/*.class
+*.jar
+*.war
+*.ear
+backend/target/
+**/.gradle/
+
+# ─── 4. Dependências de Outros Ecossistemas (Node / Python / .NET) ───
 node_modules/
 jspm_packages/
 .pnp
 .pnp.js
-
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
 env/
 venv/
 .venv/
-ENV/
-build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-# Permitir diretório lib/ do Flutter
-!lib/
-!lib/**
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Java / JVM
-*.class
-*.jar
-*.war
-*.ear
-target/
-.gradle/
-build/
-
-# C# / .NET
-bin/
-obj/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# ─── 3. Builds, Bundles e Saídas de Compilação ───
-dist/
-build/
 out/
-.next/
-.nuxt/
-.vuepress/dist
-.serverless/
-.fusebox/
-.dynamodb/
-.terraform/
 coverage/
 .nyc_output/
 *.tsbuildinfo
+obj/
+*.suo
+*.user
 
-# Cache, ferramentas e arquivos gerados pelo Dart/Flutter
-.dart_tool/
-**/.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-
-# Configuração local do Android e artefatos nativos gerados
-**/local.properties
-**/.gradle/
-**/.cxx/
-**/.externalNativeBuild/
-
-# Arquivos gerados pelas ferramentas de build das plataformas Flutter
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/Flutter/ephemeral/
-**/ios/Pods/
-**/macos/Flutter/ephemeral/
-**/windows/flutter/ephemeral/
-**/linux/flutter/ephemeral/
-
-# ─── 4. Logs e Arquivos Temporários ───
+# ─── 5. Logs e Arquivos Temporários ───
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
-pnpm-debug.log*
 *.tmp
 *.temp
 *.bak
 *.swp
 *.swo
 
-# ─── 5. Arquivos de Sistema Operacional ───
+# ─── 6. Arquivos de Sistema Operacional ───
 .DS_Store
 .DS_Store?
 ._*
@@ -135,7 +110,7 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# ─── 6. Configurações de IDE e Editores ───
+# ─── 7. Configurações de IDE e Editores ───
 .idea/
 *.sublime-project
 *.sublime-workspace
@@ -143,22 +118,16 @@ desktop.ini
 .classpath
 .agents
 .settings/
-PROJECT.md
-TEST_INFRA.md
-ORIGINAL_REQUEST.md
-TEST_READY.md
+.history/
+*.code-workspace
 
-# VS Code (ignora histórico e workspace local, mantém configurações compartilhadas se desejado)
+# VS Code compartilhado e institucional
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-*.code-workspace
-.history/
+!.github/.vscode/**
 
-# ─── 7. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
+# ─── 8. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
 !.github/
-
-
-

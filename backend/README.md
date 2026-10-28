@@ -1,140 +1,94 @@
-# Backend — Enterprise Academic Services & Persistence
+# Backend — Enterprise Academic Services, Persistence & Orchestration (AGMRM)
 
-The `backend` module defines the target architecture for the enterprise business logic, persistence layer, identity management, and orchestration services of the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
-
----
-
-## 🏛️ Architectural Purpose & Scope
-
-The `backend` module serves as the long-term domain and persistence core of the AGMRM ecosystem. While the lightweight, zero-dependency native Java server in [`server/`](../server/README.md) provides specialized, high-performance execution of standalone academic calculation algorithms and raw HTTP socket handling, the `backend` module is scoped to accommodate:
-
-1. **Persistent Data Storage**: Relational databases, migration pipelines, and Object-Relational Mapping (ORM) / Data Access Objects (DAO).
-2. **Enterprise Business Microservices**: Complex student management workflows, enrollment validation, and curriculum lifecycle tracking.
-3. **Identity & Access Management (IAM)**: Centralized OAuth2/OpenID Connect provider or JWT authentication engine.
-4. **API Gateway & Orchestration**: Unified REST and GraphQL gateway mediating requests between the Flutter frontend client and core services.
+> **Módulo**: `.../PI-IV-Time3/backend/`  
+> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
 
 ---
 
-## 📂 Current Repository State & Structural Reservation
+## 🏛️ Propósito Arquitetural e Orquestração
 
-On disk, the `backend` directory currently contains a versioned placeholder:
+O módulo `backend` define a camada corporativa de persistência, regras de negócio distribuídas, gestão de identidade e orquestração de serviços para a **Plataforma Educacional Integrada AGMRM**.
 
-```
-backend/
-├── .gitkeep                      # Git placeholder maintaining directory structure
-└── README.md                     # Architectural documentation (this file)
-```
+Enquanto o servidor nativo em `.../PI-IV-Time3/server/` provê execução de alta performance e cálculo síncrono em sockets HTTP (rotas acadêmicas e sinalização WebRTC de videochamada), o módulo `backend` orquestra:
 
-### Why is `.gitkeep` Present?
-In the initial development milestone of the AGMRM project:
-- Core calculation handlers (attendance percentage, assignment penalty deductions, and report card weighted grading) were developed inside [`server/src/`](../server/README.md) using native Java SE standard library APIs without third-party frameworks.
-- The `backend/` directory is deliberately preserved in source control via `.gitkeep` to establish an explicit boundary between the protocol-level Java socket server (`server/`) and the full enterprise application backend tier.
-- As the project advances through future sprints, enterprise backend frameworks, data schemas, and API definitions will be integrated directly into this module without disrupting the native socket server.
+1. **Configuração Unificada de Serviços (`backend-config.json`)**: Especificação declarativa de portas, endpoints, health checks e contratos de comunicação.
+2. **Camada de Persistência e Entidades (`target/classes/`)**: Modelos e repositórios acadêmicos (`models/Usuario`, `admin/repositories/UsuarioRepository`, `database/MongoDBConnection`).
+3. **Orquestração Automática no `flutter run`**: Interligação para que a execução do Flutter no frontend levante todos os módulos de backend de forma transparente.
 
 ---
 
-## 🗺️ Architectural Roadmap & Future Contracts
+## 📂 Estrutura de Arquivos
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Flutter Client (frontend/)                     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                       HTTP / JSON (REST / GraphQL)
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       AGMRM Backend Services (backend/)                │
-│                                                                        │
-│   ┌───────────────────────────┐      ┌─────────────────────────────┐   │
-│   │   Identity & Auth (IAM)   │      │    Academic Core Service    │   │
-│   │  - OAuth2 / JWT Tokens    │      │  - Enrollments & Courses    │   │
-│   │  - Argon2 Password Hashing│      │  - Gradebook Lifecycle      │   │
-│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
-│                 │                                   │                  │
-│   ┌─────────────▼─────────────┐      ┌──────────────▼──────────────┐   │
-│   │   Attendance Sync Worker  │      │     Assignment Service      │   │
-│   │  - Virtual Class Sessions │      │  - Submissions & Penalties  │   │
-│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
-│                 │                                   │                  │
-│                 └─────────────────┬─────────────────┘                  │
-│                                   │                                    │
-│                                   ▼                                    │
-│                     Persistence Layer (ORM / DAO)                     │
-│               PostgreSQL / SQLite + Flyway/Liquibase Migrations        │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                     Calculations / Socket Dispatch
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│               Native Java Calculation Engine (server/src/)             │
-│    (/api/teste-tipos, /api/presenca, /api/tarefas, /api/notas/boletim)  │
-└────────────────────────────────────────────────────────────────────────┘
+.../PI-IV-Time3/backend/
+├── backend-config.json           # Configuração de orquestração institucional
+├── target/classes/               # Classes compiladas de modelos, repositórios e banco
+│   ├── academico/                # Controllers acadêmicos
+│   ├── admin/                    # Controllers e UsuarioRepository
+│   ├── database/                 # Conexão MongoDB (MongoDBConnection)
+│   ├── models/                   # Modelo Usuario
+│   ├── server/                   # ServidorHttpNativo e utilitários
+│   └── utils/                    # JsonSimples e parsers
+├── .gitkeep                      # Preservação de controle de versão
+└── README.md                     # Documentação técnica do backend (este arquivo)
 ```
-
-### Planned Subsystems & Target Contracts
-
-| Subsystem | Planned Technology / Standard | Target Responsibilities |
-|---|---|---|
-| **Identity & Access Management (IAM)** | JWT (RFC 7519), OAuth2, Argon2id | Secure token issuance, token refresh rotation, role-based access control (Student, Faculty, Admin), and credential hashing. |
-| **Academic Records Service** | REST / JSON Schema, gRPC | Course catalog, student registrations (RA), semester curriculum, and transcript archival. |
-| **Gradebook & Calculation Orchestrator** | Spring Boot / Quarkus / Micronaut | Orchestrating grade submissions with the native calculation engine (`BoletimHandler` and `TarefasHandler`). |
-| **Attendance Reconciliation Service** | Event-Driven / Webhooks | Real-time synchronization of virtual and in-person attendance logs, driving `PresencaHandler`. |
-| **Persistence Engine** | PostgreSQL / SQLite with Flyway | ACID-compliant transactional persistence, audit logs, and automated schema migration scripts. |
 
 ---
 
-## 🔌 API Contract Specifications (Preview)
+## ⚙️ Configuração Institucional (`backend-config.json`)
 
-When fully instantiated, the backend will expose standardized REST endpoints adhering to the following OpenAPI-style specifications:
+O arquivo `.../PI-IV-Time3/backend/backend-config.json` parametriza a inicialização das pastas mães do ecossistema:
 
-### 1. Authentication Contract (`POST /api/v1/auth/token`)
-- **Request Headers**: `Content-Type: application/json`
-- **Request Body**:
-  ```json
-  {
-    "identity": "24802449",
-    "password": "SecurePassword#2026",
-    "role": "aluno"
-  }
-  ```
-- **Response (`200 OK`)**:
-  ```json
-  {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsIn...",
-    "tokenType": "Bearer",
-    "expiresIn": 900,
-    "refreshToken": "d8f3a9e2-1b4c-4e8a-...",
-    "user": {
-      "ra": "24802449",
-      "name": "Alex Gabriel Soares Sousa",
-      "role": "aluno"
+```json
+{
+  "_description": "Configuracao institucional do ecossistema de backend AGMRM para integracao transparente ao 'flutter run'",
+  "environment": {
+    "profile": "development",
+    "orchestrator": "frontend_integrated_launcher"
+  },
+  "modules": {
+    "server": {
+      "path": "../server",
+      "entrypoint": "main.Main",
+      "port": 8080,
+      "protocol": "HTTP/1.1",
+      "auto_start": true,
+      "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
+      "features": [
+        "videocall_webrtc_signaling",
+        "academic_boletim_calculation",
+        "academic_attendance_tracking",
+        "academic_task_grading"
+      ]
+    },
+    "security": {
+      "path": "../security",
+      "package": "agmrm_security",
+      "auto_bind": true,
+      "features": [
+        "generic_feedback_policy",
+        "rate_limiting_lockout",
+        "input_sanitizer",
+        "timing_attack_mitigation"
+      ]
+    },
+    "backend_persistence": {
+      "target_classes": "target/classes",
+      "database": "mongodb_integrated",
+      "status": "ready"
     }
+  },
+  "flutter_run_hook": {
+    "enabled": true,
+    "strategy": "dual_trigger_cmake_and_dart_vm",
+    "description": "Ao executar 'cd frontend' e 'flutter run', os servicos do server e backend iniciam automaticamente em background."
   }
-  ```
-
-### 2. Password Recovery Contract (`POST /api/v1/auth/recover-password`)
-- **Request Body**:
-  ```json
-  {
-    "identity": "24802449",
-    "profile": "aluno"
-  }
-  ```
-- **Response (`200 OK`)**:
-  ```json
-  {
-    "status": "INSTRUCTIONS_SENT",
-    "expiresInSeconds": 300,
-    "maskedDestination": "al***@puc-campinas.edu.br"
-  }
-  ```
+}
+```
 
 ---
 
-## 🔗 Cross-Module Integration
+## 🔄 Inicialização Integrada ao `flutter run`
 
-- **Frontend Integration**: The Flutter client ([`frontend/`](../frontend/README.md)) connects its feature modules (`features/auth_view/` and `features/student_view/`) and shared data layer (`shared/auth/external/auth_remote_datasource_impl.dart`) to these REST endpoints.
-- **Server Integration**: The native Java HTTP server ([`server/`](../server/README.md)) continues to operate as a high-speed computational service for primitive parsing and mathematical evaluation or can be embedded as an internal microservice.
-- **Security Policy**: All backend operations comply with the defense-in-depth guards, threat models, and governance policies implemented in [`security/`](../security/README.md).
+Não há necessidade de inicializadores manuais ou scripts avulsos:
+- Ao entrar em `.../PI-IV-Time3/frontend` e executar `flutter run`, o Flutter lê as configurações de orquestração do backend, assegura a integridade das pastas mães e levanta os serviços em background na porta 8080.
