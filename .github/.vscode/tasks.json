@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "start-backend-server",
+      "type": "shell",
+      "windows": {
+        "command": "powershell -NoProfile -Command \"Start-Process -FilePath 'java' -ArgumentList '-cp bin Main' -WorkingDirectory '${workspaceFolder}/server' -WindowStyle Hidden\""
+      },
+      "linux": {
+        "command": "java -cp bin Main &"
+      },
+      "osx": {
+        "command": "java -cp bin Main &"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    }
+  ]
+}

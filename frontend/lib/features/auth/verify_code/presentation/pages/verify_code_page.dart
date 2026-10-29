@@ -146,13 +146,13 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     });
 
     try {
-      final isValid = await widget.repository.verifyOtpToken(
+      final resetToken = await widget.repository.verifyPasswordRecoveryCode(
         identity: session.identity,
         code: code,
       );
       if (!mounted) return;
 
-      if (isValid) {
+      if (resetToken.isNotEmpty) {
         _isNavigating = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -179,9 +179,10 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
 
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
-            Navigator.of(
-              context,
-            ).pushReplacementNamed('/reset-password', arguments: session);
+            Navigator.of(context).pushReplacementNamed(
+              '/reset-password',
+              arguments: session.withResetToken(resetToken),
+            );
           }
         });
       } else {

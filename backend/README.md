@@ -1,140 +1,106 @@
-# Backend — Enterprise Academic Services & Persistence
+<!-- Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 -->
 
-The `backend` module defines the target architecture for the enterprise business logic, persistence layer, identity management, and orchestration services of the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
+# Backend de autenticação
 
----
+Serviço independente em TypeScript para login institucional e recuperação de
+senha. Ele roda na porta `3001` por padrão e não substitui o servidor Java da
+porta `8080`, que continua atendendo às funcionalidades acadêmicas e de
+videochamada.
 
-## 🏛️ Architectural Purpose & Scope
+## Organização
 
-The `backend` module serves as the long-term domain and persistence core of the AGMRM ecosystem. While the lightweight, zero-dependency native Java server in [`server/`](../server/README.md) provides specialized, high-performance execution of standalone academic calculation algorithms and raw HTTP socket handling, the `backend` module is scoped to accommodate:
-
-1. **Persistent Data Storage**: Relational databases, migration pipelines, and Object-Relational Mapping (ORM) / Data Access Objects (DAO).
-2. **Enterprise Business Microservices**: Complex student management workflows, enrollment validation, and curriculum lifecycle tracking.
-3. **Identity & Access Management (IAM)**: Centralized OAuth2/OpenID Connect provider or JWT authentication engine.
-4. **API Gateway & Orchestration**: Unified REST and GraphQL gateway mediating requests between the Flutter frontend client and core services.
-
----
-
-## 📂 Current Repository State & Structural Reservation
-
-On disk, the `backend` directory currently contains a versioned placeholder:
-
-```
+```text
 backend/
-├── .gitkeep                      # Git placeholder maintaining directory structure
-└── README.md                     # Architectural documentation (this file)
+├── src/
+│   ├── app.ts
+│   ├── server.ts
+│   ├── config/
+│   ├── shared/
+│   └── modules/auth/
+│       ├── application/       # Casos de uso e testes unitários
+│       ├── domain/            # Entidades, perfis e portas
+│       ├── infrastructure/   # MongoDB, bcrypt, JWT e SMTP
+│       └── presentation/      # Contratos e rotas HTTP
+├── .env.example
+├── package.json
+└── tsconfig.json
 ```
 
-### Why is `.gitkeep` Present?
-In the initial development milestone of the AGMRM project:
-- Core calculation handlers (attendance percentage, assignment penalty deductions, and report card weighted grading) were developed inside [`server/src/`](../server/README.md) using native Java SE standard library APIs without third-party frameworks.
-- The `backend/` directory is deliberately preserved in source control via `.gitkeep` to establish an explicit boundary between the protocol-level Java socket server (`server/`) and the full enterprise application backend tier.
-- As the project advances through future sprints, enterprise backend frameworks, data schemas, and API definitions will be integrated directly into this module without disrupting the native socket server.
+As dependências de persistência e serviços externos são injetadas no caso de
+uso. Assim, regras de autenticação podem ser testadas sem conexão com MongoDB,
+SMTP ou servidor HTTP.
 
----
+## Perfis e contas
 
-## 🗺️ Architectural Roadmap & Future Contracts
+Os únicos perfis aceitos são `aluno`, `docente` e `admin`. Contas são lidas da
+coleção `auth_users` no banco MongoDB escolhido. O serviço não cria contas
+fictícias nem aceita credenciais de demonstração.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Flutter Client (frontend/)                     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                       HTTP / JSON (REST / GraphQL)
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       AGMRM Backend Services (backend/)                │
-│                                                                        │
-│   ┌───────────────────────────┐      ┌─────────────────────────────┐   │
-│   │   Identity & Auth (IAM)   │      │    Academic Core Service    │   │
-│   │  - OAuth2 / JWT Tokens    │      │  - Enrollments & Courses    │   │
-│   │  - Argon2 Password Hashing│      │  - Gradebook Lifecycle      │   │
-│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
-│                 │                                   │                  │
-│   ┌─────────────▼─────────────┐      ┌──────────────▼──────────────┐   │
-│   │   Attendance Sync Worker  │      │     Assignment Service      │   │
-│   │  - Virtual Class Sessions │      │  - Submissions & Penalties  │   │
-│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
-│                 │                                   │                  │
-│                 └─────────────────┬─────────────────┘                  │
-│                                   │                                    │
-│                                   ▼                                    │
-│                     Persistence Layer (ORM / DAO)                     │
-│               PostgreSQL / SQLite + Flyway/Liquibase Migrations        │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                     Calculations / Socket Dispatch
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│               Native Java Calculation Engine (server/src/)             │
-│    (/api/teste-tipos, /api/presenca, /api/tarefas, /api/notas/boletim)  │
-└────────────────────────────────────────────────────────────────────────┘
+Cada documento precisa conter:
+
+```json
+{
+  "identity": "identificador institucional",
+  "normalizedIdentity": "identificador institucional em minúsculas",
+  "email": "endereço institucional",
+  "displayName": "nome para mensagens de recuperação",
+  "profile": "aluno",
+  "passwordHash": "hash produzido por bcrypt",
+  "active": true
+}
 ```
 
-### Planned Subsystems & Target Contracts
+`normalizedIdentity` deve ser único. A inicialização cria esse índice e o
+índice TTL da coleção `auth_recovery`. Senhas devem ser provisionadas como
+hashes bcrypt, nunca em texto claro.
 
-| Subsystem | Planned Technology / Standard | Target Responsibilities |
+## Configuração e execução
+
+Requer Node.js 20 ou superior e MongoDB acessível. Na pasta `backend`:
+
+```powershell
+Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+Preencha `.env` com URI e nome do banco, um segredo JWT aleatório de pelo menos
+32 caracteres, um segredo OTP diferente também com pelo menos 32 caracteres e
+as credenciais SMTP para habilitar recuperação por e-mail.
+Não versione `.env`. Sem SMTP configurado, o serviço inicia normalmente, mas
+pedidos de recuperação para contas existentes retornam erro explícito.
+
+```powershell
+npm test
+npm run build
+npm start
+```
+
+O serviço valida a configuração antes de iniciar e falha explicitamente se
+MongoDB ou variáveis obrigatórias estiverem indisponíveis. O frontend usa esta API para login e recuperação e o datasource Flutter aponta
+por padrão para `http://127.0.0.1:3001`. O serviço TypeScript não é iniciado por
+`flutter run`; durante desenvolvimento, inicie-o separadamente. Para outros
+ambientes, informe `--dart-define=AUTH_API_BASE_URL=https://...` no build Flutter
+e configure a origem do portal em `AUTH_CORS_ORIGINS`. A API não depende nem lê
+credenciais SMTP do cliente.
+
+## Endpoints
+
+Base local: `http://127.0.0.1:3001`
+
+| Método | Caminho | Descrição |
 |---|---|---|
-| **Identity & Access Management (IAM)** | JWT (RFC 7519), OAuth2, Argon2id | Secure token issuance, token refresh rotation, role-based access control (Student, Faculty, Admin), and credential hashing. |
-| **Academic Records Service** | REST / JSON Schema, gRPC | Course catalog, student registrations (RA), semester curriculum, and transcript archival. |
-| **Gradebook & Calculation Orchestrator** | Spring Boot / Quarkus / Micronaut | Orchestrating grade submissions with the native calculation engine (`BoletimHandler` and `TarefasHandler`). |
-| **Attendance Reconciliation Service** | Event-Driven / Webhooks | Real-time synchronization of virtual and in-person attendance logs, driving `PresencaHandler`. |
-| **Persistence Engine** | PostgreSQL / SQLite with Flyway | ACID-compliant transactional persistence, audit logs, and automated schema migration scripts. |
+| `GET` | `/health` | Health check |
+| `POST` | `/api/auth/login` | Valida identidade, senha e perfil; retorna JWT curto |
+| `POST` | `/api/auth/send-recovery-otp` | Solicita OTP sem revelar se a identidade existe |
+| `POST` | `/api/auth/verify-recovery-otp` | Valida OTP e retorna grant temporário de redefinição |
+| `POST` | `/api/auth/reset-password` | Consome o grant e troca a senha |
 
----
+O OTP é gerado criptograficamente, armazenado como HMAC, expira conforme
+`AUTH_OTP_TTL_SECONDS` e é revogado após `AUTH_OTP_MAX_ATTEMPTS`. O token de
+redefinição é aleatório, tem validade curta e só pode ser consumido uma vez.
+Não existe código universal de teste.
 
-## 🔌 API Contract Specifications (Preview)
-
-When fully instantiated, the backend will expose standardized REST endpoints adhering to the following OpenAPI-style specifications:
-
-### 1. Authentication Contract (`POST /api/v1/auth/token`)
-- **Request Headers**: `Content-Type: application/json`
-- **Request Body**:
-  ```json
-  {
-    "identity": "24802449",
-    "password": "SecurePassword#2026",
-    "role": "aluno"
-  }
-  ```
-- **Response (`200 OK`)**:
-  ```json
-  {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsIn...",
-    "tokenType": "Bearer",
-    "expiresIn": 900,
-    "refreshToken": "d8f3a9e2-1b4c-4e8a-...",
-    "user": {
-      "ra": "24802449",
-      "name": "Alex Gabriel Soares Sousa",
-      "role": "aluno"
-    }
-  }
-  ```
-
-### 2. Password Recovery Contract (`POST /api/v1/auth/recover-password`)
-- **Request Body**:
-  ```json
-  {
-    "identity": "24802449",
-    "profile": "aluno"
-  }
-  ```
-- **Response (`200 OK`)**:
-  ```json
-  {
-    "status": "INSTRUCTIONS_SENT",
-    "expiresInSeconds": 300,
-    "maskedDestination": "al***@puc-campinas.edu.br"
-  }
-  ```
-
----
-
-## 🔗 Cross-Module Integration
-
-- **Frontend Integration**: The Flutter client ([`frontend/`](../frontend/README.md)) connects its feature modules (`features/auth_view/` and `features/student_view/`) and shared data layer (`shared/auth/external/auth_remote_datasource_impl.dart`) to these REST endpoints.
-- **Server Integration**: The native Java HTTP server ([`server/`](../server/README.md)) continues to operate as a high-speed computational service for primitive parsing and mathematical evaluation or can be embedded as an internal microservice.
-- **Security Policy**: All backend operations comply with the defense-in-depth guards, threat models, and governance policies implemented in [`security/`](../security/README.md).
+As rotas HTTP validam e limitam o tamanho dos dados recebidos, aplicam rate
+limit e respostas de erro sem detalhes internos. CORS aceita apenas as origens
+configuradas em `AUTH_CORS_ORIGINS`.

@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Mensagem textual de chat trocada em tempo real entre os participantes da reunião.
 class ChatMessage {

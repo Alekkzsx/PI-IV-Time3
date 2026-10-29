@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 /// Type of institutional or academic event in the professor's agenda.
 enum EventType { aula, avaliacao, plantao, colegiado, reuniao }

@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 /// Categorias oficiais de comunicados exibidos na Central de Mensagens do aluno.
 enum MessageCategory {

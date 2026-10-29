@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Atualização atômica do estado de mídia de um participante no canal P2P.
 class MediaStateUpdate {

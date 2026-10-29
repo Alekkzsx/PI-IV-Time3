@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 // Barrel export de todos os componentes visuais compartilhados do AGMRM.
 
 export 'academic_data_table_wrapper.dart';

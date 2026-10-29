@@ -1,33 +1,79 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
 import '../data/auth_remote_datasource.dart';
 
-/// Implementação simulada (mock) de [AuthRemoteDataSource] com delays de latência e validações de teste.
+/// Datasource HTTP para o serviço de autenticação TypeScript.
+///
+/// A URL pode ser substituída em builds com
+/// `--dart-define=AUTH_API_BASE_URL=https://...`.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  @override
-  Future<void> sendPasswordResetInstructions({required String identity}) async {
-    // Simula comunicação remota (HTTP / Firebase)
-    await Future.delayed(const Duration(milliseconds: 900));
+  static const String _baseUrl = String.fromEnvironment(
+    'AUTH_API_BASE_URL',
+    defaultValue: 'http://127.0.0.1:3001',
+  );
+  static const Duration _requestTimeout = Duration(seconds: 8);
 
-    if (identity.toLowerCase().contains('invalid')) {
-      throw Exception('Identificador não encontrado nos registros do portal.');
-    }
-  }
+  final http.Client _client;
+
+  AuthRemoteDataSourceImpl({http.Client? client})
+    : _client = client ?? http.Client();
 
   @override
-  Future<void> authenticateUser({
+  Future<String> authenticateUser({
     required String identity,
     required String password,
     required String profile,
   }) async {
-    // Simula comunicação remota (HTTP / Backend)
-    await Future.delayed(const Duration(milliseconds: 700));
+    final response = await _post('/api/auth/login', {
+      'identity': identity,
+      'password': password,
+      'profile': profile,
+    });
+    final payload = _decodeResponse(response);
+    final accessToken = payload['accessToken'];
 
-    if (identity.toLowerCase().contains('invalid') || password == 'errada') {
-      throw Exception(
-        'Credenciais inválidas. Verifique seu identificador e senha.',
+    if (accessToken is! String || accessToken.isEmpty) {
+      throw const AuthApiException(
+        'Resposta inválida do serviço de autenticação.',
       );
     }
+
+    return accessToken;
+  }
+
+  @override
+  Future<void> sendPasswordResetInstructions({required String identity}) async {
+    final response = await _post('/api/auth/send-recovery-otp', {
+      'identity': identity,
+    });
+    _decodeResponse(response);
+  }
+
+  @override
+  Future<String> verifyPasswordRecoveryCodeRemote({
+    required String identity,
+    required String code,
+  }) async {
+    final response = await _post('/api/auth/verify-recovery-otp', {
+      'identity': identity,
+      'code': code,
+    });
+    final payload = _decodeResponse(response);
+    final resetToken = payload['resetToken'];
+
+    if (payload['valid'] != true ||
+        resetToken is! String ||
+        resetToken.isEmpty) {
+      throw const AuthApiException(
+        'O serviço não retornou uma autorização válida para redefinir a senha.',
+      );
+    }
+
+    return resetToken;
   }
 
   @override
@@ -35,20 +81,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String identity,
     required String code,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    // Código de teste institucional aceito
-    return code == '123456';
+    throw const AuthApiException(
+      'A validação de código para segundo fator ainda não está disponível.',
+    );
   }
 
   @override
   Future<void> updatePasswordRemote({
     required String identity,
     required String newPassword,
+    required String resetToken,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (newPassword.length < 6) {
-      throw Exception('A nova senha deve possuir no mínimo 6 caracteres.');
+    if (resetToken.isEmpty) {
+      throw const AuthApiException(
+        'A sessão de recuperação expirou. Solicite um novo código.',
+      );
     }
+
+    final response = await _post('/api/auth/reset-password', {
+      'identity': identity,
+      'resetToken': resetToken,
+      'newPassword': newPassword,
+    });
+    _ensureSuccessful(response);
   }
 
   @override
@@ -56,8 +111,73 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String identity,
     required String profile,
   }) async {
-    // Preparação arquitetural de prontidão para 2FA
-    await Future.delayed(const Duration(milliseconds: 200));
-    return false; // Desabilitado por padrão conforme diretiva do usuário
+    // O serviço atual não habilita 2FA; o login principal continua validado pela API.
+    return false;
   }
+
+  Future<http.Response> _post(String path, Map<String, Object?> body) async {
+    final uri = Uri.parse('$_baseUrl$path');
+
+    try {
+      return await _client
+          .post(
+            uri,
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(_requestTimeout);
+    } on http.ClientException {
+      throw const AuthApiException(
+        'Não foi possível conectar ao serviço de autenticação.',
+      );
+    } on FormatException {
+      throw const AuthApiException(
+        'A URL do serviço de autenticação está inválida.',
+      );
+    }
+  }
+
+  Map<String, dynamic> _decodeResponse(http.Response response) {
+    _ensureSuccessful(response);
+
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } on FormatException {
+      throw const AuthApiException(
+        'Resposta inválida do serviço de autenticação.',
+      );
+    }
+
+    throw const AuthApiException(
+      'Resposta inválida do serviço de autenticação.',
+    );
+  }
+
+  void _ensureSuccessful(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+
+    var message = 'O serviço de autenticação não concluiu a solicitação.';
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic> && decoded['message'] is String) {
+        message = decoded['message'] as String;
+      }
+    } on FormatException {
+      // O erro de status continua sendo explícito mesmo se o corpo não for JSON.
+    }
+
+    throw AuthApiException(message, statusCode: response.statusCode);
+  }
+}
+
+/// Erro de transporte apresentado pelas telas de autenticação.
+class AuthApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  const AuthApiException(this.message, {this.statusCode});
+
+  @override
+  String toString() => message;
 }

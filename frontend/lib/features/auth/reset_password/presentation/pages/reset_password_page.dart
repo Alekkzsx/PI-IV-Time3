@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -38,7 +38,7 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   /// Comprimento mínimo exigido para a nova senha.
-  static const int _minPasswordLength = 6;
+  static const int _minPasswordLength = 8;
 
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -86,7 +86,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (password.length < _minPasswordLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('A senha deve ter pelo menos 6 caracteres.'),
+          content: Text('A senha deve ter pelo menos 8 caracteres.'),
           backgroundColor: Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
         ),
@@ -113,6 +113,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       await widget.repository.resetPassword(
         identity: session.identity,
         newPassword: password,
+        resetToken: session.resetToken,
       );
     } catch (_) {
       if (!mounted) return;

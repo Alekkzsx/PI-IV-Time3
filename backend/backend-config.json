@@ -1,0 +1,57 @@
+{
+  "_description": "Configuração dos serviços Java e da API de autenticação TypeScript.",
+  "environment": {
+    "profile": "development",
+    "orchestrator": "java_frontend_launcher_and_manual_typescript_auth"
+  },
+  "modules": {
+    "server": {
+      "path": "../server",
+      "entrypoint": "Main",
+      "port": 8080,
+      "protocol": "HTTP/1.1",
+      "auto_start": true,
+      "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
+      "features": [
+        "videocall_webrtc_signaling",
+        "academic_boletim_calculation",
+        "academic_attendance_tracking",
+        "academic_task_grading"
+      ]
+    },
+    "auth_api": {
+      "path": ".",
+      "entrypoint": "npm run dev",
+      "port": 3001,
+      "protocol": "HTTP/1.1",
+      "auto_start": false,
+      "healthcheck": "http://127.0.0.1:3001/health",
+      "features": [
+        "institutional_login",
+        "jwt_access_tokens",
+        "password_recovery_otp",
+        "mongodb_user_persistence"
+      ]
+    },
+    "security": {
+      "path": "../security",
+      "package": "agmrm_security",
+      "auto_bind": true,
+      "features": [
+        "generic_feedback_policy",
+        "rate_limiting_lockout",
+        "input_sanitizer",
+        "timing_attack_mitigation"
+      ]
+    },
+    "backend_persistence": {
+      "database": "mongodb",
+      "status": "configured_by_environment"
+    }
+  },
+  "flutter_run_hook": {
+    "enabled": true,
+    "strategy": "dual_trigger_cmake_and_dart_vm",
+    "description": "O servidor Java acadêmico é iniciado pelo launcher do frontend. O serviço TypeScript de autenticação é iniciado separadamente com 'cd backend; npm run dev'."
+  }
+}

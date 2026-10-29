@@ -181,6 +181,7 @@ class VideoCallLobbyController extends ChangeNotifier {
     required String name,
     required String ra,
     required String roomCode,
+    String role = 'participant',
   }) {
     final sanitizedRoom = roomCode.trim().toUpperCase();
     final sanitizedName = name.trim();
@@ -190,7 +191,7 @@ class VideoCallLobbyController extends ChangeNotifier {
       id: 'peer_${DateTime.now().microsecondsSinceEpoch}',
       name: sanitizedName,
       ra: sanitizedRa,
-      role: 'participant',
+      role: role,
       isAudioMuted: _isAudioMuted,
       isVideoOff: _isVideoOff,
       isLocal: true,

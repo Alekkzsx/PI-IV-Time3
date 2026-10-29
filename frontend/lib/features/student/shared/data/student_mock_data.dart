@@ -48,6 +48,7 @@ class StudentDisciplineModel {
 
 class StudentDeliveryItem {
   final String id;
+  final String? sourceAssignmentId;
   final String title;
   final String disciplineCode;
   final String disciplineName;
@@ -72,6 +73,7 @@ class StudentDeliveryItem {
 
   const StudentDeliveryItem({
     required this.id,
+    this.sourceAssignmentId,
     required this.title,
     required this.disciplineCode,
     required this.disciplineName,
@@ -120,21 +122,27 @@ class StudentBoletimPeriod {
   final String period;
   final List<Map<String, dynamic>> items;
 
-  const StudentBoletimPeriod({
-    required this.period,
-    required this.items,
-  });
+  const StudentBoletimPeriod({required this.period, required this.items});
 }
 
 class StudentMockData {
   static const String studentName = 'Gabriel Soares de Oliveira';
   static const String studentRa = '2024.1.00892';
-  static const String studentCourse = 'Engenharia de Software (5º Semestre • Matutino)';
+  static const String studentEmail =
+      'gabriel.oliveira@aluno.universidade.edu.br';
+  static const String studentCourse =
+      'Engenharia de Software (5º Semestre • Matutino)';
   static const double studentCr = 8.8;
   static const double studentGlobalAttendance = 95.7;
   static const int studentAbsences = 12;
   static const int studentComplementaryHours = 140;
   static const int studentComplementaryHoursTotal = 180;
+
+  static bool ownsDemoRecords(String identity) {
+    final normalizedIdentity = identity.trim().toLowerCase();
+    return normalizedIdentity == studentRa.toLowerCase() ||
+        normalizedIdentity == studentEmail;
+  }
 
   static final List<StudentDisciplineModel> disciplines = [
     const StudentDisciplineModel(
@@ -226,11 +234,13 @@ class StudentMockData {
   static final List<StudentDeliveryItem> deliveries = [
     const StudentDeliveryItem(
       id: 'DEL-01',
+      sourceAssignmentId: 'asg-1',
       activityCode: 'APS - ATV - 04',
       title: 'Modelagem de Domínio e Diagramas de Casos de Uso com Padrões GoF',
       disciplineCode: 'APS-II',
       disciplineName: 'Análise e Projeto de Sistemas II',
-      description: 'Elaboração de documento técnico contendo a especificação detalhada de 3 casos de uso do sistema acadêmico, o diagrama de classes de domínio com cardinalidades e justificativa técnica da aplicação de pelo menos dois padrões de projeto GoF (Factory Method e Strategy).',
+      description:
+          'Elaboração de documento técnico contendo a especificação detalhada de 3 casos de uso do sistema acadêmico, o diagrama de classes de domínio com cardinalidades e justificativa técnica da aplicação de pelo menos dois padrões de projeto GoF (Factory Method e Strategy).',
       dueDate: '02 de Outubro',
       dueHour: '23:59',
       deadlineBadge: 'Prazo fatal: em 2 dias',
@@ -244,10 +254,12 @@ class StudentMockData {
     const StudentDeliveryItem(
       id: 'DEL-02',
       activityCode: 'BD2 - LAB - 03',
-      title: 'Otimização de Índices B-Tree, Explain Plan e Triggers no PostgreSQL',
+      title:
+          'Otimização de Índices B-Tree, Explain Plan e Triggers no PostgreSQL',
       disciplineCode: 'BD-II',
       disciplineName: 'Banco de Dados II',
-      description: 'Prática de laboratório com execução de planos de consulta (EXPLAIN ANALYZE) sobre dataset com 1 milhão de tuplas, criação de índices parciais e implementação de trigger para auditoria de alterações sensíveis.',
+      description:
+          'Prática de laboratório com execução de planos de consulta (EXPLAIN ANALYZE) sobre dataset com 1 milhão de tuplas, criação de índices parciais e implementação de trigger para auditoria de alterações sensíveis.',
       dueDate: '05 de Outubro',
       dueHour: '23:59',
       deadlineBadge: 'Prazo em 5 dias',
@@ -261,10 +273,12 @@ class StudentMockData {
     const StudentDeliveryItem(
       id: 'DEL-03',
       activityCode: 'DVP - PROJ - 02',
-      title: 'Pipeline Declarativa GitHub Actions com Deploy Automatizado e Testes',
+      title:
+          'Pipeline Declarativa GitHub Actions com Deploy Automatizado e Testes',
       disciplineCode: 'DVP',
       disciplineName: 'DevOps e Integração Contínua',
-      description: 'Construção de workflow YAML automatizando as etapas de linting, execução de testes unitários com cobertura mínima de 80%, build da imagem Docker multi-stage e publicação em container registry.',
+      description:
+          'Construção de workflow YAML automatizando as etapas de linting, execução de testes unitários com cobertura mínima de 80%, build da imagem Docker multi-stage e publicação em container registry.',
       dueDate: '09 de Outubro',
       dueHour: '23:59',
       deadlineBadge: 'Prazo em 9 dias',
@@ -281,7 +295,8 @@ class StudentMockData {
       title: 'Especificação OpenAPI 3.0 e Mensageria com RabbitMQ / Kafka',
       disciplineCode: 'MIC',
       disciplineName: 'Arquitetura de Microsserviços',
-      description: 'Modelagem dos contratos de API RESTful em formato OpenAPI/Swagger 3.0 para o serviço de pagamentos e especificação dos tópicos/filas assíncronas para propagação de eventos de domínio.',
+      description:
+          'Modelagem dos contratos de API RESTful em formato OpenAPI/Swagger 3.0 para o serviço de pagamentos e especificação dos tópicos/filas assíncronas para propagação de eventos de domínio.',
       dueDate: '15 de Outubro',
       dueHour: '23:59',
       deadlineBadge: 'Prazo em 15 dias',
@@ -298,7 +313,8 @@ class StudentMockData {
       title: 'Documento de Visão e Requisitos de Software v1.2',
       disciplineCode: 'APS-II',
       disciplineName: 'Análise e Projeto de Sistemas II',
-      description: 'Revisão completa do documento de requisitos incorporando as regras de negócio de fechamento contábil e autenticação federada com OAuth 2.0 / SAML.',
+      description:
+          'Revisão completa do documento de requisitos incorporando as regras de negócio de fechamento contábil e autenticação federada com OAuth 2.0 / SAML.',
       dueDate: '28 de Setembro',
       dueHour: '23:59',
       submissionDate: '28/09/2026',
@@ -308,7 +324,8 @@ class StudentMockData {
       protocol: 'AGR-2026-0928-8472',
       attachmentCount: 1,
       status: 'Em Análise',
-      feedback: 'Submissão recebida com sucesso. Em fila para conferência regimental.',
+      feedback:
+          'Submissão recebida com sucesso. Em fila para conferência regimental.',
     ),
     const StudentDeliveryItem(
       id: 'DEL-06',
@@ -316,7 +333,8 @@ class StudentMockData {
       title: 'Modelagem Conceitual Avançada e Criação de Índices Compostos',
       disciplineCode: 'BD-II',
       disciplineName: 'Banco de Dados II',
-      description: 'Relatório comparativo de consultas analíticas com e sem indexação composta em tabelas transacionais de grande volume.',
+      description:
+          'Relatório comparativo de consultas analíticas com e sem indexação composta em tabelas transacionais de grande volume.',
       dueDate: '25 de Setembro',
       dueHour: '23:59',
       submissionDate: '25/09/2026',
@@ -334,7 +352,8 @@ class StudentMockData {
       title: 'Estudo de Caso 01: Análise de Viabilidade Técnica e Econômica',
       disciplineCode: 'APS-II',
       disciplineName: 'Análise e Projeto de Sistemas II',
-      description: 'Elaboração de parecer técnico sobre a substituição de sistema legado monolítico por arquitetura distribuída, com cálculo de TCO (Total Cost of Ownership), ROI estimado e análise de riscos.',
+      description:
+          'Elaboração de parecer técnico sobre a substituição de sistema legado monolítico por arquitetura distribuída, com cálculo de TCO (Total Cost of Ownership), ROI estimado e análise de riscos.',
       dueDate: '14 de Setembro',
       dueHour: '23:59',
       submissionDate: '14/09/2026',
@@ -346,12 +365,29 @@ class StudentMockData {
       protocol: 'AGR-2026-0914-1092',
       attachmentCount: 1,
       status: 'Avaliada',
-      feedback: 'Excelente rigor na fundamentação técnica e estimativa financeira de TCO. As matrizes de risco apresentaram soluções mitigadoras bastante maduras para o contexto corporativo avaliado.',
+      feedback:
+          'Excelente rigor na fundamentação técnica e estimativa financeira de TCO. As matrizes de risco apresentaram soluções mitigadoras bastante maduras para o contexto corporativo avaliado.',
       rubrics: [
-        {'criterio': 'Fundamentação Teórica & Metodologia', 'pontos': 3.0, 'nota': 3.0},
-        {'criterio': 'Cálculo de TCO e Retorno de Investimento (ROI)', 'pontos': 3.0, 'nota': 3.0},
-        {'criterio': 'Matriz de Riscos & Planos de Contingência', 'pontos': 2.5, 'nota': 2.3},
-        {'criterio': 'Normas ABNT e Apresentação Executiva', 'pontos': 1.5, 'nota': 1.5},
+        {
+          'criterio': 'Fundamentação Teórica & Metodologia',
+          'pontos': 3.0,
+          'nota': 3.0,
+        },
+        {
+          'criterio': 'Cálculo de TCO e Retorno de Investimento (ROI)',
+          'pontos': 3.0,
+          'nota': 3.0,
+        },
+        {
+          'criterio': 'Matriz de Riscos & Planos de Contingência',
+          'pontos': 2.5,
+          'nota': 2.3,
+        },
+        {
+          'criterio': 'Normas ABNT e Apresentação Executiva',
+          'pontos': 1.5,
+          'nota': 1.5,
+        },
       ],
     ),
     const StudentDeliveryItem(
@@ -360,7 +396,8 @@ class StudentMockData {
       title: 'Configuração de Ambientes com Docker Compose Multi-Containers',
       disciplineCode: 'DVP',
       disciplineName: 'DevOps e Integração Contínua',
-      description: 'Configuração de ambiente orquestrado com aplicação web Node.js, banco de dados PostgreSQL com healthcheck e serviço de cache Redis em rede interna isolada com volumes persistentes.',
+      description:
+          'Configuração de ambiente orquestrado com aplicação web Node.js, banco de dados PostgreSQL com healthcheck e serviço de cache Redis em rede interna isolada com volumes persistentes.',
       dueDate: '18 de Setembro',
       dueHour: '23:59',
       submissionDate: '18/09/2026',
@@ -372,11 +409,24 @@ class StudentMockData {
       protocol: 'AGR-2026-0918-2041',
       attachmentCount: 1,
       status: 'Avaliada',
-      feedback: 'Arquivo Compose perfeitamente parametrizado com variáveis de ambiente e volumes nomeados. Apenas atentar para a ordem estrita de healthcheck no serviço dependente.',
+      feedback:
+          'Arquivo Compose perfeitamente parametrizado com variáveis de ambiente e volumes nomeados. Apenas atentar para a ordem estrita de healthcheck no serviço dependente.',
       rubrics: [
-        {'criterio': 'Estrutura do docker-compose.yml', 'pontos': 4.0, 'nota': 4.0},
-        {'criterio': 'Isolamento de Redes e Persistência de Dados', 'pontos': 3.0, 'nota': 2.8},
-        {'criterio': 'Documentação e Script de Inicialização', 'pontos': 3.0, 'nota': 2.6},
+        {
+          'criterio': 'Estrutura do docker-compose.yml',
+          'pontos': 4.0,
+          'nota': 4.0,
+        },
+        {
+          'criterio': 'Isolamento de Redes e Persistência de Dados',
+          'pontos': 3.0,
+          'nota': 2.8,
+        },
+        {
+          'criterio': 'Documentação e Script de Inicialização',
+          'pontos': 3.0,
+          'nota': 2.6,
+        },
       ],
     ),
     const StudentDeliveryItem(
@@ -385,7 +435,8 @@ class StudentMockData {
       title: 'Monólito Modular vs. Microsserviços: Ensaio Arquitetural',
       disciplineCode: 'MIC',
       disciplineName: 'Arquitetura de Microsserviços',
-      description: 'Análise crítica e comparativa entre o padrão de monólito modular e a decomposição em microsserviços orientados a eventos, considerando latência de rede, consistência eventual e custo operacional.',
+      description:
+          'Análise crítica e comparativa entre o padrão de monólito modular e a decomposição em microsserviços orientados a eventos, considerando latência de rede, consistência eventual e custo operacional.',
       dueDate: '10 de Setembro',
       dueHour: '23:59',
       submissionDate: '10/09/2026',
@@ -397,11 +448,24 @@ class StudentMockData {
       protocol: 'AGR-2026-0910-5012',
       attachmentCount: 1,
       status: 'Avaliada',
-      feedback: 'Trabalho impecável! O contraste entre complexidade acidental e complexidade essencial foi brilhantemente articulado com exemplos práticos da indústria.',
+      feedback:
+          'Trabalho impecável! O contraste entre complexidade acidental e complexidade essencial foi brilhantemente articulado com exemplos práticos da indústria.',
       rubrics: [
-        {'criterio': 'Profundidade da Análise Conceitual', 'pontos': 4.0, 'nota': 4.0},
-        {'criterio': 'Trade-offs de Latência e Consistência', 'pontos': 3.0, 'nota': 3.0},
-        {'criterio': 'Rigor Argumentativo e Referências Bibliográficas', 'pontos': 3.0, 'nota': 3.0},
+        {
+          'criterio': 'Profundidade da Análise Conceitual',
+          'pontos': 4.0,
+          'nota': 4.0,
+        },
+        {
+          'criterio': 'Trade-offs de Latência e Consistência',
+          'pontos': 3.0,
+          'nota': 3.0,
+        },
+        {
+          'criterio': 'Rigor Argumentativo e Referências Bibliográficas',
+          'pontos': 3.0,
+          'nota': 3.0,
+        },
       ],
     ),
   ];
@@ -449,20 +513,75 @@ class StudentMockData {
     const StudentBoletimPeriod(
       period: '2026/2 (Período Vigente)',
       items: [
-        {'codigo': '218131', 'disciplina': 'Análise e Projeto de Sistemas II', 'n1': 8.5, 'n2': 9.0, 'media': 8.9, 'faltas': 4, 'situacao': 'Cursando'},
-        {'codigo': '218132', 'disciplina': 'Banco de Dados II', 'n1': 9.0, 'n2': 8.5, 'media': 8.8, 'faltas': 2, 'situacao': 'Cursando'},
-        {'codigo': '218133', 'disciplina': 'Fundamentos de Inteligência Artificial', 'n1': 9.5, 'n2': 9.0, 'media': 9.3, 'faltas': 3, 'situacao': 'Cursando'},
-        {'codigo': '218134', 'disciplina': 'Fundamentos de Sistemas Operacionais', 'n1': 7.5, 'n2': 8.0, 'media': 7.9, 'faltas': 5, 'situacao': 'Cursando'},
+        {
+          'codigo': '218131',
+          'disciplina': 'Análise e Projeto de Sistemas II',
+          'n1': 8.5,
+          'n2': 9.0,
+          'media': 8.9,
+          'faltas': 4,
+          'situacao': 'Cursando',
+        },
+        {
+          'codigo': '218132',
+          'disciplina': 'Banco de Dados II',
+          'n1': 9.0,
+          'n2': 8.5,
+          'media': 8.8,
+          'faltas': 2,
+          'situacao': 'Cursando',
+        },
+        {
+          'codigo': '218133',
+          'disciplina': 'Fundamentos de Inteligência Artificial',
+          'n1': 9.5,
+          'n2': 9.0,
+          'media': 9.3,
+          'faltas': 3,
+          'situacao': 'Cursando',
+        },
+        {
+          'codigo': '218134',
+          'disciplina': 'Fundamentos de Sistemas Operacionais',
+          'n1': 7.5,
+          'n2': 8.0,
+          'media': 7.9,
+          'faltas': 5,
+          'situacao': 'Cursando',
+        },
       ],
     ),
     const StudentBoletimPeriod(
       period: '2026/1',
       items: [
-        {'codigo': '218121', 'disciplina': 'Análise e Projeto de Sistemas I', 'n1': 8.8, 'n2': 9.2, 'media': 9.0, 'faltas': 2, 'situacao': 'Aprovado'},
-        {'codigo': '218122', 'disciplina': 'Banco de Dados I', 'n1': 9.0, 'n2': 8.8, 'media': 8.9, 'faltas': 0, 'situacao': 'Aprovado'},
-        {'codigo': '218123', 'disciplina': 'Estruturas de Dados Avançadas', 'n1': 8.0, 'n2': 8.5, 'media': 8.3, 'faltas': 4, 'situacao': 'Aprovado'},
+        {
+          'codigo': '218121',
+          'disciplina': 'Análise e Projeto de Sistemas I',
+          'n1': 8.8,
+          'n2': 9.2,
+          'media': 9.0,
+          'faltas': 2,
+          'situacao': 'Aprovado',
+        },
+        {
+          'codigo': '218122',
+          'disciplina': 'Banco de Dados I',
+          'n1': 9.0,
+          'n2': 8.8,
+          'media': 8.9,
+          'faltas': 0,
+          'situacao': 'Aprovado',
+        },
+        {
+          'codigo': '218123',
+          'disciplina': 'Estruturas de Dados Avançadas',
+          'n1': 8.0,
+          'n2': 8.5,
+          'media': 8.3,
+          'faltas': 4,
+          'situacao': 'Aprovado',
+        },
       ],
     ),
   ];
 }
-

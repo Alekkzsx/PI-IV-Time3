@@ -1,13 +1,26 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/state/role_permission_policy.dart';
 import '../data/admin_mock_data.dart';
 
 /// Controlador reativo unificado em memória para o Portal do Administrador.
 class AdminPortalController extends ChangeNotifier {
-  static final AdminPortalController instance = AdminPortalController._internal();
-  AdminPortalController._internal();
+  static final AdminPortalController instance =
+      AdminPortalController._internal();
+  AdminPortalController._internal() {
+    _initAcademicBridge();
+  }
   factory AdminPortalController() => instance;
+
+  void _initAcademicBridge() {
+    AcademicBridgeService.instance.onAdminProtocolReceived = (newProtocol) {
+      protocols.insert(0, newProtocol);
+      notifyListeners();
+    };
+  }
 
   // Usuários
   late List<AdminUserModel> users = List.from(AdminMockData.users);
@@ -18,8 +31,28 @@ class AdminPortalController extends ChangeNotifier {
   late List<AdminClassModel> classes = List.from(AdminMockData.classes);
   AdminClassModel? activeSupervisedClass;
   int supervisionTabIndex = 0;
-  bool isGradeLocked = false;
+  final Map<String, bool> _gradeLocksByClass = {};
+  bool get isGradeLocked =>
+      _gradeLocksByClass.values.any((isLocked) => isLocked);
+
+  bool isGradeLockedFor(String classCode) =>
+      _gradeLocksByClass[classCode.trim().toUpperCase()] ?? false;
   String selectedEvaluationFormula = 'Ponderada (N1 40% / N2 60%)';
+  String get currentOperatorRole =>
+      AppUserSession.instance.role ?? 'não autenticado';
+
+  bool hasPermission(String role, String permission) =>
+      RolePermissionPolicy.hasPermission(role, permission);
+
+  bool canPerform(String permission) =>
+      AppUserSession.instance.hasPermission(permission) &&
+      AppUserSession.instance.hasRole(RolePermissionPolicy.admin);
+
+  void _denyPermission(String permission) {
+    debugPrint(
+      '[AdminPortal] Ação "$permission" negada para $currentOperatorRole.',
+    );
+  }
 
   // Protocolos de Secretaria
   late List<AdminProtocolModel> protocols = List.from(AdminMockData.protocols);
@@ -46,35 +79,66 @@ class AdminPortalController extends ChangeNotifier {
 
   List<AdminUserModel> get filteredUsers {
     return users.where((u) {
-      final matchesFilter = userFilter == 'Todos' ||
+      final matchesFilter =
+          userFilter == 'Todos' ||
           u.profile == userFilter ||
-          (userFilter == 'Discentes' && u.profile == 'Discente') ||
-          (userFilter == 'Docentes' && u.profile == 'Docente') ||
-          (userFilter == 'Administração' && u.profile == 'Administrador');
-      final matchesSearch = u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
+          (userFilter == 'Alunos' &&
+              u.profile == RolePermissionPolicy.student) ||
+          (userFilter == 'Docentes' &&
+              u.profile == RolePermissionPolicy.teacher) ||
+          (userFilter == 'Administradores' &&
+              u.profile == RolePermissionPolicy.admin);
+      final matchesSearch =
+          u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.id.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.email.toLowerCase().contains(userSearchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     }).toList();
   }
 
-  void toggleUserStatus(String id) {
+  bool toggleUserStatus(String id) {
+    if (!canPerform('manage_users')) {
+      _denyPermission('manage_users');
+      return false;
+    }
     final index = users.indexWhere((u) => u.id == id);
     if (index != -1) {
-      users[index].status = users[index].status == 'Ativo' ? 'Suspenso' : 'Ativo';
-      _logAudit('Carlos Eduardo Mendes', 'ALTERAÇÃO STATUS', 'Status do usuário $id alterado para ${users[index].status}');
+      users[index].status = users[index].status == 'Ativo'
+          ? 'Suspenso'
+          : 'Ativo';
+      _logAudit(
+        'Carlos Eduardo Mendes',
+        'ALTERAÇÃO STATUS',
+        'Status do usuário $id alterado para ${users[index].status}',
+      );
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void addUser({
+  bool addUser({
     required String name,
     required String email,
     required String profile,
     required String department,
     required bool require2FA,
   }) {
-    final newId = profile == 'Discente' ? '2024.2.0${1040 + users.length}' : 'DOC-${88420 + users.length}';
+    if (!canPerform('manage_users')) {
+      _denyPermission('manage_users');
+      return false;
+    }
+    if (!RolePermissionPolicy.roles.contains(profile)) {
+      debugPrint(
+        '[AdminPortal] Cadastro recusado: perfil inválido "$profile".',
+      );
+      return false;
+    }
+    final newId = profile == RolePermissionPolicy.student
+        ? '2024.2.0${1040 + users.length}'
+        : profile == RolePermissionPolicy.teacher
+        ? 'DOC-${88420 + users.length}'
+        : 'ADM-${10000 + users.length}';
     users.insert(
       0,
       AdminUserModel(
@@ -87,63 +151,132 @@ class AdminPortalController extends ChangeNotifier {
         twoFactorRequired: require2FA,
       ),
     );
-    _logAudit('Carlos Eduardo Mendes', 'NOVO CADASTRO', 'Criação de credencial institucional para $name ($newId)');
+    _logAudit(
+      'Carlos Eduardo Mendes',
+      'NOVO CADASTRO',
+      'Criação de credencial institucional para $name ($newId)',
+    );
     notifyListeners();
+    return true;
   }
 
   // --- MÉTODOS DE COMUNICADOS ---
 
-  void broadcastAnnouncement({
+  bool broadcastAnnouncement({
     required String title,
     required String audience,
     required String category,
     required String body,
   }) {
-    _logAudit('Carlos Eduardo Mendes', 'COMUNICADO CAMPUS', 'Disparo de comunicado: "$title" para $audience ($category)');
+    if (!canPerform('publish_announcements')) {
+      _denyPermission('publish_announcements');
+      return false;
+    }
+    _logAudit(
+      'Carlos Eduardo Mendes',
+      'COMUNICADO CAMPUS',
+      'Disparo de comunicado: "$title" para $audience ($category)',
+    );
+
+    // Dispara institucionalmente para os murais discentes
+    AcademicBridgeService.instance.broadcastNotice(
+      title: title.trim(),
+      content: body.trim(),
+      senderRole: 'admin',
+      senderName: 'Administrador institucional ($audience)',
+      targetCourse: 'Institucional',
+    );
+
     notifyListeners();
+    return true;
   }
 
   // --- MÉTODOS DE GESTÃO DE TURMAS & SUPERVISÃO ---
 
   void openSupervision(AdminClassModel classModel) {
+    if (!canPerform('view_class_grades') ||
+        !classes.any((item) => item.code == classModel.code)) {
+      _denyPermission('view_class_grades');
+      return;
+    }
     activeSupervisedClass = classModel;
     supervisionTabIndex = 0;
     notifyListeners();
   }
 
   void closeSupervision() {
+    if (!AppUserSession.instance.hasRole(RolePermissionPolicy.admin)) return;
     activeSupervisedClass = null;
     notifyListeners();
   }
 
   void setSupervisionTab(int index) {
+    if (!canPerform('view_class_grades') || index < 0 || index > 4) {
+      _denyPermission('view_class_grades');
+      return;
+    }
     supervisionTabIndex = index;
     notifyListeners();
   }
 
-  void updateFormulaRegime(String classCode, String newRegime) {
+  bool updateFormulaRegime(String classCode, String newRegime) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return false;
+    }
     final index = classes.indexWhere((c) => c.code == classCode);
     if (index != -1) {
       classes[index].formulaRegime = newRegime;
-      _logAudit('Carlos Eduardo Mendes', 'REGIME AVALIAÇÃO', 'Regime de notas da turma $classCode alterado para $newRegime');
+      _logAudit(
+        'Carlos Eduardo Mendes',
+        'REGIME AVALIAÇÃO',
+        'Regime de notas da turma $classCode alterado para $newRegime',
+      );
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void reallocateProfessor(String classCode, String newProfessor) {
+  bool reallocateProfessor(String classCode, String newProfessor) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return false;
+    }
     final index = classes.indexWhere((c) => c.code == classCode);
     if (index != -1) {
       final oldProfessor = classes[index].professor;
       classes[index].professor = newProfessor;
-      _logAudit('Carlos Eduardo Mendes', 'ATRIBUIÇÃO DOCENTE', 'Substituição na turma $classCode: $oldProfessor -> $newProfessor');
+      _logAudit(
+        'Carlos Eduardo Mendes',
+        'ATRIBUIÇÃO DOCENTE',
+        'Substituição na turma $classCode: $oldProfessor -> $newProfessor',
+      );
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void lockAndHomologateClassPauta(String classCode) {
-    isGradeLocked = true;
-    _logAudit('Carlos Eduardo Mendes', 'FECHAMENTO ATA', 'Pauta oficial e notas da turma $classCode homologadas e lacradas.');
+  bool lockAndHomologateClassPauta(String classCode) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return false;
+    }
+    final normalizedClassCode = classCode.trim().toUpperCase();
+    if (!classes.any(
+      (classModel) => classModel.code.toUpperCase() == normalizedClassCode,
+    )) {
+      return false;
+    }
+    _gradeLocksByClass[normalizedClassCode] = true;
+    _logAudit(
+      'Carlos Eduardo Mendes',
+      'FECHAMENTO ATA',
+      'Pauta oficial e notas da turma $classCode homologadas e lacradas.',
+    );
     notifyListeners();
+    return true;
   }
 
   // --- MÉTODOS DE SECRETARIA ACADÊMICA ---
@@ -157,8 +290,13 @@ class AdminPortalController extends ChangeNotifier {
     if (protocolFilter == 'Todos' || protocolFilter == 'Todos Os Protocolos') {
       return protocols;
     }
-    if (protocolFilter == 'Aguardando' || protocolFilter == 'Aguardando Parecer') {
-      return protocols.where((p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer').toList();
+    if (protocolFilter == 'Aguardando' ||
+        protocolFilter == 'Aguardando Parecer') {
+      return protocols
+          .where(
+            (p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer',
+          )
+          .toList();
     }
     if (protocolFilter == 'Deferidos' || protocolFilter == 'Deferido') {
       return protocols.where((p) => p.status == 'Deferido').toList();
@@ -169,103 +307,53 @@ class AdminPortalController extends ChangeNotifier {
     return protocols.where((p) => p.status == protocolFilter).toList();
   }
 
-  void decideProtocol({
+  bool decideProtocol({
     required String protocolId,
     required bool defer,
     required String parecerNote,
   }) {
+    if (!canPerform('dispatch_protocols')) {
+      _denyPermission('dispatch_protocols');
+      return false;
+    }
     final index = protocols.indexWhere((p) => p.id == protocolId);
     if (index != -1) {
       protocols[index].status = defer ? 'Deferido' : 'Indeferido';
       protocols[index].decisionNote = parecerNote;
-      protocols[index].signedBy = 'Carlos Eduardo Mendes - Secretaria Geral';
+      protocols[index].signedBy = 'Administrador institucional';
       _logAudit(
         'Carlos Eduardo Mendes',
         defer ? 'DEFERIMENTO PROTOCOLO' : 'INDEFERIMENTO PROTOCOLO',
         'Protocolo $protocolId decidido: ${protocols[index].status}',
       );
+
+      // Transmite a decisão homologada com parecer oficial para o Portal do Aluno
+      AcademicBridgeService.instance.dispatchProtocolDecision(
+        protocolCode: protocolId,
+        isApproved: defer,
+        decisionNote: parecerNote,
+        approverName: 'Administrador institucional',
+      );
+
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
   // Suporte & Impersonation
   AdminUserModel? activeImpersonatedUser;
 
-  // Matriz de Permissões RBAC (Entidade/Operação x Perfis Institucionais)
-  late Map<String, Map<String, bool>> rbacMatrix = _getDefaultRbacMatrix();
-
-  static Map<String, Map<String, bool>> _getDefaultRbacMatrix() {
-    return {
-      'view_grades': {
-        'Discente': true,
-        'Docente': true,
-        'Coordenador': true,
-        'Secretaria': true,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-      'edit_grades': {
-        'Discente': false,
-        'Docente': true,
-        'Coordenador': true,
-        'Secretaria': false,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-      'manage_users': {
-        'Discente': false,
-        'Docente': false,
-        'Coordenador': false,
-        'Secretaria': false,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-      'reset_passwords': {
-        'Discente': false,
-        'Docente': false,
-        'Coordenador': false,
-        'Secretaria': true,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-      'impersonate_support': {
-        'Discente': false,
-        'Docente': false,
-        'Coordenador': false,
-        'Secretaria': false,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-      'audit_diff_inspect': {
-        'Discente': false,
-        'Docente': false,
-        'Coordenador': false,
-        'Secretaria': false,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-      'system_settings_2fa': {
-        'Discente': false,
-        'Docente': false,
-        'Coordenador': false,
-        'Secretaria': false,
-        'Admin Operacional': false,
-        'Super Admin': true,
-      },
-      'dispatch_protocols': {
-        'Discente': false,
-        'Docente': false,
-        'Coordenador': true,
-        'Secretaria': true,
-        'Admin Operacional': true,
-        'Super Admin': true,
-      },
-    };
-  }
+  Map<String, Map<String, bool>> get rbacMatrix =>
+      RolePermissionPolicy.permissions;
 
   // --- MÉTODOS DE GOVERNANÇA AVANÇADA DE USUÁRIOS ---
 
   void terminateUserSessions(String userId) {
+    if (!canPerform('reset_passwords')) {
+      _denyPermission('reset_passwords');
+      return;
+    }
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -280,7 +368,9 @@ class AdminPortalController extends ChangeNotifier {
         targetUserName: user.name,
         diffBefore: {
           'sessoesAtivas': previousCount,
-          'estadoSessao': previousCount > 0 ? 'Conectado em dispositivos' : 'Sem sessões ativas',
+          'estadoSessao': previousCount > 0
+              ? 'Conectado em dispositivos'
+              : 'Sem sessões ativas',
         },
         diffAfter: {
           'sessoesAtivas': 0,
@@ -293,7 +383,15 @@ class AdminPortalController extends ChangeNotifier {
     }
   }
 
-  void suspendUserWithReason(String userId, {required String reason, required bool suspend}) {
+  void suspendUserWithReason(
+    String userId, {
+    required String reason,
+    required bool suspend,
+  }) {
+    if (!canPerform('manage_users')) {
+      _denyPermission('manage_users');
+      return;
+    }
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -331,6 +429,10 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void impersonateUser(AdminUserModel user) {
+    if (!canPerform('impersonate_support')) {
+      _denyPermission('impersonate_support');
+      return;
+    }
     activeImpersonatedUser = user;
     _logAudit(
       'Carlos Eduardo Mendes',
@@ -340,7 +442,7 @@ class AdminPortalController extends ChangeNotifier {
       targetUserName: user.name,
       diffBefore: {
         'contextoVisualizacao': 'Painel Administrativo Pleno',
-        'perfilOperador': 'Carlos Eduardo Mendes (Super Admin)',
+        'perfilOperador': 'Administrador institucional',
       },
       diffAfter: {
         'contextoVisualizacao': 'Espelho Diagnóstico: ${user.profile}',
@@ -353,6 +455,10 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void exitImpersonation() {
+    if (!canPerform('impersonate_support')) {
+      _denyPermission('impersonate_support');
+      return;
+    }
     if (activeImpersonatedUser != null) {
       final user = activeImpersonatedUser!;
       _logAudit(
@@ -373,6 +479,10 @@ class AdminPortalController extends ChangeNotifier {
     required bool sendRecoveryEmail,
     required bool revokeActiveSessions,
   }) {
+    if (!canPerform('reset_passwords')) {
+      _denyPermission('reset_passwords');
+      return;
+    }
     final index = users.indexWhere((u) => u.id == userId);
     if (index != -1) {
       final user = users[index];
@@ -405,51 +515,20 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   List<AdminAuditLogModel> getUserAuditLogs(String userId) {
-    return auditLogs.where((l) => l.targetUserId == userId || l.actor.contains(userId)).toList();
+    return auditLogs
+        .where((l) => l.targetUserId == userId || l.actor.contains(userId))
+        .toList();
   }
 
   // --- MÉTODOS DA MATRIZ RBAC ---
 
-  void toggleRbacPermission(String role, String permKey) {
-    if (rbacMatrix.containsKey(permKey) && rbacMatrix[permKey]!.containsKey(role)) {
-      final current = rbacMatrix[permKey]![role] ?? false;
-      rbacMatrix[permKey]![role] = !current;
-      notifyListeners();
-    }
-  }
-
-  void saveRbacMatrixChanges() {
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'ATUALIZAÇÃO POLÍTICA RBAC',
-      'Alteração manual na matriz institucional de privilégios e permissões de acesso por perfil.',
-      diffBefore: {
-        'matrizStatus': 'Revisão Anterior Homologada',
-      },
-      diffAfter: {
-        'matrizStatus': 'Nova Política Ativa e Propagada',
-        'dataHomologacao': DateTime.now().toIso8601String(),
-        'operador': 'Carlos Eduardo Mendes - DTI/Admin',
-      },
-      severity: 'CRITICO',
-    );
-    notifyListeners();
-  }
-
-  void resetRbacToDefault() {
-    rbacMatrix = _getDefaultRbacMatrix();
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'RESTAURAÇÃO RBAC PADRÃO',
-      'Matriz de privilégios redefinida para os padrões institucionais recomendados (MEC/CONSEPE).',
-      severity: 'ATENCAO',
-    );
-    notifyListeners();
-  }
-
   // --- MÉTODOS DE CALENDÁRIO & AUDITORIA ---
 
   void toggleRegimentalLock() {
+    if (!canPerform('system_settings_2fa')) {
+      _denyPermission('system_settings_2fa');
+      return;
+    }
     isRegimentalLockActive = !isRegimentalLockActive;
     _logAudit(
       'Carlos Eduardo Mendes',
@@ -491,4 +570,3 @@ class AdminPortalController extends ChangeNotifier {
     );
   }
 }
-

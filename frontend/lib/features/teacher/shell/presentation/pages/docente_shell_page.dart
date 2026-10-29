@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/pages/docente_assignments_tab.dart';
 import 'package:pi_iv_time3/features/teacher/calendar/presentation/pages/docente_calendar_tab.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/pages/docente_course_hub_page.dart';
@@ -58,11 +59,15 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   }
 
   void _openVideoCall() {
-    Navigator.of(context).pushNamed('/video-call');
+    final course = _controller.selectedCourse;
+    Navigator.of(
+      context,
+    ).pushNamed('/video-call', arguments: {'roomCode': course.code});
   }
 
   void _logout() {
-    Navigator.of(context).pushReplacementNamed('/');
+    AppUserSession.instance.signOut();
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
   }
 
   Widget _buildCurrentTab(DocenteNavTab tab) {
@@ -100,6 +105,32 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
       builder: (context, _) {
         return LayoutBuilder(
           builder: (context, constraints) {
+            if (_controller.courses.isEmpty) {
+              return Scaffold(
+                backgroundColor: DocenteColors.offWhite,
+                appBar: AppBar(
+                  title: const Text('Portal Docente'),
+                  actions: [
+                    TextButton.icon(
+                      onPressed: _logout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sair'),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ),
+                body: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'Nenhuma turma está vinculada a esta matrícula docente.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              );
+            }
+
             final isDesktop = constraints.maxWidth >= 1000;
 
             return Scaffold(

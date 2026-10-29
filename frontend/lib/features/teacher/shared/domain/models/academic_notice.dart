@@ -1,4 +1,4 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
 /// Classification of academic announcements.
 enum NoticeClassification { informativo, urgencia, convocacao }

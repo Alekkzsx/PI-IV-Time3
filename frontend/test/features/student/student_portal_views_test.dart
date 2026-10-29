@@ -2,17 +2,53 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_ava_cockpit_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava_evaluations_grades_tab.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
 import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 
 void main() {
+  testWidgets('Boletim mostra notas da disciplina selecionada', (tester) async {
+    AppUserSession.instance.signIn(
+      identity: StudentMockData.studentRa,
+      profile: 'aluno',
+    );
+    addTearDown(AppUserSession.instance.signOut);
+    final discipline = StudentMockData.disciplines.firstWhere(
+      (item) => item.code == 'BD-II',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: AvaEvaluationsGradesTab(discipline: discipline),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('9.0 / 10.0'), findsNWidgets(2));
+    expect(find.text('8.5 / 10.0'), findsOneWidget);
+    expect(find.text('Projeto Final Integrador (N2)'), findsNothing);
+  });
+
   group('StudentPortalController Unit Tests', () {
+    setUp(() {
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     test('Alterna entre modo Grid e Lista no Dashboard', () {
       final controller = StudentPortalController();
       controller.toggleDashboardView(false);
@@ -46,8 +82,34 @@ void main() {
       expect(controller.events.first.title, 'Plantão Extra de Dúvidas GoF');
     });
 
+    test('Aluno sem vínculo com os dados demo não altera o calendário', () {
+      final controller = StudentPortalController();
+      final initialCount = controller.events.length;
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00001',
+        profile: 'aluno',
+      );
+
+      controller.addCalendarEvent(
+        title: 'Evento sem vínculo',
+        date: '2026-10-28',
+        time: '18:00',
+        type: 'Aula',
+        discipline: 'APS-II',
+        location: 'Sala Virtual',
+      );
+
+      expect(controller.events, hasLength(initialCount));
+    });
+
     test('Protocolar submissão de atividade gera protocolo e muda status', () {
       final controller = StudentPortalController();
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+      DocenteController();
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+      );
       controller.submitDelivery(
         deliveryId: 'DEL-01',
         fileName: 'teste_entrega.zip',
@@ -365,6 +427,36 @@ void main() {
       expect(find.text('FREQUÊNCIA & RENDIMENTO'), findsOneWidget);
       expect(find.text('ATENDIMENTO COM DOCENTE'), findsOneWidget);
       expect(find.text('PLANO DE ENSINO'), findsOneWidget);
+    });
+
+    testWidgets('Abas do AVA permanecem sem overflow em tela mobile', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+
+      final controller = StudentPortalController.instance;
+      final discipline = StudentMockData.disciplines.first;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StudentAvaCockpitPage(discipline: discipline, onBack: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (var index = 0; index < 11; index++) {
+        controller.setAvaTab(index);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'Aba $index');
+      }
     });
   });
 }

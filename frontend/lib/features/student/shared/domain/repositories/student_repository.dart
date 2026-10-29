@@ -1,4 +1,4 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import '../../data/student_mock_data.dart';
 

@@ -15,11 +15,11 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> login({
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
-  }) async {}
+  }) async => 'test-access-token';
 
   @override
   Future<bool> verifyOtpToken({
@@ -28,9 +28,16 @@ class _FakeAuthRepository implements AuthRepository {
   }) async => true;
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) async => 'test-reset-token';
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {}
 
   @override

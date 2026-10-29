@@ -1,26 +1,48 @@
-# Governance & CI/CD Automation — `.github`
+# Governance, CI/CD Automation & IDE Configurations — `.github`
 
-The `.github` directory establishes repository governance, automated CI/CD guardrails, Gitflow branch management policies, and code review ownership rules for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
+> **Institutional Module**: `.../PI-IV-Time3/.github/`  
+> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
+> **Engineering Standards**: Strict Gitflow, Defense-in-Depth, Transparent Automation, Mandatory Peer Reviews  
+
+The `.github` directory centralizes repository governance, code ownership rules (*Code Ownership*), CI/CD branch protection guardrails, and shared IDE profiles for the **Integrated Educational Platform AGMRM**.
 
 ---
 
-## 🏛️ Governance & Automation Overview
-
-To guarantee enterprise software quality and maintain production release integrity, all contributions across the repository are governed by automated GitHub Actions workflows and mandatory peer reviews. Direct pushes to production branches are prohibited, and pull requests are subject to automated origin-branch validation.
+## 🏛️ Governance Directory Structure
 
 ```
-.github/
-├── CODEOWNERS                      # Mandatory reviewers and code ownership policy
-├── GOVERNANCE.md                   # Governance and CI/CD documentation (this file)
-└── workflows/
-    └── restrict-main.yml           # Automated gatekeeper workflow protecting main branch
+.../PI-IV-Time3/.github/
+├── .vscode/                      # Shared IDE configuration templates (VS Code)
+│   ├── launch.json               # Debugging and launch configurations (Flutter Desktop/Web + Java)
+│   └── tasks.json                # Background build tasks and non-blocking server execution
+├── workflows/
+│   └── restrict-main.yml         # Automated GitHub Actions workflow protecting main branch
+├── CODEOWNERS                    # Formal engineering team code review assignments
+└── GOVERNANCE.md                 # Consolidated governance, CI/CD, and lifecycle manual (this file)
 ```
+
+---
+
+## 🛠️ Shared IDE Configurations (`.github/.vscode/`)
+
+To guarantee environment uniformity across all engineering team members without relying on manual local setups, institutional VS Code configurations are versioned in `.../PI-IV-Time3/.github/.vscode/`:
+
+1. **`launch.json`**:
+   - `Portal AVA (Flutter + Backend Java)`: Executes the Flutter client with simultaneous startup of native Java services (`server/`).
+   - `Portal AVA - Web Chrome`: Targeted execution in Google Chrome for web verification.
+   - `Portal AVA - Windows Desktop`: Native Windows desktop execution.
+2. **`tasks.json`**:
+   - Defines the `start-backend-server` task, ensuring the native Java server in `server/` starts quietly in the background without blocking the development environment.
 
 ---
 
 ## 🛡️ Main Branch Protection Workflow (`restrict-main.yml`)
 
-The GitHub Actions workflow located at `.github/workflows/restrict-main.yml` acts as an automated pipeline gatekeeper, enforcing that the stable `main` branch accepts pull requests **strictly and exclusively** from the `develop` integration branch.
+The automated GitHub Actions workflow at `.../PI-IV-Time3/.github/workflows/restrict-main.yml` enforces strict Gitflow integrity:
+
+- The `main` branch represents stable production and deployment releases.
+- **Pull Requests targeting `main` are accepted strictly and exclusively from the `develop` branch**.
+- Direct merge attempts from feature branches trigger an automated failure, blocking the PR merge.
 
 ```yaml
 name: Restrict PRs to main
@@ -44,31 +66,29 @@ jobs:
         run: echo "Branch origem é develop. Permitido!"
 ```
 
-### Technical Workflow Mechanics
+### Technical Workflow Mechanics:
 1. **Trigger Condition (`on.pull_request`)**:
-   - The workflow activates automatically whenever a pull request is opened, reopened, synchronized, or targeted against the `main` branch.
-2. **Execution Environment (`runs-on: ubuntu-latest`)**:
-   - Runs in an isolated Linux container using the GitHub Actions runner infrastructure.
+   - Triggers automatically whenever a Pull Request is opened, synchronized, or targeted against `main`.
+2. **Isolated Runner (`runs-on: ubuntu-latest`)**:
+   - Runs in a clean, deterministic Linux container within the GitHub Actions infrastructure.
 3. **Branch Origin Evaluation (`github.head_ref`)**:
-   - **Unauthorized Source Branch (`github.head_ref != 'develop'`)**:
-     If a developer attempts to open a PR into `main` from a personal branch, a `feature/*` branch, or a bug fix branch, the step executes, prints an error message, and exits with non-zero exit code `1`. This blocks the PR merge in the GitHub interface.
-   - **Authorized Integration Branch (`github.head_ref == 'develop'`)**:
-     If the pull request originates from `develop`, the success step executes with exit code `0`, allowing peer review and status checks to proceed.
+   - If the head branch is not `develop`, exits with status `1`, blocking merge actions in the pull request.
+   - If originating from `develop`, exits with status `0`, allowing peer review and status checks to continue.
 
 ---
 
-## 🌿 Gitflow Branching Strategy
+## 🌿 Gitflow Branching Strategy & Lifecycle
 
-The repository follows a standardized **Gitflow** branching lifecycle:
+The repository follows standard **Gitflow** branching conventions:
 
 ```
-[Developer Task]
+[Developer / Task]
        │
        ▼
-feature/new-feature ────────► PR to develop ────────► CODEOWNERS Peer Review
-                                    │                           │
-                                    ▼                           ▼
-                            Merge to develop ◄────────── Approved & Tested
+feature/new-feature ────────► PR to develop ────────► Peer Technical Review
+                                    │                         │
+                                    ▼                         ▼
+                            Merge to develop ◄─────── Approved & Tested
                                     │
                                     ▼
                            develop ───► PR to main
@@ -77,66 +97,59 @@ feature/new-feature ────────► PR to develop ──────
                                  restrict-main.yml (Pass)
                                              │
                                              ▼
-                                Final CODEOWNERS Approval
+                                Final Engineering Approval
                                              │
                                              ▼
-                                   Merge to main (Release)
+                                  Merge to main (Release)
 ```
 
-### Branch Hierarchy & Permissions
+### Branch Hierarchy and Permissions
 
 | Branch | Purpose & Lifecycle | Protection Policy | Permitted PR Sources |
 |---|---|---|---|
-| **`main`** | Production-ready, stable, and release-tagged codebase. | **Strictly Protected**: Direct pushes disabled; status checks required. | **Exclusively `develop`** |
-| **`develop`** | Integration branch where verified features, fixes, and refactors converge. | **Protected**: Direct pushes disabled; requires PR and passing tests. | `feature/*`, `fix/*`, `refactor/*` |
-| **`feature/*`** | Isolated development of new capabilities or modules. | Working branch; short-lived. | Branched from `develop` |
-| **`fix/*`** | Resolution of bugs identified in QA or integration. | Working branch; short-lived. | Branched from `develop` |
-| **`hotfix/*`** | Emergency resolution of critical production defects. | Emergency branch. | Branched from `main`; merges to both `main` & `develop` |
+| **`main`** | Production-ready stable release codebase. | **Strictly Protected**: Direct pushes disabled; gatekeeper workflow enforced. | **Exclusively `develop`** |
+| **`develop`** | Integration branch where verified features converge. | **Protected**: Requires PR and passing automated test suites. | `feature/*`, `fix/*`, `refactor/*` |
+| **`feature/*`** | Isolated development of new features or UI views. | Short-lived feature branch. | Branched from `develop` |
+| **`fix/*`** | Bug fixes identified in QA or automated testing. | Short-lived bugfix branch. | Branched from `develop` |
+| **`hotfix/*`** | Emergency production patches. | Emergency patch branch. | Branched from `main`; merged to `main` & `develop` |
 
 ---
 
-## 👥 Repository Ownership (`CODEOWNERS`)
+## 👥 Code Ownership & Reviews (`CODEOWNERS`)
 
-Code ownership and mandatory review assignments are declared in `.github/CODEOWNERS`:
+Code reviews and merge authorizations are coordinated formally by the technical team members registered in `.../PI-IV-Time3/.github/CODEOWNERS`:
 
 ```text
 * @Alekkzsx @GuilhermeMoreira07
 ```
 
-### Ownership Policy & Governance
-- **Universal Scope (`*`)**: The wildcard selector assigns complete repository ownership across all directories (`frontend/`, `backend/`, `server/`, `security/`, and `.github/`) to the designated maintainers.
-- **Designated Maintainers**:
-  - **@Alekkzsx** (Alex Gabriel Soares Sousa — `RA: 24802449`): Overall system architecture, repository governance, and Flutter frontend consolidation.
-  - **@GuilhermeMoreira07** (Guilherme Henrique Moreira — `RA: 25006702`): Native Java server architecture, calculation algorithms, and backend execution engine.
-- **Mandatory Review Gate**: Every pull request requires mandatory review and formal approval from designated owners before it can be merged into protected branches.
+- **Universal Scope (`*`)**: The wildcard selector assigns shared stewardship across all repository directories (`frontend/`, `server/`, `backend/`, `security/`, and `.github/`).
+- **Mandatory Quality Gate**: No pull request can be merged into protected branches without formal peer review approval from designated team maintainers.
 
 ---
 
-## 📝 Contribution & Pull Request Guidelines
+## 📝 Contribution Standards & Conventional Commits
 
-Contributors must follow standardized contribution practices to maintain high commit hygiene and traceability:
+### 1. Commit Message Format (Conventional Commits)
+All commit messages must follow standard conventions:
+- `feat:` Introduces a new feature (e.g. `feat(server): add real smtp email dispatch for otp recovery`).
+- `fix:` Fixes a defect or bug (e.g. `fix(security): resolve test suite path references`).
+- `docs:` Documentation changes (e.g. `docs(root): align readme with project presentation standards`).
+- `refactor:` Code modifications that neither fix bugs nor add new features.
+- `test:` Addition or update of automated test suites.
+- `ci:` Pipeline and repository automation workflow adjustments.
 
-### 1. Conventional Commits Standard
-Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
-- `feat:` Introduces a new feature or functionality (e.g. `feat(frontend): implement password strength meter`).
-- `fix:` Patches a defect or bug (e.g. `fix(server): correct weighted average rounding`).
-- `docs:` Modifies documentation (e.g. `docs(security): update threat model matrix`).
-- `refactor:` Code changes that neither fix a bug nor add a feature.
-- `test:` Adds or refactors unit or integration tests (e.g. `test(frontend): add recover controller unit test`).
-- `ci:` Changes to GitHub Actions workflows or pipeline configuration.
-
-### 2. Pre-Submission Checklist
-Prior to submitting a Pull Request for review:
-- [ ] Code strictly follows architectural boundaries (Clean Architecture in `frontend/`, native POJO in `server/`).
-- [ ] Source branch is up-to-date with `develop` (`git merge develop` or `git rebase develop`).
-- [ ] Automated tests pass locally (`flutter test` in `frontend/` and cURL test suite in `server/tests/`).
-- [ ] Code formatting and static analysis pass (`flutter analyze`).
-- [ ] No credentials, API tokens, or private `.env` files are included in the commit.
-- [ ] The PR description references the relevant issue or milestone.
+### 2. Pre-Submission Pull Request Checklist
+Before opening a Pull Request for review:
+- [ ] Code strictly follows architectural boundaries (Feature-First Clean Architecture in `frontend/`, native POJO in `server/`).
+- [ ] Source branch is rebased or updated with `develop`.
+- [ ] All automated tests pass locally (`cd frontend && flutter test`, `cd security && flutter test`).
+- [ ] Static analysis completes with 0 warnings (`flutter analyze`).
+- [ ] No local credentials or active `.env` files are tracked (only `.env-example` as a template).
 
 ---
 
 ## 🔒 Security Governance Alignment
 
-- Workflow security configurations, runner token permissions, and secret management adhere to the organization standards documented in [`security/`](../security/README.md).
-- To report sensitive vulnerabilities in CI/CD automation or project code, follow the responsible disclosure guidelines outlined in the security module.
+- All CI/CD workflows, secrets management, and socket networking policies follow the enterprise standards documented in [`.../PI-IV-Time3/security/`](../security/README.md).
+- Any security vulnerabilities or edge-case exploits must be disclosed responsibly to the project engineering team.

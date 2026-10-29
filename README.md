@@ -1,196 +1,198 @@
 # Integrated Educational Platform (AGMRM)
 
-Project developed for the **Integrator Project 4** course in Software Engineering at **PUC-Campinas** (2026).
+> Integrated repository of the Integrated Educational Platform (*Projeto Interdisciplinar IV - PI-IV Time 3 - PUC-Campinas 2026*)
 
 ---
 
 ## About
 
-**Integrated Educational Platform (AGMRM)** is a unified academic mobile and web platform developed for Integrator Project IV (Team 3).
+**Integrated Educational Platform (AGMRM)** is an integrated academic education platform developed for the Integrated Project IV course.
 
-The platform addresses the fragmentation of educational tools by consolidating attendance tracking, flexible weighted grade calculation, assignment submissions with automated late penalties, secure authentication with strict token expiration, and multi-platform access.
+The platform solves the fragmentation of educational tools by integrating presence tracking, digital class diary, grade calculation, assignment submission with automated late penalties, video conference with WebRTC, and deep cyber defense architecture.
 
-### Key features
+### Key Features
 
-- **Student Academic Portal (`student_view`)** — dedicated student workspace with official **Messages & Announcements** (`student_messages`) and **Virtual Secretariat & Protocol Requests** (`student_secretariat`)
-- **Academic Report & Grades** — real-time query of report cards (`/api/notas/boletim`) with exams (P1, P2), assignments, custom weights, and automatic pass/recovery status
-- **Attendance Tracking** — automated attendance calculation (`/api/presenca`) with thresholds for full attendance ($\ge 75\%$), half attendance ($\ge 50\%$), absence, and instructor manual overrides
-- **Assignment Submissions** — automated late penalty calculation (`/api/tarefas/calcular-nota`) deducting 20% of base grade per late day down to zero
-- **Security & Authentication (`auth_view` & `security/`)** — multi-layer defense-in-depth architecture featuring brute-force rate limiting (5 attempts $\rightarrow$ 30s lockout), password recovery with strict 5-minute token TTL and 3-attempt OTP revocation, anti-enumeration generic responses, constant-time comparison, input sanitization, and HTTP security headers
-- **Type Processing API** — endpoint (`/api/teste-tipos`) demonstrating multi-type data parsing and type validation over HTTP
+- **Multi-Role Portals (Student, Teacher, Admin)**: Dedicated interfaces with distinct permission levels.
+- **Student Portal**: Academic history with weighted averages, absences, schedule, notices, and virtual desk.
+- **Teacher Portal**: Grade entry, digital attendance log, attendance approval, and virtual classroom management.
+- **Admin Portal**: User identity management, audit cockpit, academic registry, and CONSEPE official lock.
+- **Institutional Video Call (`video_call`)**: P2P WebRTC video conference integrated into the native Java server (`server/`). Active speaker detection, FIFO doubt queue (raised hands), real-time chat, and presence tracking by connected time.
+- **Native Java SE HTTP Server (`server/`)**: Zero-dependency native server on port 8080. 15 endpoints for academic logic, WebRTC signaling, and real OTP email recovery via SMTP SSL/TLS.
+- **Cyber Defense in Depth (`security/`)**: Brute-force lockout (5 attempts $\rightarrow$ 30s lockout), side-channel timing attack mitigation, opaque anti-enumeration responses, input sanitization against XSS/SQLi, and OTP token lifecycle.
 
 ---
 
 ## Team
 
-| Full name | Student ID (RA) |
+| Full Name | Academic ID (RA) |
 |---|---|
-| *Alex Gabriel Soares Sousa* | *24802449* |
-| *Guilherme Moreira* | *25006702* | 
-| *Marcelo Zarpelon* | *25015323* | 
-| *Murillo Caravita* | *25014012* |
-| *Rafael Henrique Inácio* | *25009719* | 
+| Alex Gabriel Soares Sousa | 24802449 |
+| Guilherme Henrique Moreira | 25006702 |
+| Marcelo Zarpelon | 25015323 |
+| Murillo Caravita | 25014012 |
+| Rafael Henrique Inácio | 25009719 |
 
 ---
 
-## Tech stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| App (Frontend) | Flutter + Dart (Feature-First Clean Architecture) |
-| Native Server | Java SE 17+ (Native HTTP Server built from scratch) |
-| Security Module | Dart/Flutter Client Guards + Native Java SE Server Guards |
-| Server Runtime | Native Sockets + Scripts (Batch / Shell) |
-| Version control | Git + GitHub |
+| **Application (Client)** | Flutter (Desktop: Windows / Mobile / Web) |
+| **Backend Core (Server)** | Java SE — Pure Native HTTP Server (No external libraries) |
+| **Security & Defenses** | agmrm_security (Dart) + Java Security Middleware (Defense-in-Depth) |
+| **Persistence Layer** | Relational (PostgreSQL) / Document (MongoDB) |
+| **Version Control** | Git & GitHub |
 
 ---
 
-## Repository structure
+## Repository Structure
 
 ```
-PI-IV-Time3/
-├── .github/                  # CI/CD workflows, CODEOWNERS, and branch protection policies (see [.github/GOVERNANCE.md](.github/GOVERNANCE.md))
-├── frontend/                 # Multi-platform Flutter app (Feature-First Clean Architecture)
+.../PI-IV-Time3/
+├── .github/          # CI/CD workflows, CODEOWNERS, GOVERNANCE.md, and shared IDE configs (.vscode)
+├── frontend/         # Multi-platform Flutter app (Feature-First Clean Architecture, 396 tests)
 │   ├── lib/
-│   │   ├── core/             # Shared theme tokens, failure models, and input validators
-│   │   ├── features/
-│   │   │   ├── auth_view/    # Login, Forgot Password, Verify OTP Code, and Reset Password
-│   │   │   └── student_view/ # Student Portal: Messages & Announcements, Virtual Secretariat
-│   │   └── shared/           # Shared auth repository, student sidebar/shell layout, and widgets
-│   └── test/                 # Unit and widget tests mirroring auth_view and student_view
-├── server/                   # Autonomous native Java HTTP server (built from scratch, no frameworks)
-│   ├── src/                  # Java sources: ServidorHttpNativo, handlers, and HttpUtils
-│   └── tests/                # Compilation and automated cURL verification suite
-├── security/                 # Enterprise defense-in-depth security module (Dart & Native Java SE)
-│   ├── lib/                  # Client-side rate limiters, token lifecycle, sanitizers, and widgets
-│   ├── auth/                 # Server-side lockout manager, constant-time comparator, and token TTL
-│   ├── middleware/           # Security HTTP headers, 64 KB body ceiling, and error sanitizer
-│   ├── validators/           # Server-side input sanitization and password entropy evaluation
-│   ├── policies/             # Immutable security constants, generic feedback, and config loader
-│   ├── tests/                # End-to-end Dart and Java security verification suites
-│   └── .env.example          # Standardized security and server environment template
-└── backend/                  # Target architecture for enterprise backend services & persistence
+│   │   ├── core/     # Theme, design tokens, routes, and transparent backend launcher
+│   │   ├── features/ # auth, student, teacher, admin, video_call, multiperfil
+│   │   └── main.dart # App entry point with automated parent modules startup
+│   └── test/         # Comprehensive test suite (396 tests)
+├── server/           # Native autonomous Java HTTP server (zero external frameworks)
+│   ├── src/
+│   │   ├── Main.java # Central orchestrator on port 8080
+│   │   ├── core/     # Low-level TCP sockets, HTTP handlers, and CORS
+│   │   ├── academic/ # Grades, Attendance, Tasks, and Data Types
+│   │   ├── auth/     # Real email OTP recovery via SMTP SSL/TLS and HTTPS webhook
+│   │   └── videocall/# Virtual rooms, WebRTC signaling, Chat, Raised hands, Attendance
+│   └── tests/        # Documented cURL validation commands (testeServidor.txt)
+├── security/         # Enterprise cyber defense module (37 tests)
+│   ├── lib/          # Client-side defenses (lockout, rate limiter, timing, entropy)
+│   ├── test/         # Security test suite (37 tests)
+│   └── server/       # Server-side security filters (rate limiter, headers, sanitizers)
+├── backend/          # Enterprise persistence and orchestration configuration
+│   ├── backend-config.json # Declarative configuration for parent modules
+│   └── target/classes/     # Compiled entity models and repositories
+└── .env-example      # Unified master environment template for all modules
 ```
 
 ---
 
-## Running locally (dev environment)
+## Running Locally (Dev Environment)
 
 ### Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x or later)
-- [Java Development Kit (JDK 17+)](https://www.oracle.com/java/technologies/downloads/)
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x or higher)
+- [Java JDK](https://www.oracle.com/java/technologies/downloads/) (JDK 8 or higher / JDK 17 or 21 recommended)
 - Git
-- Android Studio, VS Code with Flutter extension, or a browser (Chrome)
 
 ---
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/Alekkzsx/PI-IV-Time3.git
-cd PI-IV-Time3
+cd .../PI-IV-Time3
 ```
 
 ---
 
-### 2. Configure environment variables (optional)
+### 2. Configure Environment Credentials
 
-Review the example configuration file in the `security` directory:
+Create your environment configuration file from the template at the project root:
 
 ```bash
-cp security/.env.example security/.env
+cp .env-example .env
 ```
 
-| Variable | Description | Default value |
+| Variable | Description | Default Value |
 |---|---|---|
-| `SERVER_PORT` | HTTP server port | `8080` |
-| `REQUEST_TIMEOUT_SECONDS` | Request timeout for DoS mitigation | `30` |
-| `MAX_REQUEST_BODY_SIZE_BYTES` | Maximum request body size (64 KB) | `65536` |
-| `MAX_FAILED_LOGIN_ATTEMPTS` | Failed logins before temporary lockout | `5` |
-| `LOCKOUT_DURATION_SECONDS` | Account lockout cooldown duration | `30` |
-| `RECOVERY_TOKEN_TTL_SECONDS` | Ephemeral recovery token expiration (5 min) | `300` |
-| `MAX_VERIFICATION_ATTEMPTS` | Max OTP attempts before token revocation | `3` |
-| `PASSWORD_MIN_ENTROPY_SCORE` | Minimum required password strength score | `3` |
+| `SERVER_PORT` | HTTP Server port | `8080` |
+| `REQUEST_TIMEOUT_SECONDS` | Request timeout for socket connection | `30` |
+| `MAX_FAILED_LOGIN_ATTEMPTS` | Maximum failed logins before lockout | `5` |
+| `LOCKOUT_DURATION_SECONDS` | Lockout duration in seconds | `30` |
+| `STANDARDIZED_AUTH_LATENCY_MS` | Constant-time execution baseline | `1000` |
+| `RECOVERY_TOKEN_TTL_SECONDS` | Ephemeral OTP recovery token lifespan | `300` |
+| `MAX_VERIFICATION_ATTEMPTS` | Maximum invalid OTP attempts allowed | `3` |
+| `SMTP_HOST` | Outgoing SMTP email host | `smtp.gmail.com` |
+| `SMTP_PORT` | Outgoing SMTP SSL port | `465` |
+| `SMTP_USER` | Dedicated email sender account | `staff.notadez@gmail.com` |
 
 ---
 
-### 3. Install project dependencies
+### 3. Install Project Dependencies
 
-After cloning, from the repository root, run `flutter pub get` once in each Dart/Flutter package directory. This downloads the packages declared in each `pubspec.yaml` and generates the local Flutter/Dart package configuration:
+Install dependencies for both Flutter and Dart packages:
 
 ```bash
 cd frontend
 flutter pub get
-
 cd ../security
 flutter pub get
 cd ..
 ```
 
-### 4. Start the backend server
+---
 
-The server uses native Java SE with no external framework dependencies (no Maven or Gradle required):
+### 4. Start the Backend Server
 
-**On Windows:**
+The Java server is automatically launched when running `flutter run`, or can be executed manually:
 
-```cmd
-server\run-server.bat
-```
-
-**On Linux / macOS:**
-
+#### On Windows:
 ```bash
-chmod +x server/run-server.sh
-./server/run-server.sh
+cd server
+javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
+java -cp bin Main
 ```
 
-The server will listen on port `8080`.
-
-#### Automated API verification (test suite)
-
-With the server running, open a second terminal and run:
-
-**On Windows:**
-
-```cmd
-server\test-server.bat
-```
-
-**On Linux / macOS:**
-
+#### On Linux / macOS:
 ```bash
-chmod +x server/test-server.sh
-./server/test-server.sh
+cd server
+javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
+java -cp bin Main
+```
+
+*The server will start on port 8080.*
+
+#### Automated Full Build and Verification:
+To build and run tests across all parent modules:
+
+##### On Windows / PowerShell:
+```powershell
+cd frontend
+flutter test
+cd ../security
+flutter test
+```
+
+##### On Linux / macOS:
+```bash
+cd frontend
+flutter test
+cd ../security
+flutter test
 ```
 
 ---
 
-### 5. Run the app
+### 5. Run the App
 
-**In the browser (Chrome):**
+In the `frontend` directory:
 
 ```bash
 cd frontend
+```
+
+#### Windows Desktop (Recommended):
+```bash
+flutter run -d windows
+```
+
+#### Google Chrome (Web):
+```bash
 flutter run -d chrome
 ```
 
-**On a connected Android/iOS device or emulator:**
-
-```bash
-cd frontend
-flutter run
-```
-
-**Run unit and widget tests:**
-
-```bash
-cd frontend
-flutter test
-```
-
-**List available devices:**
-
+#### Available Devices List:
 ```bash
 flutter devices
 ```
@@ -199,15 +201,26 @@ flutter devices
 
 ## API Endpoints
 
-The native HTTP server provides 4 REST endpoints on port **8080**:
+The native Java server provides 15 endpoints on port 8080:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/teste-tipos` | Processes and validates primitive types (`texto`, `inteiro`, `flutuante`, `duplo`, `caractere`) |
-| `POST` | `/api/presenca` | Calculates attendance rate (`minutosAssistidos`, `duracaoTotal`, optional `statusManual`) |
-| `POST` | `/api/tarefas/calcular-nota` | Computes grade deduction based on late days (20% penalty per late day) |
-| `POST` | `/api/notas/boletim` | Calculates weighted final grade (`p1`, `p2`, `trabalho`) and academic status |
+| `GET` / `POST` | `/api/teste-tipos` | Diagnostic and echo of primitive types (text, numeric, boolean) |
+| `POST` | `/api/presenca` | Calculates presence percentage and excused absence allowance |
+| `POST` | `/api/tarefas/calcular-nota` | Computes final task grade deducting penalty for late submissions |
+| `POST` | `/api/notas/boletim` | Calculates semester weighted average and passing status |
+| `GET` | `/api/videocall/rooms` | Lists active virtual classrooms and room health status |
+| `POST` | `/api/videocall/open` | Opens virtual classroom (**Teacher or Admin only**) |
+| `POST` | `/api/videocall/close` | Closes virtual classroom (**Teacher or Admin only**) |
+| `POST` | `/api/videocall/join` | Joins session and records attendance telemetry |
+| `POST` | `/api/videocall/leave` | Leaves session and logs connected duration |
+| `POST` | `/api/videocall/signal` | P2P WebRTC signaling (SDP offer/answer, ICE candidates) |
+| `POST` | `/api/videocall/hand-raise` | Manages FIFO queue of raised hands and doubts |
+| `POST` | `/api/videocall/chat` | Real-time chat messages with room timestamps |
+| `POST` | `/api/videocall/attendance` | Homologates presence based on connected duration |
+| `POST` | `/api/auth/send-recovery-otp` | Generates 6-digit OTP and dispatches real SMTP email (5-min TTL) |
+| `POST` | `/api/auth/verify-recovery-otp` | Validates OTP with 300s TTL and 3-attempt brute-force limit |
 
 ---
 
-*Integrator Project 4 — Software Engineering — PUC-Campinas — 2026*
+*Software Engineering • Systems Architecture & Security • PUC-Campinas • 2026*

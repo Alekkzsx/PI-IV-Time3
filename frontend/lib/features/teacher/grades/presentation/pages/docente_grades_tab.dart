@@ -1,6 +1,8 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_gradebook_table.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_grades_formula_banner.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_grades_header.dart';
@@ -16,6 +18,12 @@ class DocenteGradesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!AppUserSession.instance.hasPermission('view_class_grades')) {
+      return const AccessDeniedView(
+        message: 'Seu perfil não pode consultar as pautas desta turma.',
+      );
+    }
+
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -32,8 +40,8 @@ class DocenteGradesTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: constraints.maxWidth >= 900 ? 40 : 20,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: constraints.maxWidth >= 900 ? 40 : 20,
                         vertical: 32,
                       ),
                       child: Column(

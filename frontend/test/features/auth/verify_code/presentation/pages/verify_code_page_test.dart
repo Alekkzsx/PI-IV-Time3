@@ -7,16 +7,17 @@ import 'package:pi_iv_time3/features/auth/verify_code/presentation/pages/verify_
 
 class _FakeAuthRepository implements AuthRepository {
   String? verifiedCode;
+  String recoveryToken = '';
 
   @override
   Future<void> recoverPassword({required String identity}) async {}
 
   @override
-  Future<void> login({
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
-  }) async {}
+  }) async => 'test-access-token';
 
   @override
   Future<bool> verifyOtpToken({
@@ -28,9 +29,19 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) async {
+    verifiedCode = code;
+    return recoveryToken;
+  }
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {}
 
   @override
@@ -99,5 +110,39 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.verifiedCode, '654321');
+  });
+
+  testWidgets('grant emitido pelo backend segue para redefinição', (
+    tester,
+  ) async {
+    final repository = _FakeAuthRepository()
+      ..recoveryToken = 'backend-reset-token';
+    final session = RecoverySession.fromProfileAndIdentity(
+      profile: UserProfile.aluno,
+      identity: '2024.1.00092',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: VerifyCodePage(repository: repository, session: session),
+        onGenerateRoute: (settings) {
+          if (settings.name != '/reset-password') return null;
+          final recoverySession = settings.arguments as RecoverySession;
+          return MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              body: Text(recoverySession.resetToken ?? 'missing-reset-token'),
+            ),
+          );
+        },
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, '123456');
+    await tester.pump();
+    await tester.tap(find.text('Confirmar Código'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('backend-reset-token'), findsOneWidget);
   });
 }

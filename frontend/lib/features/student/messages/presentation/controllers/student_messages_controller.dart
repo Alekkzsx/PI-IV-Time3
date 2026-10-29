@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import '../../domain/entities/academic_message.dart';
 
 /// Controlador reativo de estado da tela de Mensagens e Comunicados do aluno.
@@ -16,7 +17,40 @@ class StudentMessagesController extends ChangeNotifier {
   StudentMessagesController({List<AcademicMessage>? initialMessages})
       : _allMessages = List<AcademicMessage>.from(
           initialMessages ?? defaultMessages,
-        );
+        ) {
+    _syncBridgeNotices();
+    AcademicBridgeService.instance.onNoticeBroadcasted = _onNoticeReceived;
+  }
+
+  void _syncBridgeNotices() {
+    for (final n in AcademicBridgeService.instance.broadcastNotices.reversed) {
+      _insertNoticeIfAbsent(n);
+    }
+  }
+
+  void _onNoticeReceived(Map<String, dynamic> notice) {
+    _insertNoticeIfAbsent(notice);
+    notifyListeners();
+  }
+
+  void _insertNoticeIfAbsent(Map<String, dynamic> n) {
+    final id = n['id'] as String? ?? 'msg-${n.hashCode}';
+    if (_allMessages.any((m) => m.id == id)) return;
+    _allMessages.insert(
+      0,
+      AcademicMessage(
+        id: id,
+        sender: n['senderName'] as String? ?? 'Coordenação Institucional',
+        category: n['senderRole'] == 'admin'
+            ? MessageCategory.institutional
+            : MessageCategory.discipline,
+        isNew: true,
+        dateLabel: 'Hoje',
+        title: n['title'] as String? ?? 'Comunicado',
+        body: n['content'] as String? ?? '',
+      ),
+    );
+  }
 
   /// Filtro de categoria atualmente ativo.
   MessageFilter get activeFilter => _activeFilter;

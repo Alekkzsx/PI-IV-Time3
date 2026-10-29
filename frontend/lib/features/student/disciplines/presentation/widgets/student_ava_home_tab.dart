@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'ava_section_card.dart';
 
 /// Aba principal (Página inicial) do AVA da disciplina:
 /// "Módulos & Conteúdos de Aprendizagem" com unidades didáticas, checklist interativo,
@@ -63,10 +64,7 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
         const SizedBox(height: 4),
         Text(
           'Acesse as unidades didáticas, assista às videoaulas e baixe os materiais disponibilizados pelo professor.',
-          style: jakarta(
-            size: 12.5,
-            color: const Color(0xFF71717A),
-          ),
+          style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
         ),
       ],
     );
@@ -86,7 +84,9 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
     final item1Title = isFis
         ? 'Texto Base: O Dilema das Redes e a Automação do Julgamento Moral'
         : 'Texto Base: Princípios SOLID e Aplicação Prática dos Padrões GoF';
-    final item1Subtitle = isFis ? 'Leitura • 16 páginas' : 'Leitura • 24 páginas';
+    final item1Subtitle = isFis
+        ? 'Leitura • 16 páginas'
+        : 'Leitura • 24 páginas';
 
     final item2Title = isFis
         ? 'Fórum Temático: Vieses Algorítmicos e Responsabilidade Civil de IAs Autônomas'
@@ -95,19 +95,8 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
         ? 'Tarefa • Prazo: Amanhã, 21/09 às 18:00'
         : 'Tarefa • Prazo: Hoje às 23:59';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
+    return AvaSectionCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -221,7 +210,9 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isChecked ? const Color(0xFF16A34A) : const Color(0xFFD4D4D8),
+                  color: isChecked
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFD4D4D8),
                   width: 1.5,
                 ),
                 color: isChecked ? const Color(0xFF16A34A) : Colors.transparent,
@@ -262,10 +253,7 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: jakarta(
-                    size: 11.5,
-                    color: const Color(0xFF71717A),
-                  ),
+                  style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
                 ),
               ],
             ),
@@ -280,8 +268,13 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
               style: OutlinedButton.styleFrom(
                 backgroundColor: const Color(0xFFFEF3C7).withValues(alpha: 0.5),
                 side: const BorderSide(color: Color(0xFFFDE68A)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
               child: Text(
                 actionLabel,
@@ -296,7 +289,11 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
             OutlinedButton.icon(
               key: Key('btn_action_$itemKey'),
               onPressed: onActionTap,
-              icon: const Icon(Icons.open_in_new_rounded, size: 13, color: Color(0xFF18181B)),
+              icon: const Icon(
+                Icons.open_in_new_rounded,
+                size: 13,
+                color: Color(0xFF18181B),
+              ),
               label: Text(
                 actionLabel,
                 style: jakarta(
@@ -308,8 +305,13 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
               style: OutlinedButton.styleFrom(
                 backgroundColor: Colors.white,
                 side: const BorderSide(color: Color(0xFFE5E7EB)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
         ],
@@ -317,4 +319,3 @@ class _StudentAvaHomeTabState extends State<StudentAvaHomeTab> {
     );
   }
 }
-

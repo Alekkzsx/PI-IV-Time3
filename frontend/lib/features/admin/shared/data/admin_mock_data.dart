@@ -5,7 +5,7 @@ class AdminUserModel {
   final String id;
   final String name;
   final String email;
-  final String profile; // 'Discente', 'Docente', 'Administrador'
+  final String profile; // 'aluno', 'docente', 'admin'
   final String departmentOrCourse;
   String status; // 'Ativo', 'Suspenso'
   final bool twoFactorRequired;
@@ -65,6 +65,7 @@ class AdminClassModel {
   final String location;
   final int enrolled;
   final int maxCapacity;
+  final List<String> enrolledStudentRas;
   String professor;
   String formulaRegime; // 'Impor pelo Admin', 'Autonomia Docente'
 
@@ -78,12 +79,17 @@ class AdminClassModel {
     required this.location,
     required this.enrolled,
     required this.maxCapacity,
+    this.enrolledStudentRas = const [],
     required this.professor,
     required this.formulaRegime,
-  })  : courseName = courseName ?? (courseAndTerm?.split('•').first.trim() ?? 'Engenharia de Software'),
-        semester = semester ?? '2026/2 - 4º Semestre',
-        shift = shift ?? '• Noturno',
-        courseAndTerm = courseAndTerm ?? '${courseName ?? "Engenharia de Software"} • ${semester ?? "2026/2 - 4º Semestre"} • ${shift ?? "• Noturno"}';
+  }) : courseName =
+           courseName ??
+           (courseAndTerm?.split('•').first.trim() ?? 'Engenharia de Software'),
+       semester = semester ?? '2026/2 - 4º Semestre',
+       shift = shift ?? '• Noturno',
+       courseAndTerm =
+           courseAndTerm ??
+           '${courseName ?? "Engenharia de Software"} • ${semester ?? "2026/2 - 4º Semestre"} • ${shift ?? "• Noturno"}';
 }
 
 class AdminProtocolModel {
@@ -152,7 +158,7 @@ class AdminMockData {
       id: '2024.1.00892',
       name: 'Gabriel Soares de Oliveira',
       email: 'gabriel.oliveira@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -165,7 +171,7 @@ class AdminMockData {
       id: 'DOC-88410',
       name: 'Profa. Dra. Helena Bittencourt',
       email: 'helena.bittencourt@docente.universidade.edu.br',
-      profile: 'Docente',
+      profile: 'docente',
       departmentOrCourse: 'Departamento de Computação e Sistemas',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -178,7 +184,7 @@ class AdminMockData {
       id: '2024.1.00901',
       name: 'Mariana Rios Costa',
       email: 'mariana.costa@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -191,7 +197,7 @@ class AdminMockData {
       id: 'DOC-88392',
       name: 'Prof. Me. Carlos Eduardo Silva',
       email: 'carlos.silva@docente.universidade.edu.br',
-      profile: 'Docente',
+      profile: 'docente',
       departmentOrCourse: 'Departamento de Computação e Sistemas',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -204,33 +210,34 @@ class AdminMockData {
       id: '2024.1.00915',
       name: 'Lucas Mendes Santos',
       email: 'lucas.santos@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Sistemas de Informação (4º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
       activeSessionsCount: 1,
       lastLogin: 'Ontem às 19:22',
       roleLevel: 'Discente Regular',
-      linkedInfo: '4 disciplinas cursadas • CR 7.60 • Pedido de Trancamento FSO',
+      linkedInfo:
+          '4 disciplinas cursadas • CR 7.60 • Pedido de Trancamento FSO',
     ),
     AdminUserModel(
       id: 'ADM-00129',
       name: 'Carlos Eduardo Mendes',
       email: 'carlos.mendes@secretaria.universidade.edu.br',
-      profile: 'Administrador',
+      profile: 'admin',
       departmentOrCourse: 'Secretaria Geral Acadêmica & Auditoria',
       status: 'Ativo',
       twoFactorRequired: true,
       activeSessionsCount: 1,
       lastLogin: 'Hoje às 08:00',
-      roleLevel: 'Super Administrador / Secretaria Geral',
-      linkedInfo: 'Acesso Irrestrito • Auditor Master • Emissor de Diplomas',
+      roleLevel: 'Administrador',
+      linkedInfo: 'Gestão administrativa institucional',
     ),
     AdminUserModel(
       id: '2024.1.00962',
       name: 'Camila Duarte Fagundes',
       email: 'camila.fagundes@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -252,10 +259,30 @@ class AdminMockData {
       studentsCount: 420,
       formula: 'Média = (N1 × 0.4) + (N2 × 0.6) • Freq. ≥ 75%',
       components: [
-        {'semestre': '4º Semestre', 'disciplina': 'Análise e Projeto de Sistemas II', 'carga': '80h', 'docente': 'Profa. Dra. Helena Bittencourt'},
-        {'semestre': '4º Semestre', 'disciplina': 'Banco de Dados II', 'carga': '80h', 'docente': 'Prof. Dr. Marcos Vinicius'},
-        {'semestre': '4º Semestre', 'disciplina': 'Fundamentos de Inteligência Artificial', 'carga': '60h', 'docente': 'Profa. Dra. Camila Santos'},
-        {'semestre': '4º Semestre', 'disciplina': 'Fundamentos de Sistemas Operacionais', 'carga': '60h', 'docente': 'Prof. Me. Lucas Ribeiro'},
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Análise e Projeto de Sistemas II',
+          'carga': '80h',
+          'docente': 'Profa. Dra. Helena Bittencourt',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Banco de Dados II',
+          'carga': '80h',
+          'docente': 'Prof. Dr. Marcos Vinicius',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Fundamentos de Inteligência Artificial',
+          'carga': '60h',
+          'docente': 'Profa. Dra. Camila Santos',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Fundamentos de Sistemas Operacionais',
+          'carga': '60h',
+          'docente': 'Prof. Me. Lucas Ribeiro',
+        },
       ],
     ),
     const AdminCourseModel(
@@ -268,9 +295,24 @@ class AdminMockData {
       studentsCount: 380,
       formula: 'Média = (N1 × 0.4) + (N2 × 0.6) • Freq. ≥ 75%',
       components: [
-        {'semestre': '4º Semestre', 'disciplina': 'Gestão de Processos de Negócio', 'carga': '80h', 'docente': 'Profa. Me. Carla Dias'},
-        {'semestre': '4º Semestre', 'disciplina': 'Sistemas Integrados de Gestão (ERP)', 'carga': '80h', 'docente': 'Prof. Dr. Fernando Rocha'},
-        {'semestre': '4º Semestre', 'disciplina': 'Engenharia de Software Corporativa', 'carga': '80h', 'docente': 'Prof. Esp. André Luiz Silveira'},
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Gestão de Processos de Negócio',
+          'carga': '80h',
+          'docente': 'Profa. Me. Carla Dias',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Sistemas Integrados de Gestão (ERP)',
+          'carga': '80h',
+          'docente': 'Prof. Dr. Fernando Rocha',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Engenharia de Software Corporativa',
+          'carga': '80h',
+          'docente': 'Prof. Esp. André Luiz Silveira',
+        },
       ],
     ),
     const AdminCourseModel(
@@ -283,9 +325,24 @@ class AdminMockData {
       studentsCount: 310,
       formula: 'Média = (N1 × 0.5) + (N2 × 0.5) • Freq. ≥ 75%',
       components: [
-        {'semestre': '4º Semestre', 'disciplina': 'Algoritmos Avançados e Grafos', 'carga': '80h', 'docente': 'Prof. Dr. Marcelo Carvalho'},
-        {'semestre': '4º Semestre', 'disciplina': 'Teoria dos Autômatos e Linguagens Formais', 'carga': '80h', 'docente': 'Profa. Dra. Renata Toledo'},
-        {'semestre': '4º Semestre', 'disciplina': 'Compiladores e Tradutores', 'carga': '80h', 'docente': 'Prof. Dr. Ricardo Fontes'},
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Algoritmos Avançados e Grafos',
+          'carga': '80h',
+          'docente': 'Prof. Dr. Marcelo Carvalho',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Teoria dos Autômatos e Linguagens Formais',
+          'carga': '80h',
+          'docente': 'Profa. Dra. Renata Toledo',
+        },
+        {
+          'semestre': '4º Semestre',
+          'disciplina': 'Compiladores e Tradutores',
+          'carga': '80h',
+          'docente': 'Prof. Dr. Ricardo Fontes',
+        },
       ],
     ),
     const AdminCourseModel(
@@ -298,8 +355,18 @@ class AdminMockData {
       studentsCount: 130,
       formula: 'Média = (N1 × 0.4) + (N2 × 0.6) • Freq. ≥ 75%',
       components: [
-        {'semestre': '3º Semestre', 'disciplina': 'Desenvolvimento Web Full-Stack', 'carga': '80h', 'docente': 'Prof. Me. Gabriel Duarte'},
-        {'semestre': '3º Semestre', 'disciplina': 'Engenharia de Requisitos e Métodos Ágeis', 'carga': '80h', 'docente': 'Profa. Esp. Juliana Mendes'},
+        {
+          'semestre': '3º Semestre',
+          'disciplina': 'Desenvolvimento Web Full-Stack',
+          'carga': '80h',
+          'docente': 'Prof. Me. Gabriel Duarte',
+        },
+        {
+          'semestre': '3º Semestre',
+          'disciplina': 'Engenharia de Requisitos e Métodos Ágeis',
+          'carga': '80h',
+          'docente': 'Profa. Esp. Juliana Mendes',
+        },
       ],
     ),
   ];
@@ -315,6 +382,11 @@ class AdminMockData {
       location: 'Lab Informática 04 - Bloco C',
       enrolled: 34,
       maxCapacity: 40,
+      enrolledStudentRas: const [
+        '2024.1.00892',
+        '2024.1.00901',
+        '2024.1.00962',
+      ],
       professor: 'Profa. Dra. Helena Bittencourt',
       formulaRegime: 'Autonomia Docente',
     ),
@@ -328,6 +400,7 @@ class AdminMockData {
       location: 'Lab Banco de Dados 02 - Bloco B',
       enrolled: 31,
       maxCapacity: 35,
+      enrolledStudentRas: const ['2024.1.00901', '2024.1.00915'],
       professor: 'Profa. Dra. Helena Bittencourt',
       formulaRegime: 'Autonomia Docente',
     ),
@@ -341,6 +414,7 @@ class AdminMockData {
       location: 'Anfiteatro 101 - Bloco Central',
       enrolled: 36,
       maxCapacity: 50,
+      enrolledStudentRas: const ['2024.1.00915', '2024.1.00962'],
       professor: 'Profa. Dra. Helena Bittencourt',
       formulaRegime: 'Autonomia Docente',
     ),
@@ -354,6 +428,7 @@ class AdminMockData {
       location: 'Sala 204 - Bloco A',
       enrolled: 38,
       maxCapacity: 45,
+      enrolledStudentRas: const ['2024.1.00892', '2024.1.00915'],
       professor: 'Prof. Dr. Marcos Vinícius Ferreira',
       formulaRegime: 'Autonomia Docente',
     ),
@@ -524,4 +599,3 @@ class AdminMockData {
     ),
   ];
 }
-

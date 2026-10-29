@@ -36,6 +36,7 @@ class RecoverySession {
 
   /// Distintivo do papel institucional.
   final String roleBadge;
+  final String? resetToken;
 
   const RecoverySession({
     required this.profile,
@@ -44,7 +45,18 @@ class RecoverySession {
     required this.institutionalEmail,
     required this.departmentOrCourse,
     required this.roleBadge,
+    this.resetToken,
   });
+
+  RecoverySession withResetToken(String token) => RecoverySession(
+    profile: profile,
+    identity: identity,
+    displayName: displayName,
+    institutionalEmail: institutionalEmail,
+    departmentOrCourse: departmentOrCourse,
+    roleBadge: roleBadge,
+    resetToken: token,
+  );
 
   /// Constrói a sessão de recuperação com os dados institucionais oficiais padronizados
   /// de acordo com o perfil e o identificador fornecido.
@@ -53,13 +65,19 @@ class RecoverySession {
     required String identity,
   }) {
     final cleanIdentity = identity.trim();
+    final isEmail = cleanIdentity.contains('@');
+
     switch (profile) {
       case UserProfile.aluno:
         return RecoverySession(
           profile: profile,
           identity: cleanIdentity.isNotEmpty ? cleanIdentity : '2024.1.00892',
-          displayName: 'Gabriel Soares de Oliveira',
-          institutionalEmail: 'gabriel.oliveira@aluno.universidade.edu.br',
+          displayName: isEmail
+              ? cleanIdentity.split('@').first
+              : 'Gabriel Soares de Oliveira',
+          institutionalEmail: isEmail
+              ? cleanIdentity
+              : 'gabriel.oliveira@aluno.universidade.edu.br',
           departmentOrCourse: 'Engenharia de Software • 5º Semestre',
           roleBadge: 'Discente Regular',
         );
@@ -67,8 +85,12 @@ class RecoverySession {
         return RecoverySession(
           profile: profile,
           identity: cleanIdentity.isNotEmpty ? cleanIdentity : 'DOC-40892',
-          displayName: 'Profa. Dra. Helena Cristina Santos',
-          institutionalEmail: 'helena.santos@docente.universidade.edu.br',
+          displayName: isEmail
+              ? cleanIdentity.split('@').first
+              : 'Profa. Dra. Helena Cristina Santos',
+          institutionalEmail: isEmail
+              ? cleanIdentity
+              : 'helena.santos@docente.universidade.edu.br',
           departmentOrCourse: 'Ciência da Computação & Engenharia',
           roleBadge: 'Corpo Docente',
         );
@@ -76,8 +98,12 @@ class RecoverySession {
         return RecoverySession(
           profile: profile,
           identity: cleanIdentity.isNotEmpty ? cleanIdentity : 'ADM-00123',
-          displayName: 'Carlos Alberto Silveira',
-          institutionalEmail: 'carlos.silveira@admin.universidade.edu.br',
+          displayName: isEmail
+              ? cleanIdentity.split('@').first
+              : 'Carlos Alberto Silveira',
+          institutionalEmail: isEmail
+              ? cleanIdentity
+              : 'carlos.silveira@admin.universidade.edu.br',
           departmentOrCourse: 'DTI • Secretaria Geral Acadêmica',
           roleBadge: 'Administrador de Sistemas',
         );

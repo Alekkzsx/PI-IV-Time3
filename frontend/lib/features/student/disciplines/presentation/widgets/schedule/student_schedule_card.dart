@@ -7,10 +7,7 @@ import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 class StudentScheduleCard extends StatelessWidget {
   final void Function(String code, [int tab])? onSelectDisciplineByCode;
 
-  const StudentScheduleCard({
-    super.key,
-    this.onSelectDisciplineByCode,
-  });
+  const StudentScheduleCard({super.key, this.onSelectDisciplineByCode});
 
   @override
   Widget build(BuildContext context) {
@@ -126,14 +123,23 @@ class StudentScheduleCard extends StatelessWidget {
               onTap: () {
                 final code = scheduleItems[i]['codigo']!;
                 if (code == 'MONITORIA') {
-                  Navigator.of(context).pushNamed('/video-call');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'A sala de videochamada da monitoria ainda não está vinculada a uma turma.',
+                      ),
+                    ),
+                  );
                 } else if (onSelectDisciplineByCode != null) {
                   onSelectDisciplineByCode!(code, 0);
                 }
               },
               borderRadius: BorderRadius.circular(6),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 4,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
@@ -180,7 +186,10 @@ class StudentScheduleCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF4F4F5),
                                   borderRadius: BorderRadius.circular(3),
@@ -210,7 +219,10 @@ class StudentScheduleCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFAFAFA),
                         border: Border.all(color: const Color(0xFFE5E7EB)),

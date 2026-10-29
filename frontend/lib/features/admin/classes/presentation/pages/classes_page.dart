@@ -51,7 +51,8 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassAlocarDocenteModal.show(
       context: context,
       classModel: c,
-      onConfirmAllocation: (prof) => _controller.reallocateProfessor(c.code, prof),
+      onConfirmAllocation: (prof) =>
+          _controller.reallocateProfessor(c.code, prof),
     );
   }
 
@@ -73,9 +74,7 @@ class _ClassesPageState extends State<ClassesPage> {
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -92,9 +91,18 @@ class _ClassesPageState extends State<ClassesPage> {
                         const SizedBox(height: 28),
                         ClassListTable(
                           classes: _controller.classes,
-                          onSupervise: (c) => setState(() => _activeSupervisedClass = c),
-                          onOpenRegime: (c) => _showRegimeFormulaModal(context, c),
-                          onOpenAlocar: (c) => _showAlocarDocenteModal(context, c),
+                          onSupervise: (c) =>
+                              setState(() => _activeSupervisedClass = c),
+                          onOpenRegime: (c) =>
+                              _showRegimeFormulaModal(context, c),
+                          onOpenAlocar: (c) =>
+                              _showAlocarDocenteModal(context, c),
+                          canManageClasses: _controller.canPerform(
+                            'manage_classes',
+                          ),
+                          canManageVideoCalls: _controller.canPerform(
+                            'manage_video_calls',
+                          ),
                         ),
                       ],
                     ),

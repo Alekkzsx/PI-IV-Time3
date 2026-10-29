@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/pages/docente_course_hub_page.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/pages/docente_assignments_tab.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/widgets/docente_submissions_table.dart';
@@ -11,6 +12,7 @@ import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controll
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_event.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/settings/presentation/pages/docente_settings_tab.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
@@ -20,6 +22,8 @@ void main() {
     late DocenteController controller;
 
     setUp(() {
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+      addTearDown(AppUserSession.instance.signOut);
       controller = DocenteController();
     });
 
@@ -35,6 +39,61 @@ void main() {
         expect(controller.profile.twoFactorEnabled, isTrue);
       },
     );
+
+    test('Course records are scoped to the signed-in teacher', () {
+      AppUserSession.instance.signIn(identity: 'DOC-88392', profile: 'docente');
+      addTearDown(AppUserSession.instance.signOut);
+      final otherTeacherController = DocenteController();
+      addTearDown(otherTeacherController.dispose);
+
+      expect(otherTeacherController.courses, isEmpty);
+      expect(otherTeacherController.assignments, isEmpty);
+      expect(otherTeacherController.studentsForSelectedCourse, isEmpty);
+    });
+
+    test('Student cannot mutate the teacher diary or create an assignment', () {
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00892',
+        profile: 'aluno',
+      );
+      final attendanceBefore = controller.currentSession.attendanceList;
+      final assignmentCountBefore = controller.assignments.length;
+
+      controller.markAllPresent();
+      final created = controller.createAssignment(
+        courseId: controller.courses.first.id,
+        courseCode: controller.courses.first.code,
+        title: 'Atividade indevida',
+        weight: 1,
+        stage: 'N1',
+        dueDateFormatted: '30/11/2026 às 23:59',
+        modality: 'Individual',
+        allowLateWithPenalty: false,
+        rubricCriteria: const [
+          RubricCriterion(
+            id: 'rubric',
+            title: 'Critério',
+            maxPoints: 10,
+            description: 'Critério de teste.',
+          ),
+        ],
+      );
+
+      expect(created, isFalse);
+      expect(controller.assignments.length, assignmentCountBefore);
+      expect(controller.currentSession.attendanceList, attendanceBefore);
+    });
+
+    test('Gradebook only returns records for the selected course', () {
+      final apsStudent = controller.gradebook.first;
+      controller.selectCourse('course-bd2');
+
+      expect(controller.gradebook, isEmpty);
+      controller.updateStudentGrade(apsStudent.studentId, p1: 1.0);
+
+      controller.selectCourse('course-aps2');
+      expect(controller.gradebook.first.p1Score, apsStudent.p1Score);
+    });
 
     test('Each assignment includes every student in its course roster', () {
       for (final assignment in controller.assignments) {
@@ -100,7 +159,7 @@ void main() {
       () {
         final initialCount = controller.notices.length;
         controller.publishNotice(
-          targetCourse: 'CC-401',
+          targetCourse: controller.courses.first.code,
           targetAudience: 'Todos os Alunos',
           classification: NoticeClassification.urgencia,
           title: 'Plantão Extraordinário',
@@ -315,6 +374,11 @@ void main() {
   });
 
   group('Docente Shell & Widgets Rendering Tests', () {
+    setUp(() {
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     testWidgets(
       'Submission row actions wrap inside the action column without overflow',
       (tester) async {
@@ -322,6 +386,11 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+        AppUserSession.instance.signIn(
+          identity: 'DOC-88410',
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
 
         final controller = DocenteController();
         addTearDown(controller.dispose);
@@ -361,6 +430,11 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+        AppUserSession.instance.signIn(
+          identity: 'DOC-88410',
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
 
         final controller = DocenteController();
         addTearDown(controller.dispose);

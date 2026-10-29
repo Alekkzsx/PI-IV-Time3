@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 
@@ -9,7 +10,8 @@ import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart'
 /// visualizar a pendência iminente e acessar a sala virtual síncrona.
 class StudentDisciplinesFastResumeCard extends StatelessWidget {
   final StudentDisciplineModel discipline;
-  final void Function(StudentDisciplineModel discipline, [int targetTab]) onResume;
+  final void Function(StudentDisciplineModel discipline, [int targetTab])
+  onResume;
 
   const StudentDisciplinesFastResumeCard({
     super.key,
@@ -66,7 +68,10 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -93,7 +98,9 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: const Icon(
@@ -136,7 +143,9 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,10 +174,7 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Aula 14: Padrão Adapter — Integração de interfaces legadas com Wrapper e contratos.',
-                      style: jakarta(
-                        size: 12,
-                        color: const Color(0xFFD4D4D8),
-                      ),
+                      style: jakarta(size: 12, color: const Color(0xFFD4D4D8)),
                     ),
                     const SizedBox(height: 10),
                     ClipRRect(
@@ -177,7 +183,9 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                         value: 0.50,
                         minHeight: 4,
                         backgroundColor: Color(0xFF27272A),
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF22C55E),
+                        ),
                       ),
                     ),
                   ],
@@ -219,7 +227,11 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
     return ElevatedButton.icon(
       key: const Key('btn_retomar_aula_ava'),
       onPressed: () => onResume(discipline, 0),
-      icon: const Icon(Icons.play_arrow_rounded, size: 18, color: Color(0xFF18181B)),
+      icon: const Icon(
+        Icons.play_arrow_rounded,
+        size: 18,
+        color: Color(0xFF18181B),
+      ),
       label: Text(
         'Retomar Aula no AVA',
         style: jakarta(
@@ -241,7 +253,11 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
     return OutlinedButton.icon(
       key: const Key('btn_tarefa_pendente_ava'),
       onPressed: () => onResume(discipline, 1),
-      icon: const Icon(Icons.assignment_outlined, size: 16, color: Color(0xFFFDE68A)),
+      icon: const Icon(
+        Icons.assignment_outlined,
+        size: 16,
+        color: Color(0xFFFDE68A),
+      ),
       label: Text(
         'Sprint 1: Diagramas (Hoje 23:59)',
         style: jakarta(
@@ -260,25 +276,48 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
   }
 
   Widget _buildLiveClassBtn(BuildContext context) {
-    return OutlinedButton.icon(
-      key: const Key('btn_sala_virtual_resume'),
-      onPressed: () => Navigator.of(context).pushNamed('/video-call'),
-      icon: const Icon(Icons.videocam_outlined, size: 16, color: Color(0xFF86EFAC)),
-      label: Text(
-        'Sala Virtual (Ao Vivo)',
-        style: jakarta(
-          size: 12,
-          weight: FontWeight.w600,
-          color: const Color(0xFF86EFAC),
-        ),
-      ),
-      style: OutlinedButton.styleFrom(
-        backgroundColor: const Color(0xFF14532D).withValues(alpha: 0.3),
-        side: const BorderSide(color: Color(0xFF16A34A)),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
+    return AnimatedBuilder(
+      animation: AcademicBridgeService.instance,
+      builder: (context, _) {
+        final isOpen = AcademicBridgeService.instance.isSessionOpen(
+          discipline.code,
+        );
+        return OutlinedButton.icon(
+          key: const Key('btn_sala_virtual_resume'),
+          onPressed: isOpen
+              ? () => Navigator.of(context).pushNamed(
+                  '/video-call',
+                  arguments: {
+                    'name': StudentMockData.studentName,
+                    'ra': StudentMockData.studentRa,
+                    'roomCode': discipline.code,
+                    'role': 'aluno',
+                  },
+                )
+              : null,
+          icon: Icon(
+            isOpen ? Icons.videocam_outlined : Icons.lock_clock_outlined,
+            size: 16,
+            color: const Color(0xFF86EFAC),
+          ),
+          label: Text(
+            isOpen ? 'Sala Virtual (Ao Vivo)' : 'Sala aguardando docente',
+            style: jakarta(
+              size: 12,
+              weight: FontWeight.w600,
+              color: const Color(0xFF86EFAC),
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            backgroundColor: const Color(0xFF14532D).withValues(alpha: 0.3),
+            side: const BorderSide(color: Color(0xFF16A34A)),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      },
     );
   }
 }
-

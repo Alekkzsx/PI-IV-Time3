@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/pages/audit_page.dart';
 import 'package:pi_iv_time3/features/admin/calendar/presentation/pages/calendar_page.dart';
 import 'package:pi_iv_time3/features/admin/classes/presentation/pages/classes_page.dart';
@@ -11,17 +12,47 @@ import 'package:pi_iv_time3/features/admin/dashboard/presentation/pages/painel_g
 import 'package:pi_iv_time3/features/admin/secretary/presentation/pages/secretary_page.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
 
 void main() {
   group('AdminPortalController Unit Tests', () {
+    setUp(() {
+      AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
+    testWidgets('Admin usa um perfil único com permissões administrativas', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1440, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = AdminPortalController.instance;
+
+      await tester.pumpWidget(const MaterialApp(home: AdminShellPage()));
+
+      expect(controller.currentOperatorRole, 'admin');
+      expect(controller.canPerform('manage_users'), isTrue);
+      expect(controller.canPerform('system_settings_2fa'), isTrue);
+    });
+
+    testWidgets('Admin pode consultar pauta sem receber permissão docente', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1440, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const MaterialApp(home: AdminShellPage()));
+
+      final controller = AdminPortalController.instance;
+      expect(controller.currentOperatorRole, 'admin');
+      expect(controller.hasPermission('admin', 'view_class_grades'), isTrue);
+      expect(controller.hasPermission('admin', 'edit_grades'), isFalse);
+    });
+
     test('Filtra usuários por perfil e realiza busca', () {
       final controller = AdminPortalController();
-      controller.setUserFilter('Discente');
-      expect(
-        controller.filteredUsers.every((u) => u.profile == 'Discente'),
-        true,
-      );
+      controller.setUserFilter('Alunos');
+      expect(controller.filteredUsers.every((u) => u.profile == 'aluno'), true);
 
       controller.setUserFilter('Todos');
       controller.setUserSearchQuery('Helena');
@@ -31,6 +62,35 @@ void main() {
         contains('Helena Bittencourt'),
       );
       controller.setUserSearchQuery('');
+    });
+
+    test('RBAC bloqueia ações sem permissão e libera as ações autorizadas', () {
+      final controller = AdminPortalController();
+      final user = controller.users.first;
+      final initialStatus = user.status;
+
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00892',
+        profile: 'aluno',
+      );
+      expect(controller.toggleUserStatus(user.id), isFalse);
+      expect(user.status, initialStatus);
+      expect(controller.canPerform('manage_classes'), isFalse);
+
+      AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
+      expect(controller.canPerform('manage_users'), isTrue);
+      expect(controller.canPerform('edit_grades'), isFalse);
+      expect(controller.hasPermission('aluno', 'view_own_grades'), isTrue);
+      expect(controller.hasPermission('aluno', 'view_class_grades'), isFalse);
+      expect(controller.hasPermission('docente', 'view_class_grades'), isTrue);
+      expect(controller.hasPermission('docente', 'edit_grades'), isTrue);
+      expect(
+        controller.hasPermission('Coordenador', 'manage_classes'),
+        isFalse,
+      );
+      expect(controller.toggleUserStatus(user.id), isTrue);
+      expect(user.status, isNot(initialStatus));
+      expect(controller.currentOperatorRole, 'admin');
     });
 
     test('Alterna suspensão de usuário e cadastra novo discente com 2FA', () {
@@ -48,13 +108,14 @@ void main() {
       controller.addUser(
         name: 'Novo Aluno de Teste',
         email: 'novo.aluno@universidade.edu.br',
-        profile: 'Discente',
+        profile: 'aluno',
         department: 'Engenharia de Software',
         require2FA: true,
       );
 
       expect(controller.users.length, initialUsersCount + 1);
       expect(controller.users.first.name, 'Novo Aluno de Teste');
+      expect(controller.users.first.profile, 'aluno');
       expect(controller.users.first.twoFactorRequired, true);
     });
 
@@ -67,6 +128,17 @@ void main() {
 
       controller.reallocateProfessor(classModel.code, 'Prof. Substituto Teste');
       expect(classModel.professor, 'Prof. Substituto Teste');
+    });
+
+    test('Fechamento de pauta fica restrito à turma homologada', () {
+      final controller = AdminPortalController();
+      const apsClassCode = '218131 - APS-II';
+      const bdClassCode = '218131 - BD-II';
+
+      controller.lockAndHomologateClassPauta(apsClassCode);
+
+      expect(controller.isGradeLockedFor(apsClassCode), isTrue);
+      expect(controller.isGradeLockedFor(bdClassCode), isFalse);
     });
 
     test('Decide protocolo na secretaria acadêmica com despacho', () {
@@ -83,7 +155,7 @@ void main() {
 
       expect(protocol.status, 'Deferido');
       expect(protocol.decisionNote, 'Aprovado pelo comitê acadêmico.');
-      expect(protocol.signedBy, contains('Carlos Eduardo Mendes'));
+      expect(protocol.signedBy, 'Administrador institucional');
     });
 
     test('Alterna trava regimental CONSEPE e lacra pauta de turma', () {
@@ -99,6 +171,11 @@ void main() {
   });
 
   group('Admin Views Rendering Tests', () {
+    setUp(() {
+      AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     testWidgets('Renderiza PainelGeralPage com KPIs e botão de comunicado', (
       tester,
     ) async {
@@ -311,6 +388,47 @@ void main() {
       expect(find.text('Atribuição Docente'), findsOneWidget);
       expect(find.text('Discentes & Vagas'), findsOneWidget);
       expect(find.text('Fechamento de Pauta & Homologação'), findsOneWidget);
+
+      await tester.tap(find.text('Discentes & Vagas'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gabriel Soares de Oliveira'), findsOneWidget);
+      expect(find.text('Mariana Rios Costa'), findsOneWidget);
+      expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
+      expect(find.text('Lucas Mendes Santos'), findsNothing);
+    });
+
+    testWidgets('Supervisão se adapta à largura mobile sem overflow', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = AdminPortalController.instance;
+      controller.setSupervisionTab(0);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SupervisionCockpitPage(
+              classModel: AdminMockData.classes.first,
+              onBack: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Diretrizes de cálculo da nota'), findsOneWidget);
+      await tester.ensureVisible(find.text('Fórmula equitativa'));
+      await tester.tap(find.text('Fórmula equitativa'));
+      await tester.pumpAndSettle();
+
+      expect(
+        controller.selectedEvaluationFormula,
+        'Equitativa (N1 50% / N2 50%)',
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('Renderiza SecretaryPage com protocolos e ações de análise', (

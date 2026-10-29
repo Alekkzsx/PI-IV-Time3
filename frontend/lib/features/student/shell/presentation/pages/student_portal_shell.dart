@@ -1,6 +1,7 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
@@ -127,7 +128,8 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
 
   void _onMenuItemSelected(StudentNavItem item) {
     if (item == StudentNavItem.sair) {
-      Navigator.of(context).pushReplacementNamed('/');
+      AppUserSession.instance.signOut();
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
       return;
     }
 

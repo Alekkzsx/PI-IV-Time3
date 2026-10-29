@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -406,10 +406,10 @@ class _UserFormModalState extends State<UserFormModal> {
                         final name = _nameController.text.trim();
                         final email = _emailController.text.trim();
                         final profile = _selectedRole.contains('Discente')
-                            ? 'Discente'
+                            ? 'aluno'
                             : _selectedRole.contains('Docente')
-                            ? 'Docente'
-                            : 'Administrador';
+                            ? 'docente'
+                            : 'admin';
 
                         widget.onUserCreated(
                           name: name,

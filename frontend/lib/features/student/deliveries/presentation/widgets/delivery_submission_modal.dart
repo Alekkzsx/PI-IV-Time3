@@ -10,10 +10,7 @@ import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_c
 class DeliverySubmissionModal extends StatefulWidget {
   final StudentDeliveryItem item;
 
-  const DeliverySubmissionModal({
-    super.key,
-    required this.item,
-  });
+  const DeliverySubmissionModal({super.key, required this.item});
 
   static Future<void> show(BuildContext context, StudentDeliveryItem item) {
     return showDialog<void>(
@@ -24,7 +21,8 @@ class DeliverySubmissionModal extends StatefulWidget {
   }
 
   @override
-  State<DeliverySubmissionModal> createState() => _DeliverySubmissionModalState();
+  State<DeliverySubmissionModal> createState() =>
+      _DeliverySubmissionModalState();
 }
 
 class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
@@ -44,7 +42,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   void initState() {
     super.initState();
     // Sugestão de nome padrão amigável baseado no ID
-    _attachedFileName = 'submissao_${widget.item.id.toLowerCase()}_trabalho.zip';
+    _attachedFileName =
+        'submissao_${widget.item.id.toLowerCase()}_trabalho.zip';
     _attachedFileSize = '4.2 MB';
   }
 
@@ -57,7 +56,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
 
   void _onPickFile() {
     setState(() {
-      _attachedFileName = '${widget.item.activityCode?.replaceAll(' ', '').toLowerCase() ?? 'entrega'}_final.pdf';
+      _attachedFileName =
+          '${widget.item.activityCode?.replaceAll(' ', '').toLowerCase() ?? 'entrega'}_final.pdf';
       _attachedFileSize = '2.8 MB';
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -86,12 +86,29 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
       final protocol = StudentPortalController.instance.submitDelivery(
         deliveryId: widget.item.id,
         fileName: _attachedFileName!,
-        gitUrl: _gitController.text.trim().isNotEmpty ? _gitController.text.trim() : null,
-        comments: _obsController.text.trim().isNotEmpty ? _obsController.text.trim() : null,
+        gitUrl: _gitController.text.trim().isNotEmpty
+            ? _gitController.text.trim()
+            : null,
+        comments: _obsController.text.trim().isNotEmpty
+            ? _obsController.text.trim()
+            : null,
       );
 
+      if (protocol.isEmpty) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Não foi possível protocolar a entrega. Confira a atividade e tente novamente.',
+            ),
+          ),
+        );
+        return;
+      }
+
       final now = DateTime.now();
-      final timeFormatted = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} às ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+      final timeFormatted =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} às ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
       setState(() {
         _isSubmitting = false;
@@ -141,7 +158,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.cloud_upload_outlined, size: 20, color: Color(0xFF0F172A)),
+                    child: const Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 20,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -158,14 +179,21 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                       SizedBox(height: 2),
                       Text(
                         'Confira os parâmetros regimentais e protocole os artefatos requeridos.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                icon: const Icon(
+                  Icons.close,
+                  size: 20,
+                  color: Color(0xFF64748B),
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -186,7 +214,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 // Seção 1: Upload de Arquivo / Dropzone
                 const Text(
                   '1. Artefato Principal da Entrega',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _buildDropzoneArea(),
@@ -195,18 +227,35 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 // Seção 2: Repositório Git & Observações
                 const Text(
                   '2. Links & Observações Pedagógicas (Opcional)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _gitController,
                   style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
-                    labelText: 'Link do Repositório Git (GitHub, GitLab ou Bitbucket)',
-                    labelStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    prefixIcon: const Icon(Icons.code, size: 18, color: Color(0xFF64748B)),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    labelText:
+                        'Link do Repositório Git (GitHub, GitLab ou Bitbucket)',
+                    labelStyle: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.code,
+                      size: 18,
+                      color: Color(0xFF64748B),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -216,10 +265,18 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                   style: const TextStyle(fontSize: 13),
                   decoration: InputDecoration(
                     labelText: 'Notas / Observações para o Docente',
-                    labelStyle: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    labelStyle: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
                     alignLabelWithHint: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -243,26 +300,47 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
             children: [
               TextButton(
                 onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-                child: const Text('Cancelar', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               ElevatedButton.icon(
-                onPressed: (_agreedToIntegrity && _attachedFileName != null && !_isSubmitting)
+                onPressed:
+                    (_agreedToIntegrity &&
+                        _attachedFileName != null &&
+                        !_isSubmitting)
                     ? _handleProtocolarEnvio
                     : null,
                 icon: _isSubmitting
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.verified_outlined, size: 16),
-                label: Text(_isSubmitting ? 'Gerando Protocolo...' : 'Protocolar Envio Oficial'),
+                label: Text(
+                  _isSubmitting
+                      ? 'Gerando Protocolo...'
+                      : 'Protocolar Envio Oficial',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0F172A),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(0xFFCBD5E1),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -288,7 +366,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
             children: [
               Text(
                 widget.item.activityCode ?? widget.item.disciplineCode,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF334155),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -300,11 +382,19 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.access_time_filled, size: 11, color: Color(0xFFDC2626)),
+                    const Icon(
+                      Icons.access_time_filled,
+                      size: 11,
+                      color: Color(0xFFDC2626),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Prazo: ${widget.item.dueDate} às ${widget.item.dueHour}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFDC2626)),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFDC2626),
+                      ),
                     ),
                   ],
                 ),
@@ -314,7 +404,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
           const SizedBox(height: 6),
           Text(
             widget.item.title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0F172A),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -343,7 +437,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 color: const Color(0xFFDCFCE7),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.insert_drive_file, color: Color(0xFF16A34A), size: 24),
+              child: const Icon(
+                Icons.insert_drive_file,
+                color: Color(0xFF16A34A),
+                size: 24,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -352,12 +450,20 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 children: [
                   Text(
                     _attachedFileName!,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Tamanho: ${_attachedFileSize ?? "4.2 MB"} • Arquivo íntegro verificado',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF16A34A), fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF16A34A),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -367,13 +473,20 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF334155),
                 side: const BorderSide(color: Color(0xFFCBD5E1)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
               ),
               child: const Text('Substituir', style: TextStyle(fontSize: 11)),
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFEF4444)),
+              icon: const Icon(
+                Icons.delete_outline,
+                size: 20,
+                color: Color(0xFFEF4444),
+              ),
               onPressed: _onRemoveFile,
               tooltip: 'Remover anexo',
             ),
@@ -391,19 +504,31 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
         decoration: BoxDecoration(
           color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFCBD5E1), style: BorderStyle.solid),
+          border: Border.all(
+            color: const Color(0xFFCBD5E1),
+            style: BorderStyle.solid,
+          ),
         ),
         child: Column(
           children: [
-            const Icon(Icons.cloud_upload_outlined, size: 36, color: Color(0xFF64748B)),
+            const Icon(
+              Icons.cloud_upload_outlined,
+              size: 36,
+              color: Color(0xFF64748B),
+            ),
             const SizedBox(height: 10),
             const Text(
               'Clique ou arraste o arquivo do trabalho aqui',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-              widget.item.allowedFormats ?? 'Formatos aceitos: .pdf, .zip • Max: 25MB',
+              widget.item.allowedFormats ??
+                  'Formatos aceitos: .pdf, .zip • Max: 25MB',
               style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
             ),
           ],
@@ -426,7 +551,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
           Checkbox(
             value: _agreedToIntegrity,
             activeColor: const Color(0xFFD97706),
-            onChanged: (val) => setState(() => _agreedToIntegrity = val ?? false),
+            onChanged: (val) =>
+                setState(() => _agreedToIntegrity = val ?? false),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -435,12 +561,20 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
               children: const [
                 Text(
                   'Declaração de Integridade Acadêmica & Anti-Plágio',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF92400E),
+                  ),
                 ),
                 SizedBox(height: 4),
                 Text(
                   'Declaro formalmente sob as penalidades regimentais que o artefato submetido é de minha autoria autêntica e não constitui cópia não autorizada, plágio ou violação às normas pedagógicas da instituição.',
-                  style: TextStyle(fontSize: 11, height: 1.4, color: Color(0xFF78350F)),
+                  style: TextStyle(
+                    fontSize: 11,
+                    height: 1.4,
+                    color: Color(0xFF78350F),
+                  ),
                 ),
               ],
             ),
@@ -471,7 +605,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
           const Text(
             'Submissão Protocolada com Sucesso!',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0F172A),
+            ),
           ),
           const SizedBox(height: 6),
           const Text(
@@ -494,12 +632,22 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
               children: [
                 const Text(
                   'CÓDIGO OFICIAL DO PROTOCOLO',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Color(0xFF94A3B8)),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 SelectableText(
                   _generatedProtocol,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF16A34A), letterSpacing: 1),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF16A34A),
+                    letterSpacing: 1,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Divider(height: 1, color: Color(0xFFE2E8F0)),
@@ -507,24 +655,54 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Data e Hora do Registro:', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                    Text(_timestampStr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                    const Text(
+                      'Data e Hora do Registro:',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                    Text(
+                      _timestampStr,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Arquivo Protocolado:', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                    Text(_attachedFileName ?? 'trabalho.zip', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+                    const Text(
+                      'Arquivo Protocolado:',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                    Text(
+                      _attachedFileName ?? 'trabalho.zip',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
-                    Text('Assinatura Digital:', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                    Text('SHA-256 Validado', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF16A34A))),
+                    Text(
+                      'Assinatura Digital:',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                    Text(
+                      'SHA-256 Validado',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF16A34A),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -539,7 +717,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Download do comprovante de entrega iniciado (PDF).')),
+                      const SnackBar(
+                        content: Text(
+                          'Download do comprovante de entrega iniciado (PDF).',
+                        ),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.download, size: 16),
@@ -560,7 +742,10 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Concluir e Voltar às Entregas', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Concluir e Voltar às Entregas',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],

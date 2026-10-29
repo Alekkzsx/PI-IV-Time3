@@ -168,14 +168,15 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
         RubricCriterion(
           id: 'rc-custom-$i',
           title: c['title']!.text.trim(),
-          maxPoints:
-              double.parse(c['points']!.text.trim().replaceAll(',', '.')),
+          maxPoints: double.parse(
+            c['points']!.text.trim().replaceAll(',', '.'),
+          ),
           description: c['desc']!.text.trim(),
         ),
       );
     }
 
-    widget.controller.createAssignment(
+    final created = widget.controller.createAssignment(
       courseId: selectedCourse.id,
       courseCode: selectedCourse.code,
       title: _titleController.text.trim(),
@@ -187,6 +188,12 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
       allowLateWithPenalty: _allowLate,
       rubricCriteria: rubricCriteria,
     );
+    if (!created) {
+      _showValidationError(
+        'Não foi possível publicar a atividade para esta turma.',
+      );
+      return;
+    }
 
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
@@ -384,9 +391,10 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                                 _buildFieldLabel('Peso da Nota (Pontos)'),
                                 TextFormField(
                                   controller: _weightController,
-                                  keyboardType: const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
                                   style: jakarta(
                                     size: 13,
                                     weight: FontWeight.w500,
@@ -473,14 +481,15 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                                     weight: FontWeight.w500,
                                     color: const Color(0xFF18181B),
                                   ),
-                                  decoration: _inputDecoration(
-                                    hintText: 'Selecionar data e horário',
-                                  ).copyWith(
-                                    suffixIcon: const Icon(
-                                      Icons.calendar_month_outlined,
-                                      size: 18,
-                                    ),
-                                  ),
+                                  decoration:
+                                      _inputDecoration(
+                                        hintText: 'Selecionar data e horário',
+                                      ).copyWith(
+                                        suffixIcon: const Icon(
+                                          Icons.calendar_month_outlined,
+                                          size: 18,
+                                        ),
+                                      ),
                                 ),
                               ],
                             ),

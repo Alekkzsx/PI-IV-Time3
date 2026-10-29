@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../domain/models/academic_event.dart';
 import '../domain/models/academic_notice.dart';
@@ -11,10 +11,13 @@ import '../domain/models/rubric_model.dart';
 
 /// Provides initial mock data for the Docente Portal.
 class DocenteMockData {
+  static const String initialTeacherIdentity = 'DOC-88410';
+
   /// Default courses taught by the professor.
   static List<DocenteCourse> get initialCourses => [
     const DocenteCourse(
       id: 'course-aps2',
+      teacherIdentity: initialTeacherIdentity,
       code: '218131 - APS-II',
       title: 'Análise e Projeto de Sistemas II',
       term: '2026/2 - 4º Semestre',
@@ -102,6 +105,7 @@ class DocenteMockData {
     ),
     const DocenteCourse(
       id: 'course-bd2',
+      teacherIdentity: initialTeacherIdentity,
       code: '218131 - BD-II',
       title: 'Estudos de Banco de Dados II',
       term: '2026/2 - 4º Semestre',
@@ -142,6 +146,7 @@ class DocenteMockData {
     ),
     const DocenteCourse(
       id: 'course-fso',
+      teacherIdentity: initialTeacherIdentity,
       code: '218131 - FSO',
       title: 'Fundamentos de Sistemas Operacionais',
       term: '2026/2 - 4º Semestre',
@@ -188,6 +193,16 @@ class DocenteMockData {
     ),
   ];
 
+  static List<DocenteCourse> coursesForIdentity(String identity) {
+    final normalizedIdentity = identity.trim().toUpperCase();
+    return initialCourses
+        .where(
+          (course) =>
+              course.teacherIdentity.toUpperCase() == normalizedIdentity,
+        )
+        .toList();
+  }
+
   /// Initial class session and attendance register for APS-II.
   static ClassSession get initialClassSession => ClassSession(
     id: 'sess-27',
@@ -205,7 +220,7 @@ class DocenteMockData {
     attendanceList: [
       const AttendanceStudent(
         studentId: 'st-1',
-        ra: '2024.1.00092',
+        ra: '2024.1.00892',
         name: 'Gabriel Soares de Oliveira',
         status: AttendanceStatus.presente,
         accumulatedAbsences: 2,
@@ -814,7 +829,7 @@ class DocenteMockData {
   static DocenteProfile get initialProfile => const DocenteProfile(
     fullName: 'Helena Bittencourt',
     socialName: 'Helena',
-    registrationId: '2324324',
+    registrationId: initialTeacherIdentity,
     department: 'Departamento de Computação e Sistemas de Informação',
     semester: 'Corpo Docente Titular (2026/2)',
     campus: 'Campus Central - Polo Tecnológico Asa Norte',

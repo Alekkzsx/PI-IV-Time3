@@ -22,7 +22,7 @@ class UserFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const filterOptions = ['Todos', 'Discentes', 'Docentes', 'Administração'];
+    const filterOptions = ['Todos', 'Alunos', 'Docentes', 'Administradores'];
 
     final searchBox = Container(
       width: isDesktop ? 360 : double.infinity,
@@ -92,18 +92,11 @@ class UserFilterBar extends StatelessWidget {
       child: isDesktop
           ? Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                searchBox,
-                filterPills,
-              ],
+              children: [searchBox, filterPills],
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                searchBox,
-                const SizedBox(height: 12),
-                filterPills,
-              ],
+              children: [searchBox, const SizedBox(height: 12), filterPills],
             ),
     );
   }

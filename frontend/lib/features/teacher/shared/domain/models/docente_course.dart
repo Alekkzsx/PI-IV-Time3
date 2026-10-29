@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 /// Represents a syllabus unit within a course curriculum.
 class SyllabusUnit {
@@ -68,6 +68,7 @@ class CourseMaterial {
 /// Represents a course/class taught by the professor.
 class DocenteCourse {
   final String id;
+  final String teacherIdentity;
   final String code;
   final String title;
   final String term;
@@ -82,6 +83,7 @@ class DocenteCourse {
 
   const DocenteCourse({
     required this.id,
+    required this.teacherIdentity,
     required this.code,
     required this.title,
     required this.term,
@@ -153,6 +155,7 @@ class DocenteCourse {
 
   DocenteCourse copyWith({
     String? id,
+    String? teacherIdentity,
     String? code,
     String? title,
     String? term,
@@ -167,6 +170,7 @@ class DocenteCourse {
   }) {
     return DocenteCourse(
       id: id ?? this.id,
+      teacherIdentity: teacherIdentity ?? this.teacherIdentity,
       code: code ?? this.code,
       title: title ?? this.title,
       term: term ?? this.term,

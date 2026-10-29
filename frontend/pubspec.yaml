@@ -37,6 +37,11 @@ dependencies:
   google_fonts: ^8.1.0
   flutter_svg: ^2.0.17
 
+  # Vinculação da pasta mãe de Segurança Empresarial (security/)
+  agmrm_security:
+    path: ../security
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

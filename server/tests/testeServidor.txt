@@ -1,19 +1,68 @@
-.../backend/src
+====================================================================
+TESTES DA API NATIVA JAVA (MODULO ACADEMICO & VIDEOCHAMADA)
+====================================================================
 
-javac ServidorHttpNativo.java
-java ServidorHttpNativo
+Como compilar e executar o servidor:
+  1. No Windows, basta executar:
+     server\run-server.bat
 
-1. Teste de Extração de Tipos Primitivos (Parse dos dados):
-curl -X POST http://localhost:8080/api/teste-tipos -d "texto=Calculo1&inteiro=42&flutuante=7.5&duplo=99.99&caractere=A"
+  2. Ou manualmente no terminal:
+     cd server
+     javac -encoding UTF-8 -d bin src\Main.java src\core\*.java src\academic\*.java src\auth\*.java src\videocall\*.java
+     java -cp bin Main
 
-1. Teste de Presença na Aula Online (75% = Presença):
+--------------------------------------------------------------------
+A. MODULO ACADEMICO (ENDPOINTS EXISTENTES)
+--------------------------------------------------------------------
+
+1. Teste de Extracao de Tipos Primitivos:
+curl.exe -X POST http://localhost:8080/api/teste-tipos -d "texto=Calculo1&inteiro=42&flutuante=7.5&duplo=99.99&caractere=A"
+
+2. Teste de Presenca na Aula Online (Presenca Integral / Meia / Falta):
 curl.exe -X POST http://localhost:8080/api/presenca -d "minutosAssistidos=50&duracaoTotal=60"
 
-2. Teste de Desconto por Atraso (1 Dia de Atraso = 20% Desconto):
+3. Teste de Desconto por Atraso em Tarefas:
 curl.exe -X POST http://localhost:8080/api/tarefas/calcular-nota -d "diasAtraso=1&notaBase=10.0"
 
-3. Teste da Média Ponderada do Boletim:
+4. Teste da Media Ponderada do Boletim:
 curl.exe -X POST http://localhost:8080/api/notas/boletim -d "p1=8.0&peso1=0.4&p2=6.0&peso2=0.4&trabalho=10.0&pesoTrabalho=0.2"
 
-TESTES VIA CMD/TERMINAL MESMO, SOMENTE PARA VISUALIZAÇÃO DOS METODOS POST/GETS ATUAIS DO SERVIDOR.
-PRECISA TER JAVA 17+ INSTALADO, E ADICIONAR NAS VARIAVEIS DE AMBIENTE !
+--------------------------------------------------------------------
+B. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
+--------------------------------------------------------------------
+
+5. Listagem de Salas de Videochamada:
+curl.exe http://localhost:8080/api/videocall/rooms
+
+6. Tentativa de Discente Abrir Sala de Turma Fechada (Bloqueio de Seguranca 403):
+curl.exe -X POST http://localhost:8080/api/videocall/open -d "roomCode=APS-II&role=aluno&name=Alex+Gabriel"
+
+7. Docente Abrindo a Sala de Aula Oficial da Turma (Sucesso 200):
+curl.exe -X POST http://localhost:8080/api/videocall/open -d "roomCode=APS-II&role=docente&name=Profa.+Helena+Bittencourt"
+
+8. Discente Ingressando na Videochamada Apos Abertura:
+curl.exe -X POST http://localhost:8080/api/videocall/join -d "roomCode=APS-II&ra=24802449&name=Alex+Gabriel+Soares+Sousa&role=aluno"
+
+9. Levantando a Mao na Fila de Duvidas da Aula:
+curl.exe -X POST http://localhost:8080/api/videocall/hand-raise -d "roomCode=APS-II&ra=24802449&action=raise"
+
+10. Consultando Fila Ordenada de Duvidas da Turma:
+curl.exe "http://localhost:8080/api/videocall/hand-raise?roomCode=APS-II"
+
+11. Enviando Mensagem no Chat Oficial da Aula:
+curl.exe -X POST http://localhost:8080/api/videocall/chat -d "roomCode=APS-II&senderRa=24802449&senderName=Alex+Gabriel&senderRole=aluno&message=Professora,+o+diagrama+de+classes+foi+atualizado+com+sucesso!"
+
+12. Consultando Historico de Mensagens do Chat da Aula:
+curl.exe "http://localhost:8080/api/videocall/chat?roomCode=APS-II"
+
+13. Despachando Mensagem de Sinalizacao WebRTC (Offer / Answer / ICE Candidate):
+curl.exe -X POST http://localhost:8080/api/videocall/signal -d "roomCode=APS-II&fromRa=24802449&toRa=DOCENTE-01&type=offer&data=sdp_payload_exemplo"
+
+14. Consultando Sinalizacoes Pendentes para o Discente:
+curl.exe "http://localhost:8080/api/videocall/signal?roomCode=APS-II&ra=24802449"
+
+15. Relatorio de Frequencia e Assiduidade da Videochamada (Integrado ao Calculo de Presenca):
+curl.exe "http://localhost:8080/api/videocall/attendance?roomCode=APS-II"
+
+16. Docente Encerrando a Chamada da Turma:
+curl.exe -X POST http://localhost:8080/api/videocall/close -d "roomCode=APS-II&role=docente"

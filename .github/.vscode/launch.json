@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Portal AVA (Flutter + Backend Java)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "lib/main.dart",
+      "preLaunchTask": "start-backend-server"
+    },
+    {
+      "name": "Portal AVA - Web Chrome (Flutter + Backend Java)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome"],
+      "preLaunchTask": "start-backend-server"
+    },
+    {
+      "name": "Portal AVA - Windows Desktop (Flutter + Backend Java)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "lib/main.dart",
+      "args": ["-d", "windows"],
+      "preLaunchTask": "start-backend-server"
+    }
+  ]
+}
+

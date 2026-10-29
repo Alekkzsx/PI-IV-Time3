@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/messages/domain/entities/academic_message.dart';
 import 'package:pi_iv_time3/features/student/messages/presentation/controllers/student_messages_controller.dart';
 import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
@@ -64,6 +65,14 @@ void main() {
   });
 
   group('StudentSecretariatController & StudentSecretariatPage', () {
+    setUp(() {
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00892',
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     test('Adiciona novo protocolo de requerimento', () {
       final controller = StudentSecretariatController();
       expect(controller.protocols.length, 1);
@@ -77,6 +86,18 @@ void main() {
       expect(controller.protocols.length, 2);
       expect(controller.protocolCountLabel, '2 requerimentos registrados');
       expect(controller.protocols.first.protocolCode, 'PROT-2026/8836');
+    });
+
+    test('Perfil docente não pode criar protocolo de aluno', () {
+      final controller = StudentSecretariatController();
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+
+      controller.addProtocolRequest(
+        subjectType: 'Segunda Chamada de Prova',
+        componentObject: 'Cálculo Numérico',
+      );
+
+      expect(controller.protocols, hasLength(1));
     });
 
     testWidgets(

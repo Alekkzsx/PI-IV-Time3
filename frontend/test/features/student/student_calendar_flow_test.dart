@@ -1,14 +1,22 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
+import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 void main() {
   late StudentPortalController controller;
 
   setUp(() {
+    AppUserSession.instance.signIn(
+      identity: StudentMockData.studentRa,
+      profile: 'aluno',
+    );
+    addTearDown(AppUserSession.instance.signOut);
     controller = StudentPortalController.instance;
+    controller.events = List.from(StudentMockData.calendarEvents);
     controller.activeEventTypes
       ..clear()
       ..addAll({'Entrega', 'Aula', 'Fórum', 'Avaliação'});

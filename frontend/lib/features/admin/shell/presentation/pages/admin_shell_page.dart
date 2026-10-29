@@ -1,6 +1,7 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/pages/audit_page.dart';
 import 'package:pi_iv_time3/features/admin/calendar/presentation/pages/calendar_page.dart';
@@ -73,6 +74,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
   }
 
   void _onLogout() {
+    AppUserSession.instance.signOut();
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 

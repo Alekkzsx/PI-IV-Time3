@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
@@ -8,7 +8,7 @@ class CourseHubHeader extends StatelessWidget {
   final DocenteCourse course;
   final VoidCallback onBack;
   final VoidCallback onQuickNotice;
-  final VoidCallback onNewContent;
+  final VoidCallback? onNewContent;
   final VoidCallback onLiveClass;
 
   const CourseHubHeader({

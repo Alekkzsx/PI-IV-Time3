@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import 'ava_section_card.dart';
 
 /// Abas do AVA para Fórum de Dúvidas, Pessoas & Turma, Caderno Pessoal e Chat.
 class AvaForumCollaborationTab extends StatelessWidget {
@@ -32,30 +33,28 @@ class AvaForumCollaborationTab extends StatelessWidget {
 
   // --- ABA 4: Fórum de Dúvidas ---
   Widget _buildForumsTab(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Fórum de Dúvidas & Discussões Acadêmicas',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AvaSectionStyles.title,
               ),
-              ElevatedButton.icon(
-                onPressed: () => _showNewTopicDialog(context),
-                icon: const Icon(Icons.add_comment, size: 16),
-                label: const Text('Publicar Nova Dúvida'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF18181B),
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showNewTopicDialog(context),
+                  icon: const Icon(Icons.add_comment, size: 16),
+                  label: const Text('Publicar Nova Dúvida'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF18181B),
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -77,14 +76,18 @@ class AvaForumCollaborationTab extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        topic['autor']!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Color(0xFF18181B),
+                      Expanded(
+                        child: Text(
+                          topic['autor']!,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Color(0xFF18181B),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         topic['tempo']!,
                         style: const TextStyle(
@@ -161,19 +164,13 @@ class AvaForumCollaborationTab extends StatelessWidget {
       },
     ];
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Participantes da Disciplina (34 Discentes Matriculados)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: AvaSectionStyles.title,
           ),
           const SizedBox(height: 16),
           const Divider(height: 1),
@@ -198,10 +195,7 @@ class AvaForumCollaborationTab extends StatelessWidget {
               ),
               subtitle: Text(
                 p['papel'] as String,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF64748B),
-                ),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
               trailing: Chip(
                 label: Text(
@@ -226,39 +220,38 @@ class AvaForumCollaborationTab extends StatelessWidget {
 
   // --- ABA 10: Caderno Pessoal ---
   Widget _buildNotebookTab(BuildContext context) {
-    final textController =
-        TextEditingController(text: controller.studentPersonalNotes);
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    final textController = TextEditingController(
+      text: controller.studentPersonalNotes,
+    );
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Caderno Pessoal de Anotações (Markdown)',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AvaSectionStyles.title,
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  controller.updatePersonalNotes(textController.text);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Anotações salvas com sucesso!'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.save, size: 16),
-                label: const Text('Salvar Anotações'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF18181B),
-                  foregroundColor: Colors.white,
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    controller.updatePersonalNotes(textController.text);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Anotações salvas com sucesso!'),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.save, size: 16),
+                  label: const Text('Salvar Anotações'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF18181B),
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ],
@@ -283,24 +276,19 @@ class AvaForumCollaborationTab extends StatelessWidget {
   // --- ABA 11: Chat da Turma ---
   Widget _buildClassChatTab(BuildContext context) {
     final chatInput = TextEditingController();
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
                 'Chat da Turma (APS-II 2026/2)',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AvaSectionStyles.title,
               ),
-              Chip(
+              const SizedBox(height: 8),
+              const Chip(
                 label: Text(
                   '18 alunos conectados',
                   style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
@@ -352,9 +340,7 @@ class AvaForumCollaborationTab extends StatelessWidget {
                 onPressed: () {
                   chatInput.clear();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Mensagem enviada no chat!'),
-                    ),
+                    const SnackBar(content: Text('Mensagem enviada no chat!')),
                   );
                 },
               ),
@@ -433,4 +419,3 @@ class AvaForumCollaborationTab extends StatelessWidget {
     );
   }
 }
-

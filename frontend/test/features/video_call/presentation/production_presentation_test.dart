@@ -3,6 +3,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/chat_message.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/emoji_reaction.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/hand_raise_item.dart';
@@ -72,7 +74,11 @@ class FakeDomainVideoCallRepository implements VideoCallRepository {
   }
 
   @override
-  Future<void> toggleHandRaise(String roomId, String peerId, bool isRaised) async {
+  Future<void> toggleHandRaise(
+    String roomId,
+    String peerId,
+    bool isRaised,
+  ) async {
     _handRaiseCtrl.add(
       HandRaiseItem(
         peerId: peerId,
@@ -123,6 +129,19 @@ class FakeDomainVideoCallRepository implements VideoCallRepository {
     await _mediaCtrl.close();
     await _recordingCtrl.close();
   }
+}
+
+void _closeOwnedSession(AcademicBridgeService bridge, String code) {
+  final session = bridge.getSession(code);
+  if (!session.isOpen) return;
+  final role = session.openedByRole;
+  final identity = session.openedByIdentity;
+  if (role == null || identity == null) {
+    throw StateError('Sessão aberta sem identidade responsável.');
+  }
+  AppUserSession.instance.signIn(identity: identity, profile: role);
+  bridge.closeSession(code);
+  AppUserSession.instance.signOut();
 }
 
 void main() {
@@ -184,7 +203,10 @@ void main() {
       expect(controller.validateRoomCode(null), 'Informe o código da sala');
       expect(controller.validateRoomCode(''), 'Informe o código da sala');
       expect(controller.validateRoomCode('AB'), 'Código da sala inválido');
-      expect(controller.validateRoomCode('SALA_INVALID@'), 'Código da sala inválido');
+      expect(
+        controller.validateRoomCode('SALA_INVALID@'),
+        'Código da sala inválido',
+      );
       expect(controller.validateRoomCode('SALA-101'), isNull);
     });
 
@@ -230,20 +252,23 @@ void main() {
       await fakeRepo.dispose();
     });
 
-    test('Zero Bots: Alone has strictly 1 participant, registering peer creates 2', () {
-      expect(controller.allParticipants.length, 1);
-      expect(controller.remoteParticipants, isEmpty);
+    test(
+      'Zero Bots: Alone has strictly 1 participant, registering peer creates 2',
+      () {
+        expect(controller.allParticipants.length, 1);
+        expect(controller.remoteParticipants, isEmpty);
 
-      final peer2 = Participant(
-        id: 'peer_2',
-        name: 'Colega Univesp',
-        ra: '25015323',
-      );
-      controller.registerRemoteParticipant(peer2);
+        final peer2 = Participant(
+          id: 'peer_2',
+          name: 'Colega Univesp',
+          ra: '25015323',
+        );
+        controller.registerRemoteParticipant(peer2);
 
-      expect(controller.allParticipants.length, 2);
-      expect(controller.remoteParticipants.length, 1);
-    });
+        expect(controller.allParticipants.length, 2);
+        expect(controller.remoteParticipants.length, 1);
+      },
+    );
 
     test('Media toggles mutate local participant and update repository', () {
       controller.toggleAudio();
@@ -266,32 +291,35 @@ void main() {
       expect(controller.localParticipant.isSpeaking, isTrue);
     });
 
-    test('Chat, Reactions, Hand Raising and Drawers mutate state correctly', () {
-      controller.sendChatMessage('  Olá a todos!  ');
-      expect(controller.chatMessages.length, 1);
-      expect(controller.chatMessages.first.text, 'Olá a todos!');
+    test(
+      'Chat, Reactions, Hand Raising and Drawers mutate state correctly',
+      () {
+        controller.sendChatMessage('  Olá a todos!  ');
+        expect(controller.chatMessages.length, 1);
+        expect(controller.chatMessages.first.text, 'Olá a todos!');
 
-      controller.sendReaction('❤️');
-      expect(controller.activeReactions.length, 1);
-      expect(controller.activeReactions.first.emoji, '❤️');
+        controller.sendReaction('❤️');
+        expect(controller.activeReactions.length, 1);
+        expect(controller.activeReactions.first.emoji, '❤️');
 
-      controller.toggleHandRaise();
-      expect(controller.localParticipant.isHandRaised, isTrue);
-      expect(controller.raisedHandsQueue.length, 1);
+        controller.toggleHandRaise();
+        expect(controller.localParticipant.isHandRaised, isTrue);
+        expect(controller.raisedHandsQueue.length, 1);
 
-      controller.toggleHandRaise();
-      expect(controller.localParticipant.isHandRaised, isFalse);
-      expect(controller.raisedHandsQueue, isEmpty);
+        controller.toggleHandRaise();
+        expect(controller.localParticipant.isHandRaised, isFalse);
+        expect(controller.raisedHandsQueue, isEmpty);
 
-      expect(controller.isChatDrawerOpen, isFalse);
-      controller.toggleChatDrawer();
-      expect(controller.isChatDrawerOpen, isTrue);
-      expect(controller.isParticipantsDrawerOpen, isFalse);
+        expect(controller.isChatDrawerOpen, isFalse);
+        controller.toggleChatDrawer();
+        expect(controller.isChatDrawerOpen, isTrue);
+        expect(controller.isParticipantsDrawerOpen, isFalse);
 
-      controller.toggleParticipantsDrawer();
-      expect(controller.isParticipantsDrawerOpen, isTrue);
-      expect(controller.isChatDrawerOpen, isFalse);
-    });
+        controller.toggleParticipantsDrawer();
+        expect(controller.isParticipantsDrawerOpen, isTrue);
+        expect(controller.isChatDrawerOpen, isFalse);
+      },
+    );
 
     test('Recording lifecycle generates SessionExport ledger', () {
       expect(controller.recordingState.isRecording, isFalse);
@@ -304,179 +332,230 @@ void main() {
       expect(controller.recordingState.isRecording, isFalse);
       expect(controller.lastSessionExport, isNotNull);
       expect(controller.lastSessionExport!.roomCode, 'SALA-101');
-      expect(controller.lastSessionExport!.attendeeNames, contains('Alex Sousa'));
+      expect(
+        controller.lastSessionExport!.attendeeNames,
+        contains('Alex Sousa'),
+      );
     });
 
-    test('Remote participant raising hand updates remoteParticipants.first.isHandRaised', () {
-      final remotePeer = Participant(id: 'peer_remote', name: 'Maria Silva', ra: '24809999');
-      controller.registerRemoteParticipant(remotePeer);
-      expect(controller.remoteParticipants.first.isHandRaised, isFalse);
+    test(
+      'Student cannot record or share screen in an academic class',
+      () async {
+        final studentRepository = FakeDomainVideoCallRepository();
+        final studentController = VideoCallController(
+          repository: studentRepository,
+          room: MeetingRoom(id: 'APS-II', code: 'APS-II', title: 'APS-II'),
+          localParticipant: Participant(
+            id: 'student_1',
+            name: 'Aluno',
+            ra: '2024.1.00892',
+            role: 'aluno',
+            isLocal: true,
+          ),
+        );
 
-      fakeRepo.emitHandRaise(
-        HandRaiseItem(
-          peerId: 'peer_remote',
+        expect(studentController.canManageMeeting, isFalse);
+        studentController.toggleRecording();
+        studentController.toggleScreenShare();
+        expect(studentController.recordingState.isRecording, isFalse);
+        expect(studentController.isLocalScreenSharing, isFalse);
+
+        studentController.dispose();
+        await studentRepository.dispose();
+      },
+    );
+
+    test(
+      'Remote participant raising hand updates remoteParticipants.first.isHandRaised',
+      () {
+        final remotePeer = Participant(
+          id: 'peer_remote',
           name: 'Maria Silva',
           ra: '24809999',
-          raisedAt: DateTime.now(),
-        ),
-      );
-      expect(controller.remoteParticipants.first.isHandRaised, isTrue);
-      expect(controller.raisedHandsQueue.length, 1);
+        );
+        controller.registerRemoteParticipant(remotePeer);
+        expect(controller.remoteParticipants.first.isHandRaised, isFalse);
 
-      // Lower hand
-      fakeRepo.emitHandRaise(
-        HandRaiseItem(
-          peerId: 'peer_remote',
-          name: 'Maria Silva',
-          ra: '24809999',
-          raisedAt: DateTime.now(),
-        ),
-      );
-      expect(controller.remoteParticipants.first.isHandRaised, isFalse);
-      expect(controller.raisedHandsQueue, isEmpty);
-    });
+        fakeRepo.emitHandRaise(
+          HandRaiseItem(
+            peerId: 'peer_remote',
+            name: 'Maria Silva',
+            ra: '24809999',
+            raisedAt: DateTime.now(),
+          ),
+        );
+        expect(controller.remoteParticipants.first.isHandRaised, isTrue);
+        expect(controller.raisedHandsQueue.length, 1);
 
-    test('Remote participant starts recording and increments remote elapsed duration', () {
-      expect(controller.recordingState.isRecording, isFalse);
+        // Lower hand
+        fakeRepo.emitHandRaise(
+          HandRaiseItem(
+            peerId: 'peer_remote',
+            name: 'Maria Silva',
+            ra: '24809999',
+            raisedAt: DateTime.now(),
+          ),
+        );
+        expect(controller.remoteParticipants.first.isHandRaised, isFalse);
+        expect(controller.raisedHandsQueue, isEmpty);
+      },
+    );
 
-      fakeRepo.emitRecordingState(
-        RecordingState(
-          isRecording: true,
-          startedAt: DateTime.now(),
-          elapsedDuration: Duration.zero,
-          startedByPeerId: 'peer_remote',
-          startedByName: 'Maria Silva',
-        ),
-      );
-      expect(controller.recordingState.isRecording, isTrue);
-      expect(controller.recordingState.startedByName, 'Maria Silva');
+    test(
+      'Remote participant starts recording and increments remote elapsed duration',
+      () {
+        expect(controller.recordingState.isRecording, isFalse);
 
-      // Stop recording
-      fakeRepo.emitRecordingState(
-        RecordingState(
-          isRecording: false,
-          startedAt: DateTime.now().subtract(const Duration(seconds: 10)),
-          elapsedDuration: const Duration(seconds: 10),
-          startedByPeerId: 'peer_remote',
-        ),
-      );
-      expect(controller.recordingState.isRecording, isFalse);
-      expect(controller.lastSessionExport, isNotNull);
-    });
+        fakeRepo.emitRecordingState(
+          RecordingState(
+            isRecording: true,
+            startedAt: DateTime.now(),
+            elapsedDuration: Duration.zero,
+            startedByPeerId: 'peer_remote',
+            startedByName: 'Maria Silva',
+          ),
+        );
+        expect(controller.recordingState.isRecording, isTrue);
+        expect(controller.recordingState.startedByName, 'Maria Silva');
 
-    test('Muted remote peer with incoming audioLevel does not become active speaker', () {
-      final remotePeer = Participant(
-        id: 'peer_muted',
-        name: 'Carlos',
-        ra: '24807777',
-        isAudioMuted: true,
-      );
-      controller.registerRemoteParticipant(remotePeer);
-      expect(controller.remoteParticipants.first.isAudioMuted, isTrue);
+        // Stop recording
+        fakeRepo.emitRecordingState(
+          RecordingState(
+            isRecording: false,
+            startedAt: DateTime.now().subtract(const Duration(seconds: 10)),
+            elapsedDuration: const Duration(seconds: 10),
+            startedByPeerId: 'peer_remote',
+          ),
+        );
+        expect(controller.recordingState.isRecording, isFalse);
+        expect(controller.lastSessionExport, isNotNull);
+      },
+    );
 
-      // Send audioLevel update without isAudioMuted field
-      fakeRepo.emitMediaState(
-        MediaStateUpdate(
-          peerId: 'peer_muted',
-          audioLevel: 0.8,
-          timestamp: DateTime.now(),
-        ),
-      );
-      final updated = controller.remoteParticipants.firstWhere((p) => p.id == 'peer_muted');
-      expect(updated.isAudioMuted, isTrue);
-      expect(updated.isSpeaking, isFalse);
-    });
+    test(
+      'Muted remote peer with incoming audioLevel does not become active speaker',
+      () {
+        final remotePeer = Participant(
+          id: 'peer_muted',
+          name: 'Carlos',
+          ra: '24807777',
+          isAudioMuted: true,
+        );
+        controller.registerRemoteParticipant(remotePeer);
+        expect(controller.remoteParticipants.first.isAudioMuted, isTrue);
 
-    test('Total reactions count is accumulated and preserved in SessionExport', () {
-      controller.sendReaction('❤️');
-      controller.sendReaction('👍');
-      fakeRepo.sendEmojiReaction(
-        'SALA-101',
-        EmojiReaction(
-          id: 'rx_1',
-          peerId: 'peer_remote',
-          peerName: 'Maria',
-          emoji: '🎉',
-          timestamp: DateTime.now(),
-        ),
-      );
-      expect(controller.totalReactionsCount, 3);
+        // Send audioLevel update without isAudioMuted field
+        fakeRepo.emitMediaState(
+          MediaStateUpdate(
+            peerId: 'peer_muted',
+            audioLevel: 0.8,
+            timestamp: DateTime.now(),
+          ),
+        );
+        final updated = controller.remoteParticipants.firstWhere(
+          (p) => p.id == 'peer_muted',
+        );
+        expect(updated.isAudioMuted, isTrue);
+        expect(updated.isSpeaking, isFalse);
+      },
+    );
 
-      controller.toggleRecording();
-      controller.toggleRecording();
-      expect(controller.lastSessionExport!.reactionCount, 3);
-    });
+    test(
+      'Total reactions count is accumulated and preserved in SessionExport',
+      () {
+        controller.sendReaction('❤️');
+        controller.sendReaction('👍');
+        fakeRepo.sendEmojiReaction(
+          'SALA-101',
+          EmojiReaction(
+            id: 'rx_1',
+            peerId: 'peer_remote',
+            peerName: 'Maria',
+            emoji: '🎉',
+            timestamp: DateTime.now(),
+          ),
+        );
+        expect(controller.totalReactionsCount, 3);
+
+        controller.toggleRecording();
+        controller.toggleRecording();
+        expect(controller.lastSessionExport!.reactionCount, 3);
+      },
+    );
   });
 
   group('Presentation Widgets Tests', () {
-    testWidgets('AudioLevelMeter renders correct colors based on threshold', (tester) async {
+    testWidgets('AudioLevelMeter renders correct colors based on threshold', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: AudioLevelMeter(level: 0.10),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: AudioLevelMeter(level: 0.10))),
       );
       expect(find.byKey(const Key('audio_level_meter')), findsOneWidget);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: AudioLevelMeter(level: 0.50),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: AudioLevelMeter(level: 0.50))),
       );
       expect(find.byKey(const Key('audio_level_meter')), findsOneWidget);
     });
 
-    testWidgets('ParticipantVideoTile renders camera feed and avatar fallback', (tester) async {
-      final participantVideoOn = Participant(
-        id: 'peer_1',
-        name: 'Alex Sousa',
-        ra: '24802449',
-        isVideoOff: false,
-      );
+    testWidgets(
+      'ParticipantVideoTile renders camera feed and avatar fallback',
+      (tester) async {
+        final participantVideoOn = Participant(
+          id: 'peer_1',
+          name: 'Alex Sousa',
+          ra: '24802449',
+          isVideoOff: false,
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ParticipantVideoTile(participant: participantVideoOn),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ParticipantVideoTile(participant: participantVideoOn),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byKey(const Key('participant_tile_peer_1')), findsOneWidget);
-      expect(find.byKey(const Key('camera_feed_peer_1')), findsOneWidget);
-      expect(find.text('Alex Sousa (24802449)'), findsOneWidget);
+        expect(
+          find.byKey(const Key('participant_tile_peer_1')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('camera_feed_peer_1')), findsOneWidget);
+        expect(find.text('Alex Sousa (24802449)'), findsOneWidget);
 
-      final participantVideoOff = participantVideoOn.copyWith(
-        isVideoOff: true,
-        isHandRaised: true,
-        isSpeaking: true,
-      );
+        final participantVideoOff = participantVideoOn.copyWith(
+          isVideoOff: true,
+          isHandRaised: true,
+          isSpeaking: true,
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ParticipantVideoTile(participant: participantVideoOff),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ParticipantVideoTile(participant: participantVideoOff),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byKey(const Key('avatar_peer_1')), findsOneWidget);
-      expect(find.byKey(const Key('hand_raised_icon_peer_1')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('avatar_peer_1')), findsOneWidget);
+        expect(
+          find.byKey(const Key('hand_raised_icon_peer_1')),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('DynamicVideoGrid adapts to count and screen share mode', (tester) async {
+    testWidgets('DynamicVideoGrid adapts to count and screen share mode', (
+      tester,
+    ) async {
       final p1 = Participant(id: 'p1', name: 'User 1', ra: '11111');
       final p2 = Participant(id: 'p2', name: 'User 2', ra: '22222');
 
       // Empty
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: DynamicVideoGrid(participants: []),
-          ),
+          home: Scaffold(body: DynamicVideoGrid(participants: [])),
         ),
       );
       expect(find.text('Nenhum participante conectado'), findsOneWidget);
@@ -484,9 +563,7 @@ void main() {
       // N = 1
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: DynamicVideoGrid(participants: [p1]),
-          ),
+          home: Scaffold(body: DynamicVideoGrid(participants: [p1])),
         ),
       );
       expect(find.byType(ParticipantVideoTile), findsOneWidget);
@@ -494,9 +571,7 @@ void main() {
       // N = 2
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: DynamicVideoGrid(participants: [p1, p2]),
-          ),
+          home: Scaffold(body: DynamicVideoGrid(participants: [p1, p2])),
         ),
       );
       expect(find.byType(ParticipantVideoTile), findsNWidgets(2));
@@ -505,7 +580,10 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: DynamicVideoGrid(participants: [p1, p2], isScreenSharing: true),
+            body: DynamicVideoGrid(
+              participants: [p1, p2],
+              isScreenSharing: true,
+            ),
           ),
         ),
       );
@@ -516,9 +594,7 @@ void main() {
     testWidgets('ScreenShareView renders title and icon', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: ScreenShareView(presenterName: 'Prof. Alex'),
-          ),
+          home: Scaffold(body: ScreenShareView(presenterName: 'Prof. Alex')),
         ),
       );
       expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
@@ -536,9 +612,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: FloatingReactionsOverlay(reactions: [reaction]),
-          ),
+          home: Scaffold(body: FloatingReactionsOverlay(reactions: [reaction])),
         ),
       );
       expect(find.byKey(const Key('reaction_item_r1')), findsOneWidget);
@@ -555,9 +629,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: RaisedHandsBanner(queue: [item]),
-          ),
+          home: Scaffold(body: RaisedHandsBanner(queue: [item])),
         ),
       );
       expect(find.byKey(const Key('raised_hands_banner')), findsOneWidget);
@@ -567,97 +639,140 @@ void main() {
   });
 
   group('Presentation Pages Tests', () {
-    testWidgets('VideoCallLobbyPage renders form, preview, and submits onJoin', (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1280, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+    testWidgets(
+      'VideoCallLobbyPage renders form, preview, and submits onJoin',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1280, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final bridge = AcademicBridgeService.instance;
+        AppUserSession.instance.signIn(
+          identity: 'DOC-88410',
+          profile: 'docente',
+        );
+        _closeOwnedSession(bridge, 'APS-II');
+        bridge.openSession(
+          rawCourseCode: 'APS-II',
+          openedByRole: 'docente',
+          openedByName: 'Profa. Dra. Helena Bittencourt',
+          openedByIdentity: 'DOC-88410',
+        );
+        AppUserSession.instance.signIn(
+          identity: '2024.1.00892',
+          profile: 'aluno',
+        );
+        addTearDown(AppUserSession.instance.signOut);
+        addTearDown(() => _closeOwnedSession(bridge, 'APS-II'));
 
-      String? submittedName;
-      String? submittedRa;
-      String? submittedRoom;
+        String? submittedName;
+        String? submittedRa;
+        String? submittedRoom;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: VideoCallLobbyPage(
-            onJoin: (name, ra, room, muted, videoOff) {
-              submittedName = name;
-              submittedRa = ra;
-              submittedRoom = room;
-            },
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: '/video-call',
+            onGenerateInitialRoutes: (initialRoute) => [
+              MaterialPageRoute<void>(
+                settings: RouteSettings(name: initialRoute),
+                builder: (_) => VideoCallLobbyPage(
+                  initialRoomCode: 'APS-II',
+                  onJoin: (name, ra, room, muted, videoOff) {
+                    submittedName = name;
+                    submittedRa = ra;
+                    submittedRoom = room;
+                  },
+                ),
+              ),
+            ],
+            onGenerateRoute: (_) => MaterialPageRoute<void>(
+              builder: (_) => const SizedBox.shrink(),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byKey(const Key('lobby_camera_preview')), findsOneWidget);
-      expect(find.byKey(const Key('lobby_name_field')), findsOneWidget);
-      expect(find.byKey(const Key('lobby_ra_field')), findsOneWidget);
-      expect(find.byKey(const Key('lobby_room_code_field')), findsOneWidget);
+        expect(find.byKey(const Key('lobby_camera_preview')), findsOneWidget);
+        expect(find.byKey(const Key('lobby_name_field')), findsOneWidget);
+        expect(find.byKey(const Key('lobby_ra_field')), findsOneWidget);
+        expect(find.byKey(const Key('lobby_room_code_field')), findsOneWidget);
 
-      await tester.enterText(find.byKey(const Key('lobby_name_field')), 'Alex Sousa');
-      await tester.enterText(find.byKey(const Key('lobby_ra_field')), '24802449');
-      await tester.enterText(find.byKey(const Key('lobby_room_code_field')), 'SALA-101');
-      await tester.pump();
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('lobby_join_button')));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('lobby_join_button')));
-      await tester.pump();
+        expect(submittedName, '2024.1.00892');
+        expect(submittedRa, '2024.1.00892');
+        expect(submittedRoom, 'APS-II');
+      },
+    );
 
-      expect(submittedName, 'Alex Sousa');
-      expect(submittedRa, '24802449');
-      expect(submittedRoom, 'SALA-101');
-    });
+    testWidgets(
+      'VideoCallRoomPage renders grid, toolbar, and handles drawers',
+      (tester) async {
+        final fakeRepo = FakeDomainVideoCallRepository();
+        final room = MeetingRoom(
+          id: 'SALA-101',
+          code: 'SALA-101',
+          title: 'Sala 101',
+        );
+        final localUser = Participant(
+          id: 'peer_local',
+          name: 'Alex Sousa',
+          ra: '24802449',
+          isLocal: true,
+        );
+        final controller = VideoCallController(
+          repository: fakeRepo,
+          room: room,
+          localParticipant: localUser,
+        );
 
-    testWidgets('VideoCallRoomPage renders grid, toolbar, and handles drawers', (tester) async {
-      final fakeRepo = FakeDomainVideoCallRepository();
-      final room = MeetingRoom(id: 'SALA-101', code: 'SALA-101', title: 'Sala 101');
-      final localUser = Participant(
-        id: 'peer_local',
-        name: 'Alex Sousa',
-        ra: '24802449',
-        isLocal: true,
-      );
-      final controller = VideoCallController(
-        repository: fakeRepo,
-        room: room,
-        localParticipant: localUser,
-      );
+        await tester.pumpWidget(
+          MaterialApp(home: VideoCallRoomPage(controller: controller)),
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: VideoCallRoomPage(controller: controller),
-        ),
-      );
+        expect(
+          find.byKey(const Key('meeting_controls_toolbar')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('participant_tile_peer_local')),
+          findsOneWidget,
+        );
+        expect(find.text('Sala 101 (SALA-101)'), findsOneWidget);
 
-      expect(find.byKey(const Key('meeting_controls_toolbar')), findsOneWidget);
-      expect(find.byKey(const Key('participant_tile_peer_local')), findsOneWidget);
-      expect(find.text('Sala 101 (SALA-101)'), findsOneWidget);
+        // Open Chat Drawer
+        await tester.tap(find.byKey(const Key('toolbar_chat_button')));
+        await tester.pump();
+        expect(find.byKey(const Key('in_call_chat_drawer')), findsOneWidget);
 
-      // Open Chat Drawer
-      await tester.tap(find.byKey(const Key('toolbar_chat_button')));
-      await tester.pump();
-      expect(find.byKey(const Key('in_call_chat_drawer')), findsOneWidget);
+        // Close Chat Drawer
+        await tester.tap(find.byKey(const Key('close_chat_drawer_button')));
+        await tester.pump();
+        expect(find.byKey(const Key('in_call_chat_drawer')), findsNothing);
 
-      // Close Chat Drawer
-      await tester.tap(find.byKey(const Key('close_chat_drawer_button')));
-      await tester.pump();
-      expect(find.byKey(const Key('in_call_chat_drawer')), findsNothing);
+        // Open Participants Drawer
+        await tester.tap(find.byKey(const Key('toolbar_participants_button')));
+        await tester.pump();
+        expect(find.byKey(const Key('participants_drawer')), findsOneWidget);
 
-      // Open Participants Drawer
-      await tester.tap(find.byKey(const Key('toolbar_participants_button')));
-      await tester.pump();
-      expect(find.byKey(const Key('participants_drawer')), findsOneWidget);
+        // Close Participants Drawer
+        await tester.tap(
+          find.byKey(const Key('close_participants_drawer_button')),
+        );
+        await tester.pump();
+        expect(find.byKey(const Key('participants_drawer')), findsNothing);
 
-      // Close Participants Drawer
-      await tester.tap(find.byKey(const Key('close_participants_drawer_button')));
-      await tester.pump();
-      expect(find.byKey(const Key('participants_drawer')), findsNothing);
+        // Toggle recording shows banner and REC timer badge
+        controller.toggleRecording();
+        await tester.pump();
+        expect(
+          find.byKey(const Key('institutional_recording_banner')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
 
-      // Toggle recording shows banner and REC timer badge
-      controller.toggleRecording();
-      await tester.pump();
-      expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
-      expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
-
-      controller.dispose();
-      await fakeRepo.dispose();
-    });
+        controller.dispose();
+        await fakeRepo.dispose();
+      },
+    );
   });
 }
