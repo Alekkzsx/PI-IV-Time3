@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../../../core/state/academic_bridge_service.dart';
 import '../../../../../core/state/app_user_session.dart';
+import '../../../shared/data/student_mock_data.dart';
 import '../../domain/entities/academic_record_summary.dart';
 import '../../domain/entities/protocol_request.dart';
 
@@ -91,7 +92,10 @@ class StudentSecretariatController extends ChangeNotifier {
     String justification = '',
     String? attachmentName,
   }) {
-    if (!AppUserSession.instance.hasPermission('submit_protocols')) {
+    if (!AppUserSession.instance.hasPermission('submit_protocols') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        )) {
       debugPrint(
         '[StudentSecretariat] Abertura de protocolo negada para o perfil atual.',
       );

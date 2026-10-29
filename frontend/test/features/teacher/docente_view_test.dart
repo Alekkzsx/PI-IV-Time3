@@ -12,6 +12,7 @@ import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controll
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_event.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/settings/presentation/pages/docente_settings_tab.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
@@ -48,6 +49,39 @@ void main() {
       expect(otherTeacherController.courses, isEmpty);
       expect(otherTeacherController.assignments, isEmpty);
       expect(otherTeacherController.studentsForSelectedCourse, isEmpty);
+    });
+
+    test('Student cannot mutate the teacher diary or create an assignment', () {
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00892',
+        profile: 'aluno',
+      );
+      final attendanceBefore = controller.currentSession.attendanceList;
+      final assignmentCountBefore = controller.assignments.length;
+
+      controller.markAllPresent();
+      final created = controller.createAssignment(
+        courseId: controller.courses.first.id,
+        courseCode: controller.courses.first.code,
+        title: 'Atividade indevida',
+        weight: 1,
+        stage: 'N1',
+        dueDateFormatted: '30/11/2026 às 23:59',
+        modality: 'Individual',
+        allowLateWithPenalty: false,
+        rubricCriteria: const [
+          RubricCriterion(
+            id: 'rubric',
+            title: 'Critério',
+            maxPoints: 10,
+            description: 'Critério de teste.',
+          ),
+        ],
+      );
+
+      expect(created, isFalse);
+      expect(controller.assignments.length, assignmentCountBefore);
+      expect(controller.currentSession.attendanceList, attendanceBefore);
     });
 
     test('Gradebook only returns records for the selected course', () {

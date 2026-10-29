@@ -88,6 +88,18 @@ void main() {
       expect(controller.protocols.first.protocolCode, 'PROT-2026/8836');
     });
 
+    test('Perfil docente não pode criar protocolo de aluno', () {
+      final controller = StudentSecretariatController();
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+
+      controller.addProtocolRequest(
+        subjectType: 'Segunda Chamada de Prova',
+        componentObject: 'Cálculo Numérico',
+      );
+
+      expect(controller.protocols, hasLength(1));
+    });
+
     testWidgets(
       'Renderiza Secretaria Virtual & Requerimentos, Prontuário e Tabela de Protocolos',
       (tester) async {

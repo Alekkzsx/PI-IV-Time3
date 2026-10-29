@@ -82,12 +82,29 @@ void main() {
       expect(controller.events.first.title, 'Plantão Extra de Dúvidas GoF');
     });
 
+    test('Aluno sem vínculo com os dados demo não altera o calendário', () {
+      final controller = StudentPortalController();
+      final initialCount = controller.events.length;
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00001',
+        profile: 'aluno',
+      );
+
+      controller.addCalendarEvent(
+        title: 'Evento sem vínculo',
+        date: '2026-10-28',
+        time: '18:00',
+        type: 'Aula',
+        discipline: 'APS-II',
+        location: 'Sala Virtual',
+      );
+
+      expect(controller.events, hasLength(initialCount));
+    });
+
     test('Protocolar submissão de atividade gera protocolo e muda status', () {
       final controller = StudentPortalController();
-      AppUserSession.instance.signIn(
-        identity: 'DOC-88410',
-        profile: 'docente',
-      );
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
       DocenteController();
       AppUserSession.instance.signIn(
         identity: StudentMockData.studentRa,

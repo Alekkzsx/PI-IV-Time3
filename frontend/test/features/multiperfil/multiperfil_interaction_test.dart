@@ -125,6 +125,13 @@ void main() {
         openedByIdentity: teacherIdentity,
       );
 
+      AppUserSession.instance.signIn(
+        identity: studentIdentity,
+        profile: 'aluno',
+      );
+      expect(bridge.closeSession('APS-II'), isFalse);
+      expect(bridge.isSessionOpen('APS-II'), isTrue);
+
       expect(
         bridge.canUserJoinSession(
           role: 'aluno',
@@ -141,6 +148,11 @@ void main() {
         ),
         isFalse,
       );
+      AppUserSession.instance.signIn(
+        identity: teacherIdentity,
+        profile: 'docente',
+      );
+      expect(bridge.closeSession('APS-II'), isTrue);
       expect(
         bridge.canUserJoinSession(
           role: 'aluno',
@@ -593,7 +605,7 @@ void main() {
 
           // Docente publica aviso de prova
           docenteController.publishNotice(
-            targetCourse: 'APS-II',
+            targetCourse: docenteController.courses.first.code,
             targetAudience: 'Todos os discentes da turma',
             classification: NoticeClassification.informativo,
             title: 'Revisão Geral para Avaliação N2',

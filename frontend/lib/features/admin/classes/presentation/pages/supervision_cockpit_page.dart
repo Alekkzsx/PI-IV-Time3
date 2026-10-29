@@ -1,6 +1,8 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
@@ -34,6 +36,14 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     'Fechamento de Pauta & Homologação',
   ];
 
+  static const List<IconData> _tabIcons = [
+    Icons.rule_rounded,
+    Icons.fact_check_outlined,
+    Icons.person_search_outlined,
+    Icons.groups_2_outlined,
+    Icons.lock_outline_rounded,
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -52,16 +62,33 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCockpitHeader(),
-          const SizedBox(height: 20),
-          _buildTabBar(),
-          const SizedBox(height: 24),
-          _buildActiveTabContent(),
-        ],
+    return Container(
+      color: InstColors.stone,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1440),
+                child: DefaultTextStyle(
+                  style: jakarta(size: 13, color: InstColors.ink),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildCockpitHeader(),
+                      const SizedBox(height: 16),
+                      _buildTabBar(),
+                      const SizedBox(height: 16),
+                      _buildActiveTabContent(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -73,27 +100,46 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 12,
+            spacing: 12,
             children: [
               OutlinedButton.icon(
                 onPressed: widget.onBack,
-                icon: const Icon(Icons.arrow_back, size: 16),
+                icon: const Icon(Icons.arrow_back_rounded, size: 16),
                 label: const Text('Voltar para Gestão de Turmas'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF18181B),
-                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  foregroundColor: InstColors.ink,
+                  side: const BorderSide(color: InstColors.borderStrong),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(9),
+                  ),
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   AnimatedBuilder(
                     animation: AcademicBridgeService.instance,
@@ -113,75 +159,62 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                               }
                             : null,
                         icon: Icon(
-                          isLive ? Icons.videocam : Icons.video_call_outlined,
-                          size: 16,
-                          color: Colors.white,
+                          isLive
+                              ? Icons.videocam_rounded
+                              : Icons.video_call_outlined,
+                          size: 17,
                         ),
                         label: Text(
                           isLive
-                              ? 'Supervisionar Ao Vivo'
-                              : 'Abrir Videochamada (Admin)',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              ? 'Supervisionar ao vivo'
+                              : 'Abrir videochamada',
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isLive
-                              ? const Color(0xFF16A34A)
-                              : const Color(0xFF0F172A),
+                              ? InstColors.live
+                              : InstColors.ink,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                            horizontal: 15,
+                            vertical: 13,
+                          ),
+                          textStyle: jakarta(
+                            size: 12,
+                            weight: FontWeight.w600,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(9),
                           ),
                         ),
                       );
                     },
                   ),
-                  const SizedBox(width: 10),
-                  Chip(
-                    label: Text(
-                      _controller.isGradeLockedFor(widget.classModel.code)
-                          ? 'PAUTA LACRADA & HOMOLOGADA'
-                          : 'EM AUDITORIA ACADÊMICA',
-                      style: TextStyle(
-                        color:
-                            _controller.isGradeLockedFor(widget.classModel.code)
-                            ? const Color(0xFF16A34A)
-                            : const Color(0xFF2563EB),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  _buildStatusBadge(
+                    isLocked: _controller.isGradeLockedFor(
+                      widget.classModel.code,
                     ),
-                    backgroundColor:
-                        _controller.isGradeLockedFor(widget.classModel.code)
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFDBEAFE),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 50,
-                height: 50,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(10),
+                  color: InstColors.ink,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
                 child: const Icon(
-                  Icons.analytics_outlined,
+                  Icons.account_balance_outlined,
                   color: Colors.white,
-                  size: 26,
+                  size: 25,
                 ),
               ),
               const SizedBox(width: 16),
@@ -190,40 +223,63 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Supervisão: ${widget.classModel.subjectName}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF18181B),
+                      'SUPERVISÃO ACADÊMICA',
+                      style: jakarta(
+                        size: 10,
+                        weight: FontWeight.w700,
+                        color: InstColors.muted,
+                        letterSpacing: 1.1,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 5),
                     Text(
-                      'Código: ${widget.classModel.code} • ${widget.classModel.courseAndTerm} • ${widget.classModel.location}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
+                      widget.classModel.subjectName,
+                      style: jakarta(
+                        size: 21,
+                        weight: FontWeight.w700,
+                        color: InstColors.ink,
+                        height: 1.25,
                       ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      '${widget.classModel.code}  ·  ${widget.classModel.courseAndTerm}',
+                      style: jakarta(
+                        size: 12,
+                        weight: FontWeight.w500,
+                        color: InstColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.classModel.location,
+                      style: jakarta(size: 12, color: InstColors.muted),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
-          Row(
+          const SizedBox(height: 22),
+          const Divider(height: 1, color: InstColors.border),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              _buildHeaderStat('Docente Regente', widget.classModel.professor),
-              const SizedBox(width: 32),
               _buildHeaderStat(
-                'Ocupação de Vagas',
+                Icons.person_outline_rounded,
+                'Docente regente',
+                widget.classModel.professor,
+              ),
+              _buildHeaderStat(
+                Icons.groups_outlined,
+                'Ocupação de vagas',
                 '${widget.classModel.enrolled} / ${widget.classModel.maxCapacity} alunos',
               ),
-              const SizedBox(width: 32),
               _buildHeaderStat(
-                'Regime Vigente',
+                Icons.rule_rounded,
+                'Regime vigente',
                 widget.classModel.formulaRegime,
               ),
             ],
@@ -233,24 +289,77 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     );
   }
 
-  Widget _buildHeaderStat(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF0F172A),
+  Widget _buildStatusBadge({required bool isLocked}) {
+    final color = isLocked ? InstColors.success : const Color(0xFF525252);
+    final background = isLocked
+        ? InstColors.successBg
+        : InstColors.stoneActive;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isLocked ? Icons.verified_outlined : Icons.visibility_outlined,
+            size: 14,
+            color: color,
           ),
-        ),
-      ],
+          const SizedBox(width: 7),
+          Text(
+            isLocked ? 'Pauta homologada' : 'Em auditoria acadêmica',
+            style: jakarta(size: 11, weight: FontWeight.w600, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderStat(IconData icon, String label, String value) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 190, maxWidth: 320),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: InstColors.hoverSurface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: InstColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 17, color: InstColors.muted),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: jakarta(
+                    size: 10,
+                    weight: FontWeight.w600,
+                    color: InstColors.muted,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: jakarta(
+                    size: 12,
+                    weight: FontWeight.w600,
+                    color: InstColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -258,35 +367,62 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   // BARRA DE ABAS DE SUPERVISÃO (5 ABAS)
   // ==========================================
   Widget _buildTabBar() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(_tabs.length, (index) {
-          final isSelected = _controller.supervisionTabIndex == index;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ChoiceChip(
-              label: Text(_tabs[index]),
-              selected: isSelected,
-              onSelected: (_) => _controller.setSupervisionTab(index),
-              selectedColor: const Color(0xFF0F172A),
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF334155),
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              ),
-              side: BorderSide(
-                color: isSelected
-                    ? const Color(0xFF0F172A)
-                    : const Color(0xFFE2E8F0),
-              ),
-              shape: RoundedRectangleBorder(
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: InstColors.border),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(_tabs.length, (index) {
+            final isSelected = _controller.supervisionTabIndex == index;
+            return Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Material(
+                color: isSelected ? InstColors.ink : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _controller.setSupervisionTab(index),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _tabIcons[index],
+                          size: 16,
+                          color: isSelected
+                              ? Colors.white
+                              : InstColors.muted,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _tabs[index],
+                          style: jakarta(
+                            size: 11,
+                            weight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : InstColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }

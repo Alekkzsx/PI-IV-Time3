@@ -22,6 +22,7 @@ class RolePermissionPolicy {
     },
     'publish_announcements': {student: false, teacher: false, admin: true},
     'manage_personal_calendar': {student: true, teacher: false, admin: false},
+    'participate_course_forum': {student: true, teacher: false, admin: false},
     'manage_course_calendar': {student: false, teacher: true, admin: false},
     'submit_protocols': {student: true, teacher: false, admin: false},
     'manage_users': {student: false, teacher: false, admin: true},

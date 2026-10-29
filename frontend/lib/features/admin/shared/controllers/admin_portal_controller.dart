@@ -211,10 +211,7 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   void setSupervisionTab(int index) {
-    if (!canPerform('view_class_grades') ||
-        activeSupervisedClass == null ||
-        index < 0 ||
-        index > 4) {
+    if (!canPerform('view_class_grades') || index < 0 || index > 4) {
       _denyPermission('view_class_grades');
       return;
     }

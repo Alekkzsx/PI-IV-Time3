@@ -188,7 +188,10 @@ class StudentPortalController extends ChangeNotifier {
     required String discipline,
     required String location,
   }) {
-    if (!AppUserSession.instance.hasPermission('manage_personal_calendar')) {
+    if (!AppUserSession.instance.hasPermission('manage_personal_calendar') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        )) {
       return;
     }
     events.insert(
@@ -447,7 +450,10 @@ class StudentPortalController extends ChangeNotifier {
     String? gitUrl,
     String? comments,
   }) {
-    if (!AppUserSession.instance.hasPermission('submit_assignments')) {
+    if (!AppUserSession.instance.hasPermission('submit_assignments') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        )) {
       debugPrint('[StudentPortal] Submissão negada para o perfil atual.');
       return '';
     }
@@ -558,6 +564,12 @@ class StudentPortalController extends ChangeNotifier {
   }
 
   void toggleTwoFactor() {
+    if (!AppUserSession.instance.hasRole('aluno') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        )) {
+      return;
+    }
     isTwoFactorEnabled = !isTwoFactorEnabled;
     notifyListeners();
   }
@@ -597,16 +609,30 @@ class StudentPortalController extends ChangeNotifier {
   }
 
   void postForumTopic(String title, String description) {
+    if (!AppUserSession.instance.hasPermission('participate_course_forum') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        ) ||
+        title.trim().isEmpty ||
+        description.trim().isEmpty) {
+      return;
+    }
     forumTopics.insert(0, {
       'autor': StudentMockData.studentName,
       'tempo': 'Agora mesmo',
-      'titulo': title,
+      'titulo': title.trim(),
       'respostas': '0 respostas (Aguardando monitoria)',
     });
     notifyListeners();
   }
 
   void updatePersonalNotes(String text) {
+    if (!AppUserSession.instance.hasRole('aluno') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        )) {
+      return;
+    }
     studentPersonalNotes = text;
     notifyListeners();
   }

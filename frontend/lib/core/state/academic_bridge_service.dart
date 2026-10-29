@@ -492,8 +492,10 @@ class AcademicBridgeService extends ChangeNotifier {
     String? attachmentName,
   }) {
     if (!AppUserSession.instance.hasPermission('submit_protocols') ||
+        !StudentMockData.ownsDemoRecords(
+          AppUserSession.instance.identity ?? '',
+        ) ||
         studentRa != StudentMockData.studentRa ||
-        !StudentMockData.ownsDemoRecords(studentRa) ||
         protocolCode.trim().isEmpty) {
       debugPrint('[AcademicBridge] Protocolo recusado para o perfil atual.');
       return;
