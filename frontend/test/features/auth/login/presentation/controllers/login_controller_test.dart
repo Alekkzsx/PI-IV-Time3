@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/auth/login/domain/usecases/login_usecase.dart';
 import 'package:pi_iv_time3/features/auth/login/presentation/controllers/login_controller.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
@@ -57,6 +58,7 @@ void main() {
   late LoginController controller;
 
   setUp(() {
+    AppUserSession.instance.signOut();
     repository = FakeAuthRepository();
     useCase = LoginUseCase(repository);
     controller = LoginController(loginUseCase: useCase);
@@ -82,6 +84,8 @@ void main() {
     expect(controller.isSuccess, true);
     expect(controller.isLoading, false);
     expect(controller.errorMessage, null);
+    expect(AppUserSession.instance.identity, 'ADM-00123');
+    expect(AppUserSession.instance.role, 'admin');
   });
 
   test('Deve capturar e expor erro quando usecase falhar', () async {

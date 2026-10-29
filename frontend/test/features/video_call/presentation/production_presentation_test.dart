@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/chat_message.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/emoji_reaction.dart';
@@ -631,11 +632,17 @@ void main() {
         await tester.binding.setSurfaceSize(const Size(1280, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final bridge = AcademicBridgeService.instance;
+        AppUserSession.instance.signIn(
+          identity: '2024.1.00892',
+          profile: 'aluno',
+        );
+        addTearDown(AppUserSession.instance.signOut);
         bridge.closeSession('APS-II');
         bridge.openSession(
           rawCourseCode: 'APS-II',
           openedByRole: 'docente',
           openedByName: 'Profa. Dra. Helena Bittencourt',
+          openedByIdentity: 'DOC-88410',
         );
         addTearDown(() => bridge.closeSession('APS-II'));
 
@@ -648,16 +655,9 @@ void main() {
             initialRoute: '/video-call',
             onGenerateInitialRoutes: (initialRoute) => [
               MaterialPageRoute<void>(
-                settings: RouteSettings(
-                  name: initialRoute,
-                  arguments: const {
-                    'name': 'Alex Sousa',
-                    'ra': '2024.1.00892',
-                    'roomCode': 'APS-II',
-                    'role': 'aluno',
-                  },
-                ),
+                settings: RouteSettings(name: initialRoute),
                 builder: (_) => VideoCallLobbyPage(
+                  initialRoomCode: 'APS-II',
                   onJoin: (name, ra, room, muted, videoOff) {
                     submittedName = name;
                     submittedRa = ra;
@@ -681,7 +681,7 @@ void main() {
         await tester.tap(find.byKey(const Key('lobby_join_button')));
         await tester.pumpAndSettle();
 
-        expect(submittedName, 'Alex Sousa');
+        expect(submittedName, '2024.1.00892');
         expect(submittedRa, '2024.1.00892');
         expect(submittedRoom, 'APS-II');
       },

@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import '../../../../core/state/app_user_session.dart';
 import '../../../../core/state/academic_bridge_service.dart';
 import '../data/docente_mock_data.dart';
 import '../domain/models/academic_event.dart';
@@ -88,12 +89,25 @@ class DocenteController extends ChangeNotifier {
   };
 
   DocenteController() {
-    _courses = List.from(DocenteMockData.initialCourses);
-    _sessions = List.from(DocenteMockData.defaultSessions);
+    final identity =
+        AppUserSession.instance.identity ??
+        DocenteMockData.initialTeacherIdentity;
+    _courses = DocenteMockData.coursesForIdentity(identity);
+    _selectedCourseId = _courses.isNotEmpty ? _courses.first.id : '';
+    final assignedCourseIds = _courses.map((course) => course.id).toSet();
+    _sessions = DocenteMockData.defaultSessions
+        .where((session) => assignedCourseIds.contains(session.courseId))
+        .toList();
     _assignments = _addMissingAssignmentSubmissions(
-      DocenteMockData.initialAssignments,
+      DocenteMockData.initialAssignments
+          .where(
+            (assignment) => assignedCourseIds.contains(assignment.courseId),
+          )
+          .toList(),
     );
-    _gradebook = List.from(DocenteMockData.initialGradebook);
+    _gradebook = DocenteMockData.initialGradebook
+        .where((grade) => assignedCourseIds.contains(grade.courseId))
+        .toList();
     _events = List.from(DocenteMockData.initialEvents);
     _notices = List.from(DocenteMockData.initialNotices);
     _currentSession = _sessions.firstWhere(
@@ -105,11 +119,9 @@ class DocenteController extends ChangeNotifier {
     );
 
     // Registro da ponte institucional para receber submissões e arquivos do Aluno
-    AcademicBridgeService.instance.onDocenteSubmissionReceived = (
-      assignmentId,
-      courseCode,
-      submission,
-    ) {
+    AcademicBridgeService
+        .instance
+        .onDocenteSubmissionReceived = (assignmentId, courseCode, submission) {
       final asgIndex = _assignments.indexWhere(
         (assignment) =>
             assignment.id == assignmentId &&
@@ -131,9 +143,13 @@ class DocenteController extends ChangeNotifier {
         );
         final exists = assignment.submissions.any((s) => s.ra == submission.ra);
         final updatedSubmissions = exists
-            ? assignment.submissions.map((s) => s.ra == submission.ra ? enrolledSubmission : s).toList()
+            ? assignment.submissions
+                  .map((s) => s.ra == submission.ra ? enrolledSubmission : s)
+                  .toList()
             : [enrolledSubmission, ...assignment.submissions];
-        _assignments[asgIndex] = assignment.copyWith(submissions: updatedSubmissions);
+        _assignments[asgIndex] = assignment.copyWith(
+          submissions: updatedSubmissions,
+        );
         notifyListeners();
         return true;
       }
@@ -148,13 +164,10 @@ class DocenteController extends ChangeNotifier {
       final roster = _sessions
           .where((session) => session.courseId == assignment.courseId)
           .expand((session) => session.attendanceList)
-          .fold<Map<String, AttendanceStudent>>(
-            {},
-            (students, student) {
-              students[student.studentId] = student;
-              return students;
-            },
-          )
+          .fold<Map<String, AttendanceStudent>>({}, (students, student) {
+            students[student.studentId] = student;
+            return students;
+          })
           .values;
       final existingByStudent = {
         for (final submission in assignment.submissions)
@@ -201,9 +214,12 @@ class DocenteController extends ChangeNotifier {
     return studentsByRa.values.toList()
       ..sort((first, second) => first.name.compareTo(second.name));
   }
+
   List<AssignmentItem> get assignments => List.unmodifiable(_assignments);
   String get selectedAssignmentId => _selectedAssignmentId;
-  List<StudentGrade> get gradebook => List.unmodifiable(_gradebook);
+  List<StudentGrade> get gradebook => List.unmodifiable(
+    _gradebook.where((grade) => grade.courseId == _selectedCourseId),
+  );
   List<AcademicEvent> get events => List.unmodifiable(_events);
   List<AcademicNotice> get notices => List.unmodifiable(_notices);
   DocenteProfile get profile => _profile;
@@ -534,6 +550,12 @@ class DocenteController extends ChangeNotifier {
   }
 
   void toggleAttendance(String studentId, AttendanceStatus newStatus) {
+    if (_courses.isEmpty ||
+        !_currentSession.attendanceList.any(
+          (record) => record.studentId == studentId,
+        )) {
+      return;
+    }
     final updatedAttendance = _currentSession.attendanceList.map((record) {
       if (record.studentId == studentId) {
         return _attendanceWithStatus(record, newStatus);
@@ -550,6 +572,9 @@ class DocenteController extends ChangeNotifier {
   }
 
   void homologateSession() {
+    if (_courses.isEmpty || _currentSession.courseId != _selectedCourseId) {
+      return;
+    }
     _currentSession = _currentSession.copyWith(isHomologated: true);
     _syncSessionInList();
 
@@ -557,13 +582,17 @@ class DocenteController extends ChangeNotifier {
     AcademicBridgeService.instance.registerAttendanceHomologation(
       courseCode: selectedCourse.code,
       sessionDate: _currentSession.date?.toIso8601String() ?? 'Hoje',
-      attendances: _currentSession.attendanceList.map((att) => {
-        'ra': att.ra,
-        'studentName': att.name,
-        'status': att.status.name,
-        'accumulatedAbsences': att.accumulatedAbsences,
-        'attendanceRate': att.attendanceRate,
-      }).toList(),
+      attendances: _currentSession.attendanceList
+          .map(
+            (att) => {
+              'ra': att.ra,
+              'studentName': att.name,
+              'status': att.status.name,
+              'accumulatedAbsences': att.accumulatedAbsences,
+              'attendanceRate': att.attendanceRate,
+            },
+          )
+          .toList(),
     );
 
     notifyListeners();
@@ -714,6 +743,8 @@ class DocenteController extends ChangeNotifier {
     double? projects,
     double? p2,
   }) {
+    if (!gradebook.any((grade) => grade.studentId == studentId)) return;
+
     double? normalize(double? value) {
       if (value == null || !value.isFinite) return null;
       return value.clamp(0.0, 10.0).toDouble();
@@ -905,7 +936,8 @@ class DocenteController extends ChangeNotifier {
       title: title.trim(),
       content: message.trim(),
       senderRole: 'docente',
-      senderName: 'Profa. Helena Bittencourt (${recipientCourse?.code ?? targetCourse})',
+      senderName:
+          'Profa. Helena Bittencourt (${recipientCourse?.code ?? targetCourse})',
       targetCourse: recipientCourse?.code ?? targetCourse,
     );
 

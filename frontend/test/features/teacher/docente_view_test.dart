@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/pages/docente_course_hub_page.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/pages/docente_assignments_tab.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/widgets/docente_submissions_table.dart';
@@ -35,6 +36,28 @@ void main() {
         expect(controller.profile.twoFactorEnabled, isTrue);
       },
     );
+
+    test('Course records are scoped to the signed-in teacher', () {
+      AppUserSession.instance.signIn(identity: 'DOC-88392', profile: 'docente');
+      addTearDown(AppUserSession.instance.signOut);
+      final otherTeacherController = DocenteController();
+      addTearDown(otherTeacherController.dispose);
+
+      expect(otherTeacherController.courses, isEmpty);
+      expect(otherTeacherController.assignments, isEmpty);
+      expect(otherTeacherController.studentsForSelectedCourse, isEmpty);
+    });
+
+    test('Gradebook only returns records for the selected course', () {
+      final apsStudent = controller.gradebook.first;
+      controller.selectCourse('course-bd2');
+
+      expect(controller.gradebook, isEmpty);
+      controller.updateStudentGrade(apsStudent.studentId, p1: 1.0);
+
+      controller.selectCourse('course-aps2');
+      expect(controller.gradebook.first.p1Score, apsStudent.p1Score);
+    });
 
     test('Each assignment includes every student in its course roster', () {
       for (final assignment in controller.assignments) {

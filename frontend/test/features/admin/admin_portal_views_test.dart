@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/pages/audit_page.dart';
 import 'package:pi_iv_time3/features/admin/calendar/presentation/pages/calendar_page.dart';
 import 'package:pi_iv_time3/features/admin/classes/presentation/pages/classes_page.dart';
@@ -11,10 +12,42 @@ import 'package:pi_iv_time3/features/admin/dashboard/presentation/pages/painel_g
 import 'package:pi_iv_time3/features/admin/secretary/presentation/pages/secretary_page.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
 
 void main() {
   group('AdminPortalController Unit Tests', () {
+    testWidgets('Admin genérico não inicia com privilégios de Super Admin', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1440, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      AppUserSession.instance.signOut();
+      final controller = AdminPortalController.instance;
+      controller.setCurrentOperatorRole('Super Admin');
+
+      await tester.pumpWidget(const MaterialApp(home: AdminShellPage()));
+
+      expect(controller.currentOperatorRole, 'Admin Operacional');
+      expect(controller.canPerform('manage_users'), isTrue);
+      expect(controller.canPerform('system_settings_2fa'), isFalse);
+    });
+
+    testWidgets('Somente o registro Super Admin recebe privilégios elevados', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1440, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
+      addTearDown(AppUserSession.instance.signOut);
+
+      await tester.pumpWidget(const MaterialApp(home: AdminShellPage()));
+
+      final controller = AdminPortalController.instance;
+      expect(controller.currentOperatorRole, 'Super Admin');
+      expect(controller.canPerform('system_settings_2fa'), isTrue);
+    });
+
     test('Filtra usuários por perfil e realiza busca', () {
       final controller = AdminPortalController();
       controller.setUserFilter('Discente');
@@ -45,6 +78,19 @@ void main() {
 
       expect(controller.setCurrentOperatorRole('Admin Operacional'), isTrue);
       expect(controller.canPerform('manage_users'), isTrue);
+      expect(controller.canPerform('edit_grades'), isFalse);
+      expect(controller.hasPermission('Discente', 'view_own_grades'), isTrue);
+      expect(
+        controller.hasPermission('Discente', 'view_class_grades'),
+        isFalse,
+      );
+      expect(controller.hasPermission('Docente', 'view_class_grades'), isTrue);
+      controller.toggleRbacPermission('Admin Operacional', 'edit_grades');
+      expect(
+        controller.hasPermission('Admin Operacional', 'edit_grades'),
+        isFalse,
+      );
+      expect(controller.hasPermission('Docente', 'edit_grades'), isTrue);
       expect(controller.toggleUserStatus(user.id), isTrue);
       expect(user.status, isNot(initialStatus));
       expect(controller.setCurrentOperatorRole('Perfil Desconhecido'), isFalse);
@@ -340,6 +386,13 @@ void main() {
       expect(find.text('Atribuição Docente'), findsOneWidget);
       expect(find.text('Discentes & Vagas'), findsOneWidget);
       expect(find.text('Fechamento de Pauta & Homologação'), findsOneWidget);
+
+      await tester.tap(find.text('Discentes & Vagas'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gabriel Soares de Oliveira'), findsOneWidget);
+      expect(find.text('Mariana Rios Costa'), findsOneWidget);
+      expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
+      expect(find.text('Lucas Mendes Santos'), findsNothing);
     });
 
     testWidgets('Renderiza SecretaryPage com protocolos e ações de análise', (

@@ -1,6 +1,7 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import '../../../../core/state/app_user_session.dart';
 import '../../../../core/state/academic_bridge_service.dart';
 import '../../domain/repositories/video_call_repository.dart';
 import '../controllers/video_call_lobby_controller.dart';
@@ -14,6 +15,7 @@ import 'video_call_room_page.dart';
 class VideoCallLobbyPage extends StatefulWidget {
   final VideoCallLobbyController? controller;
   final VideoCallRepository? repository;
+  final String? initialRoomCode;
   final Function(
     String name,
     String ra,
@@ -27,6 +29,7 @@ class VideoCallLobbyPage extends StatefulWidget {
     super.key,
     this.controller,
     this.repository,
+    this.initialRoomCode,
     this.onJoin,
   });
 
@@ -43,33 +46,6 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   bool _ownsController = false;
   bool _isInRoom = false;
   String? _userRole;
-  bool _argumentsApplied = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_argumentsApplied) {
-      final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is Map<String, dynamic>) {
-        if (args['name'] != null && _nameController.text.isEmpty) {
-          _nameController.text = args['name'].toString();
-          _lobbyController.setName(_nameController.text);
-        }
-        if (args['ra'] != null && _raController.text.isEmpty) {
-          _raController.text = args['ra'].toString();
-          _lobbyController.setRa(_raController.text);
-        }
-        if (args['roomCode'] != null) {
-          _roomCodeController.text = args['roomCode'].toString();
-          _lobbyController.setRoomCode(_roomCodeController.text);
-        }
-        if (args['role'] != null) {
-          _userRole = args['role'].toString();
-        }
-      }
-      _argumentsApplied = true;
-    }
-  }
 
   @override
   void initState() {
@@ -83,11 +59,21 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
       _ownsController = true;
     }
 
-    _nameController = TextEditingController(text: _lobbyController.name);
-    _raController = TextEditingController(text: _lobbyController.ra);
-    _roomCodeController = TextEditingController(
-      text: _lobbyController.roomCode,
+    final userSession = AppUserSession.instance;
+    _userRole = userSession.role;
+    final identity = userSession.identity ?? '';
+    _nameController = TextEditingController(
+      text: identity.isNotEmpty ? identity : _lobbyController.name,
     );
+    _raController = TextEditingController(
+      text: identity.isNotEmpty ? identity : _lobbyController.ra,
+    );
+    _roomCodeController = TextEditingController(
+      text: widget.initialRoomCode ?? _lobbyController.roomCode,
+    );
+    _lobbyController.setName(_nameController.text);
+    _lobbyController.setRa(_raController.text);
+    _lobbyController.setRoomCode(_roomCodeController.text);
 
     _lobbyController.addListener(_onControllerUpdate);
   }
@@ -116,25 +102,30 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
 
   Future<void> _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final name = _nameController.text.trim();
-      final ra = _raController.text.trim();
+      final session = AppUserSession.instance;
+      final role = session.role;
+      final identity = session.identity;
+      if (role == null || identity == null || identity.isEmpty) {
+        _showAccessDenied('Faça login para acessar uma videochamada.');
+        return;
+      }
+
+      final name = identity;
+      final ra = identity;
       final requestedRoomCode = _roomCodeController.text.trim().toUpperCase();
-      final role = _userRole?.toLowerCase().trim();
       final bridge = AcademicBridgeService.instance;
       final roomCode = bridge.getSession(requestedRoomCode).roomCode;
-      final canOpen =
-          role != null &&
-          bridge.canUserOpenSessionForCourse(
-            role: role,
-            rawCourseCode: roomCode,
-          );
-      final canJoin =
-          role != null &&
-          bridge.canUserJoinSession(
-            role: role,
-            rawCourseCode: roomCode,
-            studentRa: ra,
-          );
+      final canOpen = bridge.canUserOpenSessionForCourse(
+        role: role,
+        rawCourseCode: roomCode,
+        teacherIdentity: identity,
+      );
+      final canJoin = bridge.canUserJoinSession(
+        role: role,
+        rawCourseCode: roomCode,
+        studentRa: ra,
+        teacherIdentity: identity,
+      );
 
       if (!canOpen && !canJoin) {
         if (role == 'aluno' || role == 'student') {
@@ -166,12 +157,13 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         return;
       }
 
-      if (canOpen) {
+      if (canOpen && !bridge.isSessionOpen(roomCode)) {
         final opened = bridge.openSession(
           rawCourseCode: roomCode,
           openedByRole: role,
           openedByName: name,
           roomCode: roomCode,
+          openedByIdentity: identity,
         );
         if (!opened) {
           _showAccessDenied(
@@ -179,11 +171,13 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
           );
           return;
         }
-      } else if (!bridge.canUserJoinSession(
-        role: role,
-        rawCourseCode: roomCode,
-        studentRa: ra,
-      )) {
+      } else if (!canOpen &&
+          !bridge.canUserJoinSession(
+            role: role,
+            rawCourseCode: roomCode,
+            studentRa: ra,
+            teacherIdentity: identity,
+          )) {
         _showAccessDenied(
           'A sessão foi encerrada ou seu vínculo não permite entrar nesta turma.',
         );
@@ -192,7 +186,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
 
       final isAudioMuted = _lobbyController.isAudioMuted;
       final isVideoOff = _lobbyController.isVideoOff;
-      final resolvedRole = role == 'teacher' ? 'docente' : role;
+      final resolvedRole = role;
 
       if (widget.onJoin != null) {
         widget.onJoin!(name, ra, roomCode, isAudioMuted, isVideoOff);
@@ -212,6 +206,10 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                 VideoCallRoomPage(controller: videoCallController),
           ),
         );
+        final session = bridge.getSession(roomCode);
+        if (session.openedByRole == role && session.openedByName == name) {
+          bridge.closeSession(roomCode);
+        }
         if (mounted) {
           setState(() {
             _isInRoom = false;

@@ -10,6 +10,7 @@ import 'package:pi_iv_time3/features/student/secretariat/presentation/controller
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
+import 'package:pi_iv_time3/features/teacher/shared/data/docente_mock_data.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/assignment_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
@@ -59,6 +60,16 @@ void main() {
             rawCourseCode: '218131 - FIS',
             openedByRole: 'docente',
             openedByName: 'Docente',
+            openedByIdentity: DocenteMockData.initialTeacherIdentity,
+          ),
+          isFalse,
+        );
+        expect(
+          bridge.openSession(
+            rawCourseCode: 'APS-II',
+            openedByRole: 'docente',
+            openedByName: 'Outro docente',
+            openedByIdentity: 'DOC-88392',
           ),
           isFalse,
         );
@@ -79,6 +90,7 @@ void main() {
         rawCourseCode: 'APS-II',
         openedByRole: 'docente',
         openedByName: 'Profa. Dra. Helena Bittencourt',
+        openedByIdentity: DocenteMockData.initialTeacherIdentity,
       );
 
       expect(
@@ -114,6 +126,7 @@ void main() {
           rawCourseCode: 'APS-II',
           openedByRole: 'docente',
           openedByName: 'Profa. Dra. Helena Bittencourt',
+          openedByIdentity: DocenteMockData.initialTeacherIdentity,
         );
 
         expect(success, isTrue);

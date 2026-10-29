@@ -6,6 +6,7 @@ enum AcademicStatus { aprovado, exame, reprovadoPorNota, reprovadoPorFalta }
 /// Represents a student's grade record inside the official gradebook.
 class StudentGrade {
   final String studentId;
+  final String courseId;
   final String ra;
   final String studentName;
   final double assignmentsScore;
@@ -16,6 +17,7 @@ class StudentGrade {
 
   const StudentGrade({
     required this.studentId,
+    this.courseId = 'course-aps2',
     required this.ra,
     required this.studentName,
     required this.assignmentsScore,
@@ -75,6 +77,7 @@ class StudentGrade {
 
   StudentGrade copyWith({
     String? studentId,
+    String? courseId,
     String? ra,
     String? studentName,
     double? assignmentsScore,
@@ -85,6 +88,7 @@ class StudentGrade {
   }) {
     return StudentGrade(
       studentId: studentId ?? this.studentId,
+      courseId: courseId ?? this.courseId,
       ra: ra ?? this.ra,
       studentName: studentName ?? this.studentName,
       assignmentsScore: assignmentsScore ?? this.assignmentsScore,

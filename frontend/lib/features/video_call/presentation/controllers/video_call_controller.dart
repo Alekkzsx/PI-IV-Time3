@@ -68,6 +68,7 @@ class VideoCallController extends ChangeNotifier {
         bridge.canUserOpenSessionForCourse(
           role: _localParticipant.role,
           rawCourseCode: room.code,
+          teacherIdentity: _localParticipant.ra,
         );
   }
 

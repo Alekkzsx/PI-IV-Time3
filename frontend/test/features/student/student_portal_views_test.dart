@@ -7,12 +7,33 @@ import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_c
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_ava_cockpit_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava_evaluations_grades_tab.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
 import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 
 void main() {
+  testWidgets('Boletim mostra notas da disciplina selecionada', (tester) async {
+    final discipline = StudentMockData.disciplines.firstWhere(
+      (item) => item.code == 'BD-II',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: AvaEvaluationsGradesTab(discipline: discipline),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('9.0 / 10.0'), findsNWidgets(2));
+    expect(find.text('8.5 / 10.0'), findsOneWidget);
+    expect(find.text('Projeto Final Integrador (N2)'), findsNothing);
+  });
+
   group('StudentPortalController Unit Tests', () {
     test('Alterna entre modo Grid e Lista no Dashboard', () {
       final controller = StudentPortalController();

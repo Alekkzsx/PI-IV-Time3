@@ -1,7 +1,8 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 // Especialização do componente compartilhado InstitutionalSidebar para o Portal do Aluno
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/shared/icons/lucide_svg_icons.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_sidebar.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_sidebar_item.dart';
@@ -116,7 +117,10 @@ class StudentSidebar extends StatelessWidget {
         }
         break;
       case StudentNavItem.sair:
-        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+        AppUserSession.instance.signOut();
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
         break;
     }
   }

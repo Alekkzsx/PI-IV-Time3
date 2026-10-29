@@ -250,12 +250,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                       onLiveClass: () {
                         Navigator.of(context).pushNamed(
                           '/video-call',
-                          arguments: {
-                            'name': 'Profa. Dra. Helena Bittencourt',
-                            'ra': 'DOC-40892',
-                            'roomCode': widget.course.code,
-                            'role': 'docente',
-                          },
+                          arguments: {'roomCode': widget.course.code},
                         );
                       },
                     ),
