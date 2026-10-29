@@ -345,6 +345,11 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+        AppUserSession.instance.signIn(
+          identity: 'DOC-88410',
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
 
         final controller = DocenteController();
         addTearDown(controller.dispose);
@@ -384,6 +389,11 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+        AppUserSession.instance.signIn(
+          identity: 'DOC-88410',
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
 
         final controller = DocenteController();
         addTearDown(controller.dispose);

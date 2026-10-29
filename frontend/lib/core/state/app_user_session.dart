@@ -15,6 +15,19 @@ class AppUserSession extends ChangeNotifier {
 
   bool hasRole(String role) => _role == role;
 
+  bool hasPermission(String permission) {
+    switch (permission) {
+      case 'view_own_grades':
+        return hasRole('aluno');
+      case 'view_class_grades':
+        return hasRole('docente') || hasRole('admin');
+      case 'edit_grades':
+        return hasRole('docente');
+      default:
+        return false;
+    }
+  }
+
   void signIn({required String identity, required String profile}) {
     final normalizedIdentity = identity.trim();
     if (normalizedIdentity.isEmpty) {

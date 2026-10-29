@@ -33,9 +33,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
   @override
   void initState() {
     super.initState();
-    AdminPortalController.instance.configureOperatorForIdentity(
-      AppUserSession.instance.identity,
-    );
+    AdminPortalController.instance.configureOperatorAccess();
   }
 
   Widget _buildCurrentPage(AdminNavTab tab) {

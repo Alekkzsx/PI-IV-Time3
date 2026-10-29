@@ -399,10 +399,18 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
     final matrix = _controller.rbacMatrix;
     final isAllowed = matrix[permKey]?[role] ?? false;
     final isSuperAdmin = role == 'Super Admin';
-    final isFixedPermission = permKey == 'edit_grades';
+    final isFixedPermission = const {
+      'view_own_grades',
+      'view_class_grades',
+      'edit_grades',
+    }.contains(permKey);
 
     return Tooltip(
-      message: isFixedPermission
+      message: permKey == 'view_own_grades'
+          ? 'Consulta do próprio boletim é exclusiva do discente'
+          : permKey == 'view_class_grades'
+          ? 'Consulta de pauta segue o perfil e o vínculo acadêmico'
+          : permKey == 'edit_grades'
           ? 'Lançamento de notas é exclusivo do docente responsável'
           : isSuperAdmin
           ? 'Super Admin possui acesso irrestrito regimental'

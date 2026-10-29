@@ -50,21 +50,24 @@ class AdminPortalController extends ChangeNotifier {
     return true;
   }
 
-  void configureOperatorForIdentity(String? identity) {
-    final normalizedIdentity = identity?.trim().toUpperCase();
-    final isRegisteredSuperAdmin = users.any(
-      (user) =>
-          user.id.toUpperCase() == normalizedIdentity &&
-          user.profile == 'Administrador' &&
-          user.roleLevel.toLowerCase().contains('super administrador'),
-    );
-    setCurrentOperatorRole(
-      isRegisteredSuperAdmin ? 'Super Admin' : 'Admin Operacional',
-    );
+  void configureOperatorAccess() {
+    setCurrentOperatorRole('Admin Operacional');
   }
 
   bool hasPermission(String role, String permission) {
-    if (permission == 'edit_grades') return role == 'Docente';
+    switch (permission) {
+      case 'view_own_grades':
+        return role == 'Discente';
+      case 'view_class_grades':
+        return const {
+          'Docente',
+          'Coordenador',
+          'Admin Operacional',
+          'Super Admin',
+        }.contains(role);
+      case 'edit_grades':
+        return role == 'Docente';
+    }
     return rbacMatrix[permission]?[role] ?? false;
   }
 
@@ -630,7 +633,13 @@ class AdminPortalController extends ChangeNotifier {
       _denyPermission('system_settings_2fa');
       return;
     }
-    if (permKey == 'edit_grades') return;
+    if (const {
+      'view_own_grades',
+      'view_class_grades',
+      'edit_grades',
+    }.contains(permKey)) {
+      return;
+    }
     if (rbacMatrix.containsKey(permKey) &&
         rbacMatrix[permKey]!.containsKey(role)) {
       final current = rbacMatrix[permKey]![role] ?? false;

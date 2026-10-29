@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 
 /// Aba do AVA que exibe o Boletim de Avaliações Contínuas (PPC), pesos e médias parciais.
@@ -11,6 +12,12 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!AppUserSession.instance.hasPermission('view_own_grades')) {
+      return const Center(
+        child: Text('Você não tem permissão para consultar este boletim.'),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(

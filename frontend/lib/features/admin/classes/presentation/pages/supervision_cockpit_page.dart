@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
@@ -411,6 +412,16 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 2: Auditoria de Notas & Pauta (Print 50) ---
   Widget _buildGradeAuditTab() {
+    if (!AppUserSession.instance.hasPermission('view_class_grades') ||
+        !_controller.hasPermission(
+          _controller.currentOperatorRole,
+          'view_class_grades',
+        )) {
+      return const Center(
+        child: Text('Você não tem permissão para consultar pautas de turma.'),
+      );
+    }
+
     final gradeRows = [
       {
         'nome': 'Gabriel Soares de Oliveira',

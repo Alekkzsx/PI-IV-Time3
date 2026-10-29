@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
@@ -15,6 +16,11 @@ import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controll
 
 void main() {
   testWidgets('Boletim mostra notas da disciplina selecionada', (tester) async {
+    AppUserSession.instance.signIn(
+      identity: StudentMockData.studentRa,
+      profile: 'aluno',
+    );
+    addTearDown(AppUserSession.instance.signOut);
     final discipline = StudentMockData.disciplines.firstWhere(
       (item) => item.code == 'BD-II',
     );

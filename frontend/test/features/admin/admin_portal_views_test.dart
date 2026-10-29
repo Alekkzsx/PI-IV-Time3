@@ -33,19 +33,20 @@ void main() {
       expect(controller.canPerform('system_settings_2fa'), isFalse);
     });
 
-    testWidgets('Somente o registro Super Admin recebe privilégios elevados', (
+    testWidgets('Identidade digitada não concede privilégios de Super Admin', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(1440, 1100));
       addTearDown(() => tester.binding.setSurfaceSize(null));
+      AppUserSession.instance.signOut();
       AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
       addTearDown(AppUserSession.instance.signOut);
 
       await tester.pumpWidget(const MaterialApp(home: AdminShellPage()));
 
       final controller = AdminPortalController.instance;
-      expect(controller.currentOperatorRole, 'Super Admin');
-      expect(controller.canPerform('system_settings_2fa'), isTrue);
+      expect(controller.currentOperatorRole, 'Admin Operacional');
+      expect(controller.canPerform('system_settings_2fa'), isFalse);
     });
 
     test('Filtra usuários por perfil e realiza busca', () {
@@ -94,7 +95,11 @@ void main() {
       expect(controller.toggleUserStatus(user.id), isTrue);
       expect(user.status, isNot(initialStatus));
       expect(controller.setCurrentOperatorRole('Perfil Desconhecido'), isFalse);
-      controller.setCurrentOperatorRole('Super Admin');
+      expect(controller.setCurrentOperatorRole('Super Admin'), isTrue);
+      controller.toggleRbacPermission('Discente', 'view_own_grades');
+      controller.toggleRbacPermission('Docente', 'view_class_grades');
+      expect(controller.hasPermission('Discente', 'view_own_grades'), isTrue);
+      expect(controller.hasPermission('Docente', 'view_class_grades'), isTrue);
     });
 
     test('Alterna suspensão de usuário e cadastra novo discente com 2FA', () {
