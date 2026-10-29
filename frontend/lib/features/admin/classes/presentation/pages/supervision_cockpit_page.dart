@@ -106,10 +106,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                                 Navigator.of(context).pushNamed(
                                   '/video-call',
                                   arguments: {
-                                    'name': 'Coordenação Geral (Admin)',
-                                    'ra': 'ADM-00123',
                                     'roomCode': widget.classModel.code,
-                                    'role': 'admin',
                                   },
                                 );
                               }
@@ -736,6 +733,14 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 4: Discentes & Vagas (Print 52) ---
   Widget _buildStudentsTab() {
+    final enrolledStudents = AdminMockData.users
+        .where(
+          (user) =>
+              user.profile == 'Discente' &&
+              widget.classModel.enrolledStudentRas.contains(user.id),
+        )
+        .toList();
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -768,26 +773,37 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 8),
-          ...AdminMockData.users.where((u) => u.profile == 'Discente').map((u) {
-            return ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFFF1F5F9),
-                child: Icon(Icons.school, color: Color(0xFF0F172A)),
-              ),
-              title: Text(
-                u.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+          Text(
+            'Cadastros de demonstração vinculados: ${enrolledStudents.length}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 8),
+          if (enrolledStudents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text('Nenhum cadastro de demonstração vinculado à turma.'),
+            )
+          else
+            ...enrolledStudents.map((u) {
+              return ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFF1F5F9),
+                  child: Icon(Icons.school, color: Color(0xFF0F172A)),
                 ),
-              ),
-              subtitle: Text('R.A.: ${u.id} • ${u.email}'),
-              trailing: Chip(
-                label: Text(u.status),
-                backgroundColor: const Color(0xFFDCFCE7),
-              ),
-            );
-          }),
+                title: Text(
+                  u.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                subtitle: Text('R.A.: ${u.id} • ${u.email}'),
+                trailing: Chip(
+                  label: Text(u.status),
+                  backgroundColor: const Color(0xFFDCFCE7),
+                ),
+              );
+            }),
         ],
       ),
     );

@@ -28,10 +28,16 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
 
   final List<_RbacPermissionItem> _permissions = const [
     _RbacPermissionItem(
-      key: 'view_grades',
-      label: 'Visualizar Boletim & Notas',
+      key: 'view_own_grades',
+      label: 'Consultar o Próprio Boletim',
+      description: 'Consulta das próprias notas e frequência acadêmica.',
+      category: 'Acadêmico',
+    ),
+    _RbacPermissionItem(
+      key: 'view_class_grades',
+      label: 'Consultar Pautas de Turma',
       description:
-          'Consulta de notas, faltas e coeficientes acadêmicos das turmas.',
+          'Consulta de notas e frequência de turmas sob responsabilidade ou auditoria.',
       category: 'Acadêmico',
     ),
     _RbacPermissionItem(
@@ -393,13 +399,16 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
     final matrix = _controller.rbacMatrix;
     final isAllowed = matrix[permKey]?[role] ?? false;
     final isSuperAdmin = role == 'Super Admin';
+    final isFixedPermission = permKey == 'edit_grades';
 
     return Tooltip(
-      message: isSuperAdmin
+      message: isFixedPermission
+          ? 'Lançamento de notas é exclusivo do docente responsável'
+          : isSuperAdmin
           ? 'Super Admin possui acesso irrestrito regimental'
           : '$role: ${isAllowed ? "Permitido" : "Bloqueado"}',
       child: InkWell(
-        onTap: isSuperAdmin
+        onTap: isSuperAdmin || isFixedPermission
             ? null
             : () {
                 _controller.toggleRbacPermission(role, permKey);

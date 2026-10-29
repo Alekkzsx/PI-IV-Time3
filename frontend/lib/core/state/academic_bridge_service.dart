@@ -123,6 +123,7 @@ class AcademicBridgeService extends ChangeNotifier {
   bool canUserOpenSessionForCourse({
     required String role,
     required String rawCourseCode,
+    String? teacherIdentity,
   }) {
     final normalizedRole = role.toLowerCase().trim();
     final courseCode = _normalizeCourseCode(rawCourseCode);
@@ -131,15 +132,16 @@ class AcademicBridgeService extends ChangeNotifier {
       return false;
     }
     if (normalizedRole == 'admin') return true;
-    return DocenteMockData.initialCourses.any(
-      (course) => _normalizeCourseCode(course.code) == courseCode,
-    );
+    return DocenteMockData.coursesForIdentity(
+      teacherIdentity ?? '',
+    ).any((course) => _normalizeCourseCode(course.code) == courseCode);
   }
 
   bool canUserJoinSession({
     required String role,
     required String rawCourseCode,
     String? studentRa,
+    String? teacherIdentity,
   }) {
     final normalizedRole = role.toLowerCase().trim();
     final courseCode = _normalizeCourseCode(rawCourseCode);
@@ -149,6 +151,7 @@ class AcademicBridgeService extends ChangeNotifier {
     if (canUserOpenSessionForCourse(
       role: normalizedRole,
       rawCourseCode: courseCode,
+      teacherIdentity: teacherIdentity,
     )) {
       return true;
     }
@@ -168,11 +171,13 @@ class AcademicBridgeService extends ChangeNotifier {
     required String openedByRole,
     required String openedByName,
     String? roomCode,
+    String? openedByIdentity,
   }) {
     final cleanCode = _normalizeCourseCode(rawCourseCode);
     if (!canUserOpenSessionForCourse(
           role: openedByRole,
           rawCourseCode: cleanCode,
+          teacherIdentity: openedByIdentity,
         ) ||
         (roomCode != null && _normalizeCourseCode(roomCode) != cleanCode)) {
       debugPrint(

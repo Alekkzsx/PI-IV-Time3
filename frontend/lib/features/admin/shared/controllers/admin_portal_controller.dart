@@ -36,7 +36,7 @@ class AdminPortalController extends ChangeNotifier {
   bool isGradeLockedFor(String classCode) =>
       _gradeLocksByClass[classCode.trim().toUpperCase()] ?? false;
   String selectedEvaluationFormula = 'Ponderada (N1 40% / N2 60%)';
-  String _currentOperatorRole = 'Super Admin';
+  String _currentOperatorRole = 'Admin Operacional';
 
   String get currentOperatorRole => _currentOperatorRole;
 
@@ -50,8 +50,23 @@ class AdminPortalController extends ChangeNotifier {
     return true;
   }
 
-  bool hasPermission(String role, String permission) =>
-      rbacMatrix[permission]?[role] ?? false;
+  void configureOperatorForIdentity(String? identity) {
+    final normalizedIdentity = identity?.trim().toUpperCase();
+    final isRegisteredSuperAdmin = users.any(
+      (user) =>
+          user.id.toUpperCase() == normalizedIdentity &&
+          user.profile == 'Administrador' &&
+          user.roleLevel.toLowerCase().contains('super administrador'),
+    );
+    setCurrentOperatorRole(
+      isRegisteredSuperAdmin ? 'Super Admin' : 'Admin Operacional',
+    );
+  }
+
+  bool hasPermission(String role, String permission) {
+    if (permission == 'edit_grades') return role == 'Docente';
+    return rbacMatrix[permission]?[role] ?? false;
+  }
 
   bool canPerform(String permission) =>
       hasPermission(currentOperatorRole, permission);
@@ -336,21 +351,29 @@ class AdminPortalController extends ChangeNotifier {
 
   static Map<String, Map<String, bool>> _getDefaultRbacMatrix() {
     return {
-      'view_grades': {
+      'view_own_grades': {
         'Discente': true,
-        'Docente': true,
-        'Coordenador': true,
-        'Secretaria': true,
-        'Admin Operacional': true,
-        'Super Admin': true,
+        'Docente': false,
+        'Coordenador': false,
+        'Secretaria': false,
+        'Admin Operacional': false,
+        'Super Admin': false,
       },
-      'edit_grades': {
+      'view_class_grades': {
         'Discente': false,
         'Docente': true,
         'Coordenador': true,
         'Secretaria': false,
         'Admin Operacional': true,
         'Super Admin': true,
+      },
+      'edit_grades': {
+        'Discente': false,
+        'Docente': true,
+        'Coordenador': false,
+        'Secretaria': false,
+        'Admin Operacional': false,
+        'Super Admin': false,
       },
       'manage_users': {
         'Discente': false,
@@ -607,6 +630,7 @@ class AdminPortalController extends ChangeNotifier {
       _denyPermission('system_settings_2fa');
       return;
     }
+    if (permKey == 'edit_grades') return;
     if (rbacMatrix.containsKey(permKey) &&
         rbacMatrix[permKey]!.containsKey(role)) {
       final current = rbacMatrix[permKey]![role] ?? false;

@@ -1,6 +1,7 @@
 ﻿// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/pages/audit_page.dart';
 import 'package:pi_iv_time3/features/admin/calendar/presentation/pages/calendar_page.dart';
@@ -8,6 +9,7 @@ import 'package:pi_iv_time3/features/admin/classes/presentation/pages/classes_pa
 import 'package:pi_iv_time3/features/admin/courses/presentation/pages/courses_page.dart';
 import 'package:pi_iv_time3/features/admin/dashboard/presentation/pages/painel_geral_page.dart';
 import 'package:pi_iv_time3/features/admin/secretary/presentation/pages/secretary_page.dart';
+import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/settings/presentation/pages/admin_configure_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_top_header.dart';
@@ -27,6 +29,14 @@ class AdminShellPage extends StatefulWidget {
 class _AdminShellPageState extends State<AdminShellPage> {
   AdminNavTab _activeTab = AdminNavTab.painelGeral;
   bool _isSidebarCollapsed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminPortalController.instance.configureOperatorForIdentity(
+      AppUserSession.instance.identity,
+    );
+  }
 
   Widget _buildCurrentPage(AdminNavTab tab) {
     switch (tab) {
@@ -73,6 +83,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
   }
 
   void _onLogout() {
+    AppUserSession.instance.signOut();
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 

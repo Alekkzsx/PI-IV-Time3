@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/foundation.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import '../../domain/usecases/login_usecase.dart';
 
 /// Controlador reativo de estado da interface de login baseado em [ChangeNotifier].
@@ -19,6 +20,8 @@ class LoginController extends ChangeNotifier {
   // Prontidão arquitetural para 2FA
   bool _requiresTwoFactor = false;
   int _operationId = 0;
+  String? _pendingIdentity;
+  String? _pendingProfile;
 
   /// Cria uma nova instância de [LoginController] injetando [loginUseCase].
   LoginController({required this.loginUseCase});
@@ -59,10 +62,13 @@ class LoginController extends ChangeNotifier {
 
     final cleanIdentity = identity.trim();
     final operationId = ++_operationId;
+    AppUserSession.instance.signOut();
     _isLoading = true;
     _errorMessage = null;
     _isSuccess = false;
     _requiresTwoFactor = false;
+    _pendingIdentity = cleanIdentity;
+    _pendingProfile = profile;
     notifyListeners();
 
     try {
@@ -87,6 +93,7 @@ class LoginController extends ChangeNotifier {
         return false;
       }
 
+      AppUserSession.instance.signIn(identity: cleanIdentity, profile: profile);
       _isSuccess = true;
       _isLoading = false;
       notifyListeners();
@@ -123,6 +130,16 @@ class LoginController extends ChangeNotifier {
       if (operationId != _operationId) return false;
 
       if (valid) {
+        final identity = _pendingIdentity;
+        final profile = _pendingProfile;
+        if (identity == null || profile == null) {
+          _errorMessage = 'Sessão de autenticação inválida. Entre novamente.';
+          _isLoading = false;
+          _requiresTwoFactor = false;
+          notifyListeners();
+          return false;
+        }
+        AppUserSession.instance.signIn(identity: identity, profile: profile);
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;

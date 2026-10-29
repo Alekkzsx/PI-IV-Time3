@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
@@ -7,10 +7,7 @@ import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart'
 class AvaEvaluationsGradesTab extends StatelessWidget {
   final StudentDisciplineModel discipline;
 
-  const AvaEvaluationsGradesTab({
-    super.key,
-    required this.discipline,
-  });
+  const AvaEvaluationsGradesTab({super.key, required this.discipline});
 
   @override
   Widget build(BuildContext context) {
@@ -42,38 +39,70 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
                 children: [
                   Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text('AVALIAÇÃO',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(
+                      'AVALIAÇÃO',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                   Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text('PESO REGIMENTAL',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(
+                      'PESO REGIMENTAL',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                   Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text('NOTA LANÇADA',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(
+                      'NOTA LANÇADA',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                   Padding(
                     padding: EdgeInsets.all(12),
-                    child: Text('STATUS',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(
+                      'STATUS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              _buildGradeRow('Prova Teórica N1 (P1)', '40% da N1',
-                  '8.5 / 10.0', 'Consolidado'),
-              _buildGradeRow('Trabalho Prático N1 (TRAB)', '60% da N1',
-                  '9.5 / 10.0', 'Consolidado'),
-              _buildGradeRow('Prova Teórica N2 (P2)', '50% da N2',
-                  '9.0 / 10.0', 'Consolidado'),
-              _buildGradeRow('Projeto Final Integrador (N2)', '50% da N2',
-                  'Aguardando', 'Em Andamento'),
+              _buildGradeRow(
+                'Prova Teórica N1 (P1)',
+                'Componente N1',
+                '${discipline.p1.toStringAsFixed(1)} / 10.0',
+                'Consolidado',
+              ),
+              _buildGradeRow(
+                'Trabalho Prático N1 (TRAB)',
+                'Componente N1',
+                '${discipline.trab.toStringAsFixed(1)} / 10.0',
+                'Consolidado',
+              ),
+              _buildGradeRow(
+                'Prova Teórica N2 (P2)',
+                'Componente N2',
+                '${discipline.p2.toStringAsFixed(1)} / 10.0',
+                'Consolidado',
+              ),
+              _buildGradeRow(
+                'Média consolidada de N1 e N2',
+                'Parcial',
+                '${discipline.partialAverage.toStringAsFixed(1)} / 10.0',
+                'Consolidado',
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -83,22 +112,47 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
               color: const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Média Parcial Consolidada:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                Text(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final result = Text(
                   '${discipline.partialAverage.toStringAsFixed(2)} / 10.0 (Situação: Regular)',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                     color: Color(0xFF16A34A),
                   ),
-                ),
-              ],
+                );
+                if (constraints.maxWidth < 760) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Média Parcial Consolidada:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      result,
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Média Parcial Consolidada:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    result,
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -107,7 +161,11 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
   }
 
   TableRow _buildGradeRow(
-      String name, String weight, String score, String status) {
+    String name,
+    String weight,
+    String score,
+    String status,
+  ) {
     return TableRow(
       children: [
         Padding(
@@ -116,14 +174,17 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Text(weight,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+          child: Text(
+            weight,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Text(score,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          child: Text(
+            score,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.all(12),
@@ -142,4 +203,3 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
     );
   }
 }
-

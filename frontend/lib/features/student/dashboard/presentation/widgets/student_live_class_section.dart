@@ -96,7 +96,9 @@ class StudentLiveClassSection extends StatelessWidget {
                 // Borda de destaque (verde se ao vivo, cinza/âmbar se aguardando)
                 Container(
                   width: 4,
-                  color: isOpen ? const Color(0xFF16A34A) : const Color(0xFFF59E0B),
+                  color: isOpen
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFF59E0B),
                 ),
                 Expanded(
                   child: Padding(
@@ -108,10 +110,15 @@ class StudentLiveClassSection extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFAFAFA),
-                                border: Border.all(color: const Color(0xFFE4E4E7)),
+                                border: Border.all(
+                                  color: const Color(0xFFE4E4E7),
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -124,11 +131,18 @@ class StudentLiveClassSection extends StatelessWidget {
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: isOpen ? const Color(0xFFF0FDF4) : const Color(0xFFFEF3C7),
+                                color: isOpen
+                                    ? const Color(0xFFF0FDF4)
+                                    : const Color(0xFFFEF3C7),
                                 border: Border.all(
-                                  color: isOpen ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A),
+                                  color: isOpen
+                                      ? const Color(0xFFBBF7D0)
+                                      : const Color(0xFFFDE68A),
                                 ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -139,17 +153,23 @@ class StudentLiveClassSection extends StatelessWidget {
                                     width: 6,
                                     height: 6,
                                     decoration: BoxDecoration(
-                                      color: isOpen ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                      color: isOpen
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFFD97706),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    isOpen ? 'AO VIVO AGORA' : 'AGUARDANDO DOCENTE',
+                                    isOpen
+                                        ? 'AO VIVO AGORA'
+                                        : 'AGUARDANDO DOCENTE',
                                     style: jakarta(
                                       size: 10.5,
                                       weight: FontWeight.w700,
-                                      color: isOpen ? const Color(0xFF166534) : const Color(0xFF92400E),
+                                      color: isOpen
+                                          ? const Color(0xFF166534)
+                                          : const Color(0xFF92400E),
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -178,7 +198,9 @@ class StudentLiveClassSection extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: jakarta(
                             size: 12.5,
-                            color: isOpen ? const Color(0xFF166534) : const Color(0xFF71717A),
+                            color: isOpen
+                                ? const Color(0xFF166534)
+                                : const Color(0xFF71717A),
                             weight: isOpen ? FontWeight.w600 : FontWeight.w400,
                           ),
                         ),
@@ -192,7 +214,9 @@ class StudentLiveClassSection extends StatelessWidget {
                                   Icon(
                                     Icons.videocam_outlined,
                                     size: 16,
-                                    color: isOpen ? const Color(0xFF16A34A) : const Color(0xFF71717A),
+                                    color: isOpen
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFF71717A),
                                   ),
                                   const SizedBox(width: 8),
                                   Flexible(
@@ -218,12 +242,7 @@ class StudentLiveClassSection extends StatelessWidget {
                                 if (isOpen) {
                                   Navigator.of(context).pushNamed(
                                     '/video-call',
-                                    arguments: {
-                                      'name': 'Gabriel Soares de Oliveira',
-                                      'ra': '2024.1.00892',
-                                      'roomCode': 'APS-II',
-                                      'role': 'aluno',
-                                    },
+                                    arguments: {'roomCode': 'APS-II'},
                                   );
                                 } else {
                                   showDialog<void>(
@@ -234,7 +253,10 @@ class StudentLiveClassSection extends StatelessWidget {
                                       ),
                                       title: const Row(
                                         children: [
-                                          Icon(Icons.info_outline, color: Color(0xFFD97706)),
+                                          Icon(
+                                            Icons.info_outline,
+                                            color: Color(0xFFD97706),
+                                          ),
                                           SizedBox(width: 10),
                                           Text('Aula ainda não iniciada'),
                                         ],
@@ -244,7 +266,8 @@ class StudentLiveClassSection extends StatelessWidget {
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.of(ctx).pop(),
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(),
                                           child: const Text('Entendi'),
                                         ),
                                       ],
@@ -254,16 +277,22 @@ class StudentLiveClassSection extends StatelessWidget {
                               },
                               borderRadius: BorderRadius.circular(6),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isOpen ? const Color(0xFF16A34A) : const Color(0xFF27272A),
+                                  color: isOpen
+                                      ? const Color(0xFF16A34A)
+                                      : const Color(0xFF27272A),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
@@ -288,7 +317,9 @@ class StudentLiveClassSection extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 8),
                                     Icon(
-                                      isOpen ? Icons.arrow_forward_rounded : Icons.lock_clock,
+                                      isOpen
+                                          ? Icons.arrow_forward_rounded
+                                          : Icons.lock_clock,
                                       size: 13,
                                       color: Colors.white,
                                     ),
@@ -341,10 +372,7 @@ class StudentLiveClassSection extends StatelessWidget {
               Text(
                 'Reservado para estudos e atividades práticas',
                 textAlign: TextAlign.center,
-                style: jakarta(
-                  size: 11.5,
-                  color: const Color(0xFF71717A),
-                ),
+                style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
               ),
             ],
           ),
