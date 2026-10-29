@@ -397,6 +397,40 @@ void main() {
       expect(find.text('Lucas Mendes Santos'), findsNothing);
     });
 
+    testWidgets('Supervisão se adapta à largura mobile sem overflow', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final controller = AdminPortalController.instance;
+      controller.setSupervisionTab(0);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SupervisionCockpitPage(
+              classModel: AdminMockData.classes.first,
+              onBack: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Diretrizes de cálculo da nota'), findsOneWidget);
+      await tester.ensureVisible(find.text('Fórmula equitativa'));
+      await tester.tap(find.text('Fórmula equitativa'));
+      await tester.pumpAndSettle();
+
+      expect(
+        controller.selectedEvaluationFormula,
+        'Equitativa (N1 50% / N2 50%)',
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('Renderiza SecretaryPage com protocolos e ações de análise', (
       tester,
     ) async {

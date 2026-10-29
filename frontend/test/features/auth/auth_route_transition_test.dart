@@ -104,6 +104,9 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(find.text('Acesso restrito'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
+    expect(find.text('Voltar ao login'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -114,6 +117,7 @@ void main() {
       find.text('Esta área é exclusiva do perfil docente.'),
       findsOneWidget,
     );
+    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();

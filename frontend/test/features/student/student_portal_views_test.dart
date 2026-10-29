@@ -428,6 +428,36 @@ void main() {
       expect(find.text('ATENDIMENTO COM DOCENTE'), findsOneWidget);
       expect(find.text('PLANO DE ENSINO'), findsOneWidget);
     });
+
+    testWidgets('Abas do AVA permanecem sem overflow em tela mobile', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+
+      final controller = StudentPortalController.instance;
+      final discipline = StudentMockData.disciplines.first;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StudentAvaCockpitPage(discipline: discipline, onBack: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (var index = 0; index < 11; index++) {
+        controller.setAvaTab(index);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: 'Aba $index');
+      }
+    });
   });
 }
 

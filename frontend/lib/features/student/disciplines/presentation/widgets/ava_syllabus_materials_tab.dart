@@ -2,8 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'ava_section_card.dart';
 
-void _handleFileDownload(BuildContext context, String fileName, {bool isNewlyAdded = false}) {
+void _handleFileDownload(
+  BuildContext context,
+  String fileName, {
+  bool isNewlyAdded = false,
+}) {
   ScaffoldMessenger.of(context).removeCurrentSnackBar();
   if (isNewlyAdded) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -12,7 +17,11 @@ void _handleFileDownload(BuildContext context, String fileName, {bool isNewlyAdd
         behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(Icons.check_circle_outline, color: Color(0xFF22C55E), size: 18),
+            const Icon(
+              Icons.check_circle_outline,
+              color: Color(0xFF22C55E),
+              size: 18,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -184,19 +193,13 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
       builder: (context, _) {
         final liveMaterials = AcademicBridgeService.instance.materials;
 
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
+        return AvaSectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Repositório Institucional de Arquivos e Slides',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AvaSectionStyles.title,
               ),
               const SizedBox(height: 16),
               const Divider(height: 1),
@@ -280,26 +283,21 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
       trailing: IconButton(
         tooltip: 'Baixar $name',
         icon: const Icon(Icons.file_download_outlined),
-        onPressed: () => _handleFileDownload(context, name, isNewlyAdded: isNewlyAdded),
+        onPressed: () =>
+            _handleFileDownload(context, name, isNewlyAdded: isNewlyAdded),
       ),
     );
   }
 
   // --- ABA 8: Programa / Syllabus ---
   Widget _buildSyllabusTab() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           Text(
             'Programa da Disciplina (Syllabus Homologado MEC)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: AvaSectionStyles.title,
           ),
           SizedBox(height: 16),
           Text(
@@ -336,19 +334,13 @@ class AvaSyllabusMaterialsTab extends StatelessWidget {
 
   // --- ABA 9: Colaborações ---
   Widget _buildCollaborationsTab() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Grupo de Trabalho: Equipe 04 (Projeto Integrador)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: AvaSectionStyles.title,
           ),
           const SizedBox(height: 8),
           const Text(

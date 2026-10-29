@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_gradebook_table.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_grades_formula_banner.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_grades_header.dart';
@@ -18,8 +19,8 @@ class DocenteGradesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!AppUserSession.instance.hasPermission('view_class_grades')) {
-      return const Center(
-        child: Text('Você não tem permissão para consultar pautas de turma.'),
+      return const AccessDeniedView(
+        message: 'Seu perfil não pode consultar as pautas desta turma.',
       );
     }
 

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/presentation/pages/recover_password_page.dart';
@@ -146,28 +147,12 @@ class AppRouter {
   }
 
   static Widget _accessDenied(BuildContext context, String message) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Acesso restrito')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_outline, size: 40),
-              const SizedBox(height: 12),
-              Text(message, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () => Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false),
-                child: const Text('Voltar ao login'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return AccessDeniedView(
+      message: message,
+      fullPage: true,
+      onReturn: () => Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false),
     );
   }
 

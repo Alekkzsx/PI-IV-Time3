@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/widgets/delivery_submission_modal.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'ava_section_card.dart';
 
 /// Aba do AVA que exibe as atividades avaliativas e o modal de submissão de entregas.
 class AvaAssignmentsTab extends StatelessWidget {
@@ -22,19 +23,13 @@ class AvaAssignmentsTab extends StatelessWidget {
         .where((delivery) => delivery.disciplineCode == disciplineCode)
         .toList();
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
+    return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Atividades Avaliativas da Disciplina',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: AvaSectionStyles.title,
           ),
           const SizedBox(height: 16),
           const Divider(height: 1),

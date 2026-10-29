@@ -5,6 +5,7 @@ import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
@@ -64,31 +65,27 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   Widget build(BuildContext context) {
     return Container(
       color: InstColors.stone,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1440),
-                child: DefaultTextStyle(
-                  style: jakarta(size: 13, color: InstColors.ink),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildCockpitHeader(),
-                      const SizedBox(height: 16),
-                      _buildTabBar(),
-                      const SizedBox(height: 16),
-                      _buildActiveTabContent(),
-                    ],
-                  ),
-                ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1440),
+            child: DefaultTextStyle(
+              style: jakarta(size: 13, color: InstColors.ink),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildCockpitHeader(),
+                  const SizedBox(height: 16),
+                  _buildTabBar(),
+                  const SizedBox(height: 16),
+                  _buildActiveTabContent(),
+                ],
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -179,10 +176,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                             horizontal: 15,
                             vertical: 13,
                           ),
-                          textStyle: jakarta(
-                            size: 12,
-                            weight: FontWeight.w600,
-                          ),
+                          textStyle: jakarta(size: 12, weight: FontWeight.w600),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(9),
                           ),
@@ -291,9 +285,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   Widget _buildStatusBadge({required bool isLocked}) {
     final color = isLocked ? InstColors.success : const Color(0xFF525252);
-    final background = isLocked
-        ? InstColors.successBg
-        : InstColors.stoneActive;
+    final background = isLocked ? InstColors.successBg : InstColors.stoneActive;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
       decoration: BoxDecoration(
@@ -398,9 +390,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                         Icon(
                           _tabIcons[index],
                           size: 16,
-                          color: isSelected
-                              ? Colors.white
-                              : InstColors.muted,
+                          color: isSelected ? Colors.white : InstColors.muted,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -410,9 +400,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                             weight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.w500,
-                            color: isSelected
-                                ? Colors.white
-                                : InstColors.ink,
+                            color: isSelected ? Colors.white : InstColors.ink,
                           ),
                         ),
                       ],
@@ -449,100 +437,272 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 1: Diretriz & Regime Avaliativo (Print 49) ---
   Widget _buildRegimeTab() {
+    return _buildContentCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeading(
+            icon: Icons.rule_rounded,
+            eyebrow: 'CONFIGURAÇÃO ACADÊMICA',
+            title: 'Diretrizes de cálculo da nota',
+            subtitle:
+                'Selecione a fórmula aplicada à turma e registre a justificativa administrativa.',
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'Fórmula de avaliação',
+            style: jakarta(
+              size: 12,
+              weight: FontWeight.w600,
+              color: InstColors.muted,
+            ),
+          ),
+          const SizedBox(height: 10),
+          RadioGroup<String>(
+            groupValue: _controller.selectedEvaluationFormula,
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _controller.selectedEvaluationFormula = value);
+              }
+            },
+            child: Column(
+              children: [
+                _buildFormulaOption(
+                  title: 'Fórmula ponderada regimental',
+                  subtitle:
+                      'N1 40% + N2 60% · Média final = (N1 × 0,4) + (N2 × 0,6) · Presença mínima: 75%',
+                  value: 'Ponderada (N1 40% / N2 60%)',
+                ),
+                const SizedBox(height: 8),
+                _buildFormulaOption(
+                  title: 'Fórmula equitativa',
+                  subtitle: 'N1 50% + N2 50% · Média final = (N1 + N2) / 2',
+                  value: 'Equitativa (N1 50% / N2 50%)',
+                ),
+                const SizedBox(height: 8),
+                _buildFormulaOption(
+                  title: 'Média aritmética de instrumentos contínuos',
+                  subtitle:
+                      'Média de todas as atividades, provas e trabalhos lançados.',
+                  value: 'Aritmética Simples',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          const Divider(height: 1, color: InstColors.border),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: InstColors.stoneActive,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: const Icon(
+                  Icons.edit_note_rounded,
+                  size: 19,
+                  color: InstColors.ink,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Despacho administrativo de auditoria',
+                      style: jakarta(size: 14, weight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Documente a justificativa para eventuais flexibilizações regimentais.',
+                      style: jakarta(size: 12, color: InstColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const TextField(
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText:
+                  'Registro de autorização da Secretaria Geral ou justificativa da alteração...',
+              filled: true,
+              fillColor: InstColors.hoverSurface,
+              contentPadding: EdgeInsets.all(14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(9)),
+                borderSide: BorderSide(color: InstColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(9)),
+                borderSide: BorderSide(color: InstColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(9)),
+                borderSide: BorderSide(color: InstColors.ink, width: 1.4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              _controller.updateFormulaRegime(
+                widget.classModel.code,
+                'Impor pelo Admin',
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Diretriz de cálculo gravada e homologada.'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.save_outlined, size: 17),
+            label: const Text('Salvar diretriz regimental'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: InstColors.ink,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 14),
+              textStyle: jakarta(size: 12, weight: FontWeight.w600),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(9),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormulaOption({
+    required String title,
+    required String subtitle,
+    required String value,
+  }) {
+    final selected = _controller.selectedEvaluationFormula == value;
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Diretrizes Institucionais de Cálculo da Nota',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      color: selected ? InstColors.stone : InstColors.surface,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () =>
+            setState(() => _controller.selectedEvaluationFormula = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? InstColors.ink : InstColors.border,
+              width: selected ? 1.2 : 1,
             ),
-            const SizedBox(height: 16),
-            // ignore: deprecated_member_use
-            RadioListTile<String>(
-              title: const Text(
-                'Fórmula Ponderada Regimental (N1 40% / N2 60%)',
+          ),
+          child: Row(
+            children: [
+              Radio<String>(value: value, activeColor: InstColors.ink),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: InstColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: jakarta(size: 11.5, color: InstColors.muted),
+                    ),
+                  ],
+                ),
               ),
-              subtitle: const Text(
-                'Padrão CONSEPE: Média Final = (N1 x 0.4) + (N2 x 0.6) • Presença Mínima: 75%',
-              ),
-              value: 'Ponderada (N1 40% / N2 60%)',
-              // ignore: deprecated_member_use
-              groupValue: _controller.selectedEvaluationFormula,
-              // ignore: deprecated_member_use
-              onChanged: (val) =>
-                  setState(() => _controller.selectedEvaluationFormula = val!),
-            ),
-            // ignore: deprecated_member_use
-            RadioListTile<String>(
-              title: const Text('Fórmula Equitativa (N1 50% / N2 50%)'),
-              subtitle: const Text('Média Final = (N1 + N2) / 2'),
-              value: 'Equitativa (N1 50% / N2 50%)',
-              // ignore: deprecated_member_use
-              groupValue: _controller.selectedEvaluationFormula,
-              // ignore: deprecated_member_use
-              onChanged: (val) =>
-                  setState(() => _controller.selectedEvaluationFormula = val!),
-            ),
-            // ignore: deprecated_member_use
-            RadioListTile<String>(
-              title: const Text('Média Aritmética de Instrumentos Contínuos'),
-              subtitle: const Text(
-                'Média de todas as atividades, provas e trabalhos lançados',
-              ),
-              value: 'Aritmética Simples',
-              // ignore: deprecated_member_use
-              groupValue: _controller.selectedEvaluationFormula,
-              // ignore: deprecated_member_use
-              onChanged: (val) =>
-                  setState(() => _controller.selectedEvaluationFormula = val!),
-            ),
-            const SizedBox(height: 20),
-            const Divider(height: 1),
-            const SizedBox(height: 20),
-            const Text(
-              'Despacho Administrativo de Auditoria:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            const TextField(
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText:
-                    'Registro de autorização da Secretaria Geral sobre eventuais flexibilizações regimentais...',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                _controller.updateFormulaRegime(
-                  widget.classModel.code,
-                  'Impor pelo Admin',
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Diretriz de cálculo gravada e homologada.'),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Salvar Diretriz Regimental'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildContentCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 14,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildSectionHeading({
+    required IconData icon,
+    required String eyebrow,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: InstColors.stoneActive,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 19, color: InstColors.ink),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                eyebrow,
+                style: jakarta(
+                  size: 9.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.muted,
+                  letterSpacing: 0.9,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                title,
+                style: jakarta(
+                  size: 17,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: jakarta(size: 11.5, color: InstColors.muted),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -554,7 +714,9 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           'view_class_grades',
         )) {
       return const Center(
-        child: Text('Você não tem permissão para consultar pautas de turma.'),
+        child: AccessDeniedView(
+          message: 'Seu perfil não pode consultar as pautas desta turma.',
+        ),
       );
     }
 
@@ -605,8 +767,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,10 +799,10 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             child: SizedBox(
               width: 780,
               child: Table(
-                border: TableBorder.all(color: const Color(0xFFE5E7EB)),
+                border: TableBorder.all(color: InstColors.border),
                 children: [
                   const TableRow(
-                    decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                    decoration: BoxDecoration(color: InstColors.hoverSurface),
                     children: [
                       Padding(
                         padding: EdgeInsets.all(10),
@@ -769,8 +931,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                             r['parecer']!,
                             style: TextStyle(
                               color: isApproved
-                                  ? const Color(0xFF16A34A)
-                                  : Colors.orange,
+                                  ? InstColors.success
+                                  : InstColors.warning,
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
@@ -792,7 +954,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           ),
           const SizedBox(height: 8),
           const ListTile(
-            leading: Icon(Icons.history, color: Color(0xFF0F172A)),
+            leading: Icon(Icons.history, color: InstColors.ink),
             title: Text(
               'Última alteração de nota registrada por Profa. Dra. Helena Bittencourt',
             ),
@@ -815,8 +977,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,7 +990,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           const SizedBox(height: 16),
           ListTile(
             leading: const CircleAvatar(
-              backgroundColor: Color(0xFF0F172A),
+              backgroundColor: InstColors.ink,
               child: Icon(Icons.person, color: Colors.white),
             ),
             title: Text(
@@ -868,7 +1030,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F172A),
+              backgroundColor: InstColors.ink,
               foregroundColor: Colors.white,
             ),
             child: const Text('Confirmar Reatribuição'),
@@ -892,8 +1054,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -922,7 +1084,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           const SizedBox(height: 8),
           Text(
             'Cadastros de demonstração vinculados: ${enrolledStudents.length}',
-            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 12, color: InstColors.muted),
           ),
           const SizedBox(height: 8),
           if (enrolledStudents.isEmpty)
@@ -934,8 +1096,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             ...enrolledStudents.map((u) {
               return ListTile(
                 leading: const CircleAvatar(
-                  backgroundColor: Color(0xFFF1F5F9),
-                  child: Icon(Icons.school, color: Color(0xFF0F172A)),
+                  backgroundColor: InstColors.stoneActive,
+                  child: Icon(Icons.school, color: InstColors.ink),
                 ),
                 title: Text(
                   u.name,
@@ -962,8 +1124,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,18 +1163,18 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
+                color: InstColors.successBg,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.verified, color: Color(0xFF16A34A)),
+                  Icon(Icons.verified, color: InstColors.success),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Esta pauta foi homologada e lacrada pela Secretaria Geral Acadêmica. Nenhuma alteração de nota ou frequência é permitida sem processo formal de retificação.',
                       style: TextStyle(
-                        color: Color(0xFF16A34A),
+                        color: InstColors.success,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
