@@ -146,13 +146,23 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 );
                 return;
               }
-              widget.controller.publishNotice(
+              final published = widget.controller.publishNotice(
                 targetCourse: widget.course.title,
                 targetAudience: 'Todos os discentes da turma',
                 classification: NoticeClassification.informativo,
                 title: title,
                 message: message,
               );
+              if (!published) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Não foi possível publicar o aviso para esta turma.',
+                    ),
+                  ),
+                );
+                return;
+              }
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

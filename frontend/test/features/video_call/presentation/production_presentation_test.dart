@@ -131,6 +131,19 @@ class FakeDomainVideoCallRepository implements VideoCallRepository {
   }
 }
 
+void _closeOwnedSession(AcademicBridgeService bridge, String code) {
+  final session = bridge.getSession(code);
+  if (!session.isOpen) return;
+  final role = session.openedByRole;
+  final identity = session.openedByIdentity;
+  if (role == null || identity == null) {
+    throw StateError('Sessão aberta sem identidade responsável.');
+  }
+  AppUserSession.instance.signIn(identity: identity, profile: role);
+  bridge.closeSession(code);
+  AppUserSession.instance.signOut();
+}
+
 void main() {
   group('VideoCallLobbyController Tests', () {
     late VideoCallLobbyController controller;
@@ -633,18 +646,22 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final bridge = AcademicBridgeService.instance;
         AppUserSession.instance.signIn(
-          identity: '2024.1.00892',
-          profile: 'aluno',
+          identity: 'DOC-88410',
+          profile: 'docente',
         );
-        addTearDown(AppUserSession.instance.signOut);
-        bridge.closeSession('APS-II');
+        _closeOwnedSession(bridge, 'APS-II');
         bridge.openSession(
           rawCourseCode: 'APS-II',
           openedByRole: 'docente',
           openedByName: 'Profa. Dra. Helena Bittencourt',
           openedByIdentity: 'DOC-88410',
         );
-        addTearDown(() => bridge.closeSession('APS-II'));
+        AppUserSession.instance.signIn(
+          identity: '2024.1.00892',
+          profile: 'aluno',
+        );
+        addTearDown(AppUserSession.instance.signOut);
+        addTearDown(() => _closeOwnedSession(bridge, 'APS-II'));
 
         String? submittedName;
         String? submittedRa;

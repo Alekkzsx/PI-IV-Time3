@@ -94,6 +94,19 @@ class FakeChallengerRepository implements VideoCallRepository {
   }
 }
 
+void _closeOwnedSession(AcademicBridgeService bridge, String code) {
+  final session = bridge.getSession(code);
+  if (!session.isOpen) return;
+  final role = session.openedByRole;
+  final identity = session.openedByIdentity;
+  if (role == null || identity == null) {
+    throw StateError('Sessão aberta sem identidade responsável.');
+  }
+  AppUserSession.instance.signIn(identity: identity, profile: role);
+  bridge.closeSession(code);
+  AppUserSession.instance.signOut();
+}
+
 void main() {
   group(
     'Challenger M2-1 Empirical Stress Test Suite: Lobby, Grid & Speaker Detection',
@@ -366,14 +379,18 @@ void main() {
             await tester.binding.setSurfaceSize(const Size(1280, 900));
             addTearDown(() => tester.binding.setSurfaceSize(null));
             final bridge = AcademicBridgeService.instance;
-            bridge.closeSession('APS-II');
+            AppUserSession.instance.signIn(
+              identity: 'DOC-88410',
+              profile: 'docente',
+            );
+            _closeOwnedSession(bridge, 'APS-II');
             bridge.openSession(
               rawCourseCode: 'APS-II',
               openedByRole: 'docente',
               openedByName: 'Docente da turma',
               openedByIdentity: 'DOC-88410',
             );
-            addTearDown(() => bridge.closeSession('APS-II'));
+            addTearDown(() => _closeOwnedSession(bridge, 'APS-II'));
             AppUserSession.instance.signIn(
               identity: '2024.1.00892',
               profile: 'aluno',

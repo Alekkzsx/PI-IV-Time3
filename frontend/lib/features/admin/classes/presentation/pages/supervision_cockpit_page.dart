@@ -747,7 +747,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     final enrolledStudents = AdminMockData.users
         .where(
           (user) =>
-              user.profile == 'Discente' &&
+              user.profile == 'aluno' &&
               widget.classModel.enrolledStudentRas.contains(user.id),
         )
         .toList();

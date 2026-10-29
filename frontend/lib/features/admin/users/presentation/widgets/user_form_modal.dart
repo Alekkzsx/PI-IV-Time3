@@ -406,10 +406,10 @@ class _UserFormModalState extends State<UserFormModal> {
                         final name = _nameController.text.trim();
                         final email = _emailController.text.trim();
                         final profile = _selectedRole.contains('Discente')
-                            ? 'Discente'
+                            ? 'aluno'
                             : _selectedRole.contains('Docente')
-                            ? 'Docente'
-                            : 'Administrador';
+                            ? 'docente'
+                            : 'admin';
 
                         widget.onUserCreated(
                           name: name,

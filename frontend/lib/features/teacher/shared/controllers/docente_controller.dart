@@ -42,6 +42,7 @@ class DocenteController extends ChangeNotifier {
   List<AcademicEvent> _events = [];
   List<AcademicNotice> _notices = [];
   DocenteProfile _profile = DocenteMockData.initialProfile;
+  String _ownerIdentity = '';
 
   String _settingsSubtab =
       'perfil'; // 'perfil', 'seguranca', 'notificacoes', 'preferencias', 'privacidade'
@@ -89,9 +90,9 @@ class DocenteController extends ChangeNotifier {
   };
 
   DocenteController() {
-    final identity =
-        AppUserSession.instance.identity ??
-        DocenteMockData.initialTeacherIdentity;
+    final session = AppUserSession.instance;
+    final identity = session.hasRole('docente') ? session.identity ?? '' : '';
+    _ownerIdentity = identity;
     _courses = DocenteMockData.coursesForIdentity(identity);
     _selectedCourseId = _courses.isNotEmpty ? _courses.first.id : '';
     final assignedCourseIds = _courses.map((course) => course.id).toSet();
@@ -156,6 +157,18 @@ class DocenteController extends ChangeNotifier {
       return false;
     };
   }
+
+  bool get _hasActiveTeacherAccess {
+    final session = AppUserSession.instance;
+    return _ownerIdentity.isNotEmpty &&
+        session.hasRole('docente') &&
+        session.identity == _ownerIdentity;
+  }
+
+  bool _canManageCourse(String courseId, String permission) =>
+      _hasActiveTeacherAccess &&
+      AppUserSession.instance.hasPermission(permission) &&
+      _courses.any((course) => course.id == courseId);
 
   List<AssignmentItem> _addMissingAssignmentSubmissions(
     List<AssignmentItem> assignments,
@@ -275,6 +288,7 @@ class DocenteController extends ChangeNotifier {
 
   // --- Course & Syllabus Methods ---
   void advanceSyllabusClasses(String courseId, String unitId) {
+    if (!_canManageCourse(courseId, 'manage_course_content')) return;
     final courseIndex = _courses.indexWhere((c) => c.id == courseId);
     if (courseIndex == -1) return;
 
@@ -296,7 +310,10 @@ class DocenteController extends ChangeNotifier {
   }
 
   void publishMaterial(String courseId, String title) {
-    if (title.trim().isEmpty) return;
+    if (!_canManageCourse(courseId, 'manage_materials') ||
+        title.trim().isEmpty) {
+      return;
+    }
     final courseIndex = _courses.indexWhere((c) => c.id == courseId);
     if (courseIndex == -1) return;
 
@@ -483,6 +500,10 @@ class DocenteController extends ChangeNotifier {
     String methodology, [
     String? location,
   ]) {
+    if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
+        _currentSession.courseId != _selectedCourseId) {
+      return;
+    }
     final normalizedContent = content.trim();
     final normalizedMethodology = methodology.trim();
     final normalizedLocation = location?.trim();
@@ -501,6 +522,10 @@ class DocenteController extends ChangeNotifier {
   }
 
   void markAllPresent() {
+    if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
+        _currentSession.courseId != _selectedCourseId) {
+      return;
+    }
     if (_currentSession.attendanceList.every(
       (student) => student.status == AttendanceStatus.presente,
     )) {
@@ -550,7 +575,8 @@ class DocenteController extends ChangeNotifier {
   }
 
   void toggleAttendance(String studentId, AttendanceStatus newStatus) {
-    if (_courses.isEmpty ||
+    if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
+        _currentSession.courseId != _selectedCourseId ||
         !_currentSession.attendanceList.any(
           (record) => record.studentId == studentId,
         )) {
@@ -572,7 +598,8 @@ class DocenteController extends ChangeNotifier {
   }
 
   void homologateSession() {
-    if (_courses.isEmpty || _currentSession.courseId != _selectedCourseId) {
+    if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
+        _currentSession.courseId != _selectedCourseId) {
       return;
     }
     _currentSession = _currentSession.copyWith(isHomologated: true);
@@ -608,7 +635,7 @@ class DocenteController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void createAssignment({
+  bool createAssignment({
     required String courseId,
     required String courseCode,
     required String title,
@@ -620,13 +647,21 @@ class DocenteController extends ChangeNotifier {
     required bool allowLateWithPenalty,
     required List<RubricCriterion> rubricCriteria,
   }) {
-    if (!_courses.any((course) => course.id == courseId) ||
+    if (!_canManageCourse(courseId, 'manage_assignments') ||
+        !_courses.any(
+          (course) =>
+              course.id == courseId &&
+              AcademicBridgeService.instance.courseCodesMatch(
+                course.code,
+                courseCode,
+              ),
+        ) ||
         title.trim().isEmpty ||
         dueDateFormatted.trim().isEmpty ||
         !weight.isFinite ||
         weight <= 0 ||
         rubricCriteria.isEmpty) {
-      return;
+      return false;
     }
     final courseSessions = _sessions
         .where((s) => s.courseId == courseId)
@@ -685,6 +720,7 @@ class DocenteController extends ChangeNotifier {
     );
 
     notifyListeners();
+    return true;
   }
 
   void evaluateRubric({
@@ -695,7 +731,14 @@ class DocenteController extends ChangeNotifier {
     required List<RubricCriterion> evaluatedCriteria,
   }) {
     final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId);
-    if (asgIndex == -1) return;
+    if (!_hasActiveTeacherAccess ||
+        !AppUserSession.instance.hasPermission('manage_assignments') ||
+        asgIndex == -1 ||
+        !_courses.any(
+          (course) => course.id == _assignments[asgIndex].courseId,
+        )) {
+      return;
+    }
 
     final assignment = _assignments[asgIndex];
     if (!calculatedGrade.isFinite ||
@@ -727,6 +770,7 @@ class DocenteController extends ChangeNotifier {
     // Sincroniza nota, feedback e rubricas avaliadas diretamente com o Aluno
     AcademicBridgeService.instance.notifyGradedToStudent(
       deliveryId: assignmentId,
+      courseCode: assignment.courseCode,
       finalScore: calculatedGrade,
       feedback: feedback,
       evaluatedRubrics: evaluatedCriteria,
@@ -743,7 +787,11 @@ class DocenteController extends ChangeNotifier {
     double? projects,
     double? p2,
   }) {
-    if (!gradebook.any((grade) => grade.studentId == studentId)) return;
+    if (!_hasActiveTeacherAccess ||
+        !AppUserSession.instance.hasPermission('edit_grades') ||
+        !gradebook.any((grade) => grade.studentId == studentId)) {
+      return;
+    }
 
     double? normalize(double? value) {
       if (value == null || !value.isFinite) return null;
@@ -771,11 +819,12 @@ class DocenteController extends ChangeNotifier {
   // --- Métodos de Homologação, Chancela Digital & Retificação com Coordenação ---
 
   void homologarPautaComChancela(String courseId) {
+    if (!_canManageCourse(courseId, 'edit_grades') ||
+        !_courses.any((course) => course.id == courseId)) {
+      return;
+    }
     _pautaHomologada[courseId] = true;
-    final course = _courses.firstWhere(
-      (c) => c.id == courseId,
-      orElse: () => _courses.first,
-    );
+    final course = _courses.firstWhere((c) => c.id == courseId);
     final codeSuffix = course.code
         .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
         .toUpperCase();
@@ -792,6 +841,22 @@ class DocenteController extends ChangeNotifier {
     required double novaNota,
     required String justificativa,
   }) {
+    final course = _courses.where((item) => item.id == courseId).firstOrNull;
+    final isEnrolledStudent = _sessions
+        .where((session) => session.courseId == courseId)
+        .expand((session) => session.attendanceList)
+        .any((student) => student.ra == studentRa);
+    if (!_canManageCourse(courseId, 'edit_grades') ||
+        course == null ||
+        courseId != _selectedCourseId ||
+        !isEnrolledStudent ||
+        !notaAnterior.isFinite ||
+        !novaNota.isFinite ||
+        novaNota < 0 ||
+        novaNota > 10 ||
+        justificativa.trim().isEmpty) {
+      return;
+    }
     _retificacaoRequests.insert(0, {
       'id':
           'RET-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
@@ -823,7 +888,23 @@ class DocenteController extends ChangeNotifier {
     String studentRa,
     String reply,
   ) {
-    if (reply.trim().isEmpty) return;
+    final assignment = _assignments
+        .where((item) => item.id == assignmentId)
+        .firstOrNull;
+    final isEnrolledStudent =
+        assignment != null &&
+        _sessions
+            .where((session) => session.courseId == assignment.courseId)
+            .expand((session) => session.attendanceList)
+            .any((student) => student.ra == studentRa);
+    if (!_hasActiveTeacherAccess ||
+        !AppUserSession.instance.hasPermission('manage_assignments') ||
+        assignment == null ||
+        !_courses.any((course) => course.id == assignment.courseId) ||
+        !isEnrolledStudent ||
+        reply.trim().isEmpty) {
+      return;
+    }
     _assignmentDoubts.putIfAbsent(assignmentId, () => {});
     _assignmentDoubts[assignmentId]!.putIfAbsent(studentRa, () => []);
     _assignmentDoubts[assignmentId]![studentRa]!.add({
@@ -842,6 +923,22 @@ class DocenteController extends ChangeNotifier {
     String? teacherReply,
   }) {
     final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId);
+    if (!_hasActiveTeacherAccess ||
+        !AppUserSession.instance.hasPermission('manage_assignments') ||
+        asgIndex == -1 ||
+        !_courses.any(
+          (course) => course.id == _assignments[asgIndex].courseId,
+        ) ||
+        !nota.isFinite ||
+        nota < 0 ||
+        nota > 10 ||
+        !_assignments[asgIndex].submissions.any(
+          (submission) =>
+              submission.ra == studentRa &&
+              submission.status == SubmissionStatus.aguardandoCorrecao,
+        )) {
+      return;
+    }
     if (asgIndex != -1) {
       final assignment = _assignments[asgIndex];
       final updatedSubmissions = assignment.submissions.map((sub) {
@@ -866,6 +963,9 @@ class DocenteController extends ChangeNotifier {
   }
 
   void notificarAlunoInfrequencia(String studentId, String studentName) {
+    if (!_canManageCourse(_selectedCourseId, 'publish_course_announcements')) {
+      return;
+    }
     publishNotice(
       targetCourse: selectedCourse.title,
       targetAudience: 'Discente: $studentName ($studentId)',
@@ -884,7 +984,10 @@ class DocenteController extends ChangeNotifier {
     required EventType type,
     required String location,
   }) {
-    if (title.trim().isEmpty) return;
+    if (!_canManageCourse(_selectedCourseId, 'manage_course_calendar') ||
+        title.trim().isEmpty) {
+      return;
+    }
     final newEvent = AcademicEvent(
       id: 'ev-${DateTime.now().millisecondsSinceEpoch}',
       title: title.trim(),
@@ -900,20 +1003,31 @@ class DocenteController extends ChangeNotifier {
   }
 
   // --- Notices & Announcements Methods ---
-  void publishNotice({
+  bool publishNotice({
     required String targetCourse,
     required String targetAudience,
     required NoticeClassification classification,
     required String title,
     required String message,
   }) {
-    if (title.trim().isEmpty || message.trim().isEmpty) return;
+    if (!_hasActiveTeacherAccess ||
+        !AppUserSession.instance.hasPermission(
+          'publish_course_announcements',
+        ) ||
+        title.trim().isEmpty ||
+        message.trim().isEmpty) {
+      return false;
+    }
     final normalizedTargetCourse = targetCourse.trim().toLowerCase();
     final recipientCourse = _courses.where((course) {
       return course.id.toLowerCase() == normalizedTargetCourse ||
           course.code.toLowerCase() == normalizedTargetCourse ||
           course.title.toLowerCase() == normalizedTargetCourse;
     }).firstOrNull;
+    if (recipientCourse == null ||
+        !_courses.any((course) => course.id == recipientCourse.id)) {
+      return false;
+    }
     final newNotice = AcademicNotice(
       id: 'not-${DateTime.now().millisecondsSinceEpoch}',
       author: 'Você (Profa. Helena Bittencourt)',
@@ -925,7 +1039,7 @@ class DocenteController extends ChangeNotifier {
       title: title.trim(),
       message: message.trim(),
       readCount: 0,
-      totalRecipients: (recipientCourse ?? selectedCourse).enrolledCount,
+      totalRecipients: recipientCourse.enrolledCount,
       isFromSecretaria: false,
     );
 
@@ -936,16 +1050,17 @@ class DocenteController extends ChangeNotifier {
       title: title.trim(),
       content: message.trim(),
       senderRole: 'docente',
-      senderName:
-          'Profa. Helena Bittencourt (${recipientCourse?.code ?? targetCourse})',
-      targetCourse: recipientCourse?.code ?? targetCourse,
+      senderName: '${profile.fullName} (${recipientCourse.code})',
+      targetCourse: recipientCourse.code,
     );
 
     notifyListeners();
+    return true;
   }
 
   // --- Settings & Profile Methods ---
   void updateProfile({String? socialName, String? personalEmail}) {
+    if (!_hasActiveTeacherAccess) return;
     _profile = _profile.copyWith(
       socialName: socialName ?? _profile.socialName,
       personalEmail: personalEmail ?? _profile.personalEmail,
@@ -954,11 +1069,13 @@ class DocenteController extends ChangeNotifier {
   }
 
   void toggleTwoFactor() {
+    if (!_hasActiveTeacherAccess) return;
     _profile = _profile.copyWith(twoFactorEnabled: !_profile.twoFactorEnabled);
     notifyListeners();
   }
 
   void disconnectSession(String sessionId) {
+    if (!_hasActiveTeacherAccess) return;
     final updatedSessions = _profile.activeSessions
         .where((s) => s.id != sessionId)
         .toList();
@@ -968,6 +1085,7 @@ class DocenteController extends ChangeNotifier {
 
   /// Ends all sessions except the device currently in use.
   void disconnectOtherSessions() {
+    if (!_hasActiveTeacherAccess) return;
     _profile = _profile.copyWith(
       activeSessions: _profile.activeSessions
           .where((session) => session.isCurrent)

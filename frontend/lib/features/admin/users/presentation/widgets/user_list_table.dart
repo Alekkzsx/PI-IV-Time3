@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -482,11 +482,11 @@ class UserListTable extends StatelessWidget {
     Color border;
     Color textColor;
 
-    if (profile == 'Docente') {
+    if (profile == 'docente') {
       bg = const Color(0xFFEFF6FF);
       border = const Color(0xFFDBEAFE);
       textColor = const Color(0xFF2563EB);
-    } else if (profile == 'Administrador') {
+    } else if (profile == 'admin') {
       bg = const Color(0xFFFEF2F2);
       border = const Color(0xFFFEE2E2);
       textColor = const Color(0xFFDC2626);
@@ -503,10 +503,12 @@ class UserListTable extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: border),
       ),
-      child: Text(
-        profile,
-        style: jakarta(size: 12, weight: FontWeight.w600, color: textColor),
-      ),
+      child: Text(switch (profile) {
+        'aluno' => 'Aluno',
+        'docente' => 'Docente',
+        'admin' => 'Admin',
+        _ => profile,
+      }, style: jakarta(size: 12, weight: FontWeight.w600, color: textColor)),
     );
   }
 }

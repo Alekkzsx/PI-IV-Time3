@@ -2,6 +2,8 @@
 // Barramento Central de Sincronização e Regras de Negócio Multiperfil (Aluno, Docente, Admin)
 
 import 'package:flutter/foundation.dart';
+import 'app_user_session.dart';
+import 'role_permission_policy.dart';
 import '../../features/student/shared/data/student_mock_data.dart';
 import '../../features/teacher/shared/domain/models/assignment_model.dart';
 import '../../features/teacher/shared/domain/models/rubric_model.dart';
@@ -18,6 +20,7 @@ class AcademicLiveSession {
   bool isOpen;
   String? openedByRole; // 'docente', 'admin'
   String? openedByName;
+  String? openedByIdentity;
   DateTime? openedAt;
 
   AcademicLiveSession({
@@ -28,6 +31,7 @@ class AcademicLiveSession {
     this.isOpen = false,
     this.openedByRole,
     this.openedByName,
+    this.openedByIdentity,
     this.openedAt,
   });
 
@@ -35,6 +39,7 @@ class AcademicLiveSession {
     bool? isOpen,
     String? openedByRole,
     String? openedByName,
+    String? openedByIdentity,
     DateTime? openedAt,
   }) {
     return AcademicLiveSession(
@@ -45,6 +50,7 @@ class AcademicLiveSession {
       isOpen: isOpen ?? this.isOpen,
       openedByRole: openedByRole ?? this.openedByRole,
       openedByName: openedByName ?? this.openedByName,
+      openedByIdentity: openedByIdentity ?? this.openedByIdentity,
       openedAt: openedAt ?? this.openedAt,
     );
   }
@@ -115,9 +121,8 @@ class AcademicBridgeService extends ChangeNotifier {
   /// A autorização por turma é verificada em [canUserOpenSessionForCourse].
   bool canUserOpenSession({required String role}) {
     final normalized = role.toLowerCase().trim();
-    return normalized == 'docente' ||
-        normalized == 'teacher' ||
-        normalized == 'admin';
+    return normalized == RolePermissionPolicy.teacher ||
+        normalized == RolePermissionPolicy.admin;
   }
 
   bool canUserOpenSessionForCourse({
@@ -155,7 +160,7 @@ class AcademicBridgeService extends ChangeNotifier {
     )) {
       return true;
     }
-    if (normalizedRole != 'aluno' && normalizedRole != 'student') {
+    if (normalizedRole != RolePermissionPolicy.student) {
       return false;
     }
     final normalizedRa = studentRa?.trim();
@@ -174,7 +179,10 @@ class AcademicBridgeService extends ChangeNotifier {
     String? openedByIdentity,
   }) {
     final cleanCode = _normalizeCourseCode(rawCourseCode);
-    if (!canUserOpenSessionForCourse(
+    final userSession = AppUserSession.instance;
+    if (!userSession.hasRole(openedByRole) ||
+        userSession.identity != openedByIdentity ||
+        !canUserOpenSessionForCourse(
           role: openedByRole,
           rawCourseCode: cleanCode,
           teacherIdentity: openedByIdentity,
@@ -190,6 +198,7 @@ class AcademicBridgeService extends ChangeNotifier {
     session.isOpen = true;
     session.openedByRole = openedByRole;
     session.openedByName = openedByName;
+    session.openedByIdentity = openedByIdentity;
     session.openedAt = DateTime.now();
 
     _liveSessions[cleanCode] = session;
@@ -203,14 +212,28 @@ class AcademicBridgeService extends ChangeNotifier {
   }
 
   /// Encerra a vídeo chamada da turma.
-  void closeSession(String rawCourseCode) {
+  bool closeSession(String rawCourseCode) {
     final cleanCode = _normalizeCourseCode(rawCourseCode);
-    if (_liveSessions.containsKey(cleanCode)) {
-      _liveSessions[cleanCode]!.isOpen = false;
-      _liveSessions[cleanCode]!.openedAt = null;
-      notifyListeners();
-      debugPrint('[AcademicBridge] Sala $cleanCode ENCERRADA.');
+    final session = _liveSessions[cleanCode];
+    final user = AppUserSession.instance;
+    if (session == null ||
+        !session.isOpen ||
+        !(user.hasRole(RolePermissionPolicy.admin) &&
+                user.hasPermission('manage_video_calls') ||
+            user.hasRole(RolePermissionPolicy.teacher) &&
+                session.openedByRole == RolePermissionPolicy.teacher &&
+                session.openedByIdentity == user.identity)) {
+      debugPrint('[AcademicBridge] Encerramento negado para o perfil atual.');
+      return false;
     }
+    session.isOpen = false;
+    session.openedByRole = null;
+    session.openedByName = null;
+    session.openedByIdentity = null;
+    session.openedAt = null;
+    notifyListeners();
+    debugPrint('[AcademicBridge] Sala $cleanCode ENCERRADA.');
+    return true;
   }
 
   String _normalizeCourseCode(String raw) {
@@ -266,10 +289,21 @@ class AcademicBridgeService extends ChangeNotifier {
     required List<RubricCriterion> rubricCriteria,
     required String modality,
   }) {
+    final session = AppUserSession.instance;
     final cleanDiscCode = _normalizeCourseCode(courseCode);
-    if (!_liveSessions.containsKey(cleanDiscCode)) {
+    final teachesCourse = DocenteMockData.coursesForIdentity(
+      session.identity ?? '',
+    ).any((course) => courseCodesMatch(course.code, courseCode));
+    if (!session.hasPermission('manage_assignments') ||
+        !teachesCourse ||
+        !_liveSessions.containsKey(cleanDiscCode) ||
+        assignmentId.trim().isEmpty ||
+        title.trim().isEmpty ||
+        weight <= 0 ||
+        !weight.isFinite ||
+        rubricCriteria.isEmpty) {
       debugPrint(
-        '[AcademicBridge] Publicação de atividade recusada para turma desconhecida: $courseCode.',
+        '[AcademicBridge] Publicação de atividade recusada por perfil, turma ou dados inválidos.',
       );
       return;
     }
@@ -341,7 +375,14 @@ class AcademicBridgeService extends ChangeNotifier {
     String? comments,
   }) {
     final cleanCourseCode = _normalizeCourseCode(courseCode);
-    if (cleanCourseCode.isEmpty || assignmentId.trim().isEmpty) {
+    final session = AppUserSession.instance;
+    if (!session.hasPermission('submit_assignments') ||
+        !StudentMockData.ownsDemoRecords(session.identity ?? '') ||
+        studentRa != StudentMockData.studentRa ||
+        cleanCourseCode.isEmpty ||
+        assignmentId.trim().isEmpty ||
+        deliveryId.trim().isEmpty ||
+        fileName.trim().isEmpty) {
       debugPrint(
         '[AcademicBridge] Submissão recusada: atividade ou turma inválida.',
       );
@@ -388,10 +429,23 @@ class AcademicBridgeService extends ChangeNotifier {
   /// O Docente avalia a atividade com rubricas e notas, sincronizando a visão do Aluno.
   void notifyGradedToStudent({
     required String deliveryId,
+    required String courseCode,
     required double finalScore,
     required String feedback,
     required List<RubricCriterion> evaluatedRubrics,
   }) {
+    final session = AppUserSession.instance;
+    final teachesCourse = DocenteMockData.coursesForIdentity(
+      session.identity ?? '',
+    ).any((course) => courseCodesMatch(course.code, courseCode));
+    if (!session.hasPermission('manage_assignments') ||
+        !teachesCourse ||
+        !finalScore.isFinite ||
+        finalScore < 0 ||
+        finalScore > 10) {
+      debugPrint('[AcademicBridge] Avaliação negada para o perfil atual.');
+      return;
+    }
     final studentDeliveryId =
         _deliveryIdsByAssignment[deliveryId] ?? deliveryId;
     if (onGradedReceivedByStudent != null) {
@@ -437,6 +491,13 @@ class AcademicBridgeService extends ChangeNotifier {
     required String justification,
     String? attachmentName,
   }) {
+    if (!AppUserSession.instance.hasPermission('submit_protocols') ||
+        studentRa != StudentMockData.studentRa ||
+        !StudentMockData.ownsDemoRecords(studentRa) ||
+        protocolCode.trim().isEmpty) {
+      debugPrint('[AcademicBridge] Protocolo recusado para o perfil atual.');
+      return;
+    }
     final adminProtocol = AdminProtocolModel(
       id: protocolCode,
       studentName: studentName,
@@ -468,6 +529,10 @@ class AcademicBridgeService extends ChangeNotifier {
     required String decisionNote,
     required String approverName,
   }) {
+    if (!AppUserSession.instance.hasPermission('dispatch_protocols')) {
+      debugPrint('[AcademicBridge] Despacho negado para o perfil atual.');
+      return;
+    }
     if (onStudentProtocolUpdated != null) {
       onStudentProtocolUpdated!(
         protocolCode,
@@ -498,6 +563,16 @@ class AcademicBridgeService extends ChangeNotifier {
     required String fileType,
     required String fileSize,
   }) {
+    final session = AppUserSession.instance;
+    final teachesCourse = DocenteMockData.coursesForIdentity(
+      session.identity ?? '',
+    ).any((course) => courseCodesMatch(course.code, courseCode));
+    if (!session.hasPermission('manage_materials') ||
+        !teachesCourse ||
+        title.trim().isEmpty) {
+      debugPrint('[AcademicBridge] Publicação de material negada.');
+      return;
+    }
     final item = {
       'id': 'mat-${DateTime.now().millisecondsSinceEpoch}',
       'courseCode': courseCode,
@@ -548,6 +623,21 @@ class AcademicBridgeService extends ChangeNotifier {
     required String senderName,
     String? targetCourse,
   }) {
+    final session = AppUserSession.instance;
+    final canPublish = senderRole == RolePermissionPolicy.admin
+        ? session.hasPermission('publish_announcements')
+        : senderRole == RolePermissionPolicy.teacher &&
+              session.hasPermission('publish_course_announcements') &&
+              DocenteMockData.coursesForIdentity(session.identity ?? '').any(
+                (course) => courseCodesMatch(course.code, targetCourse ?? ''),
+              );
+    if (!session.hasRole(senderRole) ||
+        !canPublish ||
+        title.trim().isEmpty ||
+        content.trim().isEmpty) {
+      debugPrint('[AcademicBridge] Publicação de comunicado negada.');
+      return;
+    }
     final notice = {
       'id': 'ntc-${DateTime.now().millisecondsSinceEpoch}',
       'title': title,
@@ -580,6 +670,14 @@ class AcademicBridgeService extends ChangeNotifier {
     required String sessionDate,
     required List<Map<String, dynamic>> attendances,
   }) {
+    final session = AppUserSession.instance;
+    final teachesCourse = DocenteMockData.coursesForIdentity(
+      session.identity ?? '',
+    ).any((course) => courseCodesMatch(course.code, courseCode));
+    if (!session.hasPermission('manage_attendance') || !teachesCourse) {
+      debugPrint('[AcademicBridge] Homologação de frequência negada.');
+      return;
+    }
     if (onAttendanceHomologated != null) {
       onAttendanceHomologated!(courseCode, sessionDate, attendances);
     }

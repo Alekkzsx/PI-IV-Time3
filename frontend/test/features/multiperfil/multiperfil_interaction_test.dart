@@ -5,32 +5,51 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/presentation/controllers/student_secretariat_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/teacher/shared/data/docente_mock_data.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/assignment_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
 
+void _closeOwnedSession(AcademicBridgeService bridge, String code) {
+  final session = bridge.getSession(code);
+  if (!session.isOpen) return;
+  final role = session.openedByRole;
+  final identity = session.openedByIdentity;
+  if (role == null || identity == null) {
+    throw StateError('Sessão aberta sem identidade responsável.');
+  }
+  AppUserSession.instance.signIn(identity: identity, profile: role);
+  bridge.closeSession(code);
+  AppUserSession.instance.signOut();
+}
+
 void main() {
+  const studentIdentity = '2024.1.00892';
+  const teacherIdentity = 'DOC-88410';
+
   group('Verificação Extrema Multiperfil: Regras de Videochamada por Turma', () {
     late AcademicBridgeService bridge;
 
     setUp(() {
       bridge = AcademicBridgeService.instance;
+      AppUserSession.instance.signOut();
       for (final code in ['APS-II', 'BD-II', 'FSO', 'FIS']) {
-        bridge.closeSession(code);
+        _closeOwnedSession(bridge, code);
       }
+      addTearDown(AppUserSession.instance.signOut);
     });
 
     test(
       'Regra Estrita: Apenas Docente da turma ou Admin podem ABRIR uma videochamada',
       () {
         expect(bridge.canUserOpenSession(role: 'docente'), isTrue);
-        expect(bridge.canUserOpenSession(role: 'teacher'), isTrue);
+        expect(bridge.canUserOpenSession(role: 'teacher'), isFalse);
         expect(bridge.canUserOpenSession(role: 'admin'), isTrue);
         expect(bridge.canUserOpenSession(role: 'moderator'), isFalse);
 
@@ -42,6 +61,10 @@ void main() {
     );
 
     test('Aluno é impedido de abrir sessão de turma fechada', () {
+      AppUserSession.instance.signIn(
+        identity: studentIdentity,
+        profile: 'aluno',
+      );
       final success = bridge.openSession(
         rawCourseCode: 'APS-II',
         openedByRole: 'aluno',
@@ -55,12 +78,16 @@ void main() {
     test(
       'Docente só abre turmas atribuídas e códigos desconhecidos são negados',
       () {
+        AppUserSession.instance.signIn(
+          identity: teacherIdentity,
+          profile: 'docente',
+        );
         expect(
           bridge.openSession(
             rawCourseCode: '218131 - FIS',
             openedByRole: 'docente',
             openedByName: 'Docente',
-            openedByIdentity: DocenteMockData.initialTeacherIdentity,
+            openedByIdentity: teacherIdentity,
           ),
           isFalse,
         );
@@ -78,6 +105,7 @@ void main() {
             rawCourseCode: 'OUTRA-TURMA-APS',
             openedByRole: 'admin',
             openedByName: 'Admin',
+            openedByIdentity: 'ADM-00129',
           ),
           isFalse,
         );
@@ -86,11 +114,15 @@ void main() {
     );
 
     test('Aluno só entra em sessão aberta com vínculo acadêmico válido', () {
+      AppUserSession.instance.signIn(
+        identity: teacherIdentity,
+        profile: 'docente',
+      );
       bridge.openSession(
         rawCourseCode: 'APS-II',
         openedByRole: 'docente',
         openedByName: 'Profa. Dra. Helena Bittencourt',
-        openedByIdentity: DocenteMockData.initialTeacherIdentity,
+        openedByIdentity: teacherIdentity,
       );
 
       expect(
@@ -122,11 +154,15 @@ void main() {
     test(
       'Docente abre a sala da turma com sucesso e status muda para Ao Vivo',
       () {
+        AppUserSession.instance.signIn(
+          identity: teacherIdentity,
+          profile: 'docente',
+        );
         final success = bridge.openSession(
           rawCourseCode: 'APS-II',
           openedByRole: 'docente',
           openedByName: 'Profa. Dra. Helena Bittencourt',
-          openedByIdentity: DocenteMockData.initialTeacherIdentity,
+          openedByIdentity: teacherIdentity,
         );
 
         expect(success, isTrue);
@@ -143,10 +179,12 @@ void main() {
     test(
       'Administrador pode abrir ou supervisionar a sala de qualquer turma',
       () {
+        AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
         final success = bridge.openSession(
           rawCourseCode: 'APS-II',
           openedByRole: 'admin',
           openedByName: 'Carlos Mendes (Coordenação Geral)',
+          openedByIdentity: 'ADM-00129',
         );
 
         expect(success, isTrue);
@@ -166,6 +204,15 @@ void main() {
       late StudentPortalController studentController;
 
       setUp(() {
+        final student = StudentPortalController.instance;
+        student.deliveries = List.from(StudentMockData.deliveries);
+        student.events = List.from(StudentMockData.calendarEvents);
+        student.disciplines = List.from(StudentMockData.disciplines);
+        AppUserSession.instance.signIn(
+          identity: teacherIdentity,
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
         docenteController = DocenteController();
         studentController = StudentPortalController.instance;
       });
@@ -230,6 +277,10 @@ void main() {
         'Aluno submete arquivo de entrega e Docente recebe a submissão para correção',
         () {
           // Aluno envia arquivo
+          AppUserSession.instance.signIn(
+            identity: studentIdentity,
+            profile: 'aluno',
+          );
           final generatedProtocol = studentController.submitDelivery(
             deliveryId: 'DEL-01',
             fileName: 'modelagem_gof_gabriel_oliveira.pdf',
@@ -264,6 +315,10 @@ void main() {
       test(
         'Docente corrige entrega com rubrica e Aluno vê status Avaliada e notas recalculadas',
         () {
+          AppUserSession.instance.signIn(
+            identity: studentIdentity,
+            profile: 'aluno',
+          );
           studentController.submitDelivery(
             deliveryId: 'DEL-01',
             fileName: 'modelagem_gof_gabriel_oliveira.pdf',
@@ -271,6 +326,10 @@ void main() {
           );
 
           // Docente avalia submissão
+          AppUserSession.instance.signIn(
+            identity: teacherIdentity,
+            profile: 'docente',
+          );
           docenteController.evaluateRubric(
             assignmentId: 'asg-1',
             submissionId: 'sub-DEL-01-2024.1.00892',
@@ -320,6 +379,11 @@ void main() {
     late AdminPortalController adminController;
 
     setUp(() {
+      AppUserSession.instance.signIn(
+        identity: studentIdentity,
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
       adminController = AdminPortalController.instance;
       secretariatStudentController = StudentSecretariatController();
     });
@@ -360,6 +424,7 @@ void main() {
     test(
       'Admin defere requerimento com despacho e Aluno vê parecer oficial assinado',
       () {
+        AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
         final targetProtocol = secretariatStudentController.protocols.first;
 
         // Admin analisa e defere o protocolo
@@ -381,7 +446,7 @@ void main() {
         );
         expect(
           updatedStudentProtocol.approverName,
-          contains('Carlos Eduardo Mendes'),
+          'Administrador institucional',
         );
         expect(updatedStudentProtocol.responseDate, contains('Hoje às'));
       },
@@ -395,6 +460,11 @@ void main() {
       late AcademicBridgeService bridge;
 
       setUp(() {
+        AppUserSession.instance.signIn(
+          identity: teacherIdentity,
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
         docenteController = DocenteController();
         bridge = AcademicBridgeService.instance;
       });
@@ -426,6 +496,11 @@ void main() {
       late StudentPortalController studentController;
 
       setUp(() {
+        AppUserSession.instance.signIn(
+          identity: teacherIdentity,
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
         docenteController = DocenteController();
         studentController = StudentPortalController.instance;
       });
@@ -463,6 +538,8 @@ void main() {
       late StudentPortalController studentController;
 
       setUp(() {
+        AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
+        addTearDown(AppUserSession.instance.signOut);
         adminController = AdminPortalController.instance;
         studentController = StudentPortalController.instance;
       });
@@ -499,6 +576,11 @@ void main() {
       late AcademicBridgeService bridge;
 
       setUp(() {
+        AppUserSession.instance.signIn(
+          identity: teacherIdentity,
+          profile: 'docente',
+        );
+        addTearDown(AppUserSession.instance.signOut);
         docenteController = DocenteController();
         adminController = AdminPortalController.instance;
         bridge = AcademicBridgeService.instance;
@@ -520,6 +602,10 @@ void main() {
           );
 
           // Admin publica comunicado institucional para todo o campus
+          AppUserSession.instance.signIn(
+            identity: 'ADM-00129',
+            profile: 'admin',
+          );
           adminController.broadcastAnnouncement(
             title: 'Semana de Iniciação Científica e Extensão 2026/2',
             audience: 'Campus Central e Alunos Presenciais',

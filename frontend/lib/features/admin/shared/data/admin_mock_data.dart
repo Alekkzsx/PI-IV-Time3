@@ -5,7 +5,7 @@ class AdminUserModel {
   final String id;
   final String name;
   final String email;
-  final String profile; // 'Discente', 'Docente', 'Administrador'
+  final String profile; // 'aluno', 'docente', 'admin'
   final String departmentOrCourse;
   String status; // 'Ativo', 'Suspenso'
   final bool twoFactorRequired;
@@ -158,7 +158,7 @@ class AdminMockData {
       id: '2024.1.00892',
       name: 'Gabriel Soares de Oliveira',
       email: 'gabriel.oliveira@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -171,7 +171,7 @@ class AdminMockData {
       id: 'DOC-88410',
       name: 'Profa. Dra. Helena Bittencourt',
       email: 'helena.bittencourt@docente.universidade.edu.br',
-      profile: 'Docente',
+      profile: 'docente',
       departmentOrCourse: 'Departamento de Computação e Sistemas',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -184,7 +184,7 @@ class AdminMockData {
       id: '2024.1.00901',
       name: 'Mariana Rios Costa',
       email: 'mariana.costa@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -197,7 +197,7 @@ class AdminMockData {
       id: 'DOC-88392',
       name: 'Prof. Me. Carlos Eduardo Silva',
       email: 'carlos.silva@docente.universidade.edu.br',
-      profile: 'Docente',
+      profile: 'docente',
       departmentOrCourse: 'Departamento de Computação e Sistemas',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -210,7 +210,7 @@ class AdminMockData {
       id: '2024.1.00915',
       name: 'Lucas Mendes Santos',
       email: 'lucas.santos@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Sistemas de Informação (4º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,
@@ -224,20 +224,20 @@ class AdminMockData {
       id: 'ADM-00129',
       name: 'Carlos Eduardo Mendes',
       email: 'carlos.mendes@secretaria.universidade.edu.br',
-      profile: 'Administrador',
+      profile: 'admin',
       departmentOrCourse: 'Secretaria Geral Acadêmica & Auditoria',
       status: 'Ativo',
       twoFactorRequired: true,
       activeSessionsCount: 1,
       lastLogin: 'Hoje às 08:00',
-      roleLevel: 'Super Administrador / Secretaria Geral',
-      linkedInfo: 'Acesso Irrestrito • Auditor Master • Emissor de Diplomas',
+      roleLevel: 'Administrador',
+      linkedInfo: 'Gestão administrativa institucional',
     ),
     AdminUserModel(
       id: '2024.1.00962',
       name: 'Camila Duarte Fagundes',
       email: 'camila.fagundes@aluno.universidade.edu.br',
-      profile: 'Discente',
+      profile: 'aluno',
       departmentOrCourse: 'Engenharia de Software (5º Semestre)',
       status: 'Ativo',
       twoFactorRequired: true,

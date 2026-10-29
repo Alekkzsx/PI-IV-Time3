@@ -21,6 +21,8 @@ void main() {
     late DocenteController controller;
 
     setUp(() {
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+      addTearDown(AppUserSession.instance.signOut);
       controller = DocenteController();
     });
 
@@ -123,7 +125,7 @@ void main() {
       () {
         final initialCount = controller.notices.length;
         controller.publishNotice(
-          targetCourse: 'CC-401',
+          targetCourse: controller.courses.first.code,
           targetAudience: 'Todos os Alunos',
           classification: NoticeClassification.urgencia,
           title: 'Plantão Extraordinário',
@@ -338,6 +340,11 @@ void main() {
   });
 
   group('Docente Shell & Widgets Rendering Tests', () {
+    setUp(() {
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     testWidgets(
       'Submission row actions wrap inside the action column without overflow',
       (tester) async {

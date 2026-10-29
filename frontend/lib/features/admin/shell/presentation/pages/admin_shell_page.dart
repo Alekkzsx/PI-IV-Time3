@@ -9,7 +9,6 @@ import 'package:pi_iv_time3/features/admin/classes/presentation/pages/classes_pa
 import 'package:pi_iv_time3/features/admin/courses/presentation/pages/courses_page.dart';
 import 'package:pi_iv_time3/features/admin/dashboard/presentation/pages/painel_geral_page.dart';
 import 'package:pi_iv_time3/features/admin/secretary/presentation/pages/secretary_page.dart';
-import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/settings/presentation/pages/admin_configure_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_top_header.dart';
@@ -29,12 +28,6 @@ class AdminShellPage extends StatefulWidget {
 class _AdminShellPageState extends State<AdminShellPage> {
   AdminNavTab _activeTab = AdminNavTab.painelGeral;
   bool _isSidebarCollapsed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    AdminPortalController.instance.configureOperatorAccess();
-  }
 
   Widget _buildCurrentPage(AdminNavTab tab) {
     switch (tab) {

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/messages/domain/entities/academic_message.dart';
 import 'package:pi_iv_time3/features/student/messages/presentation/controllers/student_messages_controller.dart';
 import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
@@ -64,6 +65,14 @@ void main() {
   });
 
   group('StudentSecretariatController & StudentSecretariatPage', () {
+    setUp(() {
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00892',
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     test('Adiciona novo protocolo de requerimento', () {
       final controller = StudentSecretariatController();
       expect(controller.protocols.length, 1);

@@ -41,6 +41,14 @@ void main() {
   });
 
   group('StudentPortalController Unit Tests', () {
+    setUp(() {
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+    });
+
     test('Alterna entre modo Grid e Lista no Dashboard', () {
       final controller = StudentPortalController();
       controller.toggleDashboardView(false);
@@ -76,7 +84,15 @@ void main() {
 
     test('Protocolar submissão de atividade gera protocolo e muda status', () {
       final controller = StudentPortalController();
+      AppUserSession.instance.signIn(
+        identity: 'DOC-88410',
+        profile: 'docente',
+      );
       DocenteController();
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+      );
       controller.submitDelivery(
         deliveryId: 'DEL-01',
         fileName: 'teste_entrega.zip',

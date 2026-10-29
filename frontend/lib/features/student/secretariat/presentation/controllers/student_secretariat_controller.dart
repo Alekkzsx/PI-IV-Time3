@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../../../../../core/state/academic_bridge_service.dart';
+import '../../../../../core/state/app_user_session.dart';
 import '../../domain/entities/academic_record_summary.dart';
 import '../../domain/entities/protocol_request.dart';
 
@@ -22,25 +23,31 @@ class StudentSecretariatController extends ChangeNotifier {
          initialProtocols ?? defaultProtocols,
        ) {
     // Escuta despachos e pareceres oficiais emitidos pela Secretaria Geral (Admin)
-    AcademicBridgeService.instance.onStudentProtocolUpdated = (protocolCode, isApproved, officialNote, approverName) {
-      final index = _protocols.indexWhere((p) => p.protocolCode == protocolCode);
-      if (index != -1) {
-        final old = _protocols[index];
-        _protocols[index] = ProtocolRequest(
-          protocolCode: old.protocolCode,
-          submittedAt: old.submittedAt,
-          subjectType: old.subjectType,
-          componentObject: old.componentObject,
-          justification: old.justification,
-          attachmentName: old.attachmentName,
-          status: isApproved ? ProtocolStatus.approved : ProtocolStatus.rejected,
-          officialOpinion: officialNote,
-          approverName: approverName,
-          responseDate: 'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-        );
-        notifyListeners();
-      }
-    };
+    AcademicBridgeService.instance.onStudentProtocolUpdated =
+        (protocolCode, isApproved, officialNote, approverName) {
+          final index = _protocols.indexWhere(
+            (p) => p.protocolCode == protocolCode,
+          );
+          if (index != -1) {
+            final old = _protocols[index];
+            _protocols[index] = ProtocolRequest(
+              protocolCode: old.protocolCode,
+              submittedAt: old.submittedAt,
+              subjectType: old.subjectType,
+              componentObject: old.componentObject,
+              justification: old.justification,
+              attachmentName: old.attachmentName,
+              status: isApproved
+                  ? ProtocolStatus.approved
+                  : ProtocolStatus.rejected,
+              officialOpinion: officialNote,
+              approverName: approverName,
+              responseDate:
+                  'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+            );
+            notifyListeners();
+          }
+        };
   }
 
   /// Resumo do prontuário acadêmico regular do estudante.
@@ -84,6 +91,12 @@ class StudentSecretariatController extends ChangeNotifier {
     String justification = '',
     String? attachmentName,
   }) {
+    if (!AppUserSession.instance.hasPermission('submit_protocols')) {
+      debugPrint(
+        '[StudentSecretariat] Abertura de protocolo negada para o perfil atual.',
+      );
+      return;
+    }
     final nextNumber = 8835 + _protocols.length;
     final newProtocol = ProtocolRequest(
       protocolCode: 'PROT-2026/$nextNumber',

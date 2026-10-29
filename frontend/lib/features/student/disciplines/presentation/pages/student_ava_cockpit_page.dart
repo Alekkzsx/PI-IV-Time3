@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -97,7 +97,8 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
   // CABEÇALHO & BREADCRUMBS
   // ==========================================
   Widget _buildBreadcrumbAndHeader() {
-    final fullCode = _currentDiscipline.fullCode ?? '218131 - ${_currentDiscipline.code}';
+    final fullCode =
+        _currentDiscipline.fullCode ?? '218131 - ${_currentDiscipline.code}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +115,11 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.arrow_back, size: 14, color: Color(0xFF71717A)),
+                    const Icon(
+                      Icons.arrow_back,
+                      size: 14,
+                      color: Color(0xFF71717A),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Minhas Disciplinas',
@@ -129,10 +134,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              '>',
-              style: jakarta(size: 13, color: const Color(0xFFA1A1AA)),
-            ),
+            Text('>', style: jakarta(size: 13, color: const Color(0xFFA1A1AA))),
             const SizedBox(width: 8),
             Text(
               fullCode,
@@ -163,10 +165,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
         // Subtítulo da disciplina
         Text(
           'Docente Responsável: ${_currentDiscipline.professor} • Turno Noturno • Semestre 2026/2',
-          style: jakarta(
-            size: 12.5,
-            color: const Color(0xFF71717A),
-          ),
+          style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
         ),
       ],
     );
@@ -180,7 +179,11 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
         children: [
           Text(
             'Trocar disciplina:',
-            style: jakarta(size: 11, color: const Color(0xFF71717A), weight: FontWeight.w500),
+            style: jakarta(
+              size: 11,
+              color: const Color(0xFF71717A),
+              weight: FontWeight.w500,
+            ),
           ),
           const SizedBox(width: 8),
           for (final d in StudentMockData.disciplines) ...[
@@ -190,7 +193,10 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 onTap: () => _switchDiscipline(d),
                 borderRadius: BorderRadius.circular(4),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: _currentDiscipline.code == d.code
                         ? const Color(0xFF18181B)
@@ -228,7 +234,8 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 1050;
-        final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1050;
+        final isTablet =
+            constraints.maxWidth >= 768 && constraints.maxWidth < 1050;
 
         if (isDesktop) {
           return Row(
@@ -239,9 +246,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
                 onSelectTab: (idx) => _controller.setAvaTab(idx),
               ),
               const SizedBox(width: 20),
-              Expanded(
-                child: _buildActiveTabContent(),
-              ),
+              Expanded(child: _buildActiveTabContent()),
               const SizedBox(width: 24),
               StudentAvaRightSidebar(discipline: _currentDiscipline),
             ],
@@ -278,31 +283,42 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(StudentAvaLeftSidebar.menuItems.length, (index) {
-                  final item = StudentAvaLeftSidebar.menuItems[index];
-                  final isSelected = _controller.activeAvaTabIndex == index;
-                  final title = item['title'] as String;
+                children: List.generate(
+                  StudentAvaLeftSidebar.menuItems.length,
+                  (index) {
+                    final item = StudentAvaLeftSidebar.menuItems[index];
+                    final isSelected = _controller.activeAvaTabIndex == index;
+                    final title = item['title'] as String;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: ChoiceChip(
-                      label: Text(title),
-                      selected: isSelected,
-                      onSelected: (_) => _controller.setAvaTab(index),
-                      selectedColor: const Color(0xFF18181B),
-                      backgroundColor: Colors.white,
-                      labelStyle: jakarta(
-                        size: 11.5,
-                        weight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : const Color(0xFF52525B),
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(title),
+                        selected: isSelected,
+                        onSelected: (_) => _controller.setAvaTab(index),
+                        selectedColor: const Color(0xFF18181B),
+                        backgroundColor: Colors.white,
+                        labelStyle: jakarta(
+                          size: 11.5,
+                          weight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF52525B),
+                        ),
+                        side: BorderSide(
+                          color: isSelected
+                              ? const Color(0xFF18181B)
+                              : const Color(0xFFE5E7EB),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
-                      side: BorderSide(
-                        color: isSelected ? const Color(0xFF18181B) : const Color(0xFFE5E7EB),
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    ),
-                  );
-                }),
+                    );
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -325,7 +341,10 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
           onNavigateToAssignments: () => _controller.setAvaTab(1),
         );
       case 1:
-        return AvaAssignmentsTab(controller: _controller);
+        return AvaAssignmentsTab(
+          controller: _controller,
+          disciplineCode: _currentDiscipline.code,
+        );
       case 2:
         return AvaLiveClassroomTab(controller: _controller);
       case 3:

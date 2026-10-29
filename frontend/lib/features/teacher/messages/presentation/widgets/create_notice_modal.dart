@@ -50,13 +50,24 @@ class _CreateNoticeModalState extends State<CreateNoticeModal> {
   void _submitNotice() {
     if (!_formKey.currentState!.validate()) return;
 
-    widget.controller.publishNotice(
+    final published = widget.controller.publishNotice(
       targetCourse: _selectedCourse,
       targetAudience: _selectedAudience,
       classification: _selectedClassification,
       title: _titleController.text.trim(),
       message: _messageController.text.trim(),
     );
+
+    if (!published) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível publicar o comunicado para esta turma.',
+          ),
+        ),
+      );
+      return;
+    }
 
     Navigator.of(context).pop();
 
