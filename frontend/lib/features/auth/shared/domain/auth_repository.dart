@@ -41,7 +41,7 @@ abstract class AuthRepository {
   /// Realiza a autenticação do usuário utilizando [identity], [password] e [profile].
   ///
   /// Lança exceção de domínio caso as credenciais sejam inválidas ou haja erro de comunicação.
-  Future<void> login({
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
@@ -50,10 +50,17 @@ abstract class AuthRepository {
   /// Valida o token numérico OTP informado na recuperação de senha ou 2FA.
   Future<bool> verifyOtpToken({required String identity, required String code});
 
+  /// Confirma um código de recuperação e devolve o token de redefinição de uso único.
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  });
+
   /// Executa a redefinição da senha do usuário após verificação bem-sucedida do código.
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   });
 
   /// Verifica se o usuário possui autenticação de dois fatores (2FA) ativada.

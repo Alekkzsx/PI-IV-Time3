@@ -1,96 +1,106 @@
-# Backend — Enterprise Academic Services, Persistence & Orchestration (AGMRM)
+<!-- Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 -->
 
-> **Module**: `.../PI-IV-Time3/backend/`  
-> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
-> **Engineering Standards**: Enterprise Persistence, Transparent Orchestration, Clean Architecture  
+# Backend de autenticação
 
----
+Serviço independente em TypeScript para login institucional e recuperação de
+senha. Ele roda na porta `3001` por padrão e não substitui o servidor Java da
+porta `8080`, que continua atendendo às funcionalidades acadêmicas e de
+videochamada.
 
-## 🏛️ Architectural Purpose & Orchestration
+## Organização
 
-The `backend` module defines the enterprise persistence layer, distributed business rules, identity management, and service orchestration for the **Integrated Educational Platform AGMRM**.
-
-While the native server in `.../PI-IV-Time3/server/` provides high-performance, zero-dependency socket communication (academic calculations, real email OTP dispatch, and WebRTC video call signaling), the `backend` module orchestrates:
-
-1. **Unified Service Configuration (`backend-config.json`)**: Declarative specification of ports, endpoints, health checks, and communication contracts.
-2. **Persistence Layer & Entities (`target/classes/`)**: Academic models and repositories (`models/Usuario`, `admin/repositories/UsuarioRepository`, `database/MongoDBConnection`).
-3. **Automated `flutter run` Orchestration**: Seamless integration ensuring that running Flutter in the frontend transparently initializes all backend parent modules.
-
----
-
-## 📂 File Structure
-
-```
-.../PI-IV-Time3/backend/
-├── backend-config.json           # Declarative orchestration configuration
-├── target/classes/               # Compiled bytecode of models, repositories, and DB connectors
-│   ├── academico/                # Academic controllers
-│   ├── admin/                    # Controllers and UsuarioRepository
-│   ├── database/                 # MongoDB database connector (MongoDBConnection)
-│   ├── models/                   # Core domain models (Usuario)
-│   ├── server/                   # ServidorHttpNativo and utility classes
-│   └── utils/                    # JsonSimples and payload parsers
-├── .gitkeep                      # Version control anchor
-└── README.md                     # Backend technical manual (this file)
+```text
+backend/
+├── src/
+│   ├── app.ts
+│   ├── server.ts
+│   ├── config/
+│   ├── shared/
+│   └── modules/auth/
+│       ├── application/       # Casos de uso e testes unitários
+│       ├── domain/            # Entidades, perfis e portas
+│       ├── infrastructure/   # MongoDB, bcrypt, JWT e SMTP
+│       └── presentation/      # Contratos e rotas HTTP
+├── .env.example
+├── package.json
+└── tsconfig.json
 ```
 
----
+As dependências de persistência e serviços externos são injetadas no caso de
+uso. Assim, regras de autenticação podem ser testadas sem conexão com MongoDB,
+SMTP ou servidor HTTP.
 
-## ⚙️ Institutional Configuration (`backend-config.json`)
+## Perfis e contas
 
-The file `.../PI-IV-Time3/backend/backend-config.json` parameterizes the automated startup of all parent modules:
+Os únicos perfis aceitos são `aluno`, `docente` e `admin`. Contas são lidas da
+coleção `auth_users` no banco MongoDB escolhido. O serviço não cria contas
+fictícias nem aceita credenciais de demonstração.
+
+Cada documento precisa conter:
 
 ```json
 {
-  "_description": "Institutional configuration of the AGMRM backend ecosystem for transparent integration with 'flutter run'",
-  "environment": {
-    "profile": "development",
-    "orchestrator": "frontend_integrated_launcher"
-  },
-  "modules": {
-    "server": {
-      "path": "../server",
-      "entrypoint": "Main",
-      "port": 8080,
-      "protocol": "HTTP/1.1",
-      "auto_start": true,
-      "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
-      "features": [
-        "videocall_webrtc_signaling",
-        "academic_boletim_calculation",
-        "academic_attendance_tracking",
-        "academic_task_grading",
-        "auth_smtp_recovery_otp"
-      ]
-    },
-    "security": {
-      "path": "../security",
-      "package": "agmrm_security",
-      "auto_bind": true,
-      "features": [
-        "generic_feedback_policy",
-        "rate_limiting_lockout",
-        "input_sanitizer",
-        "timing_attack_mitigation"
-      ]
-    },
-    "backend_persistence": {
-      "target_classes": "target/classes",
-      "database": "mongodb_integrated",
-      "status": "ready"
-    }
-  },
-  "flutter_run_hook": {
-    "enabled": true,
-    "strategy": "dual_trigger_cmake_and_dart_vm",
-    "description": "When executing 'cd frontend' and 'flutter run', server and backend services initialize automatically in the background."
-  }
+  "identity": "identificador institucional",
+  "normalizedIdentity": "identificador institucional em minúsculas",
+  "email": "endereço institucional",
+  "displayName": "nome para mensagens de recuperação",
+  "profile": "aluno",
+  "passwordHash": "hash produzido por bcrypt",
+  "active": true
 }
 ```
 
----
+`normalizedIdentity` deve ser único. A inicialização cria esse índice e o
+índice TTL da coleção `auth_recovery`. Senhas devem ser provisionadas como
+hashes bcrypt, nunca em texto claro.
 
-## 🔄 Integrated Initialization with `flutter run`
+## Configuração e execução
 
-No manual initializers or separate scripts are necessary:
-- Navigating to `.../PI-IV-Time3/frontend` and executing `flutter run` reads the backend orchestration specifications, verifies the integrity of all parent modules, and starts the native services in the background on port 8080.
+Requer Node.js 20 ou superior e MongoDB acessível. Na pasta `backend`:
+
+```powershell
+Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+Preencha `.env` com URI e nome do banco, um segredo JWT aleatório de pelo menos
+32 caracteres, um segredo OTP diferente também com pelo menos 32 caracteres e
+as credenciais SMTP para habilitar recuperação por e-mail.
+Não versione `.env`. Sem SMTP configurado, o serviço inicia normalmente, mas
+pedidos de recuperação para contas existentes retornam erro explícito.
+
+```powershell
+npm test
+npm run build
+npm start
+```
+
+O serviço valida a configuração antes de iniciar e falha explicitamente se
+MongoDB ou variáveis obrigatórias estiverem indisponíveis. O frontend usa esta API para login e recuperação e o datasource Flutter aponta
+por padrão para `http://127.0.0.1:3001`. O serviço TypeScript não é iniciado por
+`flutter run`; durante desenvolvimento, inicie-o separadamente. Para outros
+ambientes, informe `--dart-define=AUTH_API_BASE_URL=https://...` no build Flutter
+e configure a origem do portal em `AUTH_CORS_ORIGINS`. A API não depende nem lê
+credenciais SMTP do cliente.
+
+## Endpoints
+
+Base local: `http://127.0.0.1:3001`
+
+| Método | Caminho | Descrição |
+|---|---|---|
+| `GET` | `/health` | Health check |
+| `POST` | `/api/auth/login` | Valida identidade, senha e perfil; retorna JWT curto |
+| `POST` | `/api/auth/send-recovery-otp` | Solicita OTP sem revelar se a identidade existe |
+| `POST` | `/api/auth/verify-recovery-otp` | Valida OTP e retorna grant temporário de redefinição |
+| `POST` | `/api/auth/reset-password` | Consome o grant e troca a senha |
+
+O OTP é gerado criptograficamente, armazenado como HMAC, expira conforme
+`AUTH_OTP_TTL_SECONDS` e é revogado após `AUTH_OTP_MAX_ATTEMPTS`. O token de
+redefinição é aleatório, tem validade curta e só pode ser consumido uma vez.
+Não existe código universal de teste.
+
+As rotas HTTP validam e limitam o tamanho dos dados recebidos, aplicam rate
+limit e respostas de erro sem detalhes internos. CORS aceita apenas as origens
+configuradas em `AUTH_CORS_ORIGINS`.

@@ -121,8 +121,8 @@ class LoginPasswordField extends StatelessWidget {
             if (value == null || value.isEmpty) {
               return 'Informe sua senha.';
             }
-            if (value.length < 6) {
-              return 'A senha precisa ter pelo menos 6 caracteres.';
+            if (value.length < 8) {
+              return 'A senha precisa ter pelo menos 8 caracteres.';
             }
             return null;
           },

@@ -30,7 +30,7 @@ The server is structured into cohesive packages with strict separation of concer
 │   │   ├── PresencaHandler.java
 │   │   ├── TarefasHandler.java
 │   │   └── TesteTiposHandler.java
-│   ├── auth/                     # Authentication & Real SMTP Email OTP Dispatch
+│   ├── auth/                     # Legacy auth sources (not registered as HTTP routes)
 │   │   ├── AuthRecoveryHandler.java
 │   │   └── EmailService.java
 │   └── videocall/                # Video Conference, WebRTC Signaling, and Presence Telemetry
@@ -51,7 +51,7 @@ The server is structured into cohesive packages with strict separation of concer
 
 - **`Main.java` (`.../PI-IV-Time3/server/src/Main.java`)**:
   - Unified application entry point.
-  - Registers and routes all 15 endpoints across the academic, video conference, and authentication modules on port 8080.
+  - Registers and routes 13 endpoints across the academic and video conference modules on port 8080.
 - **`core` (`.../PI-IV-Time3/server/src/core/`)**:
   - Low-level network abstractions built over native TCP `ServerSocket` and `Socket`.
   - HTTP lifecycle management (Request headers/body parsing, Response status codes, CORS headers, and payload boundaries).
@@ -59,9 +59,7 @@ The server is structured into cohesive packages with strict separation of concer
   - Semester grade computation and regimental weighted average calculation.
   - Absence ledger, lecture hours, and attendance percentage computation with faculty allowance.
   - Automated grade deductions for late assignment submissions.
-- **`auth` (`.../PI-IV-Time3/server/src/auth/`)**:
-  - `EmailService.java`: Native Java SE SMTP client over SSL Socket (port 465) (RFC 5321). Dispatches real OTP emails with a responsive HTML template and cryptographic 6-digit codes.
-  - `AuthRecoveryHandler.java`: Endpoints for OTP generation and verification with 300s TTL (5 minutes) and 3-attempt brute-force threshold.
+- **Authentication**: Login and password recovery are served by the TypeScript service in `../backend`. The legacy sources under `src/auth/` remain for reference only and are not registered or available on port `8080`.
 - **`videocall` (`.../PI-IV-Time3/server/src/videocall/`)**:
   - Virtual classroom lifecycle (room opening regimental restricted to Teacher or Admin).
   - WebRTC signaling hub (SDP Offer/Answer and ICE Candidates exchange).
@@ -93,7 +91,7 @@ java -cp bin Main
 
 ---
 
-## 📡 Registered API Endpoints Catalog (15 Routes)
+## 📡 Registered API Endpoints Catalog (13 Routes)
 
 The server listens on `http://localhost:8080` with the following active endpoints:
 
@@ -112,8 +110,6 @@ The server listens on `http://localhost:8080` with the following active endpoint
 | `POST` | `/api/videocall/hand-raise` | Video Call | Manages FIFO queue of raised hands and doubts |
 | `POST` | `/api/videocall/chat` | Video Call | Real-time chat messages with room timestamps |
 | `POST` | `/api/videocall/attendance`| Video Call | Homologates presence based on connected duration |
-| `POST` | `/api/auth/send-recovery-otp` | Auth & Email | Generates 6-digit OTP and dispatches real SMTP email (5-min TTL) |
-| `POST` | `/api/auth/verify-recovery-otp` | Auth & Email | Validates OTP with 300s TTL and 3-attempt brute-force limit |
 
 ---
 

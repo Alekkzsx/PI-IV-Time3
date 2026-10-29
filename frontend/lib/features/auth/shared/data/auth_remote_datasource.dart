@@ -10,7 +10,7 @@ abstract class AuthRemoteDataSource {
   /// Envia credenciais ([identity], [password], [profile]) para autenticação remota junto ao servidor.
   ///
   /// Lança [Exception] em caso de credenciais incorretas ou falha de comunicação com o servidor.
-  Future<void> authenticateUser({
+  Future<String> authenticateUser({
     required String identity,
     required String password,
     required String profile,
@@ -22,10 +22,17 @@ abstract class AuthRemoteDataSource {
     required String code,
   });
 
+  /// Confirma o OTP de recuperação e devolve o grant temporário para redefinição.
+  Future<String> verifyPasswordRecoveryCodeRemote({
+    required String identity,
+    required String code,
+  });
+
   /// Atualiza a credencial de senha do usuário no servidor backend.
   Future<void> updatePasswordRemote({
     required String identity,
     required String newPassword,
+    required String resetToken,
   });
 
   /// Consulta se a conta do usuário possui duplo fator (2FA) habilitado.

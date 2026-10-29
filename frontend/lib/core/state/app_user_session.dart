@@ -9,9 +9,11 @@ class AppUserSession extends ChangeNotifier {
 
   String? _identity;
   String? _role;
+  String? _accessToken;
 
   String? get identity => _identity;
   String? get role => _role;
+  String? get accessToken => _accessToken;
   bool get isAuthenticated => _identity?.isNotEmpty == true && _role != null;
 
   bool hasRole(String role) => _role == role;
@@ -19,7 +21,11 @@ class AppUserSession extends ChangeNotifier {
   bool hasPermission(String permission) =>
       RolePermissionPolicy.hasPermission(_role, permission);
 
-  void signIn({required String identity, required String profile}) {
+  void signIn({
+    required String identity,
+    required String profile,
+    String? accessToken,
+  }) {
     final normalizedIdentity = identity.trim();
     if (normalizedIdentity.isEmpty) {
       throw ArgumentError.value(identity, 'identity', 'Identidade inválida.');
@@ -31,12 +37,14 @@ class AppUserSession extends ChangeNotifier {
 
     _identity = normalizedIdentity;
     _role = normalizedProfile;
+    _accessToken = accessToken;
     notifyListeners();
   }
 
   void signOut() {
     _identity = null;
     _role = null;
+    _accessToken = null;
     notifyListeners();
   }
 }

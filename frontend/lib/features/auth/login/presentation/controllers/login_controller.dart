@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/features/auth/shared/external/auth_remote_datasource_impl.dart';
 import '../../domain/usecases/login_usecase.dart';
 
 /// Controlador reativo de estado da interface de login baseado em [ChangeNotifier].
@@ -22,6 +23,7 @@ class LoginController extends ChangeNotifier {
   int _operationId = 0;
   String? _pendingIdentity;
   String? _pendingProfile;
+  String? _pendingAccessToken;
 
   /// Cria uma nova instância de [LoginController] injetando [loginUseCase].
   LoginController({required this.loginUseCase});
@@ -69,10 +71,11 @@ class LoginController extends ChangeNotifier {
     _requiresTwoFactor = false;
     _pendingIdentity = cleanIdentity;
     _pendingProfile = profile;
+    _pendingAccessToken = null;
     notifyListeners();
 
     try {
-      await loginUseCase(
+      final accessToken = await loginUseCase(
         identity: cleanIdentity,
         password: password,
         profile: profile,
@@ -88,16 +91,28 @@ class LoginController extends ChangeNotifier {
 
       if (needs2FA) {
         _requiresTwoFactor = true;
+        _pendingAccessToken = accessToken;
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
-      AppUserSession.instance.signIn(identity: cleanIdentity, profile: profile);
+      AppUserSession.instance.signIn(
+        identity: cleanIdentity,
+        profile: profile,
+        accessToken: accessToken,
+      );
       _isSuccess = true;
       _isLoading = false;
       notifyListeners();
       return true;
+    } on AuthApiException catch (error) {
+      if (operationId != _operationId) return false;
+      _errorMessage = error.message;
+      _isSuccess = false;
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (_) {
       if (operationId != _operationId) return false;
       _errorMessage =
@@ -132,6 +147,7 @@ class LoginController extends ChangeNotifier {
       if (valid) {
         final identity = _pendingIdentity;
         final profile = _pendingProfile;
+        final accessToken = _pendingAccessToken;
         if (identity == null || profile == null) {
           _errorMessage = 'Sessão de autenticação inválida. Entre novamente.';
           _isLoading = false;
@@ -139,7 +155,11 @@ class LoginController extends ChangeNotifier {
           notifyListeners();
           return false;
         }
-        AppUserSession.instance.signIn(identity: identity, profile: profile);
+        AppUserSession.instance.signIn(
+          identity: identity,
+          profile: profile,
+          accessToken: accessToken,
+        );
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;

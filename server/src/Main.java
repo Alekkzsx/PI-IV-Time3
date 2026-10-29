@@ -4,7 +4,6 @@ import academic.BoletimHandler;
 import academic.PresencaHandler;
 import academic.TarefasHandler;
 import academic.TesteTiposHandler;
-import auth.AuthRecoveryHandler;
 import core.ServidorHttpNativo;
 import videocall.VideoCallAttendanceHandler;
 import videocall.VideoCallInteractionHandler;
@@ -15,7 +14,7 @@ import java.io.IOException;
 
 /**
  * Ponto de entrada central do servidor HTTP nativo da plataforma AGMRM.
- * Orquestra e registra os modulos academicos, videochamada e autenticacao institucional.
+ * Orquestra e registra os modulos academicos e de videochamada.
  */
 public class Main {
     private static final int PORTA_PADRAO = 8080;
@@ -59,13 +58,6 @@ public class Main {
 
         servidor.registrarRota("/api/videocall/attendance", new VideoCallAttendanceHandler());
 
-        // =========================================================================
-        // 3. MODULO DE AUTENTICACAO & RECUPERACAO REAL VIA E-MAIL (OTP)
-        // =========================================================================
-        AuthRecoveryHandler recoveryHandler = new AuthRecoveryHandler();
-        servidor.registrarRota("/api/auth/send-recovery-otp", recoveryHandler);
-        servidor.registrarRota("/api/auth/verify-recovery-otp", recoveryHandler);
-
         try {
             servidor.iniciar();
         } catch (IOException e) {
@@ -74,4 +66,3 @@ public class Main {
         }
     }
 }
-

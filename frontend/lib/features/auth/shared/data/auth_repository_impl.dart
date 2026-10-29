@@ -17,12 +17,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> login({
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
   }) async {
-    await remoteDataSource.authenticateUser(
+    return remoteDataSource.authenticateUser(
       identity: identity,
       password: password,
       profile: profile,
@@ -41,13 +41,26 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) {
+    return remoteDataSource.verifyPasswordRecoveryCodeRemote(
+      identity: identity,
+      code: code,
+    );
+  }
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {
     await remoteDataSource.updatePasswordRemote(
       identity: identity,
       newPassword: newPassword,
+      resetToken: resetToken ?? '',
     );
   }
 

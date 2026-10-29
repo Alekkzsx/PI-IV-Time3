@@ -24,7 +24,7 @@ class MockAuthRepository implements AuthRepository {
   Future<void> recoverPassword({required String identity}) async {}
 
   @override
-  Future<void> login({
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
@@ -35,6 +35,7 @@ class MockAuthRepository implements AuthRepository {
     lastIdentity = identity;
     lastPassword = password;
     lastProfile = profile;
+    return 'test-access-token';
   }
 
   @override
@@ -44,9 +45,16 @@ class MockAuthRepository implements AuthRepository {
   }) async => true;
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) async => 'test-reset-token';
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {}
 
   @override
@@ -90,7 +98,7 @@ void main() {
     );
   });
 
-  test('Deve lançar erro quando a senha for menor que 6 caracteres', () async {
+  test('Deve lançar erro quando a senha for menor que 8 caracteres', () async {
     // Act & Assert
     expect(
       () => useCase(identity: 'ADM-00123', password: '123', profile: 'admin'),

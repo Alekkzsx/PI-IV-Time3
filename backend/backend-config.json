@@ -1,8 +1,8 @@
 {
-  "_description": "Configuracao institucional do ecossistema de backend AGMRM para integracao transparente ao 'flutter run'",
+  "_description": "Configuração dos serviços Java e da API de autenticação TypeScript.",
   "environment": {
     "profile": "development",
-    "orchestrator": "frontend_integrated_launcher"
+    "orchestrator": "java_frontend_launcher_and_manual_typescript_auth"
   },
   "modules": {
     "server": {
@@ -19,6 +19,20 @@
         "academic_task_grading"
       ]
     },
+    "auth_api": {
+      "path": ".",
+      "entrypoint": "npm run dev",
+      "port": 3001,
+      "protocol": "HTTP/1.1",
+      "auto_start": false,
+      "healthcheck": "http://127.0.0.1:3001/health",
+      "features": [
+        "institutional_login",
+        "jwt_access_tokens",
+        "password_recovery_otp",
+        "mongodb_user_persistence"
+      ]
+    },
     "security": {
       "path": "../security",
       "package": "agmrm_security",
@@ -31,14 +45,13 @@
       ]
     },
     "backend_persistence": {
-      "target_classes": "target/classes",
-      "database": "mongodb_integrated",
-      "status": "ready"
+      "database": "mongodb",
+      "status": "configured_by_environment"
     }
   },
   "flutter_run_hook": {
     "enabled": true,
     "strategy": "dual_trigger_cmake_and_dart_vm",
-    "description": "Ao executar 'cd frontend' e 'flutter run', os servicos do server e backend iniciam automaticamente em background."
+    "description": "O servidor Java acadêmico é iniciado pelo launcher do frontend. O serviço TypeScript de autenticação é iniciado separadamente com 'cd backend; npm run dev'."
   }
 }
