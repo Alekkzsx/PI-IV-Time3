@@ -2,6 +2,8 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { after, before, describe, it } from "node:test";
+import jwt from "jsonwebtoken";
+import type { Db } from "mongodb";
 import { createApp } from "../../../app.js";
 import type { Environment } from "../../../config/environment.js";
 import { AuthService } from "../application/auth.service.js";
@@ -66,10 +68,36 @@ const authService = new AuthService({
   },
 });
 
+const adminJwtSecret = "admin-route-test-secret-with-at-least-32-characters";
+const storedCourses: Array<Record<string, unknown>> = [];
+let nextCourseId = 1;
+const courseCollection = {
+  find() {
+    return {
+      sort() {
+        return { toArray: async () => storedCourses };
+      },
+    };
+  },
+  async insertOne(course: Record<string, unknown>) {
+    const id = `course-${nextCourseId++}`;
+    storedCourses.push({ ...course, _id: { toString: () => id } });
+    return { insertedId: { toString: () => id } };
+  },
+};
+const database = {
+  collection(_name: string) {
+    return courseCollection;
+  },
+} as unknown as Db;
+
 const app = createApp(authService, {
   nodeEnv: "test",
   corsOrigins: ["http://localhost:5000"],
-} satisfies Pick<Environment, "nodeEnv" | "corsOrigins">);
+} satisfies Pick<Environment, "nodeEnv" | "corsOrigins">, {
+  database,
+  jwtSecret: adminJwtSecret,
+});
 const server = createServer(app);
 let baseUrl: string;
 
@@ -127,5 +155,49 @@ describe("auth HTTP API", () => {
       (await response.json()).code,
       "invalid_request",
     );
+  });
+
+  it("restricts course management to an authenticated administrator", async () => {
+    const unauthorized = await fetch(`${baseUrl}/api/admin/courses`);
+    assert.equal(unauthorized.status, 401);
+
+    const studentToken = jwt.sign(
+      { sub: user.id, profile: "aluno" },
+      adminJwtSecret,
+    );
+    const forbidden = await fetch(`${baseUrl}/api/admin/courses`, {
+      headers: { authorization: `Bearer ${studentToken}` },
+    });
+    assert.equal(forbidden.status, 403);
+
+    const adminToken = jwt.sign(
+      { sub: "admin-1", profile: "admin" },
+      adminJwtSecret,
+    );
+    const created = await fetch(`${baseUrl}/api/admin/courses`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        code: "CS-TEST",
+        name: "Curso de teste",
+        matrix: "2026",
+        workload: "3000h",
+        formula: "Média ponderada",
+        department: "Computação",
+        modality: "Graduação",
+        components: [],
+      }),
+    });
+    assert.equal(created.status, 201);
+    assert.equal((await created.json()).code, "CS-TEST");
+
+    const listed = await fetch(`${baseUrl}/api/admin/courses`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    assert.equal(listed.status, 200);
+    assert.equal((await listed.json()).length, 1);
   });
 });

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/admin/courses/presentation/pages/courses_page.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import '../helpers/fake_admin_academic_data_source.dart';
 
 void main() {
   testWidgets('renders every course in the desktop grid', (tester) async {
@@ -23,7 +24,11 @@ void main() {
     addTearDown(() => AdminMockData.courses.remove(additionalCourse));
 
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: CoursesPage())),
+      const MaterialApp(
+        home: Scaffold(
+          body: CoursesPage(dataSource: FakeAdminAcademicDataSource()),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 

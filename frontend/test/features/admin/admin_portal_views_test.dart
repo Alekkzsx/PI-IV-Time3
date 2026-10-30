@@ -14,6 +14,7 @@ import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_contr
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
+import 'helpers/fake_admin_academic_data_source.dart';
 
 void main() {
   group('AdminPortalController Unit Tests', () {
@@ -267,7 +268,11 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: CoursesPage())),
+        const MaterialApp(
+          home: Scaffold(
+            body: CoursesPage(dataSource: FakeAdminAcademicDataSource()),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -319,7 +324,11 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
         await tester.pumpWidget(
-          const MaterialApp(home: Scaffold(body: ClassesPage())),
+          const MaterialApp(
+            home: Scaffold(
+              body: ClassesPage(dataSource: FakeAdminAcademicDataSource()),
+            ),
+          ),
         );
         await tester.pumpAndSettle();
 

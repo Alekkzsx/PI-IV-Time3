@@ -9,12 +9,15 @@ import { rateLimit } from "express-rate-limit";
 import type { Environment } from "./config/environment.js";
 import type { AuthService } from "./modules/auth/application/auth.service.js";
 import { createAuthRouter } from "./modules/auth/presentation/auth.controller.js";
+import { createAdminAcademicRouter } from "./modules/admin/admin-academic.controller.js";
 import { AuthError } from "./shared/auth-error.js";
+import type { Db } from "mongodb";
 
 /** Monta middlewares e rotas; recebe dependências prontas para facilitar testes. */
 export function createApp(
   service: AuthService,
   environment: Pick<Environment, "nodeEnv" | "corsOrigins">,
+  adminOptions?: { database: Db; jwtSecret: string },
 ): Express {
   const app = express();
 
@@ -44,6 +47,12 @@ export function createApp(
     },
   });
   app.use("/api/auth", authRateLimit, createAuthRouter(service));
+  if (adminOptions) {
+    app.use(
+      "/api/admin",
+      createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret),
+    );
+  }
   app.use(notFoundHandler);
   app.use(errorHandler(environment.nodeEnv));
 

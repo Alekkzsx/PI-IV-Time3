@@ -53,6 +53,21 @@ export class MongoAuthDatabase {
     await this.database
       .collection<UserDocument>("auth_users")
       .createIndex({ normalizedIdentity: 1 }, { unique: true });
+    await this.database
+      .collection("academic_courses")
+      .createIndex({ code: 1 }, { unique: true });
+    await this.database
+      .collection("academic_classes")
+      .createIndex({ code: 1 }, { unique: true });
+    await this.database
+      .collection("academic_enrollments")
+      .createIndex({ classCode: 1, studentId: 1 }, { unique: true });
+    await this.database
+      .collection("academic_enrollments")
+      .createIndex({ studentId: 1, status: 1 });
+    await this.database
+      .collection("academic_class_sessions")
+      .createIndex({ classCode: 1, startsAt: 1 });
   }
 
   users(): MongoAuthUserRepository {
@@ -61,6 +76,10 @@ export class MongoAuthDatabase {
 
   recoveryCodes(): MongoRecoveryCodeRepository {
     return new MongoRecoveryCodeRepository(this.getDatabase());
+  }
+
+  databaseForModules(): Db {
+    return this.getDatabase();
   }
 
   async close(): Promise<void> {

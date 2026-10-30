@@ -33,7 +33,12 @@ async function start(): Promise<void> {
     environment,
   });
 
-  const server = createServer(createApp(authService, environment));
+  const server = createServer(
+    createApp(authService, environment, {
+      database: database.databaseForModules(),
+      jwtSecret: environment.jwtSecret,
+    }),
+  );
   server.listen(environment.port, () => {
     console.info(`[auth-api] Serviço de autenticação ouvindo na porta ${environment.port}.`);
   });

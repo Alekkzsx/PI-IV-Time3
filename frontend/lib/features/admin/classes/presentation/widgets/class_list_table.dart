@@ -10,6 +10,7 @@ class ClassListTable extends StatelessWidget {
   final ValueChanged<AdminClassModel> onSupervise;
   final ValueChanged<AdminClassModel> onOpenRegime;
   final ValueChanged<AdminClassModel> onOpenAlocar;
+  final ValueChanged<AdminClassModel> onManageRecords;
   final bool canManageClasses;
   final bool canManageVideoCalls;
 
@@ -19,6 +20,7 @@ class ClassListTable extends StatelessWidget {
     required this.onSupervise,
     required this.onOpenRegime,
     required this.onOpenAlocar,
+    required this.onManageRecords,
     required this.canManageClasses,
     required this.canManageVideoCalls,
   });
@@ -355,6 +357,14 @@ class ClassListTable extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      tooltip: 'Matrículas e aulas',
+                      onPressed: canManageClasses
+                          ? () => onManageRecords(c)
+                          : null,
+                      icon: const Icon(Icons.event_note_outlined, size: 18),
+                      color: const Color(0xFF18181B),
+                    ),
                     // Botão Supervisionar
                     InkWell(
                       onTap: canManageVideoCalls ? () => onSupervise(c) : null,

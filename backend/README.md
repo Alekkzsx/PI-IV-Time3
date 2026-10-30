@@ -100,6 +100,16 @@ Base local: `http://127.0.0.1:3001`
 | `POST` | `/api/auth/send-recovery-otp` | Solicita OTP sem revelar se a identidade existe |
 | `POST` | `/api/auth/verify-recovery-otp` | Valida OTP e retorna grant temporário de redefinição |
 | `POST` | `/api/auth/reset-password` | Consome o grant e troca a senha |
+| `GET` / `POST` | `/api/admin/courses` | Lista e cadastra cursos; exige JWT de admin |
+| `GET` / `POST` | `/api/admin/classes` | Lista e abre turmas; exige JWT de admin |
+| `GET` / `POST` | `/api/admin/classes/:classCode/enrollments` | Consulta e registra matrículas de alunos ativos |
+| `GET` / `POST` | `/api/admin/classes/:classCode/sessions` | Consulta e agenda aulas da turma |
+
+As rotas administrativas usam o token Bearer emitido pelo login e validam o
+perfil no servidor. Os dados ficam nas coleções `academic_courses`,
+`academic_classes`, `academic_enrollments` e `academic_class_sessions`; elas e
+seus índices são criados pela inicialização do backend. No frontend, as telas de
+cursos e turmas usam essas rotas e exibem estado vazio quando não há dados reais.
 
 O OTP é gerado criptograficamente, armazenado como HMAC, expira conforme
 `AUTH_OTP_TTL_SECONDS` e é revogado após `AUTH_OTP_MAX_ATTEMPTS`. O token de
