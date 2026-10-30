@@ -54,6 +54,11 @@ Cada documento precisa conter:
 índice TTL da coleção `auth_recovery`. Senhas devem ser provisionadas como
 hashes bcrypt, nunca em texto claro.
 
+Para provisionar uma conta autorizada localmente, com o backend configurado em
+`.env`, execute `npm run create-user` na pasta `backend`. O comando solicita os
+dados no terminal, oculta a senha digitada e grava somente o hash bcrypt em
+`auth_users`. Não existe cadastro público na API.
+
 ## Configuração e execução
 
 Requer Node.js 20 ou superior e MongoDB acessível. Na pasta `backend`:

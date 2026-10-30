@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "create-user": "tsx src/scripts/create-auth-user.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "npm run build && node --test dist/config/environment.test.js dist/modules/auth/application/auth.service.test.js dist/modules/auth/presentation/auth.controller.test.js"
