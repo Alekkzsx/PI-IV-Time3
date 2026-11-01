@@ -79,108 +79,21 @@ class _ClassesPageState extends State<ClassesPage> {
       return;
     }
 
-    final code = TextEditingController();
-    final semester = TextEditingController(text: '2026/2');
-    final shift = TextEditingController(text: 'Noturno');
-    final location = TextEditingController();
-    final capacity = TextEditingController(text: '40');
-    final professorIdentity = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    var selectedCourseCode = _courses.first.code;
-
-    final values = await showDialog<Map<String, String>>(
+    final draft = await showDialog<_ClassDraft>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Abrir turma'),
-          content: SizedBox(
-            width: 440,
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedCourseCode,
-                      decoration: const InputDecoration(labelText: 'Curso'),
-                      items: _courses
-                          .map(
-                            (course) => DropdownMenuItem(
-                              value: course.code,
-                              child: Text(course.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setDialogState(() => selectedCourseCode = value);
-                        }
-                      },
-                    ),
-                    _formField(code, 'Código da turma'),
-                    _formField(semester, 'Período letivo'),
-                    _formField(shift, 'Turno'),
-                    _formField(location, 'Sala/local'),
-                    _formField(
-                      capacity,
-                      'Número de vagas',
-                      keyboardType: TextInputType.number,
-                      validator: (value) => int.tryParse(value ?? '') == null
-                          ? 'Informe um número de vagas válido.'
-                          : null,
-                    ),
-                    _formField(
-                      professorIdentity,
-                      'Identidade do docente (opcional)',
-                      required: false,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (!formKey.currentState!.validate()) return;
-                Navigator.pop(dialogContext, {
-                  'code': code.text.trim(),
-                  'semester': semester.text.trim(),
-                  'shift': shift.text.trim(),
-                  'location': location.text.trim(),
-                  'capacity': capacity.text.trim(),
-                  'professorIdentity': professorIdentity.text.trim(),
-                });
-              },
-              child: const Text('Salvar turma'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => _CreateClassDialog(courses: _courses),
     );
-
-    code.dispose();
-    semester.dispose();
-    shift.dispose();
-    location.dispose();
-    capacity.dispose();
-    professorIdentity.dispose();
-    if (values == null) return;
+    if (draft == null) return;
 
     try {
       await _dataSource.createClass(
-        code: values['code']!,
-        courseCode: selectedCourseCode,
-        semester: values['semester']!,
-        shift: values['shift']!,
-        location: values['location']!,
-        maxCapacity: int.parse(values['capacity']!),
-        professorIdentity: values['professorIdentity'],
+        code: draft.code,
+        courseCode: draft.courseCode,
+        semester: draft.semester,
+        shift: draft.shift,
+        location: draft.location,
+        maxCapacity: draft.maxCapacity,
+        professorIdentity: draft.professorIdentity,
       );
       await _loadData();
       _showMessage('Turma cadastrada.');
@@ -226,29 +139,11 @@ class _ClassesPageState extends State<ClassesPage> {
   }
 
   Future<void> _enrollStudent(AdminClassModel classModel) async {
-    final identityController = TextEditingController();
-    final identity = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Matricular aluno'),
-        content: TextField(
-          controller: identityController,
-          decoration: const InputDecoration(labelText: 'Identidade do aluno'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, identityController.text.trim()),
-            child: const Text('Matricular'),
-          ),
-        ],
-      ),
+    final identity = await _showTextPrompt(
+      title: 'Matricular aluno',
+      label: 'Identidade do aluno',
+      action: 'Matricular',
     );
-    identityController.dispose();
     if (identity == null || identity.isEmpty) return;
 
     try {
@@ -263,30 +158,26 @@ class _ClassesPageState extends State<ClassesPage> {
     }
   }
 
-  Future<void> _scheduleClassSession(AdminClassModel classModel) async {
-    final titleController = TextEditingController();
-    final title = await showDialog<String>(
+  Future<String?> _showTextPrompt({
+    required String title,
+    required String label,
+    required String action,
+  }) =>
+      showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Agendar aula'),
-        content: TextField(
-          controller: titleController,
-          decoration: const InputDecoration(labelText: 'Título da aula'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, titleController.text.trim()),
-            child: const Text('Continuar'),
-          ),
-        ],
+      builder: (_) => _TextPromptDialog(
+        title: title,
+        label: label,
+        action: action,
       ),
     );
-    titleController.dispose();
+
+  Future<void> _scheduleClassSession(AdminClassModel classModel) async {
+    final title = await _showTextPrompt(
+      title: 'Agendar aula',
+      label: 'Título da aula',
+      action: 'Continuar',
+    );
     if (title == null || title.isEmpty || !mounted) return;
 
     final now = DateTime.now();
@@ -490,4 +381,194 @@ class _ClassesPageState extends State<ClassesPage> {
       ),
     );
   }
+}
+
+class _ClassDraft {
+  final String code;
+  final String courseCode;
+  final String semester;
+  final String shift;
+  final String location;
+  final int maxCapacity;
+  final String? professorIdentity;
+
+  const _ClassDraft({
+    required this.code,
+    required this.courseCode,
+    required this.semester,
+    required this.shift,
+    required this.location,
+    required this.maxCapacity,
+    required this.professorIdentity,
+  });
+}
+
+class _CreateClassDialog extends StatefulWidget {
+  final List<AdminCourseModel> courses;
+
+  const _CreateClassDialog({required this.courses});
+
+  @override
+  State<_CreateClassDialog> createState() => _CreateClassDialogState();
+}
+
+class _CreateClassDialogState extends State<_CreateClassDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _code = TextEditingController();
+  final _semester = TextEditingController(text: '2026/2');
+  final _shift = TextEditingController(text: 'Noturno');
+  final _location = TextEditingController();
+  final _capacity = TextEditingController(text: '40');
+  final _professorIdentity = TextEditingController();
+  late String _selectedCourseCode = widget.courses.first.code;
+
+  @override
+  void dispose() {
+    _code.dispose();
+    _semester.dispose();
+    _shift.dispose();
+    _location.dispose();
+    _capacity.dispose();
+    _professorIdentity.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Abrir turma'),
+    content: SizedBox(
+      width: 440,
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: _selectedCourseCode,
+                decoration: const InputDecoration(labelText: 'Curso'),
+                items: widget.courses
+                    .map(
+                      (course) => DropdownMenuItem(
+                        value: course.code,
+                        child: Text(course.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _selectedCourseCode = value);
+                },
+              ),
+              _field(_code, 'Código da turma'),
+              _field(_semester, 'Período letivo'),
+              _field(_shift, 'Turno'),
+              _field(_location, 'Sala/local'),
+              _field(
+                _capacity,
+                'Número de vagas',
+                keyboardType: TextInputType.number,
+                validator: (value) => int.tryParse(value ?? '') == null
+                    ? 'Informe um número de vagas válido.'
+                    : null,
+              ),
+              _field(
+                _professorIdentity,
+                'Identidade do docente (opcional)',
+                required: false,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: () {
+          if (!_formKey.currentState!.validate()) return;
+          Navigator.pop(
+            context,
+            _ClassDraft(
+              code: _code.text.trim(),
+              courseCode: _selectedCourseCode,
+              semester: _semester.text.trim(),
+              shift: _shift.text.trim(),
+              location: _location.text.trim(),
+              maxCapacity: int.parse(_capacity.text.trim()),
+              professorIdentity: _professorIdentity.text.trim(),
+            ),
+          );
+        },
+        child: const Text('Salvar turma'),
+      ),
+    ],
+  );
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool required = true,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(labelText: label),
+          validator:
+              validator ??
+              (value) => required && (value == null || value.trim().isEmpty)
+                  ? 'Preencha este campo.'
+                  : null,
+        ),
+      );
+}
+
+class _TextPromptDialog extends StatefulWidget {
+  final String title;
+  final String label;
+  final String action;
+
+  const _TextPromptDialog({
+    required this.title,
+    required this.label,
+    required this.action,
+  });
+
+  @override
+  State<_TextPromptDialog> createState() => _TextPromptDialogState();
+}
+
+class _TextPromptDialogState extends State<_TextPromptDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.title),
+    content: TextField(
+      controller: _controller,
+      decoration: InputDecoration(labelText: widget.label),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, _controller.text.trim()),
+        child: Text(widget.action),
+      ),
+    ],
+  );
 }

@@ -6,6 +6,9 @@ import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
   const FakeAdminAcademicDataSource();
 
+  static final List<AdminClassModel> _classes =
+      List.of(AdminMockData.classes);
+
   @override
   Future<List<AdminCourseModel>> getCourses() async =>
       List.of(AdminMockData.courses);
@@ -17,7 +20,7 @@ class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
 
   @override
   Future<List<AdminClassModel>> getClasses() async =>
-      List.of(AdminMockData.classes);
+      List.of(_classes);
 
   @override
   Future<void> createClass({
@@ -28,7 +31,25 @@ class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
     required String location,
     required int maxCapacity,
     String? professorIdentity,
-  }) async {}
+  }) async {
+    final course = AdminMockData.courses.firstWhere(
+      (item) => item.code == courseCode,
+    );
+    _classes.add(
+      AdminClassModel(
+        code: code,
+        subjectName: course.name,
+        courseName: course.name,
+        semester: semester,
+        shift: shift,
+        location: location,
+        enrolled: 0,
+        maxCapacity: maxCapacity,
+        professor: professorIdentity ?? 'Não atribuído',
+        formulaRegime: 'Autonomia Docente',
+      ),
+    );
+  }
 
   @override
   Future<void> createEnrollment({

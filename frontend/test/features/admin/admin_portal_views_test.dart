@@ -180,7 +180,7 @@ void main() {
     testWidgets('Renderiza PainelGeralPage com KPIs e botão de comunicado', (
       tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      await tester.binding.setSurfaceSize(const Size(1680, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
@@ -372,6 +372,37 @@ void main() {
         expect(find.text('Regime da Fórmula da Nota Final'), findsNothing);
       },
     );
+
+    testWidgets('Salva uma turma sem usar controllers descartados', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final dataSource = FakeAdminAcademicDataSource();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ClassesPage(dataSource: dataSource)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abrir turma'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Código da turma'),
+        'TESTE-2026-2',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Sala/local'),
+        'Lab 1',
+      );
+      await tester.tap(find.text('Salvar turma'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('TESTE-2026-2'), findsOneWidget);
+    });
 
     testWidgets('Renderiza SupervisionCockpitPage com 5 abas de auditoria', (
       tester,
