@@ -67,6 +67,14 @@ public class CrudHandlerTeste {
         esperar(status(chamar(h, "PUT", raiz, "{}"), 405), "metodo nao permitido na raiz");
         esperar(status(chamar(h, "OPTIONS", raiz, ""), 204), "OPTIONS responde 204");
 
+        // Campos calculados na saida nao vao para o banco.
+        database.Colecao colecaoCalc = new BancoMemoria().colecao("tarefas");
+        CrudHandler calc = new CrudHandler(raiz, colecaoCalc, e).comSaida(d -> { d.put("calculado", true); return d; });
+        r = chamar(calc, "POST", raiz, "{\"id\":\"c1\",\"titulo\":\"A\",\"cursoId\":\"x\"}");
+        esperar(status(r, 201) && r.contains("\"calculado\":true"), "POST devolve campo calculado");
+        esperar(chamar(calc, "GET", raiz, "").contains("\"calculado\":true") && chamar(calc, "GET", raiz + "/c1", "").contains("\"calculado\":true"), "GET lista e por id devolvem campo calculado");
+        esperar(!colecaoCalc.buscar("c1").containsKey("calculado"), "campo calculado nao e gravado no banco");
+
         if (falhas > 0) { System.out.println(falhas + " falha(s)"); System.exit(1); }
         System.out.println("Todos os testes passaram");
     }
