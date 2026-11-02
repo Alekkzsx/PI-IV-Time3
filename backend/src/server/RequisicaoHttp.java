@@ -13,16 +13,21 @@ public class RequisicaoHttp {
     private final String metodo;
     private final String caminho;
     private final String corpo;
+    private final Map<String, String> cabecalhos;
 
-    private RequisicaoHttp(String metodo, String caminho, String corpo) {
+    private RequisicaoHttp(String metodo, String caminho, String corpo, Map<String, String> cabecalhos) {
         this.metodo = metodo;
         this.caminho = caminho;
         this.corpo = corpo;
+        this.cabecalhos = cabecalhos;
     }
 
     public String getMetodo() { return metodo; }
     public String getCaminho() { return caminho; }
     public String getCorpo() { return corpo; }
+
+    // Nome do cabecalho em qualquer caixa; retorna null se nao existir.
+    public String getCabecalho(String nome) { return cabecalhos.get(nome.toLowerCase(Locale.ROOT)); }
 
     // Lê cabeçalhos e corpo respeitando Content-Length.
     public static RequisicaoHttp ler(InputStream entrada) throws IOException {
@@ -54,7 +59,7 @@ public class RequisicaoHttp {
         byte[] bytes = entrada.readNBytes(tamanho);
         if (bytes.length != tamanho) throw new IOException("Corpo HTTP incompleto");
         String caminho = partes[1].split("\\?", 2)[0];
-        return new RequisicaoHttp(partes[0], caminho, new String(bytes, StandardCharsets.UTF_8));
+        return new RequisicaoHttp(partes[0], caminho, new String(bytes, StandardCharsets.UTF_8), cabecalhos);
     }
 
     // Evita BufferedReader para não consumir bytes do corpo antecipadamente.
