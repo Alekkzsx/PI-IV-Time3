@@ -5,101 +5,106 @@ package docente;
 import api.Campo;
 import api.Esquema;
 
-// Esquemas das colecoes do portal do docente, espelhando os modelos de docente_view no frontend.
+// Esquemas das colecoes do portal do docente.
+// Os campos usam os mesmos nomes dos modelos de docente_view no frontend, e as colecoes seguem o prefixo
+// do banco agmrm (academic_*, auth_*, admin_*). Os documentos apontam para os dados que ja existem:
+// classCode referencia academic_classes e professorIdentity referencia o login do professor em auth_users.
 public final class DocenteEsquemas {
     private DocenteEsquemas() {}
 
-    public static final String DOCENTES = "docentes";
-    public static final String CURSOS = "cursos";
-    public static final String AULAS = "aulas";
-    public static final String TAREFAS = "tarefas";
-    public static final String NOTAS = "notas";
-    public static final String AVISOS = "avisos";
-    public static final String EVENTOS = "eventos";
+    public static final String DOCENTES = "docente_profiles";
+    // Plano da turma: ementa e materiais de uma turma de academic_classes (nome da constante mantido por compatibilidade).
+    public static final String CURSOS = "docente_class_plans";
+    public static final String AULAS = "docente_attendance_sessions";
+    public static final String TAREFAS = "docente_assignments";
+    public static final String NOTAS = "docente_grades";
+    public static final String AVISOS = "docente_notices";
+    public static final String EVENTOS = "docente_events";
 
     // DocenteProfile
     public static final Esquema ESQUEMA_DOCENTES = new Esquema(
-            Campo.texto("nomeCompleto", true, 120),
-            Campo.texto("nomeSocial", false, 120),
-            Campo.texto("matricula", true, 30),
-            Campo.texto("departamento", true, 120),
-            Campo.texto("semestre", true, 30),
+            Campo.texto("professorIdentity", true, 60),
+            Campo.texto("fullName", true, 120),
+            Campo.texto("socialName", false, 120),
+            Campo.texto("registrationId", true, 30),
+            Campo.texto("department", true, 120),
+            Campo.texto("semester", true, 60),
             Campo.texto("campus", true, 80),
-            Campo.texto("status", true, 20),
-            Campo.texto("emailAcademico", true, 180),
-            Campo.texto("emailPessoal", false, 180),
-            Campo.booleano("doisFatores", false));
+            Campo.texto("status", true, 40),
+            Campo.texto("academicEmail", true, 180),
+            Campo.texto("personalEmail", false, 180),
+            Campo.booleano("twoFactorEnabled", false));
 
-    // DocenteCourse (unidades = SyllabusUnit, materiais = CourseMaterial)
+    // DocenteCourse (syllabusUnits = SyllabusUnit, materials = CourseMaterial)
     public static final Esquema ESQUEMA_CURSOS = new Esquema(
-            Campo.texto("docenteId", true, 60),
-            Campo.texto("codigo", true, 60),
-            Campo.texto("titulo", true, 160),
-            Campo.texto("periodo", true, 60),
-            Campo.texto("turno", true, 30),
-            Campo.texto("sala", false, 120),
-            Campo.texto("horario", false, 120),
-            Campo.inteiro("matriculados", true),
-            Campo.inteiro("horasConcluidas", false),
-            Campo.inteiro("horasTotais", true),
-            Campo.lista("unidades", false, 50),
-            Campo.lista("materiais", false, 200));
+            Campo.texto("classCode", true, 60),
+            Campo.texto("professorIdentity", true, 60),
+            Campo.texto("title", true, 160),
+            Campo.texto("term", true, 60),
+            Campo.texto("shift", true, 30),
+            Campo.texto("room", false, 120),
+            Campo.texto("schedule", false, 120),
+            Campo.inteiro("enrolledCount", true),
+            Campo.inteiro("completedHours", false),
+            Campo.inteiro("totalHours", true),
+            Campo.lista("syllabusUnits", false, 50),
+            Campo.lista("materials", false, 200));
 
-    // ClassSession (frequencia = lista de AttendanceStudent)
+    // ClassSession (attendanceList = AttendanceStudent)
     public static final Esquema ESQUEMA_AULAS = new Esquema(
-            Campo.texto("cursoId", true, 60),
-            Campo.inteiro("numero", true),
-            Campo.inteiro("horas", true),
-            Campo.texto("data", true, 20),
-            Campo.texto("conteudo", false, 500),
-            Campo.texto("metodologia", false, 300),
-            Campo.booleano("homologada", false),
-            Campo.lista("frequencia", false, 500));
+            Campo.texto("classCode", true, 60),
+            Campo.inteiro("sessionNumber", true),
+            Campo.inteiro("hours", true),
+            Campo.texto("date", true, 20),
+            Campo.texto("contentProgram", false, 500),
+            Campo.texto("methodology", false, 300),
+            Campo.booleano("isHomologated", false),
+            Campo.lista("attendanceList", false, 500));
 
-    // AssignmentItem (criterios = RubricCriterion, entregas = StudentSubmission)
+    // AssignmentItem (rubricCriteria = RubricCriterion, submissions = StudentSubmission)
     public static final Esquema ESQUEMA_TAREFAS = new Esquema(
-            Campo.texto("cursoId", true, 60),
-            Campo.texto("titulo", true, 160),
-            Campo.decimal("peso", true),
-            Campo.texto("etapa", false, 40),
-            Campo.texto("prazo", false, 40),
-            Campo.booleano("urgente", false),
-            Campo.texto("modalidade", false, 80),
-            Campo.booleano("permiteAtraso", false),
-            Campo.lista("criterios", false, 50),
-            Campo.lista("entregas", false, 500));
+            Campo.texto("classCode", true, 60),
+            Campo.texto("title", true, 160),
+            Campo.decimal("weight", true),
+            Campo.texto("stage", false, 40),
+            Campo.texto("dueDate", false, 40),
+            Campo.booleano("isUrgent", false),
+            Campo.texto("modality", false, 80),
+            Campo.booleano("allowLateWithPenalty", false),
+            Campo.lista("rubricCriteria", false, 50),
+            Campo.lista("submissions", false, 500));
 
     // StudentGrade
     public static final Esquema ESQUEMA_NOTAS = new Esquema(
-            Campo.texto("cursoId", true, 60),
-            Campo.texto("alunoId", true, 60),
+            Campo.texto("classCode", true, 60),
+            Campo.texto("studentId", true, 60),
             Campo.texto("ra", true, 30),
-            Campo.texto("aluno", true, 120),
-            Campo.decimal("tarefas", false),
-            Campo.decimal("p1", false),
-            Campo.decimal("projetos", false),
-            Campo.decimal("p2", false),
-            Campo.decimal("frequencia", false));
+            Campo.texto("studentName", true, 120),
+            Campo.decimal("assignmentsScore", false),
+            Campo.decimal("p1Score", false),
+            Campo.decimal("projectsScore", false),
+            Campo.decimal("p2Score", false),
+            Campo.decimal("attendanceRate", false));
 
     // AcademicNotice
     public static final Esquema ESQUEMA_AVISOS = new Esquema(
-            Campo.texto("autor", true, 120),
-            Campo.texto("cursoAlvo", true, 160),
-            Campo.texto("publicoAlvo", true, 120),
-            Campo.texto("classificacao", true, 30),
-            Campo.texto("publicadoEm", true, 40),
-            Campo.texto("titulo", true, 160),
-            Campo.texto("mensagem", true, 2000),
-            Campo.inteiro("lidos", false),
-            Campo.inteiro("destinatarios", false),
-            Campo.booleano("daSecretaria", false));
+            Campo.texto("author", true, 120),
+            Campo.texto("targetCourse", true, 160),
+            Campo.texto("targetAudience", true, 120),
+            Campo.texto("classification", true, 30),
+            Campo.texto("publishedAt", true, 40),
+            Campo.texto("title", true, 160),
+            Campo.texto("message", true, 2000),
+            Campo.inteiro("readCount", false),
+            Campo.inteiro("totalRecipients", false),
+            Campo.booleano("isFromSecretaria", false));
 
     // AcademicEvent
     public static final Esquema ESQUEMA_EVENTOS = new Esquema(
-            Campo.texto("titulo", true, 160),
-            Campo.texto("data", true, 20),
-            Campo.texto("horario", false, 40),
-            Campo.texto("tipo", true, 30),
-            Campo.texto("local", false, 120),
-            Campo.booleano("sincronizado", false));
+            Campo.texto("title", true, 160),
+            Campo.texto("date", true, 20),
+            Campo.texto("time", false, 40),
+            Campo.texto("type", true, 30),
+            Campo.texto("location", false, 120),
+            Campo.booleano("isSynced", false));
 }
