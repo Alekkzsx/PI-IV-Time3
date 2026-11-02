@@ -14,17 +14,22 @@ public class RequisicaoHttp {
     private final String caminho;
     private final String corpo;
     private final Map<String, String> cabecalhos;
+    private final String consulta;
 
-    private RequisicaoHttp(String metodo, String caminho, String corpo, Map<String, String> cabecalhos) {
+    private RequisicaoHttp(String metodo, String caminho, String corpo, Map<String, String> cabecalhos, String consulta) {
         this.metodo = metodo;
         this.caminho = caminho;
         this.corpo = corpo;
         this.cabecalhos = cabecalhos;
+        this.consulta = consulta;
     }
 
     public String getMetodo() { return metodo; }
     public String getCaminho() { return caminho; }
     public String getCorpo() { return corpo; }
+
+    // Texto apos o "?" da URL, ainda codificado; vazio se nao houver.
+    public String getConsulta() { return consulta; }
 
     // Nome do cabecalho em qualquer caixa; retorna null se nao existir.
     public String getCabecalho(String nome) { return cabecalhos.get(nome.toLowerCase(Locale.ROOT)); }
@@ -58,8 +63,9 @@ public class RequisicaoHttp {
         if (tamanho < 0 || tamanho > 65536) throw new IOException("Corpo excede o limite de 64 KB");
         byte[] bytes = entrada.readNBytes(tamanho);
         if (bytes.length != tamanho) throw new IOException("Corpo HTTP incompleto");
-        String caminho = partes[1].split("\\?", 2)[0];
-        return new RequisicaoHttp(partes[0], caminho, new String(bytes, StandardCharsets.UTF_8), cabecalhos);
+        String[] urlPartes = partes[1].split("\\?", 2);
+        String consulta = urlPartes.length > 1 ? urlPartes[1] : "";
+        return new RequisicaoHttp(partes[0], urlPartes[0], new String(bytes, StandardCharsets.UTF_8), cabecalhos, consulta);
     }
 
     // Evita BufferedReader para não consumir bytes do corpo antecipadamente.
