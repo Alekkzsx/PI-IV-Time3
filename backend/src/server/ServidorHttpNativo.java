@@ -8,6 +8,12 @@ import academico.controllers.PresencaHandler;
 import academico.controllers.TarefasHandler;
 import academico.controllers.TesteTiposHandler;
 
+import database.BancoDados;
+import database.BancoMemoria;
+import database.BancoMongo;
+import database.MongoDBConnection;
+import utils.ConfigEnv;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -27,8 +33,24 @@ public class ServidorHttpNativo {
     private static final Map<String, ManipuladorHttp> ROTAS = new HashMap<>();
     private static final String RAIZ_WS_VIDEO = "/ws/video-call/";
     private static SalaVideoHub hubVideo = new SalaVideoHub(null);
+    private static BancoDados banco;
+
+    // Usa o MongoDB quando MONGODB_URI esta configurada; sem ela, guarda em memoria (dados perdidos ao reiniciar).
+    private static BancoDados criarBanco() {
+        if (ConfigEnv.obter("MONGODB_URI", null) == null) {
+            System.out.println("[BANCO] MONGODB_URI ausente: usando banco em memoria");
+            return new BancoMemoria();
+        }
+        try {
+            return new BancoMongo(MongoDBConnection.conectar());
+        } catch (RuntimeException e) {
+            System.err.println("[BANCO] Falha ao conectar no MongoDB: " + e.getMessage());
+            throw e;
+        }
+    }
 
     public static void main(String[] args) throws IOException {
+        banco = criarBanco();
         UsuarioRepository usuarios = new UsuarioRepository(Path.of("data", "usuarios.db"));
         ROTAS.put("/api/admin/usuarios", new UsuariosHandler(usuarios));
         ROTAS.put("/api/teste-tipos", new TesteTiposHandler());
