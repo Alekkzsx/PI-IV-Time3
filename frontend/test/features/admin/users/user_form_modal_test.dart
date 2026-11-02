@@ -23,13 +23,17 @@ void main() {
                 context: context,
                 onUserCreated:
                     ({
+                      required String identity,
+                      required String password,
                       required String name,
                       required String email,
                       required String profile,
                       required String department,
                       required bool require2FA,
-                    }) {
+                    }) async {
                       createdUser = {
+                        'identity': identity,
+                        'password': password,
                         'name': name,
                         'email': email,
                         'profile': profile,
@@ -47,6 +51,8 @@ void main() {
 
     await tester.tap(find.text('Abrir cadastro'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Concluir Cadastro'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Concluir Cadastro'));
     await tester.pumpAndSettle();
 
@@ -60,6 +66,8 @@ void main() {
       'Ana Clara Ferreira',
     );
     await tester.enterText(find.byType(TextFormField).at(1), 'email-invalido');
+    await tester.ensureVisible(find.text('Concluir Cadastro'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Concluir Cadastro'));
     await tester.pumpAndSettle();
 
@@ -70,6 +78,13 @@ void main() {
       find.byType(TextFormField).at(1),
       'ana.ferreira@universidade.edu.br',
     );
+    await tester.enterText(find.byType(TextFormField).at(2), 'aluno.test');
+    await tester.enterText(
+      find.byType(TextFormField).at(4),
+      'Initial-test-password',
+    );
+    await tester.ensureVisible(find.text('Concluir Cadastro'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Concluir Cadastro'));
     await tester.pumpAndSettle();
 

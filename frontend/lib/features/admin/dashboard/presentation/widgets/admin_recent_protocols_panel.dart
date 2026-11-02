@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 class AdminRecentProtocolItemData {
@@ -22,11 +23,7 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
   final VoidCallback? onSeeAll;
   final ValueChanged<AdminRecentProtocolItemData>? onItemTap;
 
-  const AdminRecentProtocolsPanel({
-    super.key,
-    this.onSeeAll,
-    this.onItemTap,
-  });
+  const AdminRecentProtocolsPanel({super.key, this.onSeeAll, this.onItemTap});
 
   static const List<AdminRecentProtocolItemData> defaultProtocols = [
     AdminRecentProtocolItemData(
@@ -39,7 +36,8 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
     AdminRecentProtocolItemData(
       studentName: 'Gabriel Soares de Oliveira',
       dateText: 'Ontem, 16:20',
-      protocolTitle: 'PROT-2026/8835 • Validação de Curso Extracurricular (40h)',
+      protocolTitle:
+          'PROT-2026/8835 • Validação de Curso Extracurricular (40h)',
       description:
           'Certificado de conclusão do curso avançado de Arquitetura Limpa e Microsserviços (40 horas).',
     ),
@@ -54,6 +52,20 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final portal = AdminPortalController.instance;
+    final protocols = portal.usesRemote
+        ? portal.protocols
+              .take(3)
+              .map(
+                (item) => AdminRecentProtocolItemData(
+                  studentName: item.studentName,
+                  dateText: item.date,
+                  protocolTitle: item.requestType,
+                  description: item.justification,
+                ),
+              )
+              .toList()
+        : defaultProtocols;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -89,9 +101,10 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          for (int i = 0; i < defaultProtocols.length; i++) ...[
+          if (protocols.isEmpty) const Text('Nenhum protocolo cadastrado.'),
+          for (int i = 0; i < protocols.length; i++) ...[
             if (i > 0) const SizedBox(height: 22),
-            _buildProtocolItem(defaultProtocols[i]),
+            _buildProtocolItem(protocols[i]),
           ],
         ],
       ),
@@ -153,4 +166,3 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
     );
   }
 }
-

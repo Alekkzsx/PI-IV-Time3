@@ -1,6 +1,7 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -34,6 +35,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'profile': profile,
     });
     final payload = _decodeResponse(response);
+    if (payload['requiresTwoFactor'] == true &&
+        payload['challengeToken'] is String) {
+      throw TwoFactorChallenge(payload['challengeToken'] as String);
+    }
     final accessToken = payload['accessToken'];
 
     if (accessToken is! String || accessToken.isEmpty) {
@@ -43,6 +48,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     return accessToken;
+  }
+
+  @override
+  Future<String> completeTwoFactor({
+    required String challengeToken,
+    required String code,
+  }) async {
+    final response = await _post('/api/auth/verify-two-factor', {
+      'challengeToken': challengeToken,
+      'code': code,
+    });
+    final payload = _decodeResponse(response);
+    final token = payload['accessToken'];
+    if (token is! String || token.isEmpty) {
+      throw const AuthApiException('Resposta de autenticação inválida.');
+    }
+    return token;
   }
 
   @override
@@ -126,6 +148,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             body: jsonEncode(body),
           )
           .timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const AuthApiException(
+        'O serviço demorou para responder. Tente novamente.',
+      );
     } on http.ClientException {
       throw const AuthApiException(
         'Não foi possível conectar ao serviço de autenticação.',
@@ -180,4 +206,10 @@ class AuthApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class TwoFactorChallenge extends AuthApiException {
+  final String challengeToken;
+  const TwoFactorChallenge(this.challengeToken)
+    : super('Informe o código enviado ao seu e-mail.');
 }

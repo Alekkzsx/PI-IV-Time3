@@ -1,8 +1,9 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-import "dotenv/config";
+import "./config/local-environment.js";
 import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { loadEnvironment } from "./config/environment.js";
+import { MongoAuthSecurityRepository } from "./modules/auth/infrastructure/mongo-auth-security.repository.js";
 import { AuthService } from "./modules/auth/application/auth.service.js";
 import { MongoAuthDatabase } from "./modules/auth/infrastructure/mongo-auth.repository.js";
 import { SmtpRecoveryEmailSender } from "./modules/auth/infrastructure/smtp-recovery-email.sender.js";
@@ -17,11 +18,13 @@ async function start(): Promise<void> {
     environment.mongoUri,
     environment.mongoDatabase,
   );
-  await database.connect();
+  try { await database.connect(); }
+  catch (error) { await database.close(); throw error; }
 
   const passwords = new BcryptPasswordHasher();
   const authService = new AuthService({
     users: database.users(),
+    security: new MongoAuthSecurityRepository(database.databaseForModules()),
     recoveryCodes: database.recoveryCodes(),
     passwords,
     accessTokens: new JwtAccessTokenIssuer(
@@ -33,9 +36,19 @@ async function start(): Promise<void> {
     environment,
   });
 
-  const server = createServer(createApp(authService, environment));
+  const server = createServer(
+    createApp(authService, environment, {
+      database: database.databaseForModules(),
+      jwtSecret: environment.jwtSecret,
+    }),
+  );
   server.listen(environment.port, () => {
     console.info(`[auth-api] Serviço de autenticação ouvindo na porta ${environment.port}.`);
+  });
+  server.once("error", () => {
+    console.error("[auth-api] Falha ao abrir a porta configurada.");
+    void database.close();
+    process.exitCode = 1;
   });
 
   const shutdown = (signal: NodeJS.Signals): void => {

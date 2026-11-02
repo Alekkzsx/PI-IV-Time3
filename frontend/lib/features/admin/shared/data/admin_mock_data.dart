@@ -3,6 +3,7 @@
 /// Modelos de dados e repositório simulado (mock) para a Visão do Administrador (Coordenação & Secretaria).
 class AdminUserModel {
   final String id;
+  final String identity;
   final String name;
   final String email;
   final String profile; // 'aluno', 'docente', 'admin'
@@ -17,6 +18,7 @@ class AdminUserModel {
 
   AdminUserModel({
     required this.id,
+    String? identity,
     required this.name,
     required this.email,
     required this.profile,
@@ -28,7 +30,7 @@ class AdminUserModel {
     this.lastLogin = 'Hoje às 14:10',
     this.roleLevel = 'Padrão',
     this.linkedInfo,
-  });
+  }) : identity = identity ?? id;
 }
 
 class AdminCourseModel {
@@ -56,6 +58,7 @@ class AdminCourseModel {
 }
 
 class AdminClassModel {
+  final bool gradeLocked;
   final String code;
   final String subjectName;
   final String courseName;
@@ -71,6 +74,7 @@ class AdminClassModel {
 
   AdminClassModel({
     required this.code,
+    this.gradeLocked = false,
     required this.subjectName,
     String? courseName,
     String? semester,

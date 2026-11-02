@@ -117,7 +117,7 @@ class StudentSidebar extends StatelessWidget {
         }
         break;
       case StudentNavItem.sair:
-        AppUserSession.instance.signOut();
+        AppUserSession.instance.logout();
         Navigator.of(
           context,
         ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);

@@ -128,7 +128,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
 
   void _onMenuItemSelected(StudentNavItem item) {
     if (item == StudentNavItem.sair) {
-      AppUserSession.instance.signOut();
+      AppUserSession.instance.logout();
       Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
       return;
     }

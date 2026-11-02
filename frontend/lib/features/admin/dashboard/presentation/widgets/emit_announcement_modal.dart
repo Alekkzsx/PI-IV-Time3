@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
@@ -41,14 +41,18 @@ void showEmitirComunicadoModal(BuildContext context) {
                     labelText: 'Público-Alvo Destinatário',
                     border: OutlineInputBorder(),
                   ),
-                  items: [
-                    'Toda a Comunidade Acadêmica',
-                    'Somente Discentes',
-                    'Somente Docentes',
-                  ]
-                      .map((a) => DropdownMenuItem(value: a, child: Text(a)))
-                      .toList(),
-                  onChanged: (val) => setModalState(() => selectedAudience = val!),
+                  items:
+                      [
+                            'Toda a Comunidade Acadêmica',
+                            'Somente Discentes',
+                            'Somente Docentes',
+                          ]
+                          .map(
+                            (a) => DropdownMenuItem(value: a, child: Text(a)),
+                          )
+                          .toList(),
+                  onChanged: (val) =>
+                      setModalState(() => selectedAudience = val!),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -57,14 +61,18 @@ void showEmitirComunicadoModal(BuildContext context) {
                     labelText: 'Classificação / Severidade',
                     border: OutlineInputBorder(),
                   ),
-                  items: [
-                    'Institucional',
-                    'Calendário Acadêmico',
-                    'Urgente / Alerta',
-                  ]
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-                  onChanged: (val) => setModalState(() => selectedCategory = val!),
+                  items:
+                      [
+                            'Institucional',
+                            'Calendário Acadêmico',
+                            'Urgente / Alerta',
+                          ]
+                          .map(
+                            (c) => DropdownMenuItem(value: c, child: Text(c)),
+                          )
+                          .toList(),
+                  onChanged: (val) =>
+                      setModalState(() => selectedCategory = val!),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -85,8 +93,30 @@ void showEmitirComunicadoModal(BuildContext context) {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (titleController.text.isNotEmpty) {
+                final controller = AdminPortalController.instance;
+                if (controller.usesRemote) {
+                  final ok = await controller.persist(
+                    () => controller.remote.request('POST', '/announcements', {
+                      'title': titleController.text,
+                      'body': bodyController.text,
+                      'audience': selectedAudience,
+                      'category': selectedCategory,
+                    }),
+                  );
+                  if (!context.mounted || !ctx.mounted) return;
+                  if (!ok) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          controller.remoteError ?? 'Falha ao publicar.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                }
                 AdminPortalController.instance.broadcastAnnouncement(
                   title: titleController.text,
                   audience: selectedAudience,
@@ -114,4 +144,3 @@ void showEmitirComunicadoModal(BuildContext context) {
     ),
   );
 }
-

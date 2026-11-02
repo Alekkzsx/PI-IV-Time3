@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -7,7 +7,7 @@ import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 /// Diálogo modal de confirmação para envio de link de redefinição segura de credenciais.
 class UserResetPasswordDialog extends StatelessWidget {
   final AdminUserModel user;
-  final VoidCallback onConfirm;
+  final Future<void> Function() onConfirm;
 
   const UserResetPasswordDialog({
     super.key,
@@ -18,14 +18,12 @@ class UserResetPasswordDialog extends StatelessWidget {
   static Future<void> show({
     required BuildContext context,
     required AdminUserModel user,
-    required VoidCallback onConfirm,
+    required Future<void> Function() onConfirm,
   }) {
     return showDialog<void>(
       context: context,
-      builder: (ctx) => UserResetPasswordDialog(
-        user: user,
-        onConfirm: onConfirm,
-      ),
+      builder: (ctx) =>
+          UserResetPasswordDialog(user: user, onConfirm: onConfirm),
     );
   }
 
@@ -43,12 +41,8 @@ class UserResetPasswordDialog extends StatelessWidget {
         ),
       ),
       content: Text(
-        'Deseja enviar um link seguro de redefinição de senha com validade de 24 horas para o e-mail:\n\n${user.email}?',
-        style: jakarta(
-          size: 13.5,
-          color: const Color(0xFF525252),
-          height: 1.4,
-        ),
+        'Deseja enviar um código de recuperação com validade de cinco minutos para o e-mail:\n\n${user.email}?',
+        style: jakarta(size: 13.5, color: const Color(0xFF525252), height: 1.4),
       ),
       actions: [
         OutlinedButton(
@@ -69,13 +63,23 @@ class UserResetPasswordDialog extends StatelessWidget {
           ),
         ),
         ElevatedButton(
-          onPressed: () {
-            onConfirm();
+          onPressed: () async {
+            try {
+              await onConfirm();
+            } catch (error) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(error.toString())));
+              }
+              return;
+            }
+            if (!context.mounted) return;
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Link de redefinição enviado com sucesso para ${user.email}!',
+                  'Código de recuperação enviado para ${user.email}.',
                 ),
               ),
             );

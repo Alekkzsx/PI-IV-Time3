@@ -65,49 +65,21 @@ class RecoverySession {
     required String identity,
   }) {
     final cleanIdentity = identity.trim();
-    final isEmail = cleanIdentity.contains('@');
-
-    switch (profile) {
-      case UserProfile.aluno:
-        return RecoverySession(
-          profile: profile,
-          identity: cleanIdentity.isNotEmpty ? cleanIdentity : '2024.1.00892',
-          displayName: isEmail
-              ? cleanIdentity.split('@').first
-              : 'Gabriel Soares de Oliveira',
-          institutionalEmail: isEmail
-              ? cleanIdentity
-              : 'gabriel.oliveira@aluno.universidade.edu.br',
-          departmentOrCourse: 'Engenharia de Software • 5º Semestre',
-          roleBadge: 'Discente Regular',
-        );
-      case UserProfile.docente:
-        return RecoverySession(
-          profile: profile,
-          identity: cleanIdentity.isNotEmpty ? cleanIdentity : 'DOC-40892',
-          displayName: isEmail
-              ? cleanIdentity.split('@').first
-              : 'Profa. Dra. Helena Cristina Santos',
-          institutionalEmail: isEmail
-              ? cleanIdentity
-              : 'helena.santos@docente.universidade.edu.br',
-          departmentOrCourse: 'Ciência da Computação & Engenharia',
-          roleBadge: 'Corpo Docente',
-        );
-      case UserProfile.admin:
-        return RecoverySession(
-          profile: profile,
-          identity: cleanIdentity.isNotEmpty ? cleanIdentity : 'ADM-00123',
-          displayName: isEmail
-              ? cleanIdentity.split('@').first
-              : 'Carlos Alberto Silveira',
-          institutionalEmail: isEmail
-              ? cleanIdentity
-              : 'carlos.silveira@admin.universidade.edu.br',
-          departmentOrCourse: 'DTI • Secretaria Geral Acadêmica',
-          roleBadge: 'Administrador de Sistemas',
-        );
-    }
+    if (cleanIdentity.isEmpty) throw ArgumentError('Identidade obrigatória.');
+    return RecoverySession(
+      profile: profile,
+      identity: cleanIdentity,
+      displayName: 'Usuário',
+      institutionalEmail: cleanIdentity.contains('@')
+          ? cleanIdentity
+          : 'e-mail cadastrado',
+      departmentOrCourse: '',
+      roleBadge: profile == UserProfile.admin
+          ? 'Administrador'
+          : profile == UserProfile.docente
+          ? 'Docente'
+          : 'Aluno',
+    );
   }
 
   /// Retorna o e-mail mascarado com asteriscos para privacidade e conformidade com a LGPD.

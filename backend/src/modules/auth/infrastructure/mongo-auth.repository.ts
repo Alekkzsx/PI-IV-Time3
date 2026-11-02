@@ -7,6 +7,7 @@ import {
   type Document,
 } from "mongodb";
 import { AuthError } from "../../../shared/auth-error.js";
+import { transaction } from "../../../shared/transaction.js";
 import type {
   AuthProfile,
   AuthUser,
@@ -47,12 +48,42 @@ export class MongoAuthDatabase {
   async connect(): Promise<void> {
     await this.client.connect();
     this.database = this.client.db(this.databaseName);
+    await this.database.collection("auth_recovery").createIndex({ normalizedIdentity: 1 }, { unique: true });
+    await this.database.collection("auth_sessions").createIndex({ sessionId: 1 }, { unique: true });
+    await this.database.collection("auth_sessions").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await this.database.collection("auth_sessions").createIndex({ userId: 1 });
+    await this.database.collection("auth_challenges").createIndex({ tokenDigest: 1 }, { unique: true });
+    await this.database.collection("auth_challenges").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await this.database.collection("auth_login_limits").createIndex({ key: 1 }, { unique: true });
+    await this.database.collection("auth_login_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await this.database.collection("auth_users").createIndex({ email: 1 }, {
+      unique: true, collation: { locale: "en", strength: 2 }, partialFilterExpression: { email: { $type: "string" } },
+    });
+    await this.database.collection<{ _id: string; revision: number }>("admin_write_guard")
+      .updateOne({ _id: "admin" }, { $setOnInsert: { revision: 0 } }, { upsert: true });
+    await this.database.collection("admin_audit_logs").createIndex({ createdAt: -1 });
+    await this.database.collection("academic_protocols").createIndex({ code: 1 }, { unique: true });
     await this.database
       .collection<RecoveryDocument>("auth_recovery")
       .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
     await this.database
       .collection<UserDocument>("auth_users")
       .createIndex({ normalizedIdentity: 1 }, { unique: true });
+    await this.database
+      .collection("academic_courses")
+      .createIndex({ code: 1 }, { unique: true });
+    await this.database
+      .collection("academic_classes")
+      .createIndex({ code: 1 }, { unique: true });
+    await this.database
+      .collection("academic_enrollments")
+      .createIndex({ classCode: 1, studentId: 1 }, { unique: true });
+    await this.database
+      .collection("academic_enrollments")
+      .createIndex({ studentId: 1, status: 1 });
+    await this.database
+      .collection("academic_class_sessions")
+      .createIndex({ classCode: 1, startsAt: 1 });
   }
 
   users(): MongoAuthUserRepository {
@@ -61,6 +92,10 @@ export class MongoAuthDatabase {
 
   recoveryCodes(): MongoRecoveryCodeRepository {
     return new MongoRecoveryCodeRepository(this.getDatabase());
+  }
+
+  databaseForModules(): Db {
+    return this.getDatabase();
   }
 
   async close(): Promise<void> {
@@ -83,8 +118,8 @@ export class MongoAuthUserRepository implements AuthUserRepository {
 
   async findByIdentity(identity: string): Promise<AuthUser | null> {
     const document = await this.collection.findOne({
-      normalizedIdentity: identity.trim().toLowerCase(),
-    });
+      $or: [{ normalizedIdentity: identity.trim().toLowerCase() }, { email: identity.trim().toLowerCase() }],
+    }, { collation: { locale: "en", strength: 2 } });
     if (!document || !authProfiles.includes(document.profile)) return null;
 
     return {
@@ -96,6 +131,8 @@ export class MongoAuthUserRepository implements AuthUserRepository {
       profile: document.profile,
       passwordHash: document.passwordHash,
       active: document.active,
+      sessionVersion: document.sessionVersion ?? 0,
+      twoFactorRequired: document.twoFactorRequired === true,
     };
   }
 
@@ -118,7 +155,7 @@ export class MongoAuthUserRepository implements AuthUserRepository {
 export class MongoRecoveryCodeRepository implements RecoveryCodeRepository {
   private readonly collection: Collection<RecoveryDocument>;
 
-  constructor(database: Db) {
+  constructor(private readonly database: Db) {
     this.collection = database.collection<RecoveryDocument>("auth_recovery");
   }
 
@@ -148,11 +185,13 @@ export class MongoRecoveryCodeRepository implements RecoveryCodeRepository {
   async incrementFailedAttempts(
     normalizedIdentity: string,
     maximumAttempts: number,
+    expectedCodeDigest: string,
   ): Promise<number | null> {
     const updated = await this.collection.findOneAndUpdate(
       {
         normalizedIdentity,
-        codeDigest: { $ne: null },
+        codeDigest: expectedCodeDigest,
+        expiresAt: { $gt: new Date() },
         failedAttempts: { $lt: maximumAttempts },
       },
       { $inc: { failedAttempts: 1 } },
@@ -165,11 +204,14 @@ export class MongoRecoveryCodeRepository implements RecoveryCodeRepository {
     normalizedIdentity: string,
     tokenDigest: string,
     expiresAt: Date,
+    expectedCodeDigest: string,
+    maximumAttempts: number,
   ): Promise<void> {
     const result = await this.collection.updateOne(
       {
         normalizedIdentity,
-        codeDigest: { $ne: null },
+        codeDigest: expectedCodeDigest,
+        failedAttempts: { $lt: maximumAttempts },
         expiresAt: { $gt: new Date() },
       },
       {
@@ -204,7 +246,22 @@ export class MongoRecoveryCodeRepository implements RecoveryCodeRepository {
     return result.deletedCount === 1;
   }
 
-  async delete(normalizedIdentity: string): Promise<void> {
-    await this.collection.deleteOne({ normalizedIdentity });
+  async resetPassword(identity: string, userId: string, digest: string, passwordHash: string, now: Date): Promise<boolean> {
+    return transaction(this.database, async (session) => {
+      const grant = await this.collection.findOne({ normalizedIdentity: identity, resetTokenDigest: digest,
+        verified: true, expiresAt: { $gt: now } }, { session });
+      if (!grant) return false;
+      const user = await this.database.collection("auth_users").updateOne({ _id: new ObjectId(userId), active: true }, {
+        $set: { passwordHash, passwordUpdatedAt: now, requirePasswordChange: false }, $inc: { sessionVersion: 1 },
+      }, { session });
+      if (!user.matchedCount) return false;
+      await this.collection.deleteOne({ _id: grant._id }, { session });
+      await this.database.collection("auth_sessions").deleteMany({ userId }, { session });
+      return true;
+    });
+  }
+
+  async delete(normalizedIdentity: string, expectedCodeDigest?: string): Promise<void> {
+    await this.collection.deleteOne({ normalizedIdentity, ...(expectedCodeDigest ? { codeDigest: expectedCodeDigest } : {}) });
   }
 }

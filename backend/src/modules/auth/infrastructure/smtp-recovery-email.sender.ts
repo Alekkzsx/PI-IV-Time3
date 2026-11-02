@@ -26,11 +26,16 @@ export class SmtpRecoveryEmailSender implements RecoveryEmailSender {
     }
   }
 
+  ensureAvailable(): void {
+    if (!this.transporter) throw new AuthError(503, "recovery_email_unavailable", "O envio de códigos não está configurado neste ambiente.");
+  }
+
   async sendRecoveryCode(input: {
     to: string;
     displayName: string;
     code: string;
     expiresInSeconds: number;
+    purpose?: "login" | "recovery";
   }): Promise<void> {
     if (!this.transporter) {
       throw new AuthError(
@@ -43,10 +48,10 @@ export class SmtpRecoveryEmailSender implements RecoveryEmailSender {
     await this.transporter.sendMail({
       from: this.senderAddress,
       to: input.to,
-      subject: "Portal Acadêmico - Código de recuperação",
+      subject: input.purpose === "login" ? "Portal Acadêmico - Código de acesso" : "Portal Acadêmico - Código de recuperação",
       text: [
         `Olá, ${input.displayName}.`,
-        `Seu código de recuperação é ${input.code}.`,
+        `Seu código de ${input.purpose === "login" ? "acesso" : "recuperação"} é ${input.code}.`,
         `Ele expira em ${Math.floor(input.expiresInSeconds / 60)} minuto(s).`,
         "Se você não solicitou esta alteração, ignore esta mensagem.",
       ].join("\n"),

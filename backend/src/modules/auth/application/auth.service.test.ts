@@ -39,6 +39,11 @@ class FakeUsers implements AuthUserRepository {
 
 class FakeRecoveryCodes implements RecoveryCodeRepository {
   entry?: RecoveryCode;
+  constructor(private readonly users: FakeUsers) {}
+  async resetPassword(identity: string, userId: string, digest: string, passwordHash: string, now: Date): Promise<boolean> {
+    if (!await this.consumeResetGrant(identity, digest, now)) return false;
+    await this.users.updatePassword(userId, passwordHash); return true;
+  }
 
   async save(recoveryCode: RecoveryCode): Promise<void> {
     this.entry = recoveryCode;
@@ -125,10 +130,11 @@ class FakeEmail implements RecoveryEmailSender {
 
 function createFixture() {
   const users = new FakeUsers();
-  const recoveryCodes = new FakeRecoveryCodes();
+  const recoveryCodes = new FakeRecoveryCodes(users);
   const email = new FakeEmail();
   const service = new AuthService({
     users,
+    security: { async assertLoginAllowed() {}, async recordLoginFailure() {}, async clearLoginFailures() {}, async saveSession() {}, async saveChallenge() {}, async consumeChallenge() { return null; } },
     recoveryCodes,
     passwords: new FakePasswords(),
     accessTokens: new FakeTokens(),
@@ -137,6 +143,7 @@ function createFixture() {
     environment: {
       jwtSecret: "a-secure-test-secret-with-at-least-32-characters",
       otpSecret: "a-different-secure-test-secret-with-at-least-32-chars",
+      jwtTtl: "15m",
       otpTtlSeconds: 300,
       otpMaxAttempts: 3,
     },
@@ -219,7 +226,7 @@ describe("AuthService", () => {
       );
     }
 
-    assert.equal(recoveryCodes.entry, undefined);
+    assert.equal(recoveryCodes.entry?.failedAttempts, 3);
     assert.match(email.code ?? "", /^\d{6}$/);
   });
 });
