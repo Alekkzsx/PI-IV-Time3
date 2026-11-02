@@ -11,21 +11,30 @@ Tudo escrito apenas com o JDK (sockets, threads, `MessageDigest`); a unica depen
 **Como rodar** (sem Maven; jars do driver em `backend/lib`):
 
 ```
-backendun-server.bat
+backend
+un-server.bat
 ```
 
 Configuracao em `MONGODB_URI` e `MONGODB_DATABASE` (variavel de ambiente ou arquivo `env` na raiz, nunca versionado). Sem `MONGODB_URI` o servidor usa banco em memoria. Porta: `SERVER_PORT` (padrao 8080).
 
 **REST** (JSON; `GET` lista com filtros `?campo=valor`, `POST` cria, `GET/PUT/PATCH/DELETE /{id}`):
 
-| Rota | Colecao |
+| Rota | Colecao no banco `agmrm` |
 |---|---|
-| `/api/docente/perfis`, `cursos`, `aulas`, `tarefas`, `notas`, `avisos`, `eventos` | portal do docente |
-| `/api/video-call/salas`, `sessoes`, `mensagens` | video chamada |
+| `/api/docente/profiles` | `docente_profiles` |
+| `/api/docente/class-plans` | `docente_class_plans` (ementa e materiais de uma turma) |
+| `/api/docente/attendance-sessions` | `docente_attendance_sessions` |
+| `/api/docente/assignments` | `docente_assignments` |
+| `/api/docente/grades` | `docente_grades` |
+| `/api/docente/notices` | `docente_notices` |
+| `/api/docente/events` | `docente_events` |
+| `/api/video-call/rooms` | `video_rooms` |
+| `/api/video-call/sessions` | `video_call_sessions` |
+| `/api/video-call/chat-messages` | `video_chat_messages` |
 
-Os campos aceitos de cada colecao estao em `docente/DocenteEsquemas.java` e `videocall/VideoCallEsquemas.java`; campos desconhecidos e tipos errados retornam 400.
+Os campos usam os mesmos nomes dos modelos do frontend (`docente_view`, `video_call`). `classCode` referencia `academic_classes` e `professorIdentity` referencia o login do professor, sem duplicar os dados que o admin ja cadastra. Os campos aceitos de cada colecao estao em `docente/DocenteEsquemas.java` e `videocall/VideoCallEsquemas.java`; campos desconhecidos e tipos errados retornam 400.
 
-**WebSocket**: `ws://localhost:8080/ws/video-call/{sala}` (handshake RFC 6455 manual). O hub repassa os envelopes `p2p_videocall_v1` a todos da sala menos o remetente, impede troca de `senderId`, avisa a saida com `leave` e grava as mensagens de chat em `mensagens_chat`.
+**WebSocket**: `ws://localhost:8080/ws/video-call/{sala}` (handshake RFC 6455 manual). O hub repassa os envelopes `p2p_videocall_v1` a todos da sala menos o remetente, impede troca de `senderId`, avisa a saida com `leave` e grava as mensagens de chat em `video_chat_messages`.
 
 **Seed do docente**: `java -cp "out;lib\*" docente.SeedDocente` faz um ensaio em memoria; com `--confirmar` grava no MongoDB (substitui por id, pode repetir).
 
