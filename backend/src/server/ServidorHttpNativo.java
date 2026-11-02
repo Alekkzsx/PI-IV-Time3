@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import videocall.VideoCallEsquemas;
+import videocall.hub.RegistradorChat;
 import videocall.hub.SalaVideoHub;
 import websocket.AtendenteWebSocket;
 import websocket.HandshakeWebSocket;
@@ -60,6 +62,7 @@ public class ServidorHttpNativo {
         ROTAS.put("/api/tarefas/calcular-nota", new TarefasHandler());
         ROTAS.put("/api/notas/boletim", new BoletimHandler());
         registrarRotasDocente();
+        registrarRotasVideoCall();
 
         int porta = Integer.parseInt(System.getenv().getOrDefault("SERVER_PORT", "8080"));
         ExecutorService trabalhadores = Executors.newFixedThreadPool(16);
@@ -120,6 +123,14 @@ public class ServidorHttpNativo {
         crud("/api/docente/notas", DocenteEsquemas.NOTAS, DocenteEsquemas.ESQUEMA_NOTAS);
         crud("/api/docente/avisos", DocenteEsquemas.AVISOS, DocenteEsquemas.ESQUEMA_AVISOS);
         crud("/api/docente/eventos", DocenteEsquemas.EVENTOS, DocenteEsquemas.ESQUEMA_EVENTOS);
+    }
+
+    // CRUD das colecoes da video chamada em /api/video-call/{colecao}; o chat do hub e gravado no banco.
+    private static void registrarRotasVideoCall() {
+        crud("/api/video-call/salas", VideoCallEsquemas.SALAS, VideoCallEsquemas.ESQUEMA_SALAS);
+        crud("/api/video-call/sessoes", VideoCallEsquemas.SESSOES, VideoCallEsquemas.ESQUEMA_SESSOES);
+        crud("/api/video-call/mensagens", VideoCallEsquemas.MENSAGENS, VideoCallEsquemas.ESQUEMA_MENSAGENS);
+        hubVideo = new SalaVideoHub(new RegistradorChat(banco.colecao(VideoCallEsquemas.MENSAGENS)));
     }
 
     private static void crud(String rota, String colecao, api.Esquema esquema) {
