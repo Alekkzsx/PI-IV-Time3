@@ -2,10 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import '../../data/admin_user_remote_data_source.dart';
 
 /// Callback para conclusão de cadastro de usuário institucional.
 typedef OnUserCreatedCallback =
-    void Function({
+    Future<String?> Function({
       required String name,
       required String email,
       required String profile,
@@ -42,6 +43,8 @@ class _UserFormModalState extends State<UserFormModal> {
   );
   String _selectedRole = 'Discente (Aluno)';
   String _generatedRa = '2024.2.01045';
+  bool _isSubmitting = false;
+  String? _submissionError;
 
   @override
   void dispose() {
@@ -49,6 +52,68 @@ class _UserFormModalState extends State<UserFormModal> {
     _emailController.dispose();
     _deptController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _submissionError = null;
+    });
+
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final profile = _selectedRole.contains('Discente')
+        ? 'aluno'
+        : _selectedRole.contains('Docente')
+        ? 'docente'
+        : 'admin';
+    try {
+      final identity = await widget.onUserCreated(
+        name: name,
+        email: email,
+        profile: profile,
+        department: _deptController.text.trim(),
+        require2FA: profile != 'docente',
+      );
+      if (!mounted) return;
+
+      final messenger = ScaffoldMessenger.of(context);
+      Navigator.pop(context);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            profile == 'docente' && identity != null
+                ? 'Docente cadastrado. Identidade: $identity. Oriente-o a usar “Esqueci minha senha” para definir a senha inicial.'
+                : 'Usuário cadastrado com sucesso!',
+          ),
+        ),
+      );
+    } on AdminUserApiException catch (error) {
+      if (mounted) {
+        setState(() {
+          _submissionError = error.message;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  void _selectRole(String role, String identity, String department) {
+    if (_isSubmitting) return;
+    setState(() {
+      _selectedRole = role;
+      _generatedRa = identity;
+      _deptController.text = department;
+    });
   }
 
   @override
@@ -124,40 +189,31 @@ class _UserFormModalState extends State<UserFormModal> {
                     _buildRoleOption(
                       label: 'Discente (Aluno)',
                       isSelected: _selectedRole == 'Discente (Aluno)',
-                      onTap: () {
-                        setState(() {
-                          _selectedRole = 'Discente (Aluno)';
-                          _generatedRa = '2024.2.01045';
-                          _deptController.text =
-                              'Engenharia de Software (1º Semestre)';
-                        });
-                      },
+                      onTap: () => _selectRole(
+                        'Discente (Aluno)',
+                        '2024.2.01045',
+                        'Engenharia de Software (1º Semestre)',
+                      ),
                     ),
                     const SizedBox(width: 10),
                     _buildRoleOption(
                       label: 'Docente (Professor)',
                       isSelected: _selectedRole == 'Docente (Professor)',
-                      onTap: () {
-                        setState(() {
-                          _selectedRole = 'Docente (Professor)';
-                          _generatedRa = 'DOC-88425';
-                          _deptController.text =
-                              'Departamento de Computação e Sistemas';
-                        });
-                      },
+                      onTap: () => _selectRole(
+                        'Docente (Professor)',
+                        'DOC-88425',
+                        'Departamento de Computação e Sistemas',
+                      ),
                     ),
                     const SizedBox(width: 10),
                     _buildRoleOption(
                       label: 'Administração',
                       isSelected: _selectedRole == 'Administração',
-                      onTap: () {
-                        setState(() {
-                          _selectedRole = 'Administração';
-                          _generatedRa = 'ADM-00135';
-                          _deptController.text =
-                              'Secretaria Geral Acadêmica & Auditoria';
-                        });
-                      },
+                      onTap: () => _selectRole(
+                        'Administração',
+                        'ADM-00135',
+                        'Secretaria Geral Acadêmica & Auditoria',
+                      ),
                     ),
                   ],
                 ),
@@ -346,7 +402,7 @@ class _UserFormModalState extends State<UserFormModal> {
                 ),
                 const SizedBox(height: 18),
 
-                // Aviso explicativo de 2FA
+                // Instruções para o acesso inicial
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -358,7 +414,9 @@ class _UserFormModalState extends State<UserFormModal> {
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Text(
-                    'Será encaminhado um e-mail com senha temporária criptografada e link para ativação de 2FA obrigatório no primeiro acesso.',
+                    _selectedRole.contains('Docente')
+                        ? 'Após o cadastro, o docente poderá usar “Esqueci minha senha” com este e-mail institucional para receber um código e definir sua senha.'
+                        : 'O cadastro de alunos e administradores nesta tela permanece em modo de demonstração.',
                     style: jakarta(
                       size: 12.5,
                       weight: FontWeight.w400,
@@ -368,6 +426,17 @@ class _UserFormModalState extends State<UserFormModal> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                if (_submissionError != null) ...[
+                  Text(
+                    _submissionError!,
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFFB91C1C),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Botões de Ação
                 Wrap(
@@ -377,7 +446,9 @@ class _UserFormModalState extends State<UserFormModal> {
                   runSpacing: 12,
                   children: [
                     OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _isSubmitting
+                          ? null
+                          : () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFFE5E5E5)),
                         padding: const EdgeInsets.symmetric(
@@ -398,42 +469,14 @@ class _UserFormModalState extends State<UserFormModal> {
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        if (!(_formKey.currentState?.validate() ?? false)) {
-                          return;
-                        }
-
-                        final name = _nameController.text.trim();
-                        final email = _emailController.text.trim();
-                        final profile = _selectedRole.contains('Discente')
-                            ? 'aluno'
-                            : _selectedRole.contains('Docente')
-                            ? 'docente'
-                            : 'admin';
-
-                        widget.onUserCreated(
-                          name: name,
-                          email: email,
-                          profile: profile,
-                          department: _deptController.text.trim(),
-                          require2FA: true,
-                        );
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Usuário cadastrado com sucesso! Credenciais e token 2FA despachados.',
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: _isSubmitting ? null : _submit,
                       icon: const Icon(
                         Icons.check_circle_outline_rounded,
                         size: 17,
                         color: Colors.white,
                       ),
                       label: Text(
-                        'Concluir Cadastro',
+                        _isSubmitting ? 'Cadastrando...' : 'Concluir Cadastro',
                         style: jakarta(
                           size: 13.5,
                           weight: FontWeight.w600,

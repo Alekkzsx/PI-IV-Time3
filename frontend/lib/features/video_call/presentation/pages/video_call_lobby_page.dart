@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../../core/state/app_user_session.dart';
-import '../../../../core/state/academic_bridge_service.dart';
+import '../../data/datasources/video_call_room_remote_data_source.dart';
 import '../../domain/repositories/video_call_repository.dart';
 import '../controllers/video_call_lobby_controller.dart';
 import '../theme/video_call_theme.dart';
@@ -46,6 +46,8 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   bool _ownsController = false;
   bool _isInRoom = false;
   String? _userRole;
+  final VideoCallRoomRemoteDataSource _roomDataSource =
+      VideoCallRoomRemoteDataSource();
 
   @override
   void initState() {
@@ -113,34 +115,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
       final name = identity;
       final ra = identity;
       final requestedRoomCode = _roomCodeController.text.trim().toUpperCase();
-      final bridge = AcademicBridgeService.instance;
-      final roomCode = bridge.getSession(requestedRoomCode).roomCode;
-      final canOpen = bridge.canUserOpenSessionForCourse(
-        role: role,
-        rawCourseCode: roomCode,
-        teacherIdentity: identity,
-      );
-      final canJoin = bridge.canUserJoinSession(
-        role: role,
-        rawCourseCode: roomCode,
-        studentRa: ra,
-        teacherIdentity: identity,
-      );
-
-      if (!canOpen && !canJoin) {
-        if (role == 'aluno' || role == 'student') {
-          _showAccessDenied(
-            bridge.isSessionOpen(roomCode)
-                ? 'Seu vínculo acadêmico não permite entrar nesta turma.'
-                : 'A videochamada desta turma ainda não foi aberta pelo docente responsável ou pela administração.',
-          );
-        } else {
-          _showAccessDenied(
-            'Não foi possível validar seu perfil ou a turma desta videochamada.',
-          );
-        }
-        return;
-      }
+      final roomCode = requestedRoomCode;
 
       await _lobbyController.mediaEngine.unlockAudioPlayback();
       final mediaReady = await _lobbyController.ensureMediaReady();
@@ -157,32 +132,14 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         return;
       }
 
-      if (canOpen && !bridge.isSessionOpen(roomCode)) {
-        final opened = bridge.openSession(
-          rawCourseCode: roomCode,
-          openedByRole: role,
-          openedByName: name,
-          roomCode: roomCode,
-          openedByIdentity: identity,
-        );
-        if (!opened) {
-          _showAccessDenied(
-            'Seu perfil não pode iniciar a videochamada desta turma.',
-          );
-          return;
-        }
-      } else if (!canOpen &&
-          !bridge.canUserJoinSession(
-            role: role,
-            rawCourseCode: roomCode,
-            studentRa: ra,
-            teacherIdentity: identity,
-          )) {
-        _showAccessDenied(
-          'A sessão foi encerrada ou seu vínculo não permite entrar nesta turma.',
-        );
+      late final bool openedByCurrentUser;
+      try {
+        openedByCurrentUser = await _roomDataSource.enterRoom(roomCode);
+      } on VideoCallRoomApiException catch (error) {
+        if (mounted) _showAccessDenied(error.message);
         return;
       }
+      if (!mounted) return;
 
       final isAudioMuted = _lobbyController.isAudioMuted;
       final isVideoOff = _lobbyController.isVideoOff;
@@ -206,9 +163,12 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                 VideoCallRoomPage(controller: videoCallController),
           ),
         );
-        final session = bridge.getSession(roomCode);
-        if (session.openedByRole == role && session.openedByName == name) {
-          bridge.closeSession(roomCode);
+        if (openedByCurrentUser) {
+          try {
+            await _roomDataSource.closeRoom(roomCode);
+          } on VideoCallRoomApiException catch (error) {
+            if (mounted) _showAccessDenied(error.message);
+          }
         }
         if (mounted) {
           setState(() {

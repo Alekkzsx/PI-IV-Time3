@@ -162,15 +162,11 @@ class _ClassesPageState extends State<ClassesPage> {
     required String title,
     required String label,
     required String action,
-  }) =>
-      showDialog<String>(
-      context: context,
-      builder: (_) => _TextPromptDialog(
-        title: title,
-        label: label,
-        action: action,
-      ),
-    );
+  }) => showDialog<String>(
+    context: context,
+    builder: (_) =>
+        _TextPromptDialog(title: title, label: label, action: action),
+  );
 
   Future<void> _scheduleClassSession(AdminClassModel classModel) async {
     final title = await _showTextPrompt(
@@ -231,9 +227,20 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassAlocarDocenteModal.show(
       context: context,
       classModel: c,
-      onConfirmAllocation: (prof) =>
-          _controller.reallocateProfessor(c.code, prof),
+      onConfirmAllocation: (identity) => _assignTeacher(c, identity),
     );
+  }
+
+  Future<void> _assignTeacher(
+    AdminClassModel classModel,
+    String professorIdentity,
+  ) async {
+    await _dataSource.assignTeacherToClass(
+      classCode: classModel.code,
+      professorIdentity: professorIdentity,
+    );
+    _controller.reallocateProfessor(classModel.code, professorIdentity);
+    await _loadData();
   }
 
   @override
@@ -242,6 +249,8 @@ class _ClassesPageState extends State<ClassesPage> {
       return SupervisionCockpitPage(
         classModel: _activeSupervisedClass!,
         onBack: () => setState(() => _activeSupervisedClass = null),
+        onReallocateProfessor: (identity) =>
+            _assignTeacher(_activeSupervisedClass!, identity),
       );
     }
 
@@ -456,7 +465,8 @@ class _CreateClassDialogState extends State<_CreateClassDialog> {
                     )
                     .toList(),
                 onChanged: (value) {
-                  if (value != null) setState(() => _selectedCourseCode = value);
+                  if (value != null)
+                    setState(() => _selectedCourseCode = value);
                 },
               ),
               _field(_code, 'Código da turma'),
@@ -513,20 +523,19 @@ class _CreateClassDialogState extends State<_CreateClassDialog> {
     bool required = true,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(labelText: label),
-          validator:
-              validator ??
-              (value) => required && (value == null || value.trim().isEmpty)
-                  ? 'Preencha este campo.'
-                  : null,
-        ),
-      );
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(labelText: label),
+      validator:
+          validator ??
+          (value) => required && (value == null || value.trim().isEmpty)
+              ? 'Preencha este campo.'
+              : null,
+    ),
+  );
 }
 
 class _TextPromptDialog extends StatefulWidget {

@@ -1,9 +1,11 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/users/data/admin_user_remote_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_dossier_modal.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_filter_bar.dart';
@@ -25,12 +27,15 @@ class UsersPage extends StatefulWidget {
 
 class _UsersPageState extends State<UsersPage> {
   final AdminPortalController _controller = AdminPortalController.instance;
+  final AdminUserRemoteDataSource _userDataSource = AdminUserRemoteDataSource();
   final TextEditingController _searchController = TextEditingController();
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onUpdate);
+    unawaited(_loadTeachers());
   }
 
   @override
@@ -44,6 +49,23 @@ class _UsersPageState extends State<UsersPage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadTeachers() async {
+    try {
+      final teachers = await _userDataSource.getTeachers();
+      if (!mounted) return;
+      _controller.replacePersistedTeachers(teachers);
+      setState(() {
+        _loadError = null;
+      });
+    } on AdminUserApiException catch (error) {
+      if (mounted) {
+        setState(() {
+          _loadError = error.message;
+        });
+      }
+    }
+  }
+
   void _showNovoCadastroModal(BuildContext context) {
     UserFormModal.show(
       context: context,
@@ -54,14 +76,28 @@ class _UsersPageState extends State<UsersPage> {
             required String profile,
             required String department,
             required bool require2FA,
-          }) {
-            _controller.addUser(
+          }) async {
+            final identity = profile == 'docente'
+                ? await _userDataSource.createTeacher(
+                    name: name,
+                    email: email,
+                    department: department,
+                  )
+                : null;
+            final created = _controller.addUser(
               name: name,
               email: email,
               profile: profile,
               department: department,
               require2FA: require2FA,
+              identity: identity,
             );
+            if (!created) {
+              throw const AdminUserApiException(
+                'Não foi possível adicionar o docente à lista administrativa.',
+              );
+            }
+            return identity;
           },
     );
   }
@@ -250,6 +286,17 @@ class _UsersPageState extends State<UsersPage> {
                           children: [
                             // Cabeçalho da Página
                             _buildHeader(context, isDesktop),
+                            if (_loadError != null) ...[
+                              const SizedBox(height: 16),
+                              Text(
+                                'Não foi possível carregar os docentes salvos: $_loadError',
+                                style: jakarta(
+                                  size: 13,
+                                  weight: FontWeight.w600,
+                                  color: const Color(0xFFB91C1C),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 28),
 
                             // Barra de Filtros e Busca

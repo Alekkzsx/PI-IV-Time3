@@ -1,5 +1,6 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -18,6 +19,10 @@ abstract interface class AdminAcademicDataSource {
     required String location,
     required int maxCapacity,
     String? professorIdentity,
+  });
+  Future<void> assignTeacherToClass({
+    required String classCode,
+    required String professorIdentity,
   });
   Future<void> createEnrollment({
     required String classCode,
@@ -105,6 +110,18 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
   }
 
   @override
+  Future<void> assignTeacherToClass({
+    required String classCode,
+    required String professorIdentity,
+  }) async {
+    await _request(
+      'PATCH',
+      '/api/admin/classes/${Uri.encodeComponent(classCode)}/professor',
+      body: {'professorIdentity': professorIdentity.trim()},
+    );
+  }
+
+  @override
   Future<void> createEnrollment({
     required String classCode,
     required String studentIdentity,
@@ -148,11 +165,17 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     };
 
     try {
-      final response = method == 'GET'
-          ? await _client.get(uri, headers: headers).timeout(_timeout)
-          : await _client
-                .post(uri, headers: headers, body: jsonEncode(body))
-                .timeout(_timeout);
+      final response = switch (method) {
+        'GET' => await _client.get(uri, headers: headers).timeout(_timeout),
+        'PATCH' =>
+          await _client
+              .patch(uri, headers: headers, body: jsonEncode(body))
+              .timeout(_timeout),
+        _ =>
+          await _client
+              .post(uri, headers: headers, body: jsonEncode(body))
+              .timeout(_timeout),
+      };
       dynamic decoded;
       if (response.body.isNotEmpty) {
         try {
@@ -171,6 +194,8 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
       return decoded;
     } on http.ClientException {
       throw const AdminAcademicApiException('Não foi possível conectar à API.');
+    } on TimeoutException {
+      throw const AdminAcademicApiException('A API demorou para responder.');
     }
   }
 

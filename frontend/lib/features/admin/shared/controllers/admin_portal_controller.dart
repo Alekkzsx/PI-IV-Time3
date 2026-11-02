@@ -24,8 +24,18 @@ class AdminPortalController extends ChangeNotifier {
 
   // Usuários
   late List<AdminUserModel> users = List.from(AdminMockData.users);
+  final Set<String> _persistedTeacherIds = {};
   String userFilter = 'Todos';
   String userSearchQuery = '';
+
+  void replacePersistedTeachers(List<AdminUserModel> teachers) {
+    users.removeWhere((user) => _persistedTeacherIds.contains(user.id));
+    _persistedTeacherIds
+      ..clear()
+      ..addAll(teachers.map((teacher) => teacher.id));
+    users.insertAll(0, teachers);
+    notifyListeners();
+  }
 
   // Turmas e Supervisão
   late List<AdminClassModel> classes = List.from(AdminMockData.classes);
@@ -123,6 +133,7 @@ class AdminPortalController extends ChangeNotifier {
     required String profile,
     required String department,
     required bool require2FA,
+    String? identity,
   }) {
     if (!canPerform('manage_users')) {
       _denyPermission('manage_users');
@@ -134,11 +145,13 @@ class AdminPortalController extends ChangeNotifier {
       );
       return false;
     }
-    final newId = profile == RolePermissionPolicy.student
-        ? '2024.2.0${1040 + users.length}'
-        : profile == RolePermissionPolicy.teacher
-        ? 'DOC-${88420 + users.length}'
-        : 'ADM-${10000 + users.length}';
+    final newId =
+        identity ??
+        (profile == RolePermissionPolicy.student
+            ? '2024.2.0${1040 + users.length}'
+            : profile == RolePermissionPolicy.teacher
+            ? 'DOC-${88420 + users.length}'
+            : 'ADM-${10000 + users.length}');
     users.insert(
       0,
       AdminUserModel(
@@ -151,6 +164,9 @@ class AdminPortalController extends ChangeNotifier {
         twoFactorRequired: require2FA,
       ),
     );
+    if (profile == RolePermissionPolicy.teacher && identity != null) {
+      _persistedTeacherIds.add(identity);
+    }
     _logAudit(
       'Carlos Eduardo Mendes',
       'NOVO CADASTRO',

@@ -68,6 +68,12 @@ export class MongoAuthDatabase {
     await this.database
       .collection("academic_class_sessions")
       .createIndex({ classCode: 1, startsAt: 1 });
+    await this.database
+      .collection("academic_live_sessions")
+      .createIndex({ roomCode: 1 }, { unique: true });
+    await this.database
+      .collection("academic_live_sessions")
+      .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
   }
 
   users(): MongoAuthUserRepository {

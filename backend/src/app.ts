@@ -10,6 +10,7 @@ import type { Environment } from "./config/environment.js";
 import type { AuthService } from "./modules/auth/application/auth.service.js";
 import { createAuthRouter } from "./modules/auth/presentation/auth.controller.js";
 import { createAdminAcademicRouter } from "./modules/admin/admin-academic.controller.js";
+import { createVideoCallRouter } from "./modules/video-call/video-call.controller.js";
 import { AuthError } from "./shared/auth-error.js";
 import type { Db } from "mongodb";
 
@@ -26,7 +27,7 @@ export function createApp(
   app.use(
     cors({
       origin: environment.corsOrigins,
-      methods: ["GET", "POST", "OPTIONS"],
+      methods: ["GET", "POST", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
     }),
   );
@@ -51,6 +52,10 @@ export function createApp(
     app.use(
       "/api/admin",
       createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret),
+    );
+    app.use(
+      "/api/video-call",
+      createVideoCallRouter(adminOptions.database, adminOptions.jwtSecret),
     );
   }
   app.use(notFoundHandler);

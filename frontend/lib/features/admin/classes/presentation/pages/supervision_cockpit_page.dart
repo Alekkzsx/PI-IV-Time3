@@ -8,6 +8,7 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
+import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 
 /// Console Avançado de Supervisão Institucional da Turma na Visão Administrativa.
 /// Permite auditar notas em tempo real, configurar regimes de avaliação, reatribuir
@@ -15,11 +16,13 @@ import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_contr
 class SupervisionCockpitPage extends StatefulWidget {
   final AdminClassModel classModel;
   final VoidCallback onBack;
+  final Future<void> Function(String)? onReallocateProfessor;
 
   const SupervisionCockpitPage({
     super.key,
     required this.classModel,
     required this.onBack,
+    this.onReallocateProfessor,
   });
 
   @override
@@ -1012,22 +1015,37 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           TextField(
             controller: profController,
             decoration: const InputDecoration(
-              labelText: 'Nome do Docente Substituto',
+              labelText: 'Identidade do docente substituto (DOC-...)',
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              _controller.reallocateProfessor(
-                widget.classModel.code,
-                profController.text,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Atribuição docente atualizada com sucesso!'),
-                ),
-              );
+            onPressed: () async {
+              final identity = profController.text.trim();
+              if (identity.isEmpty) return;
+              try {
+                final reallocate = widget.onReallocateProfessor;
+                if (reallocate != null) {
+                  await reallocate(identity);
+                } else {
+                  _controller.reallocateProfessor(
+                    widget.classModel.code,
+                    identity,
+                  );
+                }
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Atribuição docente atualizada com sucesso!'),
+                  ),
+                );
+              } on AdminAcademicApiException catch (error) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(error.message)));
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: InstColors.ink,

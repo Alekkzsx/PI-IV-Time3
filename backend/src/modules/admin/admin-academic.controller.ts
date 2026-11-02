@@ -1,10 +1,12 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import { Router, type RequestHandler } from "express";
+import { randomBytes } from "node:crypto";
 import { type Db, type Document } from "mongodb";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { z } from "zod";
 import { AuthError } from "../../shared/auth-error.js";
+import { BcryptPasswordHasher } from "../auth/infrastructure/security.providers.js";
 
 interface AcademicCourseDocument extends Document {
   code: string;
@@ -48,6 +50,12 @@ const courseSchema = z.object({
   components: z.array(z.record(z.string(), z.unknown())).max(100),
 });
 
+const teacherSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(254),
+  department: z.string().trim().min(2).max(120),
+});
+
 const classSchema = z.object({
   code: z.string().trim().min(2).max(32),
   courseCode: z.string().trim().min(2).max(32),
@@ -57,6 +65,10 @@ const classSchema = z.object({
   maxCapacity: z.number().int().min(1).max(500),
   professorIdentity: z.string().trim().min(1).max(254).optional(),
   formulaRegime: z.enum(["admin", "autonomia_docente"]).default("autonomia_docente"),
+});
+
+const professorAssignmentSchema = z.object({
+  professorIdentity: z.string().trim().min(1).max(254),
 });
 
 const enrollmentSchema = z.object({
@@ -79,6 +91,90 @@ export function createAdminAcademicRouter(
   const enrollments = database.collection("academic_enrollments");
   const sessions = database.collection("academic_class_sessions");
   const requireAdmin = adminOnly(jwtSecret);
+
+  router.get("/teachers", requireAdmin, async (_request, response) => {
+    const records = await database
+      .collection("auth_users")
+      .find({ profile: "docente" })
+      .project({
+        identity: 1,
+        email: 1,
+        displayName: 1,
+        department: 1,
+        active: 1,
+      })
+      .sort({ normalizedIdentity: 1 })
+      .toArray();
+    response.status(200).json(
+      records.map((record) => ({
+        identity: record.identity,
+        email: record.email,
+        name: record.displayName,
+        department: record.department ?? "",
+        active: record.active === true,
+        profile: "docente",
+      })),
+    );
+  });
+
+  router.post("/teachers", requireAdmin, async (request, response) => {
+    const parsed = teacherSchema.safeParse(request.body);
+    if (!parsed.success) {
+      throw new AuthError(400, "invalid_request", "Dados do docente inválidos.");
+    }
+
+    const users = database.collection("auth_users");
+    const email = parsed.data.email.toLowerCase();
+    const existingEmail = await users.findOne({
+      email: { $regex: `^${escapeRegExp(email)}$`, $options: "i" },
+    });
+    if (existingEmail) {
+      throw new AuthError(409, "email_exists", "Já existe uma conta com esse e-mail.");
+    }
+
+    const identity = `DOC-${randomBytes(5).toString("hex").toUpperCase()}`;
+    const passwordHash = await new BcryptPasswordHasher().hash(
+      randomBytes(32).toString("base64url"),
+    );
+    const teacher = {
+      identity,
+      normalizedIdentity: identity.toLowerCase(),
+      email,
+      displayName: parsed.data.name,
+      profile: "docente",
+      passwordHash,
+      active: true,
+      department: parsed.data.department,
+      createdBy: response.locals.adminId as string,
+      createdAt: new Date(),
+    };
+
+    try {
+      await users.insertOne(teacher);
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === 11000
+      ) {
+        throw new AuthError(
+          409,
+          "identity_exists",
+          "Não foi possível gerar uma identidade única. Tente novamente.",
+        );
+      }
+      throw error;
+    }
+
+    response.status(201).json({
+      identity,
+      name: teacher.displayName,
+      email: teacher.email,
+      department: teacher.department,
+      profile: teacher.profile,
+    });
+  });
 
   router.get("/courses", requireAdmin, async (_request, response) => {
     const records = await courses.find({}).sort({ code: 1 }).toArray();
@@ -189,6 +285,49 @@ export function createAdminAcademicRouter(
       throw error;
     }
   });
+
+  router.patch(
+    "/classes/:classCode/professor",
+    requireAdmin,
+    async (request, response) => {
+      const parsed = professorAssignmentSchema.safeParse(request.body);
+      if (!parsed.success) {
+        throw new AuthError(400, "invalid_request", "Identidade do docente inválida.");
+      }
+
+      const classRecord = await classes.findOne({
+        code: request.params.classCode,
+      });
+      if (!classRecord) {
+        throw new AuthError(404, "class_not_found", "Turma não encontrada.");
+      }
+
+      const normalizedIdentity = parsed.data.professorIdentity.toLowerCase();
+      const professor = await database.collection("auth_users").findOne({
+        normalizedIdentity,
+        profile: "docente",
+        active: true,
+      });
+      if (!professor) {
+        throw new AuthError(404, "professor_not_found", "Docente ativo não encontrado.");
+      }
+
+      await classes.updateOne(
+        { code: classRecord.code },
+        {
+          $set: {
+            professorId: professor._id.toString(),
+            professorIdentity: professor.normalizedIdentity,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      response.status(200).json({
+        classCode: classRecord.code,
+        professorIdentity: professor.normalizedIdentity,
+      });
+    },
+  );
 
   router.get("/classes/:classCode/enrollments", requireAdmin, async (request, response) => {
     const records = await enrollments
@@ -326,4 +465,8 @@ function adminOnly(jwtSecret: string): RequestHandler {
     response.locals.adminId = claims.sub;
     next();
   };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
