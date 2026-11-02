@@ -116,20 +116,20 @@ public class ServidorHttpNativo {
 
     // CRUD das colecoes do portal do docente em /api/docente/{colecao}.
     private static void registrarRotasDocente() {
-        crud("/api/docente/perfis", DocenteEsquemas.DOCENTES, DocenteEsquemas.ESQUEMA_DOCENTES);
-        crud("/api/docente/cursos", DocenteEsquemas.CURSOS, DocenteEsquemas.ESQUEMA_CURSOS);
-        crud("/api/docente/aulas", DocenteEsquemas.AULAS, DocenteEsquemas.ESQUEMA_AULAS);
-        crud("/api/docente/tarefas", DocenteEsquemas.TAREFAS, DocenteEsquemas.ESQUEMA_TAREFAS);
-        crud("/api/docente/notas", DocenteEsquemas.NOTAS, DocenteEsquemas.ESQUEMA_NOTAS);
-        crud("/api/docente/avisos", DocenteEsquemas.AVISOS, DocenteEsquemas.ESQUEMA_AVISOS);
-        crud("/api/docente/eventos", DocenteEsquemas.EVENTOS, DocenteEsquemas.ESQUEMA_EVENTOS);
+        crud("/api/docente/profiles", DocenteEsquemas.DOCENTES, DocenteEsquemas.ESQUEMA_DOCENTES);
+        crud("/api/docente/class-plans", DocenteEsquemas.CURSOS, DocenteEsquemas.ESQUEMA_CURSOS);
+        crud("/api/docente/attendance-sessions", DocenteEsquemas.AULAS, DocenteEsquemas.ESQUEMA_AULAS);
+        crud("/api/docente/assignments", DocenteEsquemas.TAREFAS, DocenteEsquemas.ESQUEMA_TAREFAS);
+        crud("/api/docente/grades", DocenteEsquemas.NOTAS, DocenteEsquemas.ESQUEMA_NOTAS);
+        crud("/api/docente/notices", DocenteEsquemas.AVISOS, DocenteEsquemas.ESQUEMA_AVISOS);
+        crud("/api/docente/events", DocenteEsquemas.EVENTOS, DocenteEsquemas.ESQUEMA_EVENTOS);
     }
 
     // CRUD das colecoes da video chamada em /api/video-call/{colecao}; o chat do hub e gravado no banco.
     private static void registrarRotasVideoCall() {
-        crud("/api/video-call/salas", VideoCallEsquemas.SALAS, VideoCallEsquemas.ESQUEMA_SALAS);
-        crud("/api/video-call/sessoes", VideoCallEsquemas.SESSOES, VideoCallEsquemas.ESQUEMA_SESSOES);
-        crud("/api/video-call/mensagens", VideoCallEsquemas.MENSAGENS, VideoCallEsquemas.ESQUEMA_MENSAGENS);
+        crud("/api/video-call/rooms", VideoCallEsquemas.SALAS, VideoCallEsquemas.ESQUEMA_SALAS);
+        crud("/api/video-call/sessions", VideoCallEsquemas.SESSOES, VideoCallEsquemas.ESQUEMA_SESSOES);
+        crud("/api/video-call/chat-messages", VideoCallEsquemas.MENSAGENS, VideoCallEsquemas.ESQUEMA_MENSAGENS);
         hubVideo = new SalaVideoHub(new RegistradorChat(banco.colecao(VideoCallEsquemas.MENSAGENS)));
     }
 
