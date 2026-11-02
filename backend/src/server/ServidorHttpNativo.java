@@ -65,10 +65,7 @@ public class ServidorHttpNativo {
                     assumida = abrirWebSocket(conexao, requisicao, resposta);
                     return;
                 }
-                ManipuladorHttp handler = ROTAS.get(requisicao.getCaminho());
-                if (handler == null && requisicao.getCaminho().startsWith("/api/admin/usuarios/")) {
-                    handler = ROTAS.get("/api/admin/usuarios");
-                }
+                ManipuladorHttp handler = procurarRota(requisicao.getCaminho());
                 if (handler == null) {
                     resposta.enviar(404, "Endpoint nao encontrado.");
                 } else {
@@ -87,6 +84,17 @@ public class ServidorHttpNativo {
                 try { conexao.close(); } catch (IOException e) { /* ja fechado */ }
             }
         }
+    }
+
+    // Uma rota atende o proprio caminho e tudo abaixo dele (ex.: /api/admin/usuarios/{id}).
+    private static ManipuladorHttp procurarRota(String caminho) {
+        ManipuladorHttp handler = ROTAS.get(caminho);
+        if (handler != null) return handler;
+        String melhor = null;
+        for (String rota : ROTAS.keySet()) {
+            if (caminho.startsWith(rota + "/") && (melhor == null || rota.length() > melhor.length())) melhor = rota;
+        }
+        return melhor == null ? null : ROTAS.get(melhor);
     }
 
     // Rota /ws/video-call/{sala}: o identificador da sala segue as mesmas regras de ID da API.
