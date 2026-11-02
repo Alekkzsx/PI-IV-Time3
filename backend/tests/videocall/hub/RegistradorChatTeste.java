@@ -30,11 +30,11 @@ public class RegistradorChatTeste {
         r.registrar("SALA-1", env("chat", "{\"text\":\"   \"}"));
         r.registrar("SALA-1", env("chat", "\"nao e objeto\""));
         esperar(c.listar(Map.of()).size() == 2, "grava so chat com texto");
-        Map<String, Object> m = c.listar(Map.of("salaId", "SALA-1")).get(0);
-        esperar(m.get("texto").equals("ola turma") && m.get("remetente").equals("Ana") && m.get("enviadaEm").equals(1700L), "campos gravados");
-        esperar(c.listar(Map.of("texto", "so content")).size() == 1, "aceita campo content");
+        Map<String, Object> m = c.listar(Map.of("roomId", "SALA-1")).get(0);
+        esperar(m.get("text").equals("ola turma") && m.get("senderName").equals("Ana") && m.get("sentAt").equals(1700L), "campos gravados");
+        esperar(c.listar(Map.of("text", "so content")).size() == 1, "aceita campo content");
         r.registrar("SALA-1", env("chat", "{\"text\":\"" + "x".repeat(3000) + "\"}"));
-        esperar(c.listar(Map.of("salaId", "SALA-1")).get(2).get("texto").toString().length() == 2000, "trunca texto longo");
+        esperar(c.listar(Map.of("roomId", "SALA-1")).get(2).get("text").toString().length() == 2000, "trunca texto longo");
         if (falhas > 0) { System.out.println(falhas + " falha(s)"); System.exit(1); }
         System.out.println("Todos os testes passaram");
     }
