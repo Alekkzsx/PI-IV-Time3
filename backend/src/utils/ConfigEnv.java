@@ -14,16 +14,22 @@ public final class ConfigEnv {
     private static final Map<String, String> ARQUIVO = new HashMap<>();
 
     static {
-        // Procura o arquivo na pasta atual e na pasta acima (raiz do projeto).
-        for (String nome : new String[] {"env", ".env"}) {
-            for (Path pasta : new Path[] {Path.of("."), Path.of("..")}) {
-                Path candidato = pasta.resolve(nome);
-                if (Files.isRegularFile(candidato)) { carregar(candidato); return; }
-            }
-        }
+        Path arquivo = procurarArquivo();
+        if (arquivo != null) carregar(arquivo);
     }
 
     private ConfigEnv() {}
+
+    // Procura o arquivo na pasta atual e na pasta acima (raiz do projeto).
+    private static Path procurarArquivo() {
+        for (String nome : new String[] {"env", ".env"}) {
+            for (Path pasta : new Path[] {Path.of("."), Path.of("..")}) {
+                Path candidato = pasta.resolve(nome);
+                if (Files.isRegularFile(candidato)) return candidato;
+            }
+        }
+        return null;
+    }
 
     private static void carregar(Path arquivo) {
         try {
