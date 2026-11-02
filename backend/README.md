@@ -4,6 +4,35 @@ The `backend` module defines the target architecture for the enterprise business
 
 ---
 
+## Docente, video chamada e WebSocket (implementado)
+
+Tudo escrito apenas com o JDK (sockets, threads, `MessageDigest`); a unica dependencia externa e o driver `mongodb-driver-sync`.
+
+**Como rodar** (sem Maven; jars do driver em `backend/lib`):
+
+```
+backendun-server.bat
+```
+
+Configuracao em `MONGODB_URI` e `MONGODB_DATABASE` (variavel de ambiente ou arquivo `env` na raiz, nunca versionado). Sem `MONGODB_URI` o servidor usa banco em memoria. Porta: `SERVER_PORT` (padrao 8080).
+
+**REST** (JSON; `GET` lista com filtros `?campo=valor`, `POST` cria, `GET/PUT/PATCH/DELETE /{id}`):
+
+| Rota | Colecao |
+|---|---|
+| `/api/docente/perfis`, `cursos`, `aulas`, `tarefas`, `notas`, `avisos`, `eventos` | portal do docente |
+| `/api/video-call/salas`, `sessoes`, `mensagens` | video chamada |
+
+Os campos aceitos de cada colecao estao em `docente/DocenteEsquemas.java` e `videocall/VideoCallEsquemas.java`; campos desconhecidos e tipos errados retornam 400.
+
+**WebSocket**: `ws://localhost:8080/ws/video-call/{sala}` (handshake RFC 6455 manual). O hub repassa os envelopes `p2p_videocall_v1` a todos da sala menos o remetente, impede troca de `senderId`, avisa a saida com `leave` e grava as mensagens de chat em `mensagens_chat`.
+
+**Seed do docente**: `java -cp "out;lib\*" docente.SeedDocente` faz um ensaio em memoria; com `--confirmar` grava no MongoDB (substitui por id, pode repetir).
+
+**Testes** (sem JUnit; cada um e um `main` em `backend/tests`): compilar `src` e `tests` juntos com `javac -cp "lib\*"` e executar a classe, por exemplo `api.CrudHandlerTeste`, `websocket.QuadroTeste`, `videocall.hub.HubTeste`.
+
+---
+
 ## 🏛️ Architectural Purpose & Scope
 
 The `backend` module serves as the long-term domain and persistence core of the AGMRM ecosystem. While the lightweight, zero-dependency native Java server in [`server/`](../server/README.md) provides specialized, high-performance execution of standalone academic calculation algorithms and raw HTTP socket handling, the `backend` module is scoped to accommodate:
