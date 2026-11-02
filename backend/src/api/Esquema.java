@@ -45,6 +45,11 @@ public final class Esquema {
                 if (campo.obrigatorio && texto.isEmpty()) throw new IllegalArgumentException("Campo obrigatorio: " + campo.nome);
                 if (texto.length() > campo.limite) throw new IllegalArgumentException("Campo muito longo: " + campo.nome);
                 return texto;
+            case OPCAO:
+                if (!(valor instanceof String) || !campo.valores.contains(valor)) {
+                    throw new IllegalArgumentException("Valor invalido para " + campo.nome + ": use " + String.join(", ", campo.valores));
+                }
+                return valor;
             case INTEIRO:
                 if (!(valor instanceof Long)) throw new IllegalArgumentException("Campo deve ser inteiro: " + campo.nome);
                 return valor;
