@@ -20,7 +20,7 @@ public class MongoDBConnection {
             cliente = MongoClients.create(ConfigEnv.exigir("MONGODB_URI"));
         }
 
-        MongoDatabase banco = cliente.getDatabase(ConfigEnv.obter("MONGODB_DATABASE", "agmr"));
+        MongoDatabase banco = cliente.getDatabase(ConfigEnv.obter("MONGODB_DATABASE", "agmrm"));
 
         // Verifica se o banco esta respondendo.
         banco.runCommand(new Document("ping", 1));
@@ -41,7 +41,7 @@ public class MongoDBConnection {
     public static void main(String[] args) {
         try {
             conectar();
-            System.out.println("[MongoDB] Banco " + ConfigEnv.obter("MONGODB_DATABASE", "agmr") + " conectado!");
+            System.out.println("[MongoDB] Banco " + ConfigEnv.obter("MONGODB_DATABASE", "agmrm") + " conectado!");
         } catch (Exception e) {
             System.err.println("[MongoDB] Erro na conexao: " + e.getMessage());
         } finally {
