@@ -17,11 +17,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import videocall.hub.SalaVideoHub;
+import websocket.AtendenteWebSocket;
+import websocket.HandshakeWebSocket;
 
 // Servidor HTTP implementado com sockets nativos do Java.
 public class ServidorHttpNativo {
     private static final int PORTA_PADRAO = 8080;
     private static final Map<String, ManipuladorHttp> ROTAS = new HashMap<>();
+    private static final String RAIZ_WS_VIDEO = "/ws/video-call/";
+    private static SalaVideoHub hubVideo = new SalaVideoHub(null);
 
     public static void main(String[] args) throws IOException {
         UsuarioRepository usuarios = new UsuarioRepository(Path.of("data", "usuarios.db"));
@@ -36,6 +41,7 @@ public class ServidorHttpNativo {
         try (ServerSocket servidor = new ServerSocket(porta, 50, InetAddress.getLoopbackAddress())) {
             System.out.println("SERVIDOR HTTP NATIVO INICIADO NA PORTA " + porta);
             for (String rota : ROTAS.keySet()) System.out.println(" -> http://localhost:" + porta + rota);
+            System.out.println(" -> ws://localhost:" + porta + RAIZ_WS_VIDEO + "{sala}");
             while (true) {
                 Socket cliente = servidor.accept();
                 trabalhadores.execute(() -> atender(cliente));
@@ -46,13 +52,19 @@ public class ServidorHttpNativo {
     }
 
     // Cada conexão é atendida por uma thread do conjunto de trabalhadores.
-    private static void atender(Socket cliente) {
-        try (Socket conexao = cliente) {
+    // Conexoes WebSocket passam a ser donas do socket e ele nao e fechado aqui.
+    private static void atender(Socket conexao) {
+        boolean assumida = false;
+        try {
             conexao.setSoTimeout(30000);
             RespostaHttp resposta = new RespostaHttp(conexao.getOutputStream());
             try {
                 RequisicaoHttp requisicao = RequisicaoHttp.ler(conexao.getInputStream());
                 HttpUtils.aplicarHeadersCors(resposta);
+                if (HandshakeWebSocket.pedeUpgrade(requisicao)) {
+                    assumida = abrirWebSocket(conexao, requisicao, resposta);
+                    return;
+                }
                 ManipuladorHttp handler = ROTAS.get(requisicao.getCaminho());
                 if (handler == null && requisicao.getCaminho().startsWith("/api/admin/usuarios/")) {
                     handler = ROTAS.get("/api/admin/usuarios");
@@ -70,6 +82,22 @@ public class ServidorHttpNativo {
             }
         } catch (IOException e) {
             System.err.println("[CONEXAO] " + e.getMessage());
+        } finally {
+            if (!assumida) {
+                try { conexao.close(); } catch (IOException e) { /* ja fechado */ }
+            }
         }
+    }
+
+    // Rota /ws/video-call/{sala}: o identificador da sala segue as mesmas regras de ID da API.
+    private static boolean abrirWebSocket(Socket conexao, RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+        String caminho = requisicao.getCaminho();
+        String sala = caminho.startsWith(RAIZ_WS_VIDEO) ? caminho.substring(RAIZ_WS_VIDEO.length()) : "";
+        if (!sala.matches("[a-zA-Z0-9._-]{1,60}")) {
+            resposta.enviar(404, "Endpoint WebSocket nao encontrado.");
+            return false;
+        }
+        conexao.setSoTimeout(0);
+        return AtendenteWebSocket.assumir(conexao, requisicao, sala, hubVideo);
     }
 }
