@@ -8,7 +8,9 @@ import academico.controllers.PresencaHandler;
 import academico.controllers.TarefasHandler;
 import academico.controllers.TesteTiposHandler;
 
+import api.CrudHandler;
 import database.BancoDados;
+import docente.DocenteEsquemas;
 import database.BancoMemoria;
 import database.BancoMongo;
 import database.MongoDBConnection;
@@ -57,6 +59,7 @@ public class ServidorHttpNativo {
         ROTAS.put("/api/presenca", new PresencaHandler());
         ROTAS.put("/api/tarefas/calcular-nota", new TarefasHandler());
         ROTAS.put("/api/notas/boletim", new BoletimHandler());
+        registrarRotasDocente();
 
         int porta = Integer.parseInt(System.getenv().getOrDefault("SERVER_PORT", "8080"));
         ExecutorService trabalhadores = Executors.newFixedThreadPool(16);
@@ -106,6 +109,21 @@ public class ServidorHttpNativo {
                 try { conexao.close(); } catch (IOException e) { /* ja fechado */ }
             }
         }
+    }
+
+    // CRUD das colecoes do portal do docente em /api/docente/{colecao}.
+    private static void registrarRotasDocente() {
+        crud("/api/docente/perfis", DocenteEsquemas.DOCENTES, DocenteEsquemas.ESQUEMA_DOCENTES);
+        crud("/api/docente/cursos", DocenteEsquemas.CURSOS, DocenteEsquemas.ESQUEMA_CURSOS);
+        crud("/api/docente/aulas", DocenteEsquemas.AULAS, DocenteEsquemas.ESQUEMA_AULAS);
+        crud("/api/docente/tarefas", DocenteEsquemas.TAREFAS, DocenteEsquemas.ESQUEMA_TAREFAS);
+        crud("/api/docente/notas", DocenteEsquemas.NOTAS, DocenteEsquemas.ESQUEMA_NOTAS);
+        crud("/api/docente/avisos", DocenteEsquemas.AVISOS, DocenteEsquemas.ESQUEMA_AVISOS);
+        crud("/api/docente/eventos", DocenteEsquemas.EVENTOS, DocenteEsquemas.ESQUEMA_EVENTOS);
+    }
+
+    private static void crud(String rota, String colecao, api.Esquema esquema) {
+        ROTAS.put(rota, new CrudHandler(rota, banco.colecao(colecao), esquema));
     }
 
     // Uma rota atende o proprio caminho e tudo abaixo dele (ex.: /api/admin/usuarios/{id}).
