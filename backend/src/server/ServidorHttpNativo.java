@@ -10,7 +10,9 @@ import academico.controllers.TesteTiposHandler;
 
 import api.CrudHandler;
 import database.BancoDados;
+import docente.AcoesDocenteHandler;
 import docente.DocenteEsquemas;
+import docente.regras.SaidaNotas;
 import database.BancoMemoria;
 import database.BancoMongo;
 import database.MongoDBConnection;
@@ -120,9 +122,11 @@ public class ServidorHttpNativo {
         crud("/api/docente/class-plans", DocenteEsquemas.CURSOS, DocenteEsquemas.ESQUEMA_CURSOS);
         crud("/api/docente/attendance-sessions", DocenteEsquemas.AULAS, DocenteEsquemas.ESQUEMA_AULAS);
         crud("/api/docente/assignments", DocenteEsquemas.TAREFAS, DocenteEsquemas.ESQUEMA_TAREFAS);
-        crud("/api/docente/grades", DocenteEsquemas.NOTAS, DocenteEsquemas.ESQUEMA_NOTAS);
+        ROTAS.put("/api/docente/grades", new CrudHandler("/api/docente/grades", banco.colecao(DocenteEsquemas.NOTAS),
+                DocenteEsquemas.ESQUEMA_NOTAS).comSaida(SaidaNotas::calcular));
         crud("/api/docente/notices", DocenteEsquemas.AVISOS, DocenteEsquemas.ESQUEMA_AVISOS);
         crud("/api/docente/events", DocenteEsquemas.EVENTOS, DocenteEsquemas.ESQUEMA_EVENTOS);
+        ROTAS.put(AcoesDocenteHandler.RAIZ, new AcoesDocenteHandler(banco));
     }
 
     // CRUD das colecoes da video chamada em /api/video-call/{colecao}; o chat do hub e gravado no banco.
