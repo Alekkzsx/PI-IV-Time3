@@ -16,17 +16,29 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 // CRUD REST generico sobre uma colecao: GET lista, POST cria, GET/PUT/PATCH/DELETE por id.
 public class CrudHandler implements ManipuladorHttp {
     private final String raiz;
     private final Colecao colecao;
     private final Esquema esquema;
+    // Transformacao aplicada aos documentos antes de enviar (ex.: campos calculados); nao altera o que esta no banco.
+    private UnaryOperator<Map<String, Object>> saida = documento -> documento;
 
     public CrudHandler(String raiz, Colecao colecao, Esquema esquema) {
         this.raiz = raiz;
         this.colecao = colecao;
         this.esquema = esquema;
+    }
+
+    public CrudHandler comSaida(UnaryOperator<Map<String, Object>> transformacao) {
+        this.saida = transformacao;
+        return this;
+    }
+
+    private Map<String, Object> paraSaida(Map<String, Object> documento) {
+        return saida.apply(new LinkedHashMap<>(documento));
     }
 
     @Override
@@ -65,7 +77,8 @@ public class CrudHandler implements ManipuladorHttp {
             }
             filtro.put(item.getKey(), item.getValue());
         }
-        List<Map<String, Object>> itens = colecao.listar(filtro);
+        List<Map<String, Object>> itens = new java.util.ArrayList<>();
+        for (Map<String, Object> documento : colecao.listar(filtro)) itens.add(paraSaida(documento));
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("itens", itens);
         json(resp, 200, Json.escrever(corpo));
@@ -74,7 +87,7 @@ public class CrudHandler implements ManipuladorHttp {
     private void buscar(String id, RespostaHttp resp) throws IOException {
         Map<String, Object> documento = colecao.buscar(id);
         if (documento == null) { erro(resp, 404, "Registro nao encontrado"); return; }
-        json(resp, 200, Json.escrever(documento));
+        json(resp, 200, Json.escrever(paraSaida(documento)));
     }
 
     private void criar(RequisicaoHttp req, RespostaHttp resp) throws IOException {
@@ -91,7 +104,7 @@ public class CrudHandler implements ManipuladorHttp {
             erro(resp, 409, "ID ja cadastrado");
             return;
         }
-        json(resp, 201, Json.escrever(documento));
+        json(resp, 201, Json.escrever(paraSaida(documento)));
     }
 
     private void alterar(String id, RequisicaoHttp req, RespostaHttp resp, boolean parcial) throws IOException {
@@ -107,7 +120,7 @@ public class CrudHandler implements ManipuladorHttp {
             documento = comId(id, validado);
         }
         if (!colecao.substituir(id, documento)) { erro(resp, 404, "Registro nao encontrado"); return; }
-        json(resp, 200, Json.escrever(documento));
+        json(resp, 200, Json.escrever(paraSaida(documento)));
     }
 
     private void remover(String id, RespostaHttp resp) throws IOException {
