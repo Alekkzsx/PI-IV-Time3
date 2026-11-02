@@ -31,11 +31,11 @@ public class RegistradorChat implements RegistradorEnvelope {
         Object quando = envelope.get("timestamp");
         Map<String, Object> documento = new LinkedHashMap<>();
         documento.put("id", UUID.randomUUID().toString());
-        documento.put("salaId", sala);
-        documento.put("remetenteId", envelope.get("senderId"));
-        documento.put("remetente", nome instanceof String ? nome : "");
-        documento.put("texto", conteudo);
-        documento.put("enviadaEm", quando instanceof Long ? quando : (Object) System.currentTimeMillis());
+        documento.put("roomId", sala);
+        documento.put("senderId", envelope.get("senderId"));
+        documento.put("senderName", nome instanceof String ? nome : "");
+        documento.put("text", conteudo);
+        documento.put("sentAt", quando instanceof Long ? quando : (Object) System.currentTimeMillis());
         try {
             mensagens.inserir(documento);
         } catch (RuntimeException e) {
