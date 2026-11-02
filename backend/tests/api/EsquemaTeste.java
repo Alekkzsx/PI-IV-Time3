@@ -27,7 +27,7 @@ public class EsquemaTeste {
 
     public static void main(String[] args) {
         Esquema e = new Esquema(Campo.texto("titulo", true, 10), Campo.decimal("peso", true),
-                Campo.inteiro("horas", false), Campo.booleano("urgente", false), Campo.lista("itens", false, 2));
+                Campo.inteiro("horas", false), Campo.booleano("urgente", false), Campo.lista("itens", false, 2), Campo.opcao("tipo", false, "aula", "plantao"));
 
         Map<String, Object> ok = e.validar(mapa("titulo", "  P1 ", "peso", 1L, "horas", 4L, "urgente", true, "itens", List.of("a")), false);
         esperar(ok.get("titulo").equals("P1"), "texto e aparado");
@@ -43,6 +43,8 @@ public class EsquemaTeste {
         esperar(rejeita(e, mapa("titulo", "x", "peso", 1L, "urgente", "sim"), false), "booleano exige booleano");
         esperar(rejeita(e, mapa("titulo", "x", "peso", 1L, "itens", List.of(1, 2, 3)), false), "lista acima do limite");
         esperar(rejeita(e, mapa("titulo", null, "peso", 1L), false), "nulo rejeitado");
+        esperar(!rejeita(e, mapa("titulo", "x", "peso", 1L, "tipo", "aula"), false), "opcao valida");
+        esperar(rejeita(e, mapa("titulo", "x", "peso", 1L, "tipo", "festa"), false), "opcao fora da lista");
         if (falhas > 0) { System.out.println(falhas + " falha(s)"); System.exit(1); }
         System.out.println("Todos os testes passaram");
     }
