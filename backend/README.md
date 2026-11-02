@@ -32,7 +32,22 @@ Configuracao em `MONGODB_URI` e `MONGODB_DATABASE` (variavel de ambiente ou arqu
 | `/api/video-call/sessions` | `video_call_sessions` |
 | `/api/video-call/chat-messages` | `video_chat_messages` |
 
-Os campos usam os mesmos nomes dos modelos do frontend (`docente_view`, `video_call`). `classCode` referencia `academic_classes` e `professorIdentity` referencia o login do professor, sem duplicar os dados que o admin ja cadastra. Os campos aceitos de cada colecao estao em `docente/DocenteEsquemas.java` e `videocall/VideoCallEsquemas.java`; campos desconhecidos e tipos errados retornam 400.
+Os campos usam os mesmos nomes dos modelos do frontend (`features/teacher/shared/domain/models` e `video_call`), entao o app consome o JSON sem traducao. `teacherIdentity` e `professorIdentity` referenciam o login do professor e `classCode` pode apontar para uma turma de `academic_classes`, sem duplicar o que o admin ja cadastra. Os campos aceitos de cada colecao estao em `docente/DocenteEsquemas.java` e `videocall/VideoCallEsquemas.java`; campos desconhecidos, tipos errados e valores fora das opcoes (ex.: `classification`, `type`) retornam 400. As notas em `/api/docente/grades` voltam com `n1Total`, `n2Total`, `finalAverage` e `status` calculados pelo servidor.
+
+**Acoes do docente com regra de negocio** (`POST /api/docente/actions/{acao}`, o cliente nao envia valores calculados):
+
+| Acao | Corpo | Regra aplicada no servidor |
+|---|---|---|
+| `attendance` | `sessionId`, `studentId`, `status` (`presente`, `ausente`, `justificada`) | soma ou desconta falta (0 a 40), recalcula `attendanceRate` sobre 38 aulas e `riskLevel` (abaixo de 80% atencao, abaixo de 75% critico); a aula deixa de estar homologada |
+| `homologate` | `sessionId` | marca a aula como homologada |
+| `rubric-evaluation` | `assignmentId`, `submissionId`, `feedback`, `scores` (criterio -> nota) | nota de 0 a 10 proporcional aos pontos dos criterios; rejeita nota acima do maximo do criterio; entrega vira `corrigido` |
+| `syllabus-advance` | `courseId`, `unitId` | avanca 2 aulas na unidade (volta 2 se completa), entre 0 e o total |
+| `publish-material` | `courseId`, `title` (`type` e `size` opcionais) | cria o material com id e data do servidor |
+| `grade` | `courseId`, `studentId`, `assignmentsScore`, `p1Score`, `projectsScore`, `p2Score` | notas de 0 a 10; devolve medias e situacao (`aprovado` com media 7 ou mais, `exame` de 4 a 7, `reprovadoPorNota`, e `reprovadoPorFalta` com frequencia abaixo de 75%) |
+| `toggle-two-factor` | `profileId` | alterna `twoFactorEnabled` |
+| `disconnect-session` | `profileId`, `sessionId` | remove a sessao ativa do perfil |
+
+Registro inexistente retorna 404 e dados invalidos, 400. Ainda nao ha autenticacao nas rotas.
 
 **WebSocket**: `ws://localhost:8080/ws/video-call/{sala}` (handshake RFC 6455 manual). O hub repassa os envelopes `p2p_videocall_v1` a todos da sala menos o remetente, impede troca de `senderId`, avisa a saida com `leave` e grava as mensagens de chat em `video_chat_messages`.
 
