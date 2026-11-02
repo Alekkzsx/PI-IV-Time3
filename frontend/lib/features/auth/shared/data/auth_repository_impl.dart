@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../domain/auth_repository.dart';
 import 'auth_remote_datasource.dart';
@@ -10,6 +10,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   /// Cria uma instância de [AuthRepositoryImpl] com a [remoteDataSource] injetada.
   AuthRepositoryImpl(this.remoteDataSource);
+
+  Future<String> completeTwoFactor({
+    required String challengeToken,
+    required String code,
+  }) => remoteDataSource.completeTwoFactor(
+    challengeToken: challengeToken,
+    code: code,
+  );
 
   @override
   Future<void> recoverPassword({required String identity}) async {

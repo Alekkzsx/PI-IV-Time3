@@ -28,9 +28,9 @@ export class JwtAccessTokenIssuer implements AccessTokenIssuer {
     private readonly ttl: Environment["jwtTtl"],
   ) {}
 
-  issue(user: AuthUser): string {
+  issue(user: AuthUser, sessionId: string): string {
     return jwt.sign(
-      { sub: user.id, profile: user.profile },
+      { sub: user.id, profile: user.profile, ver: user.sessionVersion ?? 0, jti: sessionId },
       this.secret,
       { expiresIn: this.ttl as SignOptions["expiresIn"] },
     );

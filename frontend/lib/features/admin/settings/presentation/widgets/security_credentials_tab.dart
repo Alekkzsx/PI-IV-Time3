@@ -1,11 +1,13 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import '../../../../../core/network/authenticated_api_client.dart';
+import '../../../../../core/state/app_user_session.dart';
+import '../../../../auth/shared/presentation/change_password_dialog.dart';
 
 /// Configuration tab for Administrator Security & Credentials.
 ///
-/// Manages access credential encryption (SHA-256), two-factor authentication (2FA TOTP),
-/// disposable recovery backup codes, and Zero-Trust access policies.
+/// Consulta a conta real e permite alterar a senha e o segundo fator por e-mail.
 class SecurityCredentialsTab extends StatefulWidget {
   const SecurityCredentialsTab({super.key});
 
@@ -14,224 +16,126 @@ class SecurityCredentialsTab extends StatefulWidget {
 }
 
 class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
+  bool? _twoFactor;
+  String? _error;
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 1. Access Credentials (Password)
-        _buildSecurityCard(
-          icon: Icons.vpn_key_rounded,
-          title: 'Credencial de Acesso (Senha)',
-          badgeText: 'Protegida',
-          badgeBg: const Color(0xFFECFDF5),
-          badgeBorder: const Color(0xFFA7F3D0),
-          badgeTextColor: const Color(0xFF059669),
-          subtitle: 'Utilizada para entrar no AVA, Portal Acadêmico e serviços da Instituição.',
-          actionButton: ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fluxo de alteração de senha inicializado.')),
-              );
-            },
-            icon: const Icon(Icons.lock_reset, size: 16),
-            label: const Text('Alterar Senha', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F172A),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 600;
-                    return isNarrow
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildInfoColumn(
-                                'Complexidade da Senha: Forte (Criptografia SHA-256)',
-                                'Cumpre os requisitos institucionais de segurança',
-                              ),
-                              const SizedBox(height: 12),
-                              _buildInfoColumn(
-                                'Última Atualização: Há 38 dias',
-                                'Recomendação: renovar a cada 90 dias',
-                              ),
-                            ],
-                          )
-                        : Row(
-                            children: [
-                              Expanded(
-                                child: _buildInfoColumn(
-                                  'Complexidade da Senha: Forte (Criptografia SHA-256)',
-                                  'Cumpre os requisitos institucionais de segurança',
-                                ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: _buildInfoColumn(
-                                  'Última Atualização: Há 38 dias',
-                                  'Recomendação: renovar a cada 90 dias',
-                                ),
-                              ),
-                            ],
-                          );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: const [
-                  Icon(Icons.shield_outlined, size: 15, color: Color(0xFF64748B)),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'A troca de senha exige confirmação da sua senha atual e validação em dois fatores.',
-                      style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // 2. Two-Factor Authentication (2FA)
-        _buildSecurityCard(
-          icon: Icons.verified_user_rounded,
-          title: 'Autenticação em Duas Etapas (2FA)',
-          badgeText: 'Ativado',
-          badgeBg: const Color(0xFF0F172A),
-          badgeBorder: const Color(0xFF0F172A),
-          badgeTextColor: Colors.white,
-          subtitle: 'Exige um código de 6 dígitos gerado no seu celular ao realizar login.',
-          actionButton: OutlinedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Confirmação de segurança necessária para desativar 2FA.')),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFDC2626),
-              side: const BorderSide(color: Color(0xFFFECACA)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Desativar 2FA', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 600;
-                return isNarrow
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildInfoColumn(
-                            'Método Configurado: Aplicativo TOTP (Authenticator)',
-                            'Ativado em 15 de Agosto de 2026',
-                          ),
-                          const SizedBox(height: 12),
-                          _buildInfoColumn(
-                            'Status de Proteção: Conta Blindada contra Phishing',
-                            'Desativação exige autorização com senha e token.',
-                            isHighlightGreen: true,
-                          ),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoColumn(
-                              'Método Configurado: Aplicativo TOTP (Authenticator)',
-                              'Ativado em 15 de Agosto de 2026',
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          Expanded(
-                            child: _buildInfoColumn(
-                              'Status de Proteção: Conta Blindada contra Phishing',
-                              'Desativação exige autorização com senha e token.',
-                              isHighlightGreen: true,
-                            ),
-                          ),
-                        ],
-                      );
-              },
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // 3. Recovery Backup Codes
-        _buildSecurityCard(
-          icon: Icons.key_outlined,
-          title: 'Códigos de Recuperação (Backup)',
-          badgeText: '8 disponíveis',
-          badgeBg: const Color(0xFF0F172A),
-          badgeBorder: const Color(0xFF0F172A),
-          badgeTextColor: Colors.white,
-          subtitle: 'Chaves de segurança descartáveis para login caso você não tenha acesso ao seu smartphone.',
-          actionButton: OutlinedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reautenticação necessária para gerenciar chaves.')),
-              );
-            },
-            icon: const Icon(Icons.tune_rounded, size: 16),
-            label: const Text('Gerenciar Códigos', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF0F172A),
-              side: const BorderSide(color: Color(0xFFCBD5E1)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFF64748B)),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Fluxo de Proteção Zero-Trust: Para sua segurança, a visualização ou regeneração dos códigos de backup exige reautenticação imediata por senha.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF475569), height: 1.3),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+  void initState() {
+    super.initState();
+    _loadAccount();
   }
+
+  Future<void> _loadAccount() async {
+    if (AppUserSession.instance.accessToken == null) return;
+    try {
+      final user = await AuthenticatedApiClient().request(
+        'GET',
+        '/api/auth/me',
+      );
+      if (mounted) {
+        setState(() => _twoFactor = (user as Map)['twoFactorRequired'] == true);
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    }
+  }
+
+  Future<void> _changePassword() async {
+    final changed = await showPasswordChangeDialog(context);
+    if (changed == true && mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
+  Future<void> _toggleTwoFactor() async {
+    final password = TextEditingController();
+    final entered = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirme sua senha'),
+        content: TextField(
+          controller: password,
+          obscureText: true,
+          decoration: const InputDecoration(labelText: 'Senha atual'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, password.text),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    password.dispose();
+    if (entered == null || !mounted) return;
+    try {
+      await AuthenticatedApiClient().request(
+        'POST',
+        '/api/auth/two-factor',
+        body: {'password': entered, 'enabled': _twoFactor != true},
+      );
+      AppUserSession.instance.signOut();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      if (_error != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(_error!, style: const TextStyle(color: Colors.red)),
+        ),
+      _buildSecurityCard(
+        icon: Icons.vpn_key_rounded,
+        title: 'Credencial de Acesso (Senha)',
+        badgeText: 'Hash bcrypt',
+        badgeBg: const Color(0xFFECFDF5),
+        badgeBorder: const Color(0xFFA7F3D0),
+        badgeTextColor: const Color(0xFF059669),
+        subtitle: 'Altere sua senha usando a credencial atual.',
+        actionButton: FilledButton(
+          onPressed: _changePassword,
+          child: const Text('Alterar Senha'),
+        ),
+        child: _buildInfoColumn(
+          'Senhas protegidas com bcrypt',
+          'A troca da senha encerra as sessões anteriores.',
+        ),
+      ),
+      const SizedBox(height: 20),
+      _buildSecurityCard(
+        icon: Icons.verified_user_outlined,
+        title: 'Autenticação em Duas Etapas (2FA)',
+        badgeText: _twoFactor == null
+            ? 'Consultar conta'
+            : _twoFactor!
+            ? 'Ativada'
+            : 'Desativada',
+        badgeBg: const Color(0xFFEFF6FF),
+        badgeBorder: const Color(0xFFBFDBFE),
+        badgeTextColor: const Color(0xFF1D4ED8),
+        subtitle:
+            'Código de acesso enviado ao e-mail cadastrado, após validar a senha.',
+        actionButton: OutlinedButton(
+          onPressed: _twoFactor == null ? null : _toggleTwoFactor,
+          child: Text(_twoFactor == true ? 'Desativar' : 'Ativar'),
+        ),
+        child: _buildInfoColumn(
+          'Código temporário de seis dígitos',
+          'Validade de cinco minutos e três tentativas. Requer envio de e-mail configurado.',
+        ),
+      ),
+    ],
+  );
 
   Widget _buildSecurityCard({
     required IconData icon,
@@ -285,7 +189,10 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: badgeBg,
                             borderRadius: BorderRadius.circular(4),
@@ -305,7 +212,10 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                   ],
                 ),
@@ -320,7 +230,11 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
     );
   }
 
-  Widget _buildInfoColumn(String title, String subtitle, {bool isHighlightGreen = false}) {
+  Widget _buildInfoColumn(
+    String title,
+    String subtitle, {
+    bool isHighlightGreen = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -329,7 +243,9 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.bold,
-            color: isHighlightGreen ? const Color(0xFF059669) : const Color(0xFF0F172A),
+            color: isHighlightGreen
+                ? const Color(0xFF059669)
+                : const Color(0xFF0F172A),
           ),
         ),
         const SizedBox(height: 3),

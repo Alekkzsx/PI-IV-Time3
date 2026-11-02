@@ -1,13 +1,14 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 import { Router, type Request, type RequestHandler } from "express";
 import { z } from "zod";
+import { passwordSchema } from "../../../shared/validation.js";
 import type { AuthService } from "../application/auth.service.js";
 import { authProfiles } from "../domain/auth.types.js";
 import { AuthError } from "../../../shared/auth-error.js";
 
 const loginSchema = z.object({
   identity: z.string().trim().min(1).max(254),
-  password: z.string().min(8).max(128),
+  password: passwordSchema,
   profile: z.enum(authProfiles),
 });
 
@@ -23,7 +24,7 @@ const recoveryVerificationSchema = z.object({
 const passwordResetSchema = z.object({
   identity: z.string().trim().min(1).max(254),
   resetToken: z.string().min(32).max(128),
-  newPassword: z.string().min(8).max(128),
+  newPassword: passwordSchema,
 });
 
 /** Expõe os casos de uso de autenticação sem incluir regras de negócio na camada HTTP. */
@@ -33,7 +34,12 @@ export function createAuthRouter(service: AuthService): Router {
   router.post("/login", asyncHandler(async (request, response) => {
     const body = parseBody(loginSchema, request);
     const result = await service.login(body);
-    response.status(200).json({ success: true, ...result });
+    response.status("requiresTwoFactor" in result ? 202 : 200).json({ success: true, ...result });
+  }));
+
+  router.post("/verify-two-factor", asyncHandler(async (request, response) => {
+    const input = parseBody(z.object({ challengeToken: z.string().min(32).max(128), code: z.string().regex(/^\d{6}$/) }).strict(), request);
+    response.json({ success: true, ...await service.verifyTwoFactor(input.challengeToken, input.code) });
   }));
 
   router.post("/send-recovery-otp", asyncHandler(async (request, response) => {

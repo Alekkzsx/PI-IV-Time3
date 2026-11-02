@@ -1,8 +1,9 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'guidelines_metric_card.dart';
 import 'guidelines_formula_card.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 
 /// Configuration tab for Institutional Academic Guidelines.
 ///
@@ -16,6 +17,65 @@ class AcademicGuidelinesTab extends StatefulWidget {
 }
 
 class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
+  String? _error;
+  bool _saving = false;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final portal = AdminPortalController.instance;
+    if (!portal.usesRemote) return;
+    try {
+      final settings = await portal.remote.request('GET', '/settings') as Map;
+      if (!mounted) return;
+      _approvalController.text = settings['minimumGrade'].toString();
+      _attendanceController.text = settings['minimumAttendance'].toString();
+      _specialExamController.text = settings['specialExamGrade'].toString();
+      _formulaController.text = settings['evaluationFormula'] as String;
+      setState(() {});
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Não foi possível carregar as diretrizes.');
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    final grade = double.tryParse(_approvalController.text);
+    final attendance = double.tryParse(_attendanceController.text);
+    final exam = double.tryParse(_specialExamController.text);
+    if (grade == null || attendance == null || exam == null) {
+      setState(() => _error = 'Informe valores numéricos válidos.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final portal = AdminPortalController.instance;
+    final ok = await portal.persist(
+      () => portal.remote.request('PATCH', '/settings', {
+        'minimumGrade': grade,
+        'minimumAttendance': attendance,
+        'specialExamGrade': exam,
+        'evaluationFormula': _formulaController.text,
+      }),
+    );
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _error = ok ? null : portal.remoteError;
+    });
+    if (ok) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Diretrizes salvas.')));
+    }
+  }
+
   final _approvalController = TextEditingController(text: '6');
   final _attendanceController = TextEditingController(text: '75');
   final _specialExamController = TextEditingController(text: '4');
@@ -58,6 +118,13 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
 
           // 4. Regimental Weighting Formula Description & Deliberation
           GuidelinesFormulaCard(formulaController: _formulaController),
+          if (_error != null)
+            Text(_error!, style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            child: Text(_saving ? 'Salvando...' : 'Salvar diretrizes'),
+          ),
         ],
       ),
     );
@@ -142,8 +209,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded,
-              color: Color(0xFF2563EB), size: 20),
+          Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 20),
           SizedBox(width: 12),
           Expanded(
             child: Text(

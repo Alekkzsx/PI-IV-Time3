@@ -162,15 +162,11 @@ class _ClassesPageState extends State<ClassesPage> {
     required String title,
     required String label,
     required String action,
-  }) =>
-      showDialog<String>(
-      context: context,
-      builder: (_) => _TextPromptDialog(
-        title: title,
-        label: label,
-        action: action,
-      ),
-    );
+  }) => showDialog<String>(
+    context: context,
+    builder: (_) =>
+        _TextPromptDialog(title: title, label: label, action: action),
+  );
 
   Future<void> _scheduleClassSession(AdminClassModel classModel) async {
     final title = await _showTextPrompt(
@@ -223,7 +219,19 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassRegimeFormulaModal.show(
       context: context,
       classModel: c,
-      onSaveRegime: (regime) => _controller.updateFormulaRegime(c.code, regime),
+      onSaveRegime: (regime) async {
+        final ok = await _controller.persistClass(c.code, {
+          'formulaRegime': regime == 'Impor pelo Admin'
+              ? 'admin'
+              : 'autonomia_docente',
+        });
+        _showMessage(
+          ok
+              ? 'Regime atualizado.'
+              : _controller.remoteError ?? 'Não foi possível atualizar.',
+        );
+        if (ok) await _loadData();
+      },
     );
   }
 
@@ -231,8 +239,17 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassAlocarDocenteModal.show(
       context: context,
       classModel: c,
-      onConfirmAllocation: (prof) =>
-          _controller.reallocateProfessor(c.code, prof),
+      onConfirmAllocation: (prof) async {
+        final ok = await _controller.persistClass(c.code, {
+          'professorIdentity': prof,
+        });
+        _showMessage(
+          ok
+              ? 'Docente atribuído.'
+              : _controller.remoteError ?? 'Não foi possível atribuir.',
+        );
+        if (ok) await _loadData();
+      },
     );
   }
 
@@ -359,28 +376,6 @@ class _ClassesPageState extends State<ClassesPage> {
       ),
     );
   }
-
-  Widget _formField(
-    TextEditingController controller,
-    String label, {
-    bool required = true,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(labelText: label),
-        validator:
-            validator ??
-            (value) => required && (value == null || value.trim().isEmpty)
-                ? 'Preencha este campo.'
-                : null,
-      ),
-    );
-  }
 }
 
 class _ClassDraft {
@@ -445,18 +440,24 @@ class _CreateClassDialogState extends State<_CreateClassDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _selectedCourseCode,
                 decoration: const InputDecoration(labelText: 'Curso'),
                 items: widget.courses
                     .map(
                       (course) => DropdownMenuItem(
                         value: course.code,
-                        child: Text(course.name),
+                        child: Text(
+                          course.name,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(),
                 onChanged: (value) {
-                  if (value != null) setState(() => _selectedCourseCode = value);
+                  if (value != null) {
+                    setState(() => _selectedCourseCode = value);
+                  }
                 },
               ),
               _field(_code, 'Código da turma'),
@@ -513,20 +514,19 @@ class _CreateClassDialogState extends State<_CreateClassDialog> {
     bool required = true,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(labelText: label),
-          validator:
-              validator ??
-              (value) => required && (value == null || value.trim().isEmpty)
-                  ? 'Preencha este campo.'
-                  : null,
-        ),
-      );
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(labelText: label),
+      validator:
+          validator ??
+          (value) => required && (value == null || value.trim().isEmpty)
+              ? 'Preencha este campo.'
+              : null,
+    ),
+  );
 }
 
 class _TextPromptDialog extends StatefulWidget {

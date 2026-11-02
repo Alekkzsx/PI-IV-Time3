@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
@@ -234,8 +234,24 @@ class _CalendarPageState extends State<CalendarPage> {
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    _controller.toggleRegimentalLock();
+                  onPressed: () async {
+                    if (_controller.usesRemote) {
+                      if (!await _controller.persistRegimentalLock()) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                _controller.remoteError ?? 'Falha ao salvar.',
+                              ),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                    } else {
+                      _controller.toggleRegimentalLock();
+                    }
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(

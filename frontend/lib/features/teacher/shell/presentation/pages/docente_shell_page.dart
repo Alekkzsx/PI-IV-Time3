@@ -66,7 +66,7 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   }
 
   void _logout() {
-    AppUserSession.instance.signOut();
+    AppUserSession.instance.logout();
     Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
   }
 

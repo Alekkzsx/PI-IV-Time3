@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/pages/audit_page.dart';
@@ -28,6 +29,23 @@ class AdminShellPage extends StatefulWidget {
 class _AdminShellPageState extends State<AdminShellPage> {
   AdminNavTab _activeTab = AdminNavTab.painelGeral;
   bool _isSidebarCollapsed = false;
+  final _portal = AdminPortalController.instance;
+  @override
+  void initState() {
+    super.initState();
+    _portal.loadRemote(clear: true);
+    _portal.addListener(_portalChanged);
+  }
+
+  void _portalChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _portal.removeListener(_portalChanged);
+    super.dispose();
+  }
 
   Widget _buildCurrentPage(AdminNavTab tab) {
     switch (tab) {
@@ -74,7 +92,7 @@ class _AdminShellPageState extends State<AdminShellPage> {
   }
 
   void _onLogout() {
-    AppUserSession.instance.signOut();
+    AppUserSession.instance.logout();
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
@@ -191,7 +209,24 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     Expanded(
                       child: Container(
                         color: Colors.white,
-                        child: _buildCurrentPage(_activeTab),
+                        child: Column(
+                          children: [
+                            if (_portal.isLoadingRemote ||
+                                _portal.isSavingRemote)
+                              const LinearProgressIndicator(),
+                            if (_portal.remoteError != null)
+                              MaterialBanner(
+                                content: Text(_portal.remoteError!),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => _portal.loadRemote(),
+                                    child: const Text('Tentar novamente'),
+                                  ),
+                                ],
+                              ),
+                            Expanded(child: _buildCurrentPage(_activeTab)),
+                          ],
+                        ),
                       ),
                     ),
                   ],

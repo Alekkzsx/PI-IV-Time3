@@ -1,17 +1,21 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import '../../../../../core/network/authenticated_api_client.dart';
+import '../../../../../core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 
 /// Diálogo para inspeção e encerramento forçado de sessões ativas do usuário.
 class UserSessionsDialog extends StatelessWidget {
   final AdminUserModel user;
+  final List<Map<String, dynamic>>? sessions;
   final VoidCallback onTerminateAll;
 
   const UserSessionsDialog({
     super.key,
     required this.user,
+    this.sessions,
     required this.onTerminateAll,
   });
 
@@ -19,18 +23,44 @@ class UserSessionsDialog extends StatelessWidget {
     required BuildContext context,
     required AdminUserModel user,
     required VoidCallback onTerminateAll,
-  }) {
+  }) async {
+    List<Map<String, dynamic>>? sessions;
+    if (AppUserSession.instance.accessToken != null) {
+      try {
+        sessions =
+            (await AuthenticatedApiClient().request(
+                      "GET",
+                      "/api/admin/users/${user.id}/sessions",
+                    )
+                    as List)
+                .map((value) => Map<String, dynamic>.from(value as Map))
+                .toList();
+      } on ApiException catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error.message)));
+        }
+        return;
+      }
+    }
+    if (!context.mounted) return;
     return showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) =>
-          UserSessionsDialog(user: user, onTerminateAll: onTerminateAll),
+      builder: (ctx) => UserSessionsDialog(
+        user: user,
+        onTerminateAll: onTerminateAll,
+        sessions: sessions,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasSessions = user.activeSessionsCount > 0;
+    final hasSessions = sessions != null
+        ? sessions!.isNotEmpty
+        : user.activeSessionsCount > 0;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -102,22 +132,34 @@ class UserSessionsDialog extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildDeviceRow(
-                      icon: Icons.computer_rounded,
-                      device: 'Navegador Web (Chrome / Linux x86_64)',
-                      ip: '177.136.24.10 (São Paulo - SP)',
-                      lastActive: 'Sessão ativa agora',
-                      isCurrent: true,
-                    ),
-                    if (user.activeSessionsCount > 1) ...[
-                      const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                    if (sessions != null) ...[
+                      for (final session in sessions!)
+                        _buildDeviceRow(
+                          icon: Icons.web,
+                          device: "Sessão autenticada",
+                          ip: "Origem não registrada",
+                          lastActive:
+                              "Criada: ${session['createdAt']}\nExpira: ${session['expiresAt']}",
+                          isCurrent: false,
+                        ),
+                    ] else ...[
                       _buildDeviceRow(
-                        icon: Icons.phone_android_rounded,
-                        device: 'AVA Mobile App (Android 14)',
-                        ip: '189.40.112.5 (Rede Móvel 5G)',
-                        lastActive: 'Última sincronização há 42 min',
-                        isCurrent: false,
+                        icon: Icons.computer_rounded,
+                        device: 'Navegador Web (Chrome / Linux x86_64)',
+                        ip: '177.136.24.10 (São Paulo - SP)',
+                        lastActive: 'Sessão ativa agora',
+                        isCurrent: true,
                       ),
+                      if (user.activeSessionsCount > 1) ...[
+                        const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                        _buildDeviceRow(
+                          icon: Icons.phone_android_rounded,
+                          device: 'AVA Mobile App (Android 14)',
+                          ip: '189.40.112.5 (Rede Móvel 5G)',
+                          lastActive: 'Última sincronização há 42 min',
+                          isCurrent: false,
+                        ),
+                      ],
                     ],
                   ],
                 ),

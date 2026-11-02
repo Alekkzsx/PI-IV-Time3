@@ -1,5 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
@@ -58,7 +61,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _setDesktopViewport(tester);
-    final remoteDataSource = AuthRemoteDataSourceImpl();
+    final remoteDataSource = _testRemoteDataSource();
     final repository = AuthRepositoryImpl(remoteDataSource);
     final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
     final controller = RecoverPasswordController(
@@ -77,7 +80,7 @@ void main() {
     'Renderiza a tela de Esqueceu sua senha? via rota de recuperação',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -97,7 +100,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _setDesktopViewport(tester);
-    final remoteDataSource = AuthRemoteDataSourceImpl();
+    final remoteDataSource = _testRemoteDataSource();
     final repository = AuthRepositoryImpl(remoteDataSource);
     final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
     final controller = RecoverPasswordController(
@@ -119,7 +122,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _setDesktopViewport(tester);
-    final remoteDataSource = AuthRemoteDataSourceImpl();
+    final remoteDataSource = _testRemoteDataSource();
     final repository = AuthRepositoryImpl(remoteDataSource);
     final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
     final controller = RecoverPasswordController(
@@ -141,7 +144,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _setDesktopViewport(tester);
-    final remoteDataSource = AuthRemoteDataSourceImpl();
+    final remoteDataSource = _testRemoteDataSource();
     final repository = AuthRepositoryImpl(remoteDataSource);
     final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
     final controller = RecoverPasswordController(
@@ -163,14 +166,14 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // Deve navegar para ResetPasswordPage
-    expect(find.text('Olá, Gabriel 👋'), findsOneWidget);
+    expect(find.text('Olá, Usuário 👋'), findsOneWidget);
   });
 
   testWidgets(
     'Navega de LoginPage para RecoverPasswordPage pelo link Esqueceu a senha?',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -198,7 +201,7 @@ void main() {
     'Navega de RecoverPasswordPage de volta para LoginPage via pop após navegar do login',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -227,7 +230,7 @@ void main() {
     'RecoverPasswordPage submete com sucesso e navega para VerifyCodePage com o identificador',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -271,7 +274,7 @@ void main() {
     'VerifyCodePage volta para LoginPage via pop quando veio do fluxo de recuperação',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -312,7 +315,7 @@ void main() {
     'VerifyCodePage sem sessão oferece retorno ao fluxo de recuperação',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -339,7 +342,7 @@ void main() {
     'ResetPasswordPage volta para LoginPage pelo botão Voltar ao Login na barra superior',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -363,7 +366,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _setDesktopViewport(tester);
-    final remoteDataSource = AuthRemoteDataSourceImpl();
+    final remoteDataSource = _testRemoteDataSource();
     final repository = AuthRepositoryImpl(remoteDataSource);
     final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
     final controller = RecoverPasswordController(
@@ -372,7 +375,7 @@ void main() {
 
     await _openResetPasswordPage(tester, controller);
 
-    expect(find.text('Olá, Gabriel 👋'), findsOneWidget);
+    expect(find.text('Olá, Usuário 👋'), findsOneWidget);
 
     final newPassWrapper = find.widgetWithText(
       PasswordResetField,
@@ -407,7 +410,7 @@ void main() {
     'Ciclo completo E2E: Login -> Recuperar -> Código OTP -> Redefinir Senha -> Retorno limpo ao Login',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -461,7 +464,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('Confirmar Código'));
       await tester.pumpAndSettle(const Duration(seconds: 1));
-      expect(find.text('Olá, Gabriel 👋'), findsOneWidget);
+      expect(find.text('Olá, Usuário 👋'), findsOneWidget);
 
       // 5. Preenche nova senha e confirmação -> salva e retorna limpamente para a LoginPage
       final newPassWrapper = find.widgetWithText(
@@ -502,7 +505,7 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final remoteDataSource = AuthRemoteDataSourceImpl();
+      final remoteDataSource = _testRemoteDataSource();
       final repository = AuthRepositoryImpl(remoteDataSource);
       final recoverPasswordUseCase = RecoverPasswordUseCase(repository);
       final controller = RecoverPasswordController(
@@ -527,5 +530,42 @@ void main() {
 
       expect(find.text('Acesse seu AVA'), findsOneWidget);
     },
+  );
+}
+
+AuthRemoteDataSourceImpl _testRemoteDataSource() {
+  var grantIssued = false;
+  return AuthRemoteDataSourceImpl(
+    client: MockClient((request) async {
+      final body = request.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(request.body) as Map<String, dynamic>;
+      if (request.url.path.endsWith('/send-recovery-otp')) {
+        return http.Response(
+          jsonEncode({'success': true, 'expiresInSeconds': 300}),
+          200,
+        );
+      }
+      if (request.url.path.endsWith('/verify-recovery-otp') &&
+          body['code'] == '123456') {
+        grantIssued = true;
+        return http.Response(
+          jsonEncode({
+            'valid': true,
+            'resetToken':
+                'widget-only-reset-grant-with-more-than-32-characters',
+          }),
+          200,
+        );
+      }
+      if (request.url.path.endsWith('/reset-password') && grantIssued) {
+        grantIssued = false;
+        return http.Response('', 204);
+      }
+      return http.Response(
+        jsonEncode({'message': 'Solicitação inválida.'}),
+        400,
+      );
+    }),
   );
 }

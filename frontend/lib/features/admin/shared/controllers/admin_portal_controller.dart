@@ -5,9 +5,136 @@ import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/role_permission_policy.dart';
 import '../data/admin_mock_data.dart';
+import '../data/admin_remote_data_source.dart';
+import '../data/admin_academic_data_source.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 
 /// Controlador reativo unificado em memória para o Portal do Administrador.
 class AdminPortalController extends ChangeNotifier {
+  final remote = AdminRemoteDataSource();
+  bool isLoadingRemote = false;
+  bool isSavingRemote = false;
+  String? remoteError;
+  Map<String, dynamic> dashboard = {};
+  List<AdminCourseModel> courses = [];
+  bool get usesRemote =>
+      AppUserSession.instance.accessToken?.isNotEmpty == true;
+
+  Future<void> loadRemote({bool clear = false}) async {
+    if (!usesRemote) return;
+    final requestedToken = AppUserSession.instance.accessToken;
+    if (clear) {
+      users = [];
+      classes = [];
+      protocols = [];
+      auditLogs = [];
+      courses = [];
+      dashboard = {};
+    }
+    isLoadingRemote = true;
+    remoteError = null;
+    notifyListeners();
+    try {
+      final values = await Future.wait<dynamic>([
+        remote.users(),
+        remote.protocols(),
+        remote.auditLogs(),
+        remote.request('GET', '/settings'),
+        remote.request('GET', '/dashboard'),
+        AdminAcademicRemoteDataSource().getCourses(),
+        AdminAcademicRemoteDataSource().getClasses(),
+      ]);
+      if (AppUserSession.instance.accessToken != requestedToken) return;
+      users = values[0] as List<AdminUserModel>;
+      protocols = values[1] as List<AdminProtocolModel>;
+      auditLogs = values[2] as List<AdminAuditLogModel>;
+      isRegimentalLockActive =
+          (values[3] as Map)['regimentalLockActive'] == true;
+      dashboard = Map<String, dynamic>.from(values[4] as Map);
+      courses = values[5] as List<AdminCourseModel>;
+      classes = values[6] as List<AdminClassModel>;
+      _gradeLocksByClass.clear();
+      for (final classroom in classes) {
+        _gradeLocksByClass[classroom.code.trim().toUpperCase()] =
+            classroom.gradeLocked;
+      }
+    } catch (error) {
+      remoteError = error is ApiException
+          ? error.message
+          : error is AdminAcademicApiException
+          ? error.message
+          : 'Não foi possível carregar o portal administrativo.';
+    } finally {
+      isLoadingRemote = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> persist(
+    Future<dynamic> Function() operation, {
+    VoidCallback? onSuccess,
+  }) async {
+    if (isSavingRemote) return false;
+    isSavingRemote = true;
+    remoteError = null;
+    notifyListeners();
+    try {
+      await operation();
+      onSuccess?.call();
+      await loadRemote();
+      return true;
+    } catch (error) {
+      remoteError = error is ApiException
+          ? error.message
+          : 'A operação não pôde ser concluída.';
+      return false;
+    } finally {
+      isSavingRemote = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> persistUserStatus(
+    String id, {
+    required bool active,
+    String? reason,
+  }) => persist(
+    () => remote.request('PATCH', '/users/$id/status', {
+      'active': active,
+      if (reason != null) 'reason': reason,
+    }),
+  );
+  Future<bool> persistRevokeSessions(String id) =>
+      persist(() => remote.request('POST', '/users/$id/revoke-sessions', {}));
+  Future<bool> persistResetPassword(String id) =>
+      persist(() => remote.request('POST', '/users/$id/reset-password', {}));
+  Future<bool> persistClass(String code, Map<String, Object?> fields) =>
+      persist(
+        () => remote.request(
+          'PATCH',
+          '/classes/${Uri.encodeComponent(code)}',
+          fields,
+        ),
+      );
+  Future<bool> persistProtocol(String id, bool approved, String note) =>
+      persist(
+        () => remote.request('PATCH', '/protocols/$id/decision', {
+          'approved': approved,
+          'decisionNote': note,
+        }),
+        onSuccess: () =>
+            AcademicBridgeService.instance.dispatchProtocolDecision(
+              protocolCode: id,
+              isApproved: approved,
+              decisionNote: note,
+              approverName: AppUserSession.instance.identity ?? 'Administrador',
+            ),
+      );
+  Future<bool> persistRegimentalLock() => persist(
+    () => remote.request('PATCH', '/settings', {
+      'regimentalLockActive': !isRegimentalLockActive,
+    }),
+  );
   static final AdminPortalController instance =
       AdminPortalController._internal();
   AdminPortalController._internal() {
@@ -551,6 +678,7 @@ class AdminPortalController extends ChangeNotifier {
     Map<String, dynamic>? diffAfter,
     String severity = 'INFO',
   }) {
+    if (usesRemote) return;
     auditLogs.insert(
       0,
       AdminAuditLogModel(

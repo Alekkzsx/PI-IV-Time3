@@ -10,7 +10,7 @@ const environmentSchema = z
     MONGODB_DATABASE: z.string().min(1).default("pi_iv_time3"),
     AUTH_JWT_SECRET: z.string().min(32),
     AUTH_OTP_SECRET: z.string().min(32),
-    AUTH_JWT_TTL: z.string().regex(/^\d+[smhd]$/).default("15m"),
+    AUTH_JWT_TTL: z.string().regex(/^[1-9]\d{0,3}[smhd]$/).default("15m"),
     AUTH_OTP_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(300),
     AUTH_OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),
     SMTP_HOST: z.string().optional(),

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -30,7 +30,8 @@ class ClassRegimeFormulaModal extends StatefulWidget {
   }
 
   @override
-  State<ClassRegimeFormulaModal> createState() => _ClassRegimeFormulaModalState();
+  State<ClassRegimeFormulaModal> createState() =>
+      _ClassRegimeFormulaModalState();
 }
 
 class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
@@ -105,7 +106,11 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF737373)),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color: Color(0xFF737373),
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -138,7 +143,10 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(6),
@@ -202,7 +210,8 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                   // Card 1: Impor pelo Admin
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _currentRegime = 'Impor pelo Admin'),
+                      onTap: () =>
+                          setState(() => _currentRegime = 'Impor pelo Admin'),
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         padding: const EdgeInsets.all(16),
@@ -210,7 +219,9 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isAdmin ? const Color(0xFF059669) : const Color(0xFFE5E7EB),
+                            color: isAdmin
+                                ? const Color(0xFF059669)
+                                : const Color(0xFFE5E7EB),
                             width: isAdmin ? 2 : 1,
                           ),
                         ),
@@ -222,7 +233,9 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                                 Icon(
                                   Icons.lock_outline,
                                   size: 18,
-                                  color: isAdmin ? const Color(0xFF059669) : const Color(0xFF737373),
+                                  color: isAdmin
+                                      ? const Color(0xFF059669)
+                                      : const Color(0xFF737373),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -236,7 +249,11 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                                   ),
                                 ),
                                 if (isAdmin)
-                                  const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF059669)),
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 18,
+                                    color: Color(0xFF059669),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 10),
@@ -259,7 +276,8 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                   // Card 2: Autonomia Docente
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _currentRegime = 'Autonomia Docente'),
+                      onTap: () =>
+                          setState(() => _currentRegime = 'Autonomia Docente'),
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         padding: const EdgeInsets.all(16),
@@ -267,7 +285,9 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isAutonomia ? const Color(0xFF059669) : const Color(0xFFE5E7EB),
+                            color: isAutonomia
+                                ? const Color(0xFF059669)
+                                : const Color(0xFFE5E7EB),
                             width: isAutonomia ? 2 : 1,
                           ),
                         ),
@@ -279,7 +299,9 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                                 Icon(
                                   Icons.lock_open_outlined,
                                   size: 18,
-                                  color: isAutonomia ? const Color(0xFF059669) : const Color(0xFF737373),
+                                  color: isAutonomia
+                                      ? const Color(0xFF059669)
+                                      : const Color(0xFF737373),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -293,7 +315,11 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                                   ),
                                 ),
                                 if (isAutonomia)
-                                  const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF059669)),
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 18,
+                                    color: Color(0xFF059669),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 10),
@@ -327,7 +353,11 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.info_outline_rounded, size: 20, color: Color(0xFF059669)),
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 20,
+                        color: Color(0xFF059669),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text.rich(
@@ -344,11 +374,19 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                               ),
                               TextSpan(
                                 text: 'O docente ',
-                                style: jakarta(size: 12.5, weight: FontWeight.w400, color: const Color(0xFF065F46)),
+                                style: jakarta(
+                                  size: 12.5,
+                                  weight: FontWeight.w400,
+                                  color: const Color(0xFF065F46),
+                                ),
                               ),
                               TextSpan(
                                 text: c.professor,
-                                style: jakarta(size: 12.5, weight: FontWeight.w700, color: const Color(0xFF065F46)),
+                                style: jakarta(
+                                  size: 12.5,
+                                  weight: FontWeight.w700,
+                                  color: const Color(0xFF065F46),
+                                ),
                               ),
                               TextSpan(
                                 text:
@@ -378,7 +416,11 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.lock_clock_outlined, size: 20, color: Color(0xFF475569)),
+                      const Icon(
+                        Icons.lock_clock_outlined,
+                        size: 20,
+                        color: Color(0xFF475569),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text.rich(
@@ -419,11 +461,18 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     child: Text(
                       'Cancelar',
-                      style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF525252)),
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF525252),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -431,31 +480,35 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                     onPressed: () {
                       widget.onSaveRegime(_currentRegime);
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Regime atualizado para: $_currentRegime',
-                            style: jakarta(size: 13, color: Colors.white),
-                          ),
-                          backgroundColor: const Color(0xFF18181B),
-                        ),
-                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF18181B),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 13,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF34D399)),
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF34D399),
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Salvar Diretriz da Disciplina',
-                          style: jakarta(size: 13, weight: FontWeight.w600, color: Colors.white),
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),

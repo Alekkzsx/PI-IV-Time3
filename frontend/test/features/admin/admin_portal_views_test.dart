@@ -249,7 +249,7 @@ void main() {
         expect(find.text('Discente (Aluno)'), findsOneWidget);
         expect(find.text('Nome Completo do Usuário'), findsOneWidget);
         expect(find.text('E-mail Institucional'), findsOneWidget);
-        expect(find.text('R.A. Gerado Oficial'), findsOneWidget);
+        expect(find.text('R.A. / Matrícula'), findsOneWidget);
         expect(find.text('Curso de Ingresso'), findsOneWidget);
         expect(find.text('Concluir Cadastro'), findsOneWidget);
 

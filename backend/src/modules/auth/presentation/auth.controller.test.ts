@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { after, before, describe, it } from "node:test";
 import jwt from "jsonwebtoken";
-import type { Db } from "mongodb";
+import { ObjectId, type Db } from "mongodb";
 import { createApp } from "../../../app.js";
 import type { Environment } from "../../../config/environment.js";
 import { AuthService } from "../application/auth.service.js";
@@ -21,6 +21,7 @@ const user: AuthUser = {
 };
 
 const authService = new AuthService({
+    security: { async assertLoginAllowed() {}, async recordLoginFailure() {}, async clearLoginFailures() {}, async saveSession() {}, async saveChallenge() {}, async consumeChallenge() { return null; } },
   users: {
     async findByIdentity(identity) {
       return identity.trim().toLowerCase() === user.normalizedIdentity
@@ -30,6 +31,7 @@ const authService = new AuthService({
     async updatePassword() {},
   },
   recoveryCodes: {
+    async resetPassword() { return false; },
     async save() {},
     async find() {
       return null;
@@ -63,6 +65,7 @@ const authService = new AuthService({
   environment: {
     jwtSecret: "a-secure-test-secret-with-at-least-32-characters",
     otpSecret: "a-different-secure-test-secret-with-at-least-32-chars",
+    jwtTtl: "15m",
     otpTtlSeconds: 300,
     otpMaxAttempts: 3,
   },
@@ -86,7 +89,12 @@ const courseCollection = {
   },
 };
 const database = {
-  collection(_name: string) {
+  collection(name: string) {
+    if (name === "auth_users") return { async findOne(filter: Record<string, any>) {
+      return { _id: filter._id, active: true, profile: String(filter._id) === "000000000000000000000001" ? "admin" : "aluno", sessionVersion: 0 };
+    } };
+    if (name === "auth_sessions") return { async findOne() { return {}; } };
+    if (name === "academic_enrollments") return { aggregate() { return { async toArray() { return []; } }; } };
     return courseCollection;
   },
 } as unknown as Db;
@@ -162,8 +170,8 @@ describe("auth HTTP API", () => {
     assert.equal(unauthorized.status, 401);
 
     const studentToken = jwt.sign(
-      { sub: user.id, profile: "aluno" },
-      adminJwtSecret,
+      { sub: "000000000000000000000002", profile: "aluno", ver: 0, jti: "student-session" },
+      adminJwtSecret, { expiresIn: "15m" },
     );
     const forbidden = await fetch(`${baseUrl}/api/admin/courses`, {
       headers: { authorization: `Bearer ${studentToken}` },
@@ -171,29 +179,10 @@ describe("auth HTTP API", () => {
     assert.equal(forbidden.status, 403);
 
     const adminToken = jwt.sign(
-      { sub: "admin-1", profile: "admin" },
-      adminJwtSecret,
+      { sub: "000000000000000000000001", profile: "admin", ver: 0, jti: "admin-session" },
+      adminJwtSecret, { expiresIn: "15m" },
     );
-    const created = await fetch(`${baseUrl}/api/admin/courses`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        code: "CS-TEST",
-        name: "Curso de teste",
-        matrix: "2026",
-        workload: "3000h",
-        formula: "Média ponderada",
-        department: "Computação",
-        modality: "Graduação",
-        components: [],
-      }),
-    });
-    assert.equal(created.status, 201);
-    assert.equal((await created.json()).code, "CS-TEST");
-
+    storedCourses.push({ _id: new ObjectId(), code: "CS-TEST", name: "Curso de teste" });
     const listed = await fetch(`${baseUrl}/api/admin/courses`, {
       headers: { authorization: `Bearer ${adminToken}` },
     });

@@ -1,9 +1,8 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
-import 'dart:convert';
+import '../../../../core/network/authenticated_api_client.dart';
 
 import 'package:http/http.dart' as http;
-import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'admin_mock_data.dart';
 
 abstract interface class AdminAcademicDataSource {
@@ -31,12 +30,6 @@ abstract interface class AdminAcademicDataSource {
 }
 
 class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
-  static const String _baseUrl = String.fromEnvironment(
-    'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
-  );
-  static const Duration _timeout = Duration(seconds: 8);
-
   final http.Client _client;
 
   AdminAcademicRemoteDataSource({http.Client? client})
@@ -134,43 +127,12 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     String path, {
     Map<String, Object?>? body,
   }) async {
-    final token = AppUserSession.instance.accessToken;
-    if (token == null || token.isEmpty) {
-      throw const AdminAcademicApiException(
-        'Entre como administrador para continuar.',
-      );
-    }
-
-    final uri = Uri.parse('$_baseUrl$path');
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-
     try {
-      final response = method == 'GET'
-          ? await _client.get(uri, headers: headers).timeout(_timeout)
-          : await _client
-                .post(uri, headers: headers, body: jsonEncode(body))
-                .timeout(_timeout);
-      dynamic decoded;
-      if (response.body.isNotEmpty) {
-        try {
-          decoded = jsonDecode(response.body);
-        } on FormatException {
-          throw const AdminAcademicApiException('Resposta inválida da API.');
-        }
-      }
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        final message =
-            decoded is Map<String, dynamic> && decoded['message'] is String
-            ? decoded['message'] as String
-            : 'A API não conseguiu concluir a operação.';
-        throw AdminAcademicApiException(message);
-      }
-      return decoded;
-    } on http.ClientException {
-      throw const AdminAcademicApiException('Não foi possível conectar à API.');
+      return await AuthenticatedApiClient(
+        client: _client,
+      ).request(method, path, body: body);
+    } on ApiException catch (error) {
+      throw AdminAcademicApiException(error.message);
     }
   }
 
@@ -208,6 +170,7 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     final formulaRegime = value['formulaRegime'] as String?;
     return AdminClassModel(
       code: value['code'] as String,
+      gradeLocked: value['gradeLocked'] == true,
       subjectName: value['courseName'] as String,
       courseName: value['courseName'] as String,
       semester: value['semester'] as String,

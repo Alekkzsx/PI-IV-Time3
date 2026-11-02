@@ -1,9 +1,10 @@
-import "dotenv/config";
+import "../config/local-environment.js";
 import { createInterface } from "node:readline/promises";
 import { MongoClient } from "mongodb";
 import { loadEnvironment } from "../config/environment.js";
 import { BcryptPasswordHasher } from "../modules/auth/infrastructure/security.providers.js";
 import { authProfiles, type AuthProfile } from "../modules/auth/domain/auth.types.js";
+import { passwordSchema, emailSchema, identitySchema } from "../shared/validation.js";
 
 async function prompt(question: string): Promise<string> {
   const interfaceInstance = createInterface({
@@ -87,8 +88,8 @@ async function main(): Promise<void> {
 
   const password = await promptPassword("Senha (mínimo 8 caracteres): ");
   const passwordConfirmation = await promptPassword("Confirme a senha: ");
-  if (password.length < 8 || password.length > 128) {
-    console.error("A senha deve ter entre 8 e 128 caracteres.");
+  if (!passwordSchema.safeParse(password).success || !emailSchema.safeParse(email).success || !identitySchema.safeParse(identity).success) {
+    console.error("Confira identidade, e-mail e senha (mínimo 8 caracteres, máximo 72 bytes).");
     process.exitCode = 1;
     return;
   }
@@ -106,7 +107,9 @@ async function main(): Promise<void> {
     await client.connect();
     const users = client.db(environment.mongoDatabase).collection("auth_users");
     const normalizedIdentity = identity.trim().toLowerCase();
-    const existingUser = await users.findOne({ normalizedIdentity });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await users.findOne({ $or: [{ normalizedIdentity }, { email: normalizedEmail },
+      { email: normalizedIdentity }, { normalizedIdentity: normalizedEmail }] }, { collation: { locale: "en", strength: 2 } });
     if (existingUser) {
       console.error("Já existe uma conta com essa identidade.");
       process.exitCode = 1;
@@ -114,15 +117,18 @@ async function main(): Promise<void> {
     }
 
     await users.createIndex({ normalizedIdentity: 1 }, { unique: true });
+    await users.createIndex({ email: 1 }, { unique: true, collation: { locale: "en", strength: 2 }, partialFilterExpression: { email: { $type: "string" } } });
     const passwordHash = await new BcryptPasswordHasher().hash(password);
     await users.insertOne({
       identity: identity.trim(),
       normalizedIdentity,
-      email: email.trim(),
+      email: normalizedEmail,
       displayName: displayName.trim(),
       profile: profileInput as AuthProfile,
       passwordHash,
       active: true,
+      sessionVersion: 0,
+      createdAt: new Date(),
     });
 
     console.info("Conta criada em auth_users. Já pode testar o login no app.");

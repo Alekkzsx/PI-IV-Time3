@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 class AdminCourseCardData {
@@ -58,6 +59,21 @@ class AdminCoursesGridSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final portal = AdminPortalController.instance;
+    final courses = portal.usesRemote
+        ? portal.courses
+              .map(
+                (course) => AdminCourseCardData(
+                  code: course.code,
+                  modality: course.modality,
+                  name: course.name,
+                  enrolledText:
+                      '${course.studentsCount} discentes matriculados',
+                  workload: course.workload,
+                ),
+              )
+              .toList()
+        : defaultCourses;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -102,21 +118,21 @@ class AdminCoursesGridSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(child: _buildCourseCard(defaultCourses[0])),
-            const SizedBox(width: 16),
-            Expanded(child: _buildCourseCard(defaultCourses[1])),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(child: _buildCourseCard(defaultCourses[2])),
-            const SizedBox(width: 16),
-            Expanded(child: _buildCourseCard(defaultCourses[3])),
-          ],
-        ),
+        if (courses.isEmpty) const Text('Nenhum curso cadastrado.'),
+        for (var i = 0; i < courses.length; i += 2) ...[
+          Row(
+            children: [
+              Expanded(child: _buildCourseCard(courses[i])),
+              const SizedBox(width: 16),
+              Expanded(
+                child: i + 1 < courses.length
+                    ? _buildCourseCard(courses[i + 1])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
       ],
     );
   }
@@ -221,4 +237,3 @@ class AdminCoursesGridSection extends StatelessWidget {
     );
   }
 }
-
