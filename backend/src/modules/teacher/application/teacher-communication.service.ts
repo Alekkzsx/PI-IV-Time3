@@ -141,4 +141,41 @@ export class TeacherCommunicationService {
       isFromSecretaria: false,
     };
   }
+
+  async getNoticeReads(userId: string, user: Document, noticeId: string) {
+    if (!ObjectId.isValid(noticeId)) {
+      throw new AuthError(400, "invalid_id", "Comunicado inválido.");
+    }
+    const notice = await this.database.collection("academic_announcements").findOne({
+      _id: new ObjectId(noticeId),
+    });
+    if (!notice || !notice.classCode) {
+      throw new AuthError(404, "announcement_not_found", "Comunicado não encontrado.");
+    }
+    const classroom = await this.classAccess.requireOwnedClass(
+      userId,
+      user,
+      String(notice.classCode),
+    );
+    const readBy = new Set(
+      Array.isArray(notice.readBy) ? notice.readBy.map(String) : [],
+    );
+    const enrollments = await this.database
+      .collection("academic_enrollments")
+      .find({ classCode: classroom.code, status: "active" })
+      .toArray();
+    const reads = enrollments
+      .filter((enrollment) => readBy.has(String(enrollment.studentId)))
+      .map((enrollment) => ({
+        studentId: String(enrollment.studentId),
+        identity: String(enrollment.studentIdentity ?? ""),
+        displayName: String(enrollment.displayName ?? enrollment.studentIdentity ?? ""),
+      }));
+    return {
+      id: String(notice._id),
+      readCount: reads.length,
+      totalRecipients: Number(notice.totalRecipients ?? enrollments.length),
+      reads,
+    };
+  }
 }

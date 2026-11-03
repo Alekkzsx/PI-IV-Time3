@@ -375,5 +375,8 @@ export class TeacherService {
   ) {
     return this.communicationService.publishNotice(userId, user, input);
   }
-}
 
+  async getNoticeReads(userId: string, user: Document, noticeId: string) {
+    return this.communicationService.getNoticeReads(userId, user, noticeId);
+  }
+}
