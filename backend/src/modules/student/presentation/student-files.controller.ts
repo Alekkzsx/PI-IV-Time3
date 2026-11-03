@@ -12,6 +12,7 @@ export function createFilesRouter(database: Db, jwtSecret: string): Router {
     if (!ObjectId.isValid(request.params.id!)) throw new AuthError(400, "invalid_id", "Material inválido.");
     const material = await database.collection("academic_materials").findOne({ _id: new ObjectId(request.params.id!) });
     if (!material) throw new AuthError(404, "not_found", "Material não encontrado.");
+    await assertClassAccess(database, response.locals.user, String(material.classCode));
     response.json({
       id: String(material._id),
       title: material.title,
@@ -31,6 +32,10 @@ export function createFilesRouter(database: Db, jwtSecret: string): Router {
     if (!ObjectId.isValid(request.params.id!)) throw new AuthError(400, "invalid_id", "Submissão inválida.");
     const submission = await database.collection("academic_submissions").findOne({ _id: new ObjectId(request.params.id!) });
     if (!submission) throw new AuthError(404, "not_found", "Entrega não encontrada.");
+    const user = response.locals.user;
+    const isOwner = user.profile === "aluno" && String(submission.studentId) === String(user._id);
+    const hasClassAccess = await canAccessClass(database, user, String(submission.classCode));
+    if (!isOwner && !hasClassAccess) throw new AuthError(404, "not_found", "Entrega não encontrada.");
     response.json({
       id: String(submission._id),
       fileName: submission.fileName ?? `entrega_${submission.protocolCode ?? submission._id}.txt`,
@@ -51,6 +56,14 @@ export function createFilesRouter(database: Db, jwtSecret: string): Router {
     if (!ObjectId.isValid(request.params.id!)) throw new AuthError(400, "invalid_id", "Protocolo inválido.");
     const protocol = await database.collection("academic_protocols").findOne({ _id: new ObjectId(request.params.id!) });
     if (!protocol) throw new AuthError(404, "not_found", "Protocolo não encontrado.");
+    const user = response.locals.user;
+    const isOwner = user.profile === "aluno" && String(protocol.studentId) === String(user._id);
+    const hasClassAccess =
+      user.profile === "admin" ||
+      (user.profile === "docente" && protocol.targetComponent
+        ? await canAccessClass(database, user, String(protocol.targetComponent))
+        : false);
+    if (!isOwner && !hasClassAccess) throw new AuthError(404, "not_found", "Protocolo não encontrado.");
     response.json({
       id: String(protocol._id),
       code: protocol.code,
@@ -65,4 +78,27 @@ export function createFilesRouter(database: Db, jwtSecret: string): Router {
   });
 
   return router;
+}
+
+async function assertClassAccess(database: Db, user: Record<string, unknown>, classCode: string): Promise<void> {
+  if (await canAccessClass(database, user, classCode)) return;
+  throw new AuthError(404, "not_found", "Material não encontrado.");
+}
+
+async function canAccessClass(database: Db, user: Record<string, unknown>, classCode: string): Promise<boolean> {
+  const userId = String(user._id);
+  if (user.profile === "admin") return true;
+  if (user.profile === "aluno") {
+    return Boolean(await database.collection("academic_enrollments").findOne({
+      classCode,
+      studentId: userId,
+      status: "active",
+    }));
+  }
+  if (user.profile !== "docente") return false;
+
+  const classroom = await database.collection("academic_classes").findOne({ code: classCode, active: { $ne: false } });
+  if (!classroom) return false;
+  const identity = String(user.normalizedIdentity ?? user.identity ?? "").trim().toLowerCase();
+  return classroom.professorId === userId || String(classroom.professorIdentity ?? "").trim().toLowerCase() === identity;
 }

@@ -7,6 +7,7 @@ import { formatPtBrLongDate } from "../../../shared/formatting/date-formatters.j
 export interface SessionAttendanceUpdate {
   contentProgram?: string;
   methodology?: string;
+  location?: string;
   isHomologated?: boolean;
   attendanceList?: Array<{
     studentId: string;
@@ -108,6 +109,7 @@ export class TeacherSessionService {
     const updateSet: Record<string, unknown> = { updatedAt: new Date() };
     if (payload.contentProgram !== undefined) updateSet.contentProgram = payload.contentProgram;
     if (payload.methodology !== undefined) updateSet.methodology = payload.methodology;
+    if (payload.location !== undefined) updateSet.location = payload.location;
     if (payload.isHomologated !== undefined) updateSet.isHomologated = payload.isHomologated;
     if (payload.attendanceList !== undefined) {
       const prevMap = new Map(
