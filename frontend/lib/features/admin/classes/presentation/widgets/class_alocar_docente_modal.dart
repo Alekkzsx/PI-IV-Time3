@@ -7,23 +7,27 @@ import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 /// Diálogo modal especializado para alocação e ensalamento de docente titular na turma.
 class ClassAlocarDocenteModal extends StatefulWidget {
   final AdminClassModel classModel;
+  final List<AdminUserModel> teachers;
   final ValueChanged<String> onConfirmAllocation;
 
   const ClassAlocarDocenteModal({
     super.key,
     required this.classModel,
+    required this.teachers,
     required this.onConfirmAllocation,
   });
 
   static Future<void> show({
     required BuildContext context,
     required AdminClassModel classModel,
+    required List<AdminUserModel> teachers,
     required ValueChanged<String> onConfirmAllocation,
   }) {
     return showDialog<void>(
       context: context,
       builder: (ctx) => ClassAlocarDocenteModal(
         classModel: classModel,
+        teachers: teachers,
         onConfirmAllocation: onConfirmAllocation,
       ),
     );
@@ -35,18 +39,12 @@ class ClassAlocarDocenteModal extends StatefulWidget {
 }
 
 class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
-  late final TextEditingController _profController;
+  String? _selectedTeacherIdentity;
 
   @override
   void initState() {
     super.initState();
-    _profController = TextEditingController(text: widget.classModel.professor);
-  }
-
-  @override
-  void dispose() {
-    _profController.dispose();
-    super.dispose();
+    _selectedTeacherIdentity = widget.classModel.professorIdentity;
   }
 
   @override
@@ -161,37 +159,24 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                 ),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _profController,
-                decoration: InputDecoration(
-                  hintText: 'Ex: Profa. Dra. Helena Bittencourt',
-                  hintStyle: jakarta(
-                    size: 13.5,
-                    color: const Color(0xFFA3A3A3),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF18181B),
-                      width: 1.5,
-                    ),
-                  ),
+              DropdownButtonFormField<String>(
+                initialValue: widget.teachers.any(
+                  (teacher) => teacher.identity == _selectedTeacherIdentity,
+                )
+                    ? _selectedTeacherIdentity
+                    : null,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Selecione um docente',
                 ),
-                style: jakarta(size: 13.5, color: const Color(0xFF18181B)),
+                items: widget.teachers
+                    .map((teacher) => DropdownMenuItem(
+                          value: teacher.identity,
+                          child: Text('${teacher.name} (${teacher.identity})'),
+                        ))
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedTeacherIdentity = value),
               ),
               const SizedBox(height: 24),
 
@@ -218,8 +203,8 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: () {
-                      final newProfessor = _profController.text.trim();
-                      if (newProfessor.isNotEmpty) {
+                      final newProfessor = _selectedTeacherIdentity;
+                      if (newProfessor != null) {
                         widget.onConfirmAllocation(newProfessor);
                         Navigator.pop(context);
                       }

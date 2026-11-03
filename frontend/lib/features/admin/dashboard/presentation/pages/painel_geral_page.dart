@@ -8,6 +8,7 @@ import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_side
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 import 'package:pi_iv_time3/shared/widgets/institutional_kpi_card.dart';
 import '../widgets/admin_courses_grid_section.dart';
+import '../widgets/admin_announcements_panel.dart';
 import '../widgets/admin_recent_protocols_panel.dart';
 import '../widgets/admin_regimental_deadlines_panel.dart';
 import '../widgets/admin_secretariat_alerts_section.dart';
@@ -49,6 +50,12 @@ class PainelGeralPage extends StatelessWidget {
 
                         // Indicadores acadêmicos em cards (4 KPIs)
                         _buildMetricsRow(isDesktop),
+                        const SizedBox(height: 36),
+                        AnimatedBuilder(
+                          animation: AdminPortalController.instance,
+                          builder: (context, _) =>
+                              const AdminAnnouncementsPanel(),
+                        ),
                         const SizedBox(height: 36),
 
                         // Grid Principal (2 colunas principais + 1 lateral de apoio)

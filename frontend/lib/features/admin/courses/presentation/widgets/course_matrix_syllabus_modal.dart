@@ -1,11 +1,14 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Modal de Matriz Curricular & Ementário de um Curso
-class CourseMatrixSyllabusModal extends StatelessWidget {
+class CourseMatrixSyllabusModal extends StatefulWidget {
   final AdminCourseModel course;
 
   const CourseMatrixSyllabusModal({super.key, required this.course});
@@ -15,6 +18,80 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
       context: context,
       builder: (ctx) => CourseMatrixSyllabusModal(course: course),
     );
+  }
+
+  @override
+  State<CourseMatrixSyllabusModal> createState() =>
+      _CourseMatrixSyllabusModalState();
+}
+
+class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
+  bool _saving = false;
+
+  Future<void> _editComponents() async {
+    final controller = TextEditingController(
+      text: const JsonEncoder.withIndent('  ').convert(widget.course.components),
+    );
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar componentes curriculares'),
+        content: SizedBox(
+          width: 560,
+          child: TextField(
+            controller: controller,
+            maxLines: 16,
+            decoration: const InputDecoration(
+              hintText: '[{"semestre":"1º","disciplina":"...","carga":"...","docente":"..."}]',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null) return;
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! List || decoded.any((item) => item is! Map)) {
+        throw const FormatException('Informe uma lista JSON de componentes.');
+      }
+      setState(() => _saving = true);
+      await AdminAcademicRemoteDataSource().patchCourse(widget.course.code, {
+        'components': decoded
+            .map((item) => Map<String, Object?>.from(item as Map))
+            .toList(),
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Matriz curricular atualizada.')),
+        );
+      }
+    } on AdminAcademicApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+      }
+    } on FormatException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -50,7 +127,7 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          course.name,
+                          widget.course.name,
                           style: jakarta(
                             size: 20,
                             weight: FontWeight.w700,
@@ -59,7 +136,7 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${course.matrix} • Carga Horária Total: ${course.workload}',
+                          '${widget.course.matrix} • Carga Horária Total: ${widget.course.workload}',
                           style: jakarta(
                             size: 13,
                             color: const Color(0xFF737373),
@@ -111,7 +188,7 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
                         _buildTh('DOCENTE HOMOLOGADO'),
                       ],
                     ),
-                    ...course.components.map((c) {
+                    ...widget.course.components.map((c) {
                       return TableRow(
                         decoration: const BoxDecoration(
                           border: Border(
@@ -169,28 +246,38 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
               const SizedBox(height: 24),
               Align(
                 alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF18181B),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 12,
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _saving ? null : _editComponents,
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Editar matriz'),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF18181B),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Fechar',
+                        style: jakarta(
+                          size: 13,
+                          weight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'Fechar',
-                    style: jakarta(
-                      size: 13,
-                      weight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ],
