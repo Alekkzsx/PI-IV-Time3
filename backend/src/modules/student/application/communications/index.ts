@@ -1,0 +1,1 @@
+export { StudentCommunicationsService } from "./service.js";
