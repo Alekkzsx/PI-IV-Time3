@@ -1,0 +1,1 @@
+export { TeacherMaterialService } from "../teacher-material.service.js";
