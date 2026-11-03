@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Modal de Análise e Despacho de Requerimento da Secretaria Acadêmica
 class SecretaryReviewModal extends StatefulWidget {
@@ -342,7 +342,7 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                               false,
                               _parecerController.text,
                             )
-                          : widget.controller.decideProtocol(
+                          : await widget.controller.decideProtocol(
                               protocolId: p.id,
                               defer: false,
                               parecerNote: _parecerController.text,
@@ -403,7 +403,7 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                               true,
                               _parecerController.text,
                             )
-                          : widget.controller.decideProtocol(
+                          : await widget.controller.decideProtocol(
                               protocolId: p.id,
                               defer: true,
                               parecerNote: _parecerController.text,

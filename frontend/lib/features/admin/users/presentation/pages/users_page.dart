@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_dossier_modal.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_filter_bar.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_form_modal.dart';
-import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_impersonation_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_list_table.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_reset_password_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_sessions_dialog.dart';
@@ -107,33 +106,6 @@ class _UsersPageState extends State<UsersPage> {
     );
   }
 
-  void _showImpersonateDialog(BuildContext context, AdminUserModel u) {
-    UserImpersonationDialog.show(
-      context: context,
-      user: u,
-      onConfirm: () async {
-        try {
-          await _controller.remote.request('GET', '/users/${u.id}/dossier');
-        } on ApiException catch (error) {
-          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
-          return;
-        }
-        if (!context.mounted) return;
-        _controller.impersonateUser(u);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Modo Suporte ativado para ${u.name}. Visualização auditada sob LGPD iniciada.',
-              style: jakarta(size: 13, color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFF1E3A8A),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
-    );
-  }
-
   void _showManageSessionsDialog(BuildContext context, AdminUserModel u) {
     UserSessionsDialog.show(
       context: context,
@@ -174,7 +146,6 @@ class _UsersPageState extends State<UsersPage> {
     final filteredList = _controller.filteredUsers;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1100;
-    final impersonated = _controller.activeImpersonatedUser;
 
     return Container(
       color: Colors.white,
@@ -190,74 +161,6 @@ class _UsersPageState extends State<UsersPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Banner de Impersonation / Modo Suporte se Ativo
-                      if (impersonated != null) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          color: const Color(0xFF1E3A8A),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.visibility_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'MODO SUPORTE ATIVO: Visualizando contexto acadêmico como ${impersonated.name} (${impersonated.id} - ${impersonated.profile}). Sessão de diagnóstico com trilha auditada.',
-                                  style: jakarta(
-                                    size: 12.5,
-                                    color: Colors.white,
-                                    weight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              OutlinedButton(
-                                onPressed: () {
-                                  _controller.exitImpersonation();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Modo Suporte encerrado. Retornado ao controle administrativo pleno.',
-                                        style: jakarta(
-                                          size: 13,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      backgroundColor: const Color(0xFF0F172A),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white70),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Encerrar Modo Espelho',
-                                  style: jakarta(
-                                    size: 12,
-                                    weight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: isDesktop ? 48.0 : 20.0,
@@ -300,8 +203,6 @@ class _UsersPageState extends State<UsersPage> {
                                 ),
                                 'Status atualizado.',
                               ),
-                              onImpersonate: (u) =>
-                                  _showImpersonateDialog(context, u),
                               onManageSessions: (u) =>
                                   _showManageSessionsDialog(context, u),
                               onSuspendWithReason: (u) =>

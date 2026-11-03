@@ -6,7 +6,7 @@ import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
 /// Console Avançado de Supervisão Institucional da Turma na Visão Administrativa.
@@ -557,7 +557,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                   ? await _controller.persistClass(widget.classModel.code, {
                       'formulaRegime': 'admin',
                     })
-                  : _controller.updateFormulaRegime(
+                  : await _controller.updateFormulaRegime(
                       widget.classModel.code,
                       'Impor pelo Admin',
                     );
@@ -1038,7 +1038,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                   ? await _controller.persistClass(widget.classModel.code, {
                       'professorIdentity': profController.text.trim(),
                     })
-                  : _controller.reallocateProfessor(
+                  : await _controller.reallocateProfessor(
                       widget.classModel.code,
                       profController.text,
                     );
@@ -1220,7 +1220,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ? await _controller.persistClass(widget.classModel.code, {
                         'gradeLocked': true,
                       })
-                    : _controller.lockAndHomologateClassPauta(
+                    : await _controller.lockAndHomologateClassPauta(
                         widget.classModel.code,
                       );
                 if (!mounted) return;

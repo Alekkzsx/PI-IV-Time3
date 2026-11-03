@@ -1,6 +1,6 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-import '../../data/admin_mock_data.dart';
+import '../../models/admin_models.dart';
 
 /// Contrato abstrato do repositório da gestão do campus e secretaria geral.
 /// Prepara o ecossistema frontend para receber a injeção do cliente HTTP/REST do backend.

@@ -1,17 +1,14 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Modal de Matriz Curricular & Ementário de um Curso
 class CourseMatrixSyllabusModal extends StatelessWidget {
   final AdminCourseModel course;
 
-  const CourseMatrixSyllabusModal({
-    super.key,
-    required this.course,
-  });
+  const CourseMatrixSyllabusModal({super.key, required this.course});
 
   static Future<void> show(BuildContext context, AdminCourseModel course) {
     return showDialog<void>(
@@ -24,13 +21,8 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 24,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: SizedBox(
         width: 720,
         child: SingleChildScrollView(
@@ -111,9 +103,7 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
                   },
                   children: [
                     TableRow(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF9FAFB),
-                      ),
+                      decoration: const BoxDecoration(color: Color(0xFFF9FAFB)),
                       children: [
                         _buildTh('PERÍODO'),
                         _buildTh('COMPONENTE CURRICULAR'),
@@ -125,10 +115,7 @@ class CourseMatrixSyllabusModal extends StatelessWidget {
                       return TableRow(
                         decoration: const BoxDecoration(
                           border: Border(
-                            top: BorderSide(
-                              color: Color(0xFFF0F0F0),
-                              width: 1,
-                            ),
+                            top: BorderSide(color: Color(0xFFF0F0F0), width: 1),
                           ),
                         ),
                         children: [

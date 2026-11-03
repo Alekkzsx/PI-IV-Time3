@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Diálogo modal especializado para governança e definição do regime de fórmula da turma.
 class ClassRegimeFormulaModal extends StatefulWidget {

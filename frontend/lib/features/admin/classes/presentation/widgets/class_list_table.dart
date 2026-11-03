@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Tabela responsiva de turmas ativas com indicadores de ensalamento, regime e ações de supervisão.
 class ClassListTable extends StatelessWidget {
