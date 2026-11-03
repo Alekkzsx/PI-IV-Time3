@@ -28,6 +28,7 @@ class _ClassesPageState extends State<ClassesPage> {
       widget.dataSource ?? AdminAcademicRemoteDataSource();
   List<AdminCourseModel> _courses = [];
   List<AdminClassModel> _classes = [];
+  List<AdminUserModel> _teachers = [];
   bool _isLoading = true;
   String? _errorMessage;
   AdminClassModel? _activeSupervisedClass;
@@ -55,13 +56,20 @@ class _ClassesPageState extends State<ClassesPage> {
       _errorMessage = null;
     });
     try {
-      final courses = await _dataSource.getCourses();
-      final classes = await _dataSource.getClasses();
+      final values = await Future.wait<dynamic>([
+        _dataSource.getCourses(),
+        _dataSource.getClasses(),
+        _dataSource.getTeachers(),
+      ]);
+      final courses = values[0] as List<AdminCourseModel>;
+      final classes = values[1] as List<AdminClassModel>;
+      final teachers = values[2] as List<AdminUserModel>;
       if (!mounted) return;
       _controller.classes = classes;
       setState(() {
         _courses = courses;
         _classes = classes;
+        _teachers = teachers;
         _isLoading = false;
       });
     } on AdminAcademicApiException catch (error) {
@@ -219,6 +227,7 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassRegimeFormulaModal.show(
       context: context,
       classModel: c,
+      teachers: _teachers,
       onSaveRegime: (regime) async {
         final ok = await _controller.persistClass(c.code, {
           'formulaRegime': regime == 'Impor pelo Admin'

@@ -1,6 +1,9 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
@@ -197,16 +200,40 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                       ),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Anexo ${p.attachmentName} está disponível para conferência no prontuário.',
-                              style: jakarta(size: 13, color: Colors.white),
+                      onPressed: () async {
+                        try {
+                          final file = await widget.controller.remote
+                              .downloadProtocol(p.id);
+                          final encoded = file['contentBase64'];
+                          if (encoded is! String || encoded.isEmpty) {
+                            throw Exception('A API não retornou o anexo.');
+                          }
+                          final path =
+                              await PlatformFileHelper.saveOrDownloadFile(
+                                fileName:
+                                    file['fileName']?.toString() ??
+                                    p.attachmentName,
+                                bytes: base64Decode(encoded),
+                                mimeType:
+                                    file['mimeType']?.toString() ??
+                                    'application/octet-stream',
+                              );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                path == null
+                                    ? 'Não foi possível salvar o anexo.'
+                                    : 'Anexo salvo: $path',
+                              ),
                             ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                          );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.toString())),
+                          );
+                        }
                       },
                       icon: const Icon(
                         Icons.file_download_outlined,

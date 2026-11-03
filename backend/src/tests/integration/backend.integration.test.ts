@@ -405,8 +405,23 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
       studentToken,
     );
     assert.equal(submission.status, 201);
+    assert.match(submission.body.submissionId, /^[a-f0-9]{24}$/);
     assert.match(submission.body.protocolCode, /^AGR-/);
     assert.equal((submission.body.sha256 ?? submission.body.sha256Hash ?? "").length, 64);
+    const submissionDownload = await request(
+      "GET",
+      `/api/files/submissions/${submission.body.submissionId}`,
+      undefined,
+      studentToken,
+    );
+    assert.equal(submissionDownload.status, 200);
+    assert.equal(
+      Buffer.from(submissionDownload.body.contentBase64, "base64").toString("utf8"),
+      "Minha entrega C4",
+    );
+    const refreshedStudentBoot = await request("GET", "/api/student/bootstrap", undefined, studentToken);
+    const mappedSubmission = refreshedStudentBoot.body.deliveries.find((delivery: any) => delivery.id === assignmentId);
+    assert.equal(mappedSubmission.submissionId, submission.body.submissionId);
 
     const studentUser = await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo1" });
     const studentId = String(studentUser!._id);
