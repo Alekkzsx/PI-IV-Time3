@@ -14,19 +14,54 @@ backend/
 │   ├── app.ts                        # Composição da aplicação Express e middlewares globais
 │   ├── server.ts                     # Bootstrap HTTP e conexão com MongoDB
 │   ├── config/                       # Carregamento e validação estrita de variáveis de ambiente
-│   ├── shared/                       # Erros HTTP, cliente MongoDB, rate limit e utilitários
+│   ├── shared/
+│   │   ├── formatting/               # Formatação reutilizável de datas
+│   │   └── ...                       # Erros HTTP, transações e validação compartilhada
 │   ├── modules/
 │   │   ├── auth/
-│   │   │   ├── application/          # Casos de uso de login, 2FA, sessões e recuperação OTP
+│   │   │   ├── application/          # Fachada de autenticação e fluxos de recuperação
+│   │   │   │   └── recovery/         # Entry point do domínio de recuperação e digests
 │   │   │   ├── domain/               # Entidades, perfis institucionais e portas de repositório
-│   │   │   ├── infrastructure/       # Repositórios MongoDB, bcrypt, JWT HS256, TOTP e SMTP
+│   │   │   ├── infrastructure/       # MongoDB, bcrypt, JWT HS256, TOTP e SMTP
+│   │   │   │   └── mongo/indexes/    # Índices por domínio (auth, admin, acadêmico, video-call)
 │   │   │   └── presentation/         # Contratos de validação e rotas HTTP (/api/auth/*)
+│   │   │       ├── profile/          # Dados e atualização do perfil autenticado
+│   │   │       ├── sessions/         # Consulta e revogação de sessões
+│   │   │       ├── security/         # 2FA, códigos de backup e senha
+│   │   │       └── privacy/          # Exportação LGPD
 │   │   ├── admin/
 │   │   │   ├── infrastructure/       # Middleware adminOnly, auditoria e sanitização de registros
-│   │   │   └── presentation/         # Controllers de usuários, acadêmico e operações (/api/admin/*)
+│   │   │   └── presentation/
+│   │   │       ├── users/            # Rotas administrativas de usuários
+│   │   │       ├── academic/         # Rotas de cursos, turmas e vínculos
+│   │   │       └── operations/
+│   │   │           ├── calendar/     # Calendário institucional
+│   │   │           ├── protocols/    # Requerimentos e decisões da secretaria
+│   │   │           ├── announcements/ # Comunicados institucionais
+│   │   │           └── settings/     # Configurações institucionais
 │   │   ├── student/
-│   │   │   ├── application/          # Agregação de turmas, notas, frequência e avisos do discente
-│   │   │   └── presentation/         # Controller do painel do aluno (/api/student/*)
+│   │   │   ├── application/
+│   │   │   │   ├── dashboard/        # Repositório e mapeadores do painel
+│   │   │   │   ├── deliveries/       # Submissões e dúvidas de atividades
+│   │   │   │   ├── calendar/         # Lembretes pessoais
+│   │   │   │   ├── communications/  # Ciência de comunicados
+│   │   │   │   ├── protocols/       # Requerimentos estudantis
+│   │   │   │   ├── notes/           # Anotações pessoais
+│   │   │   │   ├── forum/           # Tópicos e respostas discentes
+│   │   │   │   └── operations/      # Fachada compatível para os casos de uso
+│   │   │   └── presentation/
+│   │   │       ├── dashboard/        # Rotas de painel e operações do aluno
+│   │   │       └── files/            # Downloads de materiais, entregas e protocolos
+│   │   ├── teacher/
+│   │   │   ├── application/
+│   │   │   │   ├── dashboard/        # Repositório e mapeadores do painel
+│   │   │   │   ├── sessions/         # Aulas e frequência
+│   │   │   │   ├── materials/        # Materiais de turma
+│   │   │   │   ├── assignments/      # Atividades, avaliações e dúvidas
+│   │   │   │   ├── gradebook/        # Notas, homologação e retificações
+│   │   │   │   ├── syllabus/         # Ementa e avanço de unidades
+│   │   │   │   └── communications/   # Fórum, grupos, agenda e comunicados
+│   │   │   └── presentation/         # Rotas docentes (/api/teacher/*)
 │   │   └── video-call/
 │   │       ├── application/          # Autorização de salas ao vivo e tickets efêmeros SHA-256
 │   │       └── presentation/         # Controller de salas e consumo de ticket (/api/video-call/*)
@@ -35,7 +70,8 @@ backend/
 │   │   ├── admin-demo.seed.ts        # Regra idempotente de seed demonstrativo ADMIN
 │   │   ├── seed-admin.ts             # Entrypoint CLI do seed ADMIN
 │   │   ├── student-demo.seed.ts      # Regra de seed demonstrativo do discente
-│   │   └── seed-student.ts           # Entrypoint CLI do seed do discente
+│   │   ├── seed-student.ts           # Entrypoint CLI do seed do discente
+│   │   └── seed-ecosystem.ts         # Seed explícito do ecossistema acadêmico
 │   └── tests/
 │       ├── unit/                     # Testes unitários isolados (env, auth service, seed)
 │       └── integration/              # Testes de integração HTTP ponta a ponta
