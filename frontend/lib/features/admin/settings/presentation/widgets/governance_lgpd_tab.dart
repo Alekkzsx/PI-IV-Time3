@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 
@@ -35,7 +35,11 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.lock_outline_rounded, size: 20, color: Color(0xFF0F172A)),
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    size: 20,
+                    color: Color(0xFF0F172A),
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Visibilidade de Perfil & Dados entre Colegas',
@@ -57,9 +61,11 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               // Item 1: Display email in class roster
               _buildVisibilityRow(
                 title: 'Exibir meu e-mail nas listagens de turma',
-                subtitle: 'Permite que colegas vejam seu e-mail institucional para formar grupos de estudo.',
+                subtitle:
+                    'Permite que colegas vejam seu e-mail institucional para formar grupos de estudo.',
                 value: _showEmailInLists,
-                onChanged: (val) => setState(() => _showEmailInLists = val ?? false),
+                onChanged: (val) =>
+                    setState(() => _showEmailInLists = val ?? false),
               ),
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
@@ -67,9 +73,11 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               // Item 2: Show presence status ("Recently Online")
               _buildVisibilityRow(
                 title: 'Mostrar status de presença ("Online recentemente")',
-                subtitle: 'Indica no chat de disciplinas e fóruns se você esteve ativo nas últimas 24 horas.',
+                subtitle:
+                    'Indica no chat de disciplinas e fóruns se você esteve ativo nas últimas 24 horas.',
                 value: _showOnlineStatus,
-                onChanged: (val) => setState(() => _showOnlineStatus = val ?? false),
+                onChanged: (val) =>
+                    setState(() => _showOnlineStatus = val ?? false),
               ),
             ],
           ),
@@ -90,7 +98,11 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.privacy_tip_outlined, size: 20, color: Color(0xFF0F172A)),
+                  Icon(
+                    Icons.privacy_tip_outlined,
+                    size: 20,
+                    color: Color(0xFF0F172A),
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Privacidade & Direitos do Titular (LGPD)',
@@ -105,7 +117,11 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               const SizedBox(height: 3),
               const Text(
                 'Em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), você pode obter uma cópia integral dos seus registros acadêmicos e interações na plataforma.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.3),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                  height: 1.3,
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -153,7 +169,9 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Preferências de privacidade atualizadas com sucesso.'),
+                    content: Text(
+                      'Preferências de privacidade atualizadas com sucesso.',
+                    ),
                     backgroundColor: Color(0xFF059669),
                     duration: Duration(seconds: 2),
                   ),
@@ -163,7 +181,10 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
                 backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -203,7 +224,10 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: Color(0xFF64748B),
+                ),
               ),
             ],
           ),
@@ -222,7 +246,11 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
   Widget _buildExportInfo() {
     return Row(
       children: [
-        const Icon(Icons.description_outlined, size: 20, color: Color(0xFF475569)),
+        const Icon(
+          Icons.description_outlined,
+          size: 20,
+          color: Color(0xFF475569),
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -255,37 +283,50 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
         OutlinedButton.icon(
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Download do arquivo JSON iniciado.')),
+              const SnackBar(
+                content: Text('Download do arquivo JSON iniciado.'),
+              ),
             );
           },
           icon: const Icon(Icons.download_rounded, size: 15),
-          label: const Text('Arquivo JSON', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+          label: const Text(
+            'Arquivo JSON',
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+          ),
           style: OutlinedButton.styleFrom(
             foregroundColor: const Color(0xFF0F172A),
             side: const BorderSide(color: Color(0xFFCBD5E1)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Download do relatório .txt iniciado.')),
+              const SnackBar(
+                content: Text('Download do relatório .txt iniciado.'),
+              ),
             );
           },
           icon: const Icon(Icons.download_rounded, size: 15),
-          label: const Text('Relatório (.txt)', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+          label: const Text(
+            'Relatório (.txt)',
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+          ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0F172A),
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
           ),
         ),
       ],
     );
   }
 }
-

@@ -14,4 +14,3 @@ abstract class IAdminRepository {
   Future<void> toggleUserSuspension(String userId);
   Future<void> decideProtocol(String protocolId, String decision, String notes);
 }
-

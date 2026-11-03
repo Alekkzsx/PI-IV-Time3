@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 
@@ -15,7 +15,9 @@ class AdminProfileTab extends StatefulWidget {
 
 class _AdminProfileTabState extends State<AdminProfileTab> {
   final _socialNameController = TextEditingController(text: 'Carlos Mendes');
-  final _civilNameController = TextEditingController(text: 'Carlos Eduardo Mendes');
+  final _civilNameController = TextEditingController(
+    text: 'Carlos Eduardo Mendes',
+  );
 
   @override
   void dispose() {
@@ -61,7 +63,9 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Seletor de imagem acionado com sucesso.'),
+                          content: Text(
+                            'Seletor de imagem acionado com sucesso.',
+                          ),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -70,14 +74,20 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                       backgroundColor: const Color(0xFF0F172A),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: const Text(
                       'Carregar Nova Imagem',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -161,30 +171,44 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                           children: [
                             _buildInfoField('MATRÍCULA / RA', '23432432'),
                             const SizedBox(height: 12),
-                            _buildInfoField('CURSO VINCULADO', 'Secretaria Geral Acadêmica & Contr...'),
+                            _buildInfoField(
+                              'CURSO VINCULADO',
+                              'Secretaria Geral Acadêmica & Contr...',
+                            ),
                             const SizedBox(height: 12),
-                            _buildInfoField('PERÍODO LETIVO', 'Administrador Titular (2026/2)'),
+                            _buildInfoField(
+                              'PERÍODO LETIVO',
+                              'Administrador Titular (2026/2)',
+                            ),
                           ],
                         )
-                  : Row(
-                      children: [
-                        Expanded(child: _buildInfoField('MATRÍCULA / RA', '23432432')),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          flex: 2,
-                          child: _buildInfoField(
-                            'CURSO VINCULADO',
-                            'Secretaria Geral Acadêmica & Contr...',
-                            icon: Icons.school_outlined,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          flex: 2,
-                          child: _buildInfoField('PERÍODO LETIVO', 'Administrador Titular (2026/2)'),
-                        ),
-                      ],
-                    );
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: _buildInfoField(
+                                'MATRÍCULA / RA',
+                                '23432432',
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              flex: 2,
+                              child: _buildInfoField(
+                                'CURSO VINCULADO',
+                                'Secretaria Geral Acadêmica & Contr...',
+                                icon: Icons.school_outlined,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              flex: 2,
+                              child: _buildInfoField(
+                                'PERÍODO LETIVO',
+                                'Administrador Titular (2026/2)',
+                              ),
+                            ),
+                          ],
+                        );
                 },
               ),
               const SizedBox(height: 14),
@@ -233,7 +257,10 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                   ],
                 ),
@@ -256,7 +283,11 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
           children: [
             const Text(
               'Nome de Registro Civil',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155),
+              ),
             ),
             const Spacer(),
             Container(
@@ -272,7 +303,11 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                   SizedBox(width: 4),
                   Text(
                     'Oficial',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
                 ],
               ),
@@ -315,7 +350,11 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
           children: [
             const Text(
               'Nome Social / Preferido',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155),
+              ),
             ),
             const Spacer(),
             Container(
@@ -326,7 +365,11 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
               ),
               child: const Text(
                 'Editável',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF2563EB)),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2563EB),
+                ),
               ),
             ),
           ],
