@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/widgets/delivery_submission_modal.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 import 'ava_section_card.dart';
 
 /// Aba do AVA que exibe as atividades avaliativas e o modal de submissão de entregas.

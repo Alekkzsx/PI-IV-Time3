@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'ava_section_card.dart';
 
@@ -33,6 +34,8 @@ class AvaForumCollaborationTab extends StatelessWidget {
 
   // --- ABA 4: Fórum de Dúvidas ---
   Widget _buildForumsTab(BuildContext context) {
+    final classCode = controller.selectedDiscipline?.code ?? '';
+    final topics = controller.forumTopics(classCode);
     return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +65,15 @@ class AvaForumCollaborationTab extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          ...controller.forumTopics.map((topic) {
+          if (topics.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text('Ainda não há tópicos para esta disciplina.'),
+            ),
+          ...topics.map((topic) {
+            final replies = topic['replies'] is List
+                ? (topic['replies'] as List).length
+                : 0;
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
@@ -78,7 +89,7 @@ class AvaForumCollaborationTab extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          topic['autor']!,
+                          topic['authorName']?.toString() ?? 'Participante',
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
@@ -89,7 +100,7 @@ class AvaForumCollaborationTab extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        topic['tempo']!,
+                        topic['createdAt']?.toString() ?? '',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Color(0xFF64748B),
@@ -99,7 +110,7 @@ class AvaForumCollaborationTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    topic['titulo']!,
+                    topic['title']?.toString() ?? '',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -107,7 +118,7 @@ class AvaForumCollaborationTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    topic['respostas']!,
+                    '$replies ${replies == 1 ? 'resposta' : 'respostas'}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF16A34A),
@@ -125,45 +136,6 @@ class AvaForumCollaborationTab extends StatelessWidget {
 
   // --- ABA 6: Pessoas & Turma ---
   Widget _buildPeopleTab() {
-    final people = [
-      {
-        'nome': 'Profa. Dra. Helena Bittencourt',
-        'papel': 'Docente Titular',
-        'status': 'Online na Sala',
-        'isTeacher': true,
-      },
-      {
-        'nome': 'Victor Hugo Mendonça',
-        'papel': 'Monitor de Ensino',
-        'status': 'Online',
-        'isTeacher': false,
-      },
-      {
-        'nome': 'Gabriel Soares de Oliveira (Você)',
-        'papel': 'Discente',
-        'status': 'Online',
-        'isTeacher': false,
-      },
-      {
-        'nome': 'Mariana Rios Costa',
-        'papel': 'Discente',
-        'status': 'Online',
-        'isTeacher': false,
-      },
-      {
-        'nome': 'Lucas Silva Santos',
-        'papel': 'Discente',
-        'status': 'Offline',
-        'isTeacher': false,
-      },
-      {
-        'nome': 'Beatriz Castro Lima',
-        'papel': 'Discente',
-        'status': 'Online',
-        'isTeacher': false,
-      },
-    ];
-
     return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,44 +147,12 @@ class AvaForumCollaborationTab extends StatelessWidget {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          ...people.map((p) {
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: (p['isTeacher'] as bool)
-                    ? const Color(0xFF18181B)
-                    : const Color(0xFFE2E8F0),
-                foregroundColor: (p['isTeacher'] as bool)
-                    ? Colors.white
-                    : const Color(0xFF18181B),
-                child: Text((p['nome'] as String)[0]),
-              ),
-              title: Text(
-                p['nome'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              subtitle: Text(
-                p['papel'] as String,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-              trailing: Chip(
-                label: Text(
-                  p['status'] as String,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: p['status'] == 'Offline'
-                        ? Colors.grey
-                        : const Color(0xFF16A34A),
-                  ),
-                ),
-                backgroundColor: p['status'] == 'Offline'
-                    ? const Color(0xFFF1F5F9)
-                    : const Color(0xFFDCFCE7),
-              ),
-            );
-          }),
+          ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+            title: Text(AppUserSession.instance.effectiveName),
+            subtitle: const Text('Discente autenticado'),
+          ),
+          const Text('A lista de participantes não é fornecida pelo serviço acadêmico.'),
         ],
       ),
     );
@@ -239,12 +179,20 @@ class AvaForumCollaborationTab extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    controller.updatePersonalNotes(textController.text);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Anotações salvas com sucesso!'),
-                      ),
-                    );
+                    () async {
+                      try {
+                        await controller.updatePersonalNotes(textController.text);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Anotações salvas.')),
+                        );
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
+                    }();
                   },
                   icon: const Icon(Icons.save, size: 16),
                   label: const Text('Salvar Anotações'),
@@ -275,7 +223,6 @@ class AvaForumCollaborationTab extends StatelessWidget {
 
   // --- ABA 11: Chat da Turma ---
   Widget _buildClassChatTab(BuildContext context) {
-    final chatInput = TextEditingController();
     return AvaSectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,18 +230,12 @@ class AvaForumCollaborationTab extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Chat da Turma (APS-II 2026/2)',
+              Text(
+                'Chat da Turma (${controller.selectedDiscipline?.code ?? '—'})',
                 style: AvaSectionStyles.title,
               ),
               const SizedBox(height: 8),
-              const Chip(
-                label: Text(
-                  '18 alunos conectados',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
-                ),
-                backgroundColor: Color(0xFFDCFCE7),
-              ),
+              const Chip(label: Text('Chat não disponível')),
             ],
           ),
           const SizedBox(height: 16),
@@ -306,45 +247,9 @@ class AvaForumCollaborationTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: ListView(
-              children: const [
-                Text(
-                  'Profa. Dra. Helena Bittencourt: Pessoal, iniciamos a aula ao vivo na Sala Virtual!',
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Mariana Rios Costa: Professora, o link do GitHub da entrega já está liberado?',
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Profa. Dra. Helena Bittencourt: Sim, na aba Tarefas você pode anexar o zip ou informar o repositório.',
-                ),
-              ],
+            child: const Center(
+              child: Text('Este serviço não possui integração de chat.'),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: chatInput,
-                  decoration: const InputDecoration(
-                    hintText: 'Digite uma mensagem para a turma...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.send, color: Color(0xFF18181B)),
-                onPressed: () {
-                  chatInput.clear();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Mensagem enviada no chat!')),
-                  );
-                },
-              ),
-            ],
           ),
         ],
       ),
@@ -395,18 +300,24 @@ class AvaForumCollaborationTab extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              if (titleController.text.isNotEmpty) {
-                controller.postForumTopic(
-                  titleController.text,
-                  descController.text,
-                );
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Dúvida publicada no fórum da disciplina!'),
-                  ),
-                );
-              }
+              () async {
+                final classCode = controller.selectedDiscipline?.code;
+                if (classCode == null || classCode.isEmpty) return;
+                try {
+                  await controller.createForumTopic(
+                    classCode: classCode,
+                    title: titleController.text,
+                    body: descController.text,
+                  );
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                } catch (error) {
+                  if (!ctx.mounted) return;
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text(error.toString())),
+                  );
+                }
+              }();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF18181B),
