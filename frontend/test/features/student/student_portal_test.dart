@@ -12,8 +12,23 @@ import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/stud
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/academic_record_summary.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import '../../helpers/student_fixtures.dart';
 
 class _ProtocolDataSource extends StudentRemoteDataSource {
+  final List<Map<String, dynamic>> _protocols = [];
+
+  @override
+  Future<StudentDashboardSnapshot> getBootstrap() async =>
+      StudentDashboardSnapshot.fromJson({
+        'studentInfo': {
+          'name': 'Test Student',
+          'ra': StudentFixtures.studentRa,
+        },
+        'stats': {'activeDisciplines': 0},
+        'protocols': _protocols,
+      });
+
   @override
   Future<Map<String, dynamic>> submitProtocol({
     required String requestType,
@@ -21,22 +36,93 @@ class _ProtocolDataSource extends StudentRemoteDataSource {
     required String justification,
     String? attachmentName,
     String? attachmentBase64,
-  }) async => {
-    'protocolCode': 'PROT-TEST-001',
-    'submittedAt': '03/11/2026',
-    'subjectType': requestType,
-    'componentObject': targetComponent,
-    'status': 'pending',
-    'officialOpinion': 'Aguardando análise da Secretaria Acadêmica.',
-    'justification': justification,
-    'attachmentName': attachmentName,
-  };
+  }) async {
+    final protocol = <String, dynamic>{
+      'protocolCode': 'PROT-TEST-001',
+      'submittedAt': '03/11/2026',
+      'subjectType': requestType,
+      'componentObject': targetComponent,
+      'status': 'pending',
+      'officialOpinion': 'Aguardando análise da Secretaria Acadêmica.',
+      'justification': justification,
+      'attachmentName': attachmentName,
+    };
+    _protocols.add(protocol);
+    return protocol;
+  }
+}
+
+class _MessagesDataSource extends StudentRemoteDataSource {
+  @override
+  Future<StudentDashboardSnapshot> getBootstrap() async =>
+      StudentDashboardSnapshot.fromJson({
+        'studentInfo': {
+          'name': 'Test Student',
+          'ra': StudentFixtures.studentRa,
+        },
+        'stats': {'activeDisciplines': 0},
+        'messages': [
+          {
+            'id': 'msg-inst-1',
+            'category': 'institutional',
+            'sender': 'Secretaria',
+            'title': 'Prazo de matrícula',
+            'body': 'Confira o prazo de matrícula.',
+          },
+          {
+            'id': 'msg-inst-2',
+            'category': 'institutional',
+            'sender': 'Coordenação',
+            'title': 'Manutenção do portal',
+            'body': 'O portal passará por manutenção.',
+          },
+          {
+            'id': 'msg-disc-1',
+            'category': 'discipline',
+            'sender': 'Coordenação',
+            'title': 'Entrega de projeto',
+            'body': 'Confira as orientações da atividade.',
+          },
+          {
+            'id': 'msg-disc-2',
+            'category': 'discipline',
+            'sender': 'Docente',
+            'title': 'Material da aula',
+            'body': 'O material está disponível.',
+          },
+          {
+            'id': 'msg-disc-3',
+            'category': 'discipline',
+            'sender': 'Docente',
+            'title': 'Revisão',
+            'body': 'A revisão será na próxima aula.',
+          },
+        ],
+      });
 }
 
 void main() {
   group('StudentMessagesController & StudentMessagesPage', () {
-    test('Filtra comunicados por categoria e busca por termo', () {
-      final controller = StudentMessagesController();
+    late StudentMessagesController controller;
+    late _MessagesDataSource remote;
+
+    setUp(() async {
+      AppUserSession.instance.signIn(
+        identity: StudentFixtures.studentRa,
+        profile: 'aluno',
+        accessToken: 'test-student-token',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+      remote = _MessagesDataSource();
+      controller = StudentMessagesController(
+        remote: remote,
+        portalController: StudentPortalController.withRemoteDataSource(remote),
+      );
+      addTearDown(controller.dispose);
+      await controller.loadFromServer();
+    });
+
+    test('Filtra comunicados carregados do painel remoto', () {
       expect(controller.filteredMessages.length, 5);
 
       controller.setFilter(MessageFilter.institutional);
@@ -46,9 +132,9 @@ void main() {
       expect(controller.filteredMessages.length, 3);
 
       controller.setFilter(MessageFilter.all);
-      controller.setSearchQuery('Carlos Eduardo');
+      controller.setSearchQuery('Coordenação');
       expect(controller.filteredMessages.length, 1);
-      expect(controller.filteredMessages.first.title, contains('Diagrama UML'));
+      expect(controller.filteredMessages.first.title, 'Manutenção do portal');
     });
 
     testWidgets(
@@ -58,32 +144,21 @@ void main() {
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
         await tester.pumpWidget(
-          const MaterialApp(home: Scaffold(body: StudentMessagesPage())),
+          MaterialApp(
+            home: Scaffold(body: StudentMessagesPage(controller: controller)),
+          ),
         );
         await tester.pumpAndSettle();
 
         expect(find.text('Central de Mensagens & Comunicados'), findsOneWidget);
-        expect(
-          find.text(
-            'Período Oficial de Validação de Atividades Complementares 2026/2',
-          ),
-          findsOneWidget,
-        );
+        expect(find.text('Prazo de matrícula'), findsOneWidget);
 
         // Filtra por Secretaria & Reitoria
         await tester.tap(find.byKey(const Key('filter_institutional')));
         await tester.pumpAndSettle();
 
-        expect(
-          find.text(
-            'Manutenção Preventiva dos Ambientes Virtuais de Aprendizagem',
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Feedback da Sprint 1 e Orientações para o Diagrama UML'),
-          findsNothing,
-        );
+        expect(find.text('Manutenção do portal'), findsOneWidget);
+        expect(find.text('Entrega de projeto'), findsNothing);
       },
     );
   });
@@ -91,15 +166,21 @@ void main() {
   group('StudentSecretariatController & StudentSecretariatPage', () {
     setUp(() {
       AppUserSession.instance.signIn(
-        identity: '2024.1.00892',
+        identity: StudentFixtures.studentRa,
         profile: 'aluno',
+        accessToken: 'test-student-token',
       );
       addTearDown(AppUserSession.instance.signOut);
     });
 
     test('Adiciona novo protocolo de requerimento', () async {
+      final remote = _ProtocolDataSource();
+      final portalController = StudentPortalController.withRemoteDataSource(
+        remote,
+      );
       final controller = StudentSecretariatController(
-        remoteDataSource: _ProtocolDataSource(),
+        remoteDataSource: remote,
+        portalController: portalController,
       );
       expect(controller.protocols, isEmpty);
 
@@ -138,7 +219,7 @@ void main() {
 
         final controller = StudentSecretariatController(
           recordSummary: const AcademicRecordSummary(
-            ra: '2024.1.00892',
+            ra: StudentFixtures.studentRa,
             course: 'Engenharia de Software',
             academicIndex: '8.8',
             completedWorkload: '40h / 80h',
@@ -158,7 +239,9 @@ void main() {
         );
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(body: StudentSecretariatPage(controller: controller)),
+            home: Scaffold(
+              body: StudentSecretariatPage(controller: controller),
+            ),
           ),
         );
         await tester.pumpAndSettle();

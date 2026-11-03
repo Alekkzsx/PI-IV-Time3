@@ -101,7 +101,7 @@ void main() {
     expect(find.text('Painel Geral'), findsWidgets);
     expect(find.text('Acesso restrito'), findsNothing);
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
     session.signIn(identity: '202610401', profile: 'aluno');
     await tester.tap(find.byKey(const Key('open_teacher_portal')));
@@ -112,7 +112,7 @@ void main() {
     );
     expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open_video_call_with_forged_role')));
     await tester.pumpAndSettle();
@@ -133,7 +133,7 @@ void main() {
       isTrue,
     );
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
     session.signOut();
     await tester.tap(find.byKey(const Key('open_video_call_with_forged_role')));

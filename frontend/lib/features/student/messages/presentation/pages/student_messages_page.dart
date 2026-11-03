@@ -41,6 +41,7 @@ class _StudentMessagesPageState extends State<StudentMessagesPage> {
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? StudentMessagesController();
     _controller.addListener(_onControllerUpdated);
+    unawaited(_controller.loadFromServer());
   }
 
   @override

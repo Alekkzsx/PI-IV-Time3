@@ -17,15 +17,19 @@ class StudentSecretariatController extends ChangeNotifier {
   AcademicRecordSummary _recordSummary;
   final List<ProtocolRequest> _protocols;
   final StudentRemoteDataSource _remote;
+  final StudentPortalController _portalController;
 
   /// Cria uma instância de [StudentSecretariatController] com dados institucionais padrão.
   StudentSecretariatController({
     AcademicRecordSummary? recordSummary,
     List<ProtocolRequest>? initialProtocols,
     StudentRemoteDataSource? remoteDataSource,
+    StudentPortalController? portalController,
   }) : _recordSummary = recordSummary ?? emptyRecordSummary,
        _protocols = List<ProtocolRequest>.from(initialProtocols ?? const []),
-       _remote = remoteDataSource ?? StudentRemoteDataSource() {
+       _remote = remoteDataSource ?? StudentRemoteDataSource(),
+       _portalController =
+           portalController ?? StudentPortalController.instance {
     // Escuta despachos e pareceres oficiais emitidos pela Secretaria Geral (Admin)
     AcademicBridgeService.instance.onStudentProtocolUpdated =
         (protocolCode, isApproved, officialNote, approverName) {
@@ -61,7 +65,7 @@ class StudentSecretariatController extends ChangeNotifier {
   List<ProtocolRequest> get protocols => List.unmodifiable(_protocols);
 
   Future<void> loadFromServer() async {
-    final portal = StudentPortalController.instance;
+    final portal = _portalController;
     await portal.loadRemote(force: true);
     final snapshot = portal.remoteDashboard;
     if (snapshot == null) return;
@@ -171,7 +175,7 @@ class StudentSecretariatController extends ChangeNotifier {
   }
 
   Future<String?> downloadProtocol(String id) =>
-      StudentPortalController.instance.downloadProtocol(id);
+      _portalController.downloadProtocol(id);
 
   /// Prontuário padrão exibido na tela de Secretaria Virtual.
   static const AcademicRecordSummary emptyRecordSummary = AcademicRecordSummary(
