@@ -132,7 +132,7 @@ void main() {
       expect(controller.filteredMessages.length, 3);
 
       controller.setFilter(MessageFilter.all);
-      controller.setSearchQuery('Coordenação');
+      controller.setSearchQuery('Manutenção');
       expect(controller.filteredMessages.length, 1);
       expect(controller.filteredMessages.first.title, 'Manutenção do portal');
     });
@@ -248,7 +248,7 @@ void main() {
 
         expect(find.text('Secretaria Virtual & Requerimentos'), findsOneWidget);
         expect(find.text('Prontuário Acadêmico Regular'), findsOneWidget);
-        expect(find.text('2024.1.00892'), findsOneWidget);
+        expect(find.text(StudentFixtures.studentRa), findsOneWidget);
         expect(find.text('PROT-TEST-001'), findsOneWidget);
 
         // Abre modal de Parecer
