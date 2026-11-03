@@ -1,0 +1,1 @@
+export { StudentForumService } from "./service.js";

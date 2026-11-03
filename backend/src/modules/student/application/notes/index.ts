@@ -1,0 +1,1 @@
+export { StudentNotesService } from "./service.js";
