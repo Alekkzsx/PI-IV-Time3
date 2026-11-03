@@ -1,9 +1,11 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/state/app_user_session.dart';
 import '../../../../core/state/academic_bridge_service.dart';
 import '../data/docente_mock_data.dart';
+import '../data/teacher_remote_data_source.dart';
 import '../domain/models/academic_event.dart';
 import '../domain/models/academic_notice.dart';
 import '../domain/models/assignment_model.dart';
@@ -27,6 +29,10 @@ enum DocenteNavTab {
 
 /// Reactive controller managing all frontend state for the Docente Portal.
 class DocenteController extends ChangeNotifier {
+  final TeacherRemoteDataSource _remote;
+  bool isLoadingRemote = false;
+  String? remoteError;
+
   DocenteNavTab _activeTab = DocenteNavTab.painel;
   bool _isSidebarCollapsed = false;
 
@@ -89,7 +95,8 @@ class DocenteController extends ChangeNotifier {
     },
   };
 
-  DocenteController() {
+  DocenteController({TeacherRemoteDataSource? remoteDataSource})
+    : _remote = remoteDataSource ?? TeacherRemoteDataSource() {
     final session = AppUserSession.instance;
     final identity = session.hasRole('docente') ? session.identity ?? '' : '';
     _ownerIdentity = identity;
@@ -157,6 +164,105 @@ class DocenteController extends ChangeNotifier {
       return false;
     };
   }
+
+  Future<void> loadRemote({bool force = false}) async {
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty) {
+      remoteError = 'Entre novamente para carregar suas turmas.';
+      _clearRemoteState();
+      notifyListeners();
+      return;
+    }
+    if (isLoadingRemote) return;
+
+    isLoadingRemote = true;
+    remoteError = null;
+    _clearRemoteState();
+    notifyListeners();
+    try {
+      final snapshot = await _remote.getBootstrap();
+      if (AppUserSession.instance.accessToken != token) return;
+      _ownerIdentity = snapshot.profile.registrationId;
+      _profile = snapshot.profile;
+      _courses = snapshot.courses;
+      _selectedCourseId = _courses.isEmpty ? '' : _courses.first.id;
+      _sessions = snapshot.sessions;
+      _assignments = _addMissingAssignmentSubmissions(snapshot.assignments);
+      _gradebook = snapshot.grades;
+      _events = snapshot.events;
+      _notices = snapshot.notices;
+      _currentSession = _sessions.isEmpty
+          ? _emptySession
+          : _sessions.firstWhere(
+              (session) => session.courseId == _selectedCourseId,
+              orElse: () => _sessions.first,
+            );
+      _pautaHomologada
+        ..clear()
+        ..addEntries(
+          _courses.map((course) => MapEntry(course.id, course.pautaHomologated)),
+        );
+      AcademicBridgeService.instance.registerTeacherCourses(
+        _ownerIdentity,
+        _courses.map((course) => course.code),
+        teacherEmail: _profile.academicEmail,
+      );
+    } on ApiException catch (error) {
+      if (AppUserSession.instance.accessToken == token) {
+        remoteError = error.message;
+      }
+    } catch (_) {
+      if (AppUserSession.instance.accessToken == token) {
+        remoteError = 'Não foi possível carregar os dados docentes.';
+      }
+    } finally {
+      isLoadingRemote = false;
+      notifyListeners();
+    }
+  }
+
+  void _clearRemoteState() {
+    _courses = [];
+    _sessions = [];
+    _assignments = [];
+    _gradebook = [];
+    _events = [];
+    _notices = [];
+    _profile = _emptyProfile;
+    _currentSession = _emptySession;
+    _selectedCourseId = '';
+    _selectedAssignmentId = '';
+    _pautaHomologada.clear();
+    _pautaChancelaCodes.clear();
+    _assignmentDoubts.clear();
+  }
+
+  static const ClassSession _emptySession = ClassSession(
+    id: '',
+    courseId: '',
+    sessionNumber: 0,
+    hours: 0,
+    dateFormatted: '',
+    contentProgram: '',
+    methodology: '',
+    isHomologated: false,
+    attendanceList: [],
+  );
+
+  static const DocenteProfile _emptyProfile = DocenteProfile(
+    fullName: '',
+    socialName: '',
+    registrationId: '',
+    department: '',
+    semester: '',
+    campus: '',
+    status: '',
+    academicEmail: '',
+    personalEmail: '',
+    twoFactorEnabled: false,
+    activeSessions: [],
+    loginAudits: [],
+  );
 
   bool get _hasActiveTeacherAccess {
     final session = AppUserSession.instance;
