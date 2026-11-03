@@ -16,6 +16,12 @@ import type {
   RecoveryCodeRepository,
 } from "../domain/auth.types.js";
 import { authProfiles } from "../domain/auth.types.js";
+import {
+  ensureAcademicIndexes,
+  ensureAdminIndexes,
+  ensureAuthIndexes,
+  ensureVideoCallIndexes,
+} from "./mongo/indexes/index.js";
 
 interface UserDocument extends Document {
   identity: string;
@@ -48,50 +54,10 @@ export class MongoAuthDatabase {
   async connect(): Promise<void> {
     await this.client.connect();
     this.database = this.client.db(this.databaseName);
-    await this.database.collection("auth_recovery").createIndex({ normalizedIdentity: 1 }, { unique: true });
-    await this.database.collection("auth_sessions").createIndex({ sessionId: 1 }, { unique: true });
-    await this.database.collection("auth_sessions").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await this.database.collection("auth_sessions").createIndex({ userId: 1 });
-    await this.database.collection("auth_challenges").createIndex({ tokenDigest: 1 }, { unique: true });
-    await this.database.collection("auth_challenges").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await this.database.collection("auth_login_limits").createIndex({ key: 1 }, { unique: true });
-    await this.database.collection("auth_login_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await this.database.collection("auth_users").createIndex({ email: 1 }, {
-      unique: true, collation: { locale: "en", strength: 2 }, partialFilterExpression: { email: { $type: "string" } },
-    });
-    await this.database.collection<{ _id: string; revision: number }>("admin_write_guard")
-      .updateOne({ _id: "admin" }, { $setOnInsert: { revision: 0 } }, { upsert: true });
-    await this.database.collection("admin_audit_logs").createIndex({ createdAt: -1 });
-    await this.database.collection("academic_protocols").createIndex({ code: 1 }, { unique: true });
-    await this.database
-      .collection<RecoveryDocument>("auth_recovery")
-      .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await this.database
-      .collection<UserDocument>("auth_users")
-      .createIndex({ normalizedIdentity: 1 }, { unique: true });
-    await this.database
-      .collection("academic_courses")
-      .createIndex({ code: 1 }, { unique: true });
-    await this.database
-      .collection("academic_classes")
-      .createIndex({ code: 1 }, { unique: true });
-    await this.database
-      .collection("academic_enrollments")
-      .createIndex({ classCode: 1, studentId: 1 }, { unique: true });
-    await this.database
-      .collection("academic_enrollments")
-      .createIndex({ studentId: 1, status: 1 });
-    await this.database
-      .collection("academic_class_sessions")
-      .createIndex({ classCode: 1, startsAt: 1 });
-    await this.database
-      .collection("academic_live_sessions")
-      .createIndex({ roomCode: 1 }, { unique: true });
-    await this.database
-      .collection("academic_live_sessions")
-      .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    await this.database.collection("video_call_ws_tickets").createIndex({ tokenDigest: 1 }, { unique: true });
-    await this.database.collection("video_call_ws_tickets").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await ensureAuthIndexes(this.database);
+    await ensureAdminIndexes(this.database);
+    await ensureAcademicIndexes(this.database);
+    await ensureVideoCallIndexes(this.database);
   }
 
   users(): MongoAuthUserRepository {
