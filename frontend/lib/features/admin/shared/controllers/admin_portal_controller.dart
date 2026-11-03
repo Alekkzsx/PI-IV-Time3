@@ -144,7 +144,23 @@ class AdminPortalController extends ChangeNotifier {
 
   void _initAcademicBridge() {
     AcademicBridgeService.instance.onAdminProtocolReceived = (newProtocol) {
-      protocols.insert(0, newProtocol);
+      protocols.insert(
+        0,
+        AdminProtocolModel(
+          id: newProtocol.id,
+          studentName: newProtocol.studentName,
+          studentRa: newProtocol.studentRa,
+          requestType: newProtocol.requestType,
+          targetComponent: newProtocol.targetComponent,
+          date: newProtocol.date,
+          status: newProtocol.status,
+          attachmentName: newProtocol.attachmentName,
+          justification: newProtocol.justification,
+          decisionNote: newProtocol.decisionNote,
+          immediateImpact: newProtocol.immediateImpact,
+          signedBy: newProtocol.signedBy,
+        ),
+      );
       notifyListeners();
     };
   }

@@ -1,9 +1,10 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-import { Router, type RequestHandler } from "express";
-import jwt, { type JwtPayload } from "jsonwebtoken";
-import { ObjectId, type Db } from "mongodb";
+import { Router } from "express";
+import type { Response } from "express";
+import type { Db } from "mongodb";
 import { z } from "zod";
 import { AuthError } from "../../../shared/auth-error.js";
+import { authenticated } from "../../auth/infrastructure/session.middleware.js";
 import {
   VideoCallRoomService,
   type AuthenticatedVideoUser,
@@ -26,11 +27,11 @@ const attendanceSchema = z.object({
 
 export function createVideoCallRouter(database: Db, jwtSecret: string): Router {
   const router = Router();
-  const authenticate = authenticatedVideoUser(jwtSecret);
+  const authenticate = authenticated(database, jwtSecret, false);
   const service = new VideoCallRoomService(database);
 
   router.get("/rooms", authenticate, async (_request, response) => {
-    const claims = response.locals.user as AuthenticatedVideoUser;
+    const claims = videoUser(response);
     const rooms = await service.listAccessibleRooms(claims);
     response.status(200).json(rooms);
   });
@@ -50,7 +51,7 @@ export function createVideoCallRouter(database: Db, jwtSecret: string): Router {
       throw new AuthError(400, "invalid_request", "Código da turma inválido.");
     }
 
-    const claims = response.locals.user as AuthenticatedVideoUser;
+    const claims = videoUser(response);
     const result = await service.enterRoom(claims, parsed.data.roomCode);
     response.status(200).json(result);
   });
@@ -61,7 +62,7 @@ export function createVideoCallRouter(database: Db, jwtSecret: string): Router {
       throw new AuthError(400, "invalid_request", "Código da turma inválido.");
     }
 
-    const claims = response.locals.user as AuthenticatedVideoUser;
+    const claims = videoUser(response);
     await service.closeRoom(claims, parsed.data.roomCode);
     response.status(204).end();
   });
@@ -71,7 +72,7 @@ export function createVideoCallRouter(database: Db, jwtSecret: string): Router {
     if (!parsed.success) {
       throw new AuthError(400, "invalid_request", "Dados de telemetria inválidos.");
     }
-    const claims = response.locals.user as AuthenticatedVideoUser;
+    const claims = videoUser(response);
     const result = await service.recordAttendanceTelemetry(
       claims,
       parsed.data.roomCode,
@@ -84,36 +85,9 @@ export function createVideoCallRouter(database: Db, jwtSecret: string): Router {
   return router;
 }
 
-function authenticatedVideoUser(jwtSecret: string): RequestHandler {
-  return (request, response, next) => {
-    const authorization = request.header("authorization");
-    const token = authorization?.startsWith("Bearer ")
-      ? authorization.slice("Bearer ".length)
-      : undefined;
-    if (!token) {
-      next(new AuthError(401, "authentication_required", "Autenticação necessária."));
-      return;
-    }
-
-    let claims: string | JwtPayload;
-    try {
-      claims = jwt.verify(token, jwtSecret, { algorithms: ["HS256"] });
-    } catch {
-      next(new AuthError(401, "invalid_token", "Sessão inválida ou expirada."));
-      return;
-    }
-
-    if (
-      typeof claims === "string" ||
-      typeof claims.sub !== "string" ||
-      !ObjectId.isValid(claims.sub) ||
-      typeof claims.profile !== "string"
-    ) {
-      next(new AuthError(401, "invalid_token", "Sessão inválida ou expirada."));
-      return;
-    }
-
-    response.locals.user = { id: claims.sub, profile: claims.profile };
-    next();
+function videoUser(response: Response): AuthenticatedVideoUser {
+  return {
+    id: String(response.locals.userId),
+    profile: String(response.locals.user.profile),
   };
 }
