@@ -29,6 +29,7 @@ $$\text{Presentation Layer (Widgets \& Controllers)} \longleftrightarrow \text{D
    - Ordered FIFO doubt queue (Raised Hands) and real-time session chat.
    - Screen sharing and session recording with institutional audit logging.
    - Regimental room opening access restricted strictly to Teacher or Admin.
+   - WebSocket signaling through the Java server after a single-use room ticket is issued by the TypeScript API; audio/video remain peer-to-peer.
 6. **`multiperfil`**: Academic interoperability bridge (*Academic Bridge*) orchestrating synchronized cross-role events between Student, Teacher, and Admin.
 
 ---
@@ -82,8 +83,13 @@ flutter run
 
 When executing `flutter run`:
 - Flutter compiles and launches the desktop/web client.
-- Parent module services (`server/` with all 15 endpoints including real SMTP OTP dispatch and `backend/` persistence) are **automatically initialized in the background**.
-- The enterprise security package (`security/`) is resolved and linked directly via `pubspec.yaml`.
+- The Java academic/WebSocket server in `server/` is started automatically when needed.
+- The TypeScript auth, room authorization, and ticket API in `backend/` must be started separately with `npm run dev`.
+- The enterprise security package (`security/`) is declared as a local dependency in `pubspec.yaml`.
+
+For a non-local Web deployment, configure `AUTH_API_BASE_URL` for the TypeScript
+API and `VIDEO_CALL_WS_BASE_URL` for the Java WebSocket endpoint using
+`--dart-define`; use `wss://` for secure deployments.
 
 ---
 
