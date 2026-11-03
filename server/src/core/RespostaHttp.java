@@ -34,6 +34,7 @@ public class RespostaHttp {
             case 201: descricao = "Created"; break;
             case 204: descricao = "No Content"; break;
             case 400: descricao = "Bad Request"; break;
+            case 401: descricao = "Unauthorized"; break;
             case 403: descricao = "Forbidden"; break;
             case 404: descricao = "Not Found"; break;
             case 405: descricao = "Method Not Allowed"; break;
