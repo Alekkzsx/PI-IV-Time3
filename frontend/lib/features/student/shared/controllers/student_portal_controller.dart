@@ -5,10 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/student/shell/presentation/models/student_nav_item.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import '../../../../core/network/authenticated_api_client.dart';
 import '../data/student_remote_data_source.dart';
-import '../data/student_mock_data.dart';
-import '../models/student_models.dart' as remote_models;
+import '../models/student_models.dart';
 
 DateTime _today() {
   final now = DateTime.now();
@@ -21,6 +22,8 @@ class StudentPortalController extends ChangeNotifier {
   static final StudentPortalController instance =
       StudentPortalController._internal();
   final StudentRemoteDataSource _remote;
+  final AuthProfileRemoteDataSource _profileRemote =
+      AuthProfileRemoteDataSource();
 
   StudentPortalController._internal({StudentRemoteDataSource? remote})
     : _remote = remote ?? StudentRemoteDataSource() {
@@ -63,6 +66,7 @@ class StudentPortalController extends ChangeNotifier {
       if (AppUserSession.instance.accessToken == token) {
         remoteDashboard = result;
         _loadedForToken = token;
+        isTwoFactorEnabled = result.studentInfo['twoFactorRequired'] == true;
         AcademicBridgeService.instance.registerStudentEnrollments(
           result.studentInfo['ra']?.toString() ??
               AppUserSession.instance.identity ??
@@ -70,13 +74,18 @@ class StudentPortalController extends ChangeNotifier {
           result.disciplines.map((discipline) => discipline.code),
           studentEmail: result.studentInfo['email']?.toString(),
         );
-        disciplines = result.disciplines.map(_legacyDiscipline).toList();
-        deliveries = result.deliveries.map(_legacyDelivery).toList();
-        events = result.events.map(_legacyEvent).toList();
-        if (disciplines.isNotEmpty) selectedDiscipline = disciplines.first;
-        studentPersonalNotes = result.personalNotes.values
-            .map((value) => value.toString())
-            .firstOrNull ?? '';
+        disciplines = result.disciplines;
+        deliveries = result.deliveries;
+        events = result.events;
+        if (disciplines.isNotEmpty) {
+          final firstDiscipline = disciplines.first;
+          selectedDiscipline = firstDiscipline;
+          studentPersonalNotes =
+              result.personalNotes[firstDiscipline.code]?.toString() ?? '';
+        } else {
+          selectedDiscipline = null;
+          studentPersonalNotes = '';
+        }
       }
     } on ApiException catch (error) {
       if (AppUserSession.instance.accessToken == token) {
@@ -93,9 +102,7 @@ class StudentPortalController extends ChangeNotifier {
   }
 
   // Disciplinas do Aluno (mutáveis para recálculo de notas e presenças)
-  late List<StudentDisciplineModel> disciplines = List.from(
-    StudentMockData.disciplines,
-  );
+  List<StudentDisciplineModel> disciplines = [];
 
   // Navegação Ativa
   StudentNavItem activeNavItem = StudentNavItem.painelGeral;
@@ -111,7 +118,7 @@ class StudentPortalController extends ChangeNotifier {
   bool isGridView = true;
 
   // Disciplina selecionada para o Cockpit do AVA
-  StudentDisciplineModel selectedDiscipline = StudentMockData.disciplines.first;
+  StudentDisciplineModel? selectedDiscipline;
 
   // Calendário
   String calendarViewMode = 'Mês'; // 'Mês' ou 'Agenda'
@@ -122,50 +129,97 @@ class StudentPortalController extends ChangeNotifier {
     'Fórum',
     'Avaliação',
   };
-  final Set<String> activeDisciplineFilters = {'APS-II', 'BD-II', 'FIS', 'FSO'};
-  late List<StudentCalendarEvent> events = List.from(
-    StudentMockData.calendarEvents,
-  );
+  final Set<String> activeDisciplineFilters = {};
+  List<StudentCalendarEvent> events = [];
 
   // Entregas
-  late List<StudentDeliveryItem> deliveries = List.from(
-    StudentMockData.deliveries,
-  );
+  List<StudentDeliveryItem> deliveries = [];
   String activeDeliveryFilter = 'Todas';
 
   // Configurações
   int selectedSettingsTabIndex = 0;
-  bool isTwoFactorEnabled = true;
+  bool isTwoFactorEnabled = false;
   bool emailNotifications = true;
   bool pushNotifications = true;
   bool smsNotifications = false;
 
   // Cockpit do AVA
   int activeAvaTabIndex = 0;
-  int currentSlideIndex = 14;
-  final int totalSlides = 28;
-  bool isMicMuted = true;
-  bool isCameraOff = true;
-  bool isHandRaised = false;
-  String studentPersonalNotes =
-      '# Anotações da Aula 14 - Padrão Adapter\n\n- O Adapter converte a interface de uma classe em outra que o cliente espera.\n- Permite que classes com interfaces incompatíveis trabalhem juntas.\n- Exemplo prático: Integração com legado via Wrapper.';
+  String studentPersonalNotes = '';
 
-  final List<Map<String, String>> forumTopics = [
-    {
-      'autor': 'Mariana Rios Costa',
-      'tempo': 'Há 2 horas',
-      'titulo':
-          'Dúvida na estrutura de classes do padrão Adapter com herança múltipla',
-      'respostas': '2 respostas (Profa. Helena respondeu)',
-    },
-    {
-      'autor': 'Lucas Silva Santos',
-      'tempo': 'Ontem',
-      'titulo':
-          'Formato do arquivo de entrega: zip com testes unitários é obrigatório?',
-      'respostas': '1 resposta (Monitor Victor respondeu)',
-    },
-  ];
+  Map<String, dynamic> get studentInfo =>
+      remoteDashboard?.studentInfo ?? const {};
+  Map<String, dynamic> get stats => remoteDashboard?.stats ?? const {};
+  Map<String, dynamic> get recordSummary =>
+      remoteDashboard?.recordSummary ?? const {};
+  Map<String, dynamic>? get todayClass => remoteDashboard?.todayClass;
+  List<Map<String, dynamic>> get messages =>
+      remoteDashboard?.messages ?? const [];
+  List<Map<String, dynamic>> get protocols =>
+      remoteDashboard?.protocols ?? const [];
+  Future<List<StudentBoletimPeriod>> loadBoletim() async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem consultar o boletim.');
+    }
+    return _remote.getBoletim();
+  }
+
+  List<Map<String, dynamic>> forumTopics(String classCode) =>
+      remoteDashboard?.forumTopics
+          .where((topic) => topic['classCode']?.toString() == classCode)
+          .toList(growable: false) ??
+      const [];
+
+  Future<void> postDoubt({
+    required String assignmentId,
+    required String question,
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem enviar dúvidas.');
+    }
+    if (question.trim().length < 2) {
+      throw const ApiException('Escreva uma dúvida antes de enviar.');
+    }
+    await _remote.postDoubt(
+      assignmentId: assignmentId,
+      question: question.trim(),
+    );
+    await loadRemote(force: true);
+  }
+
+  Future<void> createForumTopic({
+    required String classCode,
+    required String title,
+    required String body,
+    String? category,
+  }) async {
+    if (!AppUserSession.instance.hasPermission('participate_course_forum')) {
+      throw const ApiException('Seu perfil não pode participar deste fórum.');
+    }
+    await _remote.createForumTopic(
+      classCode: classCode,
+      title: title.trim(),
+      body: body.trim(),
+      category: category,
+    );
+    await loadRemote(force: true);
+  }
+
+  Future<void> replyForumTopic({
+    required String classCode,
+    required String topicId,
+    required String body,
+  }) async {
+    if (!AppUserSession.instance.hasPermission('participate_course_forum')) {
+      throw const ApiException('Seu perfil não pode participar deste fórum.');
+    }
+    await _remote.replyForumTopic(
+      classCode: classCode,
+      topicId: topicId,
+      body: body.trim(),
+    );
+    await loadRemote(force: true);
+  }
 
   // Métodos de Modificação de Estado
 
@@ -178,6 +232,8 @@ class StudentPortalController extends ChangeNotifier {
 
   void selectDiscipline(StudentDisciplineModel discipline) {
     selectedDiscipline = discipline;
+    studentPersonalNotes =
+        remoteDashboard?.personalNotes[discipline.code]?.toString() ?? '';
     notifyListeners();
   }
 
@@ -225,7 +281,8 @@ class StudentPortalController extends ChangeNotifier {
 
   List<StudentCalendarEvent> get visibleCalendarEvents => events.where((event) {
     return activeEventTypes.contains(event.type) &&
-        activeDisciplineFilters.contains(event.discipline);
+        (activeDisciplineFilters.isEmpty ||
+            activeDisciplineFilters.contains(event.discipline));
   }).toList();
 
   void toggleEventTypeFilter(String type) {
@@ -443,14 +500,11 @@ class StudentPortalController extends ChangeNotifier {
         final oldDisc = disciplines[discIdx];
         Map<String, dynamic>? myRecord;
         for (final a in attendances) {
-          if (a['ra'] == '24802449' ||
-              a['studentName']?.toString().toLowerCase().contains('alex') ==
-                  true) {
+          if (a['ra']?.toString() == AppUserSession.instance.identity) {
             myRecord = a;
             break;
           }
         }
-        myRecord ??= attendances.isNotEmpty ? attendances.first : null;
         if (myRecord == null) return;
 
         final status = myRecord['status'] as String? ?? 'presente';
@@ -490,7 +544,7 @@ class StudentPortalController extends ChangeNotifier {
           hasPendingTask: oldDisc.hasPendingTask,
         );
 
-        if (selectedDiscipline.code == oldDisc.code) {
+        if (selectedDiscipline?.code == oldDisc.code) {
           selectedDiscipline = disciplines[discIdx];
         }
 
@@ -535,7 +589,7 @@ class StudentPortalController extends ChangeNotifier {
                 maxAbsenceHours: oldDisc.maxAbsenceHours,
                 hasPendingTask: oldDisc.hasPendingTask,
               );
-              if (selectedDiscipline.code == oldDisc.code) {
+              if (selectedDiscipline?.code == oldDisc.code) {
                 selectedDiscipline = disciplines[discIdx];
               }
               notifyListeners();
@@ -544,7 +598,7 @@ class StudentPortalController extends ChangeNotifier {
         };
   }
 
-  Future<String> submitDelivery({
+  Future<Map<String, dynamic>> submitDelivery({
     required String deliveryId,
     required String fileName,
     required String fileSize,
@@ -571,7 +625,8 @@ class StudentPortalController extends ChangeNotifier {
     }
     final deliveryIndex = deliveries.indexWhere(
       (delivery) =>
-          delivery.id == deliveryId || delivery.sourceAssignmentId == deliveryId,
+          delivery.id == deliveryId ||
+          delivery.sourceAssignmentId == deliveryId,
     );
     if (deliveryIndex != -1) {
       final delivery = deliveries[deliveryIndex];
@@ -588,60 +643,43 @@ class StudentPortalController extends ChangeNotifier {
       );
     }
     await loadRemote(force: true);
-    return protocol;
+    return response;
   }
 
-  StudentDisciplineModel _legacyDiscipline(remote_models.StudentDisciplineModel value) => StudentDisciplineModel(
-    code: value.code,
-    fullCode: value.fullCode,
-    name: value.name,
-    professor: value.professor,
-    time: value.time,
-    location: value.location,
-    progress: value.progress,
-    n1: value.n1,
-    n2: value.n2,
-    p1: value.p1,
-    p2: value.p2,
-    trab: value.trab,
-    partialAverage: value.partialAverage,
-    attendancePercentage: value.attendancePercentage,
-    absences: value.absences,
-    totalHours: value.totalHours,
-    completedHours: value.completedHours,
-    maxAbsenceHours: value.maxAbsenceHours,
-    hasPendingTask: value.hasPendingTask,
-  );
+  Future<String?> downloadMaterial(StudentMaterialItem material) async {
+    final response = await _remote.downloadMaterial(material.id);
+    return _saveDownloadedFile(response, material.fileName, material.fileType);
+  }
 
-  StudentDeliveryItem _legacyDelivery(remote_models.StudentDeliveryItem value) => StudentDeliveryItem(
-    id: value.id,
-    sourceAssignmentId: value.sourceAssignmentId,
-    title: value.title,
-    disciplineCode: value.disciplineCode,
-    disciplineName: value.disciplineName,
-    dueDate: value.dueDate,
-    dueHour: value.dueHour,
-    status: value.status,
-    weight: value.weight,
-    score: value.score,
-    feedback: value.feedback,
-    protocol: value.protocol,
-    rubrics: value.rubrics,
-    description: value.description,
-    professor: value.professor,
-    submissionDate: value.submissionDate,
-    maxScore: value.maxScore,
-  );
+  Future<String?> downloadSubmission(String id) async {
+    final response = await _remote.downloadSubmission(id);
+    return _saveDownloadedFile(
+      response,
+      response['fileName']?.toString() ?? 'submissao.txt',
+      'application/octet-stream',
+    );
+  }
 
-  StudentCalendarEvent _legacyEvent(remote_models.StudentCalendarEvent value) => StudentCalendarEvent(
-    id: value.id,
-    title: value.title,
-    date: value.date,
-    time: value.time,
-    type: value.type,
-    discipline: value.discipline,
-    location: value.location,
-  );
+  Future<String?> downloadProtocol(String id) async {
+    final response = await _remote.downloadProtocol(id);
+    return _saveDownloadedFile(
+      response,
+      response['attachmentName']?.toString() ?? 'protocolo.txt',
+      'text/plain',
+    );
+  }
+
+  Future<String?> _saveDownloadedFile(
+    Map<String, dynamic> response,
+    String fileName,
+    String mimeType,
+  ) {
+    return PlatformFileHelper.saveOrDownloadFile(
+      fileName: fileName,
+      bytes: _remote.decodeFileContent(response),
+      mimeType: mimeType,
+    );
+  }
 
   String get settingsSubtab {
     switch (selectedSettingsTabIndex) {
@@ -688,14 +726,22 @@ class StudentPortalController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleTwoFactor() {
-    if (!AppUserSession.instance.hasRole('aluno') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        )) {
-      return;
+  Future<void> toggleTwoFactor(String password) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException(
+        'Apenas alunos podem alterar esta configuração.',
+      );
     }
-    isTwoFactorEnabled = !isTwoFactorEnabled;
+    await _profileRemote.toggleTwoFactor(
+      password: password,
+      enabled: !isTwoFactorEnabled,
+    );
+    setTwoFactorEnabled(!isTwoFactorEnabled);
+  }
+
+  void setTwoFactorEnabled(bool enabled) {
+    if (isTwoFactorEnabled == enabled) return;
+    isTwoFactorEnabled = enabled;
     notifyListeners();
   }
 
@@ -704,61 +750,15 @@ class StudentPortalController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleMic() {
-    isMicMuted = !isMicMuted;
-    notifyListeners();
-  }
-
-  void toggleCamera() {
-    isCameraOff = !isCameraOff;
-    notifyListeners();
-  }
-
-  void toggleHandRaise() {
-    isHandRaised = !isHandRaised;
-    notifyListeners();
-  }
-
-  void nextSlide() {
-    if (currentSlideIndex < totalSlides) {
-      currentSlideIndex++;
-      notifyListeners();
+  Future<void> updatePersonalNotes(String text) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem salvar anotações.');
     }
-  }
-
-  void prevSlide() {
-    if (currentSlideIndex > 1) {
-      currentSlideIndex--;
-      notifyListeners();
+    final classCode = selectedDiscipline?.code;
+    if (classCode == null || classCode.isEmpty) {
+      throw const ApiException('Selecione uma disciplina para salvar.');
     }
-  }
-
-  void postForumTopic(String title, String description) {
-    if (!AppUserSession.instance.hasPermission('participate_course_forum') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        ) ||
-        title.trim().isEmpty ||
-        description.trim().isEmpty) {
-      return;
-    }
-    forumTopics.insert(0, {
-      'autor': StudentMockData.studentName,
-      'tempo': 'Agora mesmo',
-      'titulo': title.trim(),
-      'respostas': '0 respostas (Aguardando monitoria)',
-    });
-    notifyListeners();
-  }
-
-  void updatePersonalNotes(String text) {
-    if (!AppUserSession.instance.hasRole('aluno') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        )) {
-      return;
-    }
-    studentPersonalNotes = text;
-    notifyListeners();
+    await _remote.saveNote(classCode: classCode, content: text);
+    await loadRemote(force: true);
   }
 }

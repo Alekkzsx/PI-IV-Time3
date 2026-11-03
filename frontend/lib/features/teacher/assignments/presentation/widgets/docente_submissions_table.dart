@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -353,7 +353,7 @@ class DocenteSubmissionsTable extends StatelessWidget {
                                   color: Color(0xFF71717A),
                                 ),
                                 const SizedBox(width: 6),
-                                Flexible(
+                                Expanded(
                                   child: Text(
                                     _truncateFileName(sub.fileName!),
                                     style: jakarta(
@@ -361,33 +361,34 @@ class DocenteSubmissionsTable extends StatelessWidget {
                                       weight: FontWeight.w400,
                                       color: const Color(0xFF27272A),
                                     ),
-                                    if (controller != null)
-                                      IconButton(
-                                        tooltip: 'Baixar submissão',
-                                        visualDensity: VisualDensity.compact,
-                                        onPressed: () async {
-                                          final result = await controller!
-                                              .downloadSubmission(sub);
-                                          if (context.mounted && result == null) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      controller!.remoteError ??
-                                                          'Não foi possível baixar o arquivo.',
-                                                    ),
-                                                  ),
-                                                );
-                                          }
-                                        },
-                                        icon: const Icon(
-                                          Icons.download_outlined,
-                                          size: 16,
-                                        ),
-                                      ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                                if (controller != null)
+                                  IconButton(
+                                    tooltip: 'Baixar submissão',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () async {
+                                      final result = await controller!
+                                          .downloadSubmission(sub);
+                                      if (context.mounted && result == null) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              controller!.remoteError ??
+                                                  'Não foi possível baixar o arquivo.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.download_outlined,
+                                      size: 16,
+                                    ),
+                                  ),
                               ],
                             )
                           : Text(

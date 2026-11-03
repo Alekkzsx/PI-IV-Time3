@@ -28,14 +28,14 @@ class StudentMaterialItem {
     return StudentMaterialItem(
       id: id,
       courseCode: json['courseCode']?.toString() ?? '',
-      title: json['title']?.toString() ?? 'Material',
+      title: json['title']?.toString() ?? '',
       fileName:
-          json['fileName']?.toString() ?? json['title']?.toString() ?? 'arquivo.txt',
+          json['fileName']?.toString() ?? json['title']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       size: json['size']?.toString() ?? '',
       fileType:
           (json['fileType'] ?? json['type'])?.toString().toUpperCase() ?? 'PDF',
-      unitAssociated: json['unitAssociated']?.toString() ?? 'Unidade 1',
+      unitAssociated: json['unitAssociated']?.toString() ?? '',
       downloadUrl:
           json['downloadUrl']?.toString() ??
           (id.isNotEmpty ? '/api/files/materials/$id' : ''),
@@ -61,10 +61,10 @@ class StudentForumReply {
   factory StudentForumReply.fromJson(Map<String, dynamic> json) {
     return StudentForumReply(
       id: json['id']?.toString() ?? '',
-      authorName: json['authorName']?.toString() ?? 'Participante',
+      authorName: json['authorName']?.toString() ?? '',
       authorRole: json['authorRole']?.toString() ?? 'aluno',
       body: (json['body'] ?? json['content'])?.toString() ?? '',
-      date: json['date']?.toString() ?? 'Recente',
+      date: json['date']?.toString() ?? '',
     );
   }
 }
@@ -102,9 +102,9 @@ class StudentForumTopic {
       title: json['title']?.toString() ?? '',
       body: (json['body'] ?? json['content'])?.toString() ?? '',
       category: json['category']?.toString() ?? 'Geral',
-      authorName: json['authorName']?.toString() ?? 'Participante',
-      authorRole: json['authorRole']?.toString() ?? 'aluno',
-      date: json['date']?.toString() ?? 'Recente',
+      authorName: json['authorName']?.toString() ?? '',
+      authorRole: json['authorRole']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
       isPinned: json['isPinned'] == true,
       replies: rawReplies is List
           ? rawReplies
@@ -172,7 +172,7 @@ class StudentDisciplineModel {
     this.hasPendingTask = false,
     this.maxAbsenceHours = 20,
     this.evaluationFormula = '(N1 × 0.4) + (N2 × 0.6)',
-    this.semester = '2026/2',
+    this.semester = '',
     this.isLab = false,
     this.syllabusUnits = const [],
     this.squads = const [],
@@ -194,10 +194,10 @@ class StudentDisciplineModel {
       roomCode: json['roomCode']?.toString() ?? code,
       fullCode: json['fullCode']?.toString() ?? code,
       name: json['name']?.toString() ?? code,
-      professor: json['professor']?.toString() ?? 'Docente Responsável',
+      professor: json['professor']?.toString() ?? '',
       schedule: json['schedule']?.toString() ?? json['time']?.toString() ?? '',
       time: json['time']?.toString() ?? json['schedule']?.toString() ?? '',
-      location: json['location']?.toString() ?? 'Sala Virtual',
+      location: json['location']?.toString() ?? '',
       roomStatus: json['roomStatus']?.toString() ?? (json['isLive'] == true ? 'Ao Vivo' : 'Sala Fechada'),
       isLive: json['isLive'] == true,
       progress: numOrZero(json['progress']),
@@ -208,18 +208,16 @@ class StudentDisciplineModel {
       trab: numOrZero(json['trab']),
       partialAverage: numOrZero(json['partialAverage']),
       attendancePercentage: json['attendancePercentage'] == null
-          ? 100.0
+          ? 0.0
           : numOrZero(json['attendancePercentage']),
       absences: intOrZero(json['absences']),
-      totalHours: json['totalHours'] == null ? 80 : intOrZero(json['totalHours']),
+      totalHours: intOrZero(json['totalHours']),
       completedHours: intOrZero(json['completedHours']),
-      maxAbsenceHours: json['maxAbsenceHours'] == null
-          ? 20
-          : intOrZero(json['maxAbsenceHours']),
+      maxAbsenceHours: intOrZero(json['maxAbsenceHours']),
       hasPendingTask: json['hasPendingTask'] == true,
       evaluationFormula:
           json['evaluationFormula']?.toString() ?? '(N1 × 0.4) + (N2 × 0.6)',
-      semester: json['semester']?.toString() ?? '2026/2',
+      semester: json['semester']?.toString() ?? '',
       isLab: json['isLab'] == true,
       syllabusUnits: rawUnits is List
           ? rawUnits
@@ -301,9 +299,9 @@ class StudentDoubtItem {
   factory StudentDoubtItem.fromJson(Map<String, dynamic> json) {
     return StudentDoubtItem(
       id: json['id']?.toString() ?? '',
-      studentName: json['studentName']?.toString() ?? 'Aluno',
+      studentName: json['studentName']?.toString() ?? '',
       question: json['question']?.toString() ?? '',
-      askedAt: json['askedAt']?.toString() ?? 'Recente',
+      askedAt: json['askedAt']?.toString() ?? '',
       reply: json['reply']?.toString(),
       repliedAt: json['repliedAt']?.toString(),
     );
@@ -371,8 +369,8 @@ class StudentDeliveryItem {
     this.allowedFormats,
     this.submissionDate,
     this.feedbackDate,
-    this.maxScore = 10.0,
-    this.attachmentCount = 1,
+    this.maxScore = 0,
+    this.attachmentCount = 0,
   });
 
   factory StudentDeliveryItem.fromJson(Map<String, dynamic> json) {
@@ -382,13 +380,13 @@ class StudentDeliveryItem {
       id: json['id']?.toString() ?? '',
       sourceAssignmentId:
           json['sourceAssignmentId']?.toString() ?? json['id']?.toString(),
-      title: json['title']?.toString() ?? 'Atividade',
+      title: json['title']?.toString() ?? '',
       disciplineCode: json['disciplineCode']?.toString() ?? '',
       disciplineName: json['disciplineName']?.toString() ?? '',
       dueDate: json['dueDate']?.toString() ?? '',
-      dueHour: json['dueHour']?.toString() ?? '23:59',
-      status: json['status']?.toString() ?? 'Pendente',
-      weight: json['weight'] is num ? (json['weight'] as num).toDouble() : 1.0,
+      dueHour: json['dueHour']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      weight: json['weight'] is num ? (json['weight'] as num).toDouble() : 0,
       score: json['score'] is num ? (json['score'] as num).toDouble() : null,
       feedback: json['feedback']?.toString(),
       protocol: json['protocol']?.toString(),
@@ -420,10 +418,10 @@ class StudentDeliveryItem {
       feedbackDate: json['feedbackDate']?.toString(),
       maxScore: json['maxScore'] is num
           ? (json['maxScore'] as num).toDouble()
-          : 10.0,
+          : 0.0,
       attachmentCount: json['attachmentCount'] is num
           ? (json['attachmentCount'] as num).toInt()
-          : 1,
+          : 0,
     );
   }
 }
@@ -453,9 +451,9 @@ class StudentCalendarEvent {
       title: json['title']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       time: (json['time'] ?? json['timeRange'])?.toString() ?? '',
-      type: (json['type'] ?? json['category'])?.toString() ?? 'Acadêmico',
-      discipline: (json['discipline'] ?? json['courseCode'])?.toString() ?? 'Institucional',
-      location: json['location']?.toString() ?? 'Portal Acadêmico',
+      type: (json['type'] ?? json['category'])?.toString() ?? '',
+      discipline: (json['discipline'] ?? json['courseCode'])?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
     );
   }
 }
@@ -469,7 +467,7 @@ class StudentBoletimPeriod {
   factory StudentBoletimPeriod.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
     return StudentBoletimPeriod(
-      period: json['period']?.toString() ?? '2026/2',
+      period: json['period']?.toString() ?? '',
       items: rawItems is List
           ? rawItems
                 .whereType<Map>()
@@ -479,4 +477,3 @@ class StudentBoletimPeriod {
     );
   }
 }
-

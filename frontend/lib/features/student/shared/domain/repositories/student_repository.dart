@@ -1,6 +1,6 @@
 ﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
-import '../../data/student_mock_data.dart';
+import '../../models/student_models.dart';
 
 /// Contrato abstrato do repositório de dados acadêmicos do discente.
 /// Prepara o ecossistema frontend para receber a injeção do cliente HTTP/REST do backend.
@@ -18,4 +18,3 @@ abstract class IStudentRepository {
     String? comments,
   });
 }
-
