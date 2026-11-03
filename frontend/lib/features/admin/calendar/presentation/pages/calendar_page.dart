@@ -97,85 +97,6 @@ class _CalendarPageState extends State<CalendarPage> {
   // ==========================================
   // CARD RESOLUÇÃO CONSEPE 2026/04
   // ==========================================
-  Widget _buildConsepeResolutionCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'RESOLUÇÃO CONSEPE 2026/04',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF71717A),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Semestre Letivo 2026/2 • Carga de 100 Dias Letivos',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF09090B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Semana 10 de 18',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF16A34A),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'O regimento acadêmico prevê o bloqueio automatizado do lançamento de notas após o encerramento do prazo regulamentar. Qualquer retificação extemporânea exige protocolo com justificativa homologada pelo colegiado de curso.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Color(0xFF52525B),
-              height: 1.45,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ==========================================
-  // CARD TIMELINE DOS PRAZOS REGIMENTAIS
-  // ==========================================
   Widget _buildTimelineCard() {
     return Container(
       width: double.infinity,
@@ -520,25 +441,4 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Widget _buildBadge({
-    required String label,
-    required Color textColor,
-    required Color backgroundColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
-      ),
-    );
-  }
 }

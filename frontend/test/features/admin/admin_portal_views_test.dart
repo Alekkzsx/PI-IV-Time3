@@ -11,10 +11,10 @@ import 'package:pi_iv_time3/features/admin/courses/presentation/pages/courses_pa
 import 'package:pi_iv_time3/features/admin/dashboard/presentation/pages/painel_geral_page.dart';
 import 'package:pi_iv_time3/features/admin/secretary/presentation/pages/secretary_page.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
-import 'helpers/fake_admin_academic_data_source.dart';
+import '../../helpers/admin_fixtures.dart';
+import '../../helpers/fake_admin_academic_data_source.dart';
 
 void main() {
   group('AdminPortalController Unit Tests', () {
@@ -50,32 +50,25 @@ void main() {
       expect(controller.hasPermission('admin', 'edit_grades'), isFalse);
     });
 
-    test('Filtra usuários por perfil e realiza busca', () {
+    test('Filtros não inventam usuários antes do bootstrap remoto', () {
       final controller = AdminPortalController();
       controller.setUserFilter('Alunos');
-      expect(controller.filteredUsers.every((u) => u.profile == 'aluno'), true);
+      expect(controller.filteredUsers, isEmpty);
 
       controller.setUserFilter('Todos');
       controller.setUserSearchQuery('Helena');
-      expect(controller.filteredUsers.length, 1);
-      expect(
-        controller.filteredUsers.first.name,
-        contains('Helena Bittencourt'),
-      );
+      expect(controller.filteredUsers, isEmpty);
       controller.setUserSearchQuery('');
     });
 
-    test('RBAC bloqueia ações sem permissão e libera as ações autorizadas', () {
+    test('RBAC controla ações mesmo sem usuários carregados', () async {
       final controller = AdminPortalController();
-      final user = controller.users.first;
-      final initialStatus = user.status;
 
       AppUserSession.instance.signIn(
         identity: '2024.1.00892',
         profile: 'aluno',
       );
-      expect(controller.toggleUserStatus(user.id), isFalse);
-      expect(user.status, initialStatus);
+      expect(await controller.toggleUserStatus('missing-user'), isFalse);
       expect(controller.canPerform('manage_classes'), isFalse);
 
       AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
@@ -89,85 +82,46 @@ void main() {
         controller.hasPermission('Coordenador', 'manage_classes'),
         isFalse,
       );
-      expect(controller.toggleUserStatus(user.id), isTrue);
-      expect(user.status, isNot(initialStatus));
+      expect(await controller.toggleUserStatus('missing-user'), isFalse);
       expect(controller.currentOperatorRole, 'admin');
     });
 
-    test('Alterna suspensão de usuário e cadastra novo discente com 2FA', () {
+    test('Não disponibiliza usuários locais sem bootstrap autenticado', () async {
       final controller = AdminPortalController();
-      final targetUser = controller.users.first;
-      final initialStatus = targetUser.status;
-
-      controller.toggleUserStatus(targetUser.id);
+      await controller.loadRemote();
+      expect(controller.users, isEmpty);
       expect(
-        targetUser.status,
-        initialStatus == 'Ativo' ? 'Suspenso' : 'Ativo',
+        controller.remoteError,
+        'Entre como administrador para carregar os dados.',
       );
-
-      final initialUsersCount = controller.users.length;
-      controller.addUser(
-        name: 'Novo Aluno de Teste',
-        email: 'novo.aluno@universidade.edu.br',
-        profile: 'aluno',
-        department: 'Engenharia de Software',
-        require2FA: true,
-      );
-
-      expect(controller.users.length, initialUsersCount + 1);
-      expect(controller.users.first.name, 'Novo Aluno de Teste');
-      expect(controller.users.first.profile, 'aluno');
-      expect(controller.users.first.twoFactorRequired, true);
     });
 
-    test('Atualiza regime de avaliação da turma e reatribui docente', () {
+    test('Não cria turmas locais antes do bootstrap remoto', () {
       final controller = AdminPortalController();
-      final classModel = controller.classes.first;
-
-      controller.updateFormulaRegime(classModel.code, 'Autonomia Docente');
-      expect(classModel.formulaRegime, 'Autonomia Docente');
-
-      controller.reallocateProfessor(classModel.code, 'Prof. Substituto Teste');
-      expect(classModel.professor, 'Prof. Substituto Teste');
+      expect(controller.classes, isEmpty);
     });
 
-    test('Fechamento de pauta fica restrito à turma homologada', () {
+    test('Pautas ficam abertas enquanto não há turma carregada', () {
       final controller = AdminPortalController();
       const apsClassCode = '218131 - APS-II';
       const bdClassCode = '218131 - BD-II';
 
-      controller.lockAndHomologateClassPauta(apsClassCode);
-
-      expect(controller.isGradeLockedFor(apsClassCode), isTrue);
+      expect(controller.isGradeLockedFor(apsClassCode), isFalse);
       expect(controller.isGradeLockedFor(bdClassCode), isFalse);
     });
 
-    test('Decide protocolo na secretaria acadêmica com despacho', () {
+    test('Não expõe protocolos sintéticos antes do bootstrap remoto', () {
       final controller = AdminPortalController();
-      final protocol = controller.protocols.firstWhere(
-        (p) => p.status.startsWith('Aguardando'),
-      );
-
-      controller.decideProtocol(
-        protocolId: protocol.id,
-        defer: true,
-        parecerNote: 'Aprovado pelo comitê acadêmico.',
-      );
-
-      expect(protocol.status, 'Deferido');
-      expect(protocol.decisionNote, 'Aprovado pelo comitê acadêmico.');
-      expect(protocol.signedBy, 'Administrador institucional');
+      expect(controller.protocols, isEmpty);
     });
 
-    test('Alterna trava regimental CONSEPE e lacra pauta de turma', () {
+    test('Trava regimental não muda sem persistência no servidor', () async {
       final controller = AdminPortalController();
       final initialLock = controller.isRegimentalLockActive;
 
-      controller.toggleRegimentalLock();
-      expect(controller.isRegimentalLockActive, !initialLock);
-
-      controller.lockAndHomologateClassPauta('218131 - APS-II');
-      expect(controller.isGradeLocked, true);
+      expect(await controller.toggleRegimentalLock(), isFalse);
+      expect(controller.isRegimentalLockActive, initialLock);
+      expect(controller.remoteError, isNotNull);
     });
   });
 
@@ -188,9 +142,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Bem-vindo, Carlos.'), findsOneWidget);
-      expect(find.text('Secretaria Geral Acadêmica'), findsOneWidget);
-      expect(find.text('Gestão Integrada do Campus 2026/2'), findsOneWidget);
+      expect(find.textContaining('Bem-vindo,'), findsOneWidget);
       expect(find.text('Emitir Comunicado Institucional'), findsOneWidget);
       expect(find.text('DISCENTES ATIVOS'), findsOneWidget);
       expect(find.text('CORPO DOCENTE'), findsOneWidget);
@@ -200,18 +152,8 @@ void main() {
       expect(find.text('Requerimentos Discentes'), findsOneWidget);
       expect(find.text('Fechamento do Período'), findsOneWidget);
       expect(find.text('Cursos & Matrizes Ativas'), findsOneWidget);
-      expect(
-        find.text('Bacharelado em Engenharia de Software'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Bacharelado em Sistemas de Informação'),
-        findsOneWidget,
-      );
       expect(find.text('Prazos Regimentais'), findsOneWidget);
       expect(find.text('Últimos Requerimentos'), findsOneWidget);
-      expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
-      expect(find.text('© 2026 AGMRM'), findsOneWidget);
     });
 
     testWidgets(
@@ -236,9 +178,6 @@ void main() {
         expect(find.text('CURSO / LOTAÇÃO'), findsOneWidget);
         expect(find.text('STATUS'), findsOneWidget);
         expect(find.text('AÇÕES DE SEGURANÇA & GOVERNANÇA'), findsOneWidget);
-        expect(find.text('Gabriel Soares de Oliveira'), findsOneWidget);
-        expect(find.text('Profa. Dra. Helena Bittencourt'), findsOneWidget);
-        expect(find.text('© 2026 AGMRM'), findsOneWidget);
 
         // Abre modal de Novo Cadastro Institucional
         await tester.tap(find.text('Novo Cadastro Institucional'));
@@ -431,10 +370,7 @@ void main() {
 
       await tester.tap(find.text('Discentes & Vagas'));
       await tester.pumpAndSettle();
-      expect(find.text('Gabriel Soares de Oliveira'), findsOneWidget);
-      expect(find.text('Mariana Rios Costa'), findsOneWidget);
-      expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
-      expect(find.text('Lucas Mendes Santos'), findsNothing);
+      expect(find.text('Nenhum estudante matriculado nesta turma.'), findsOneWidget);
     });
 
     testWidgets('Supervisão se adapta à largura mobile sem overflow', (
@@ -504,26 +440,15 @@ void main() {
         find.text('Calendário Acadêmico Oficial & Prazos Regimentais'),
         findsOneWidget,
       );
-      expect(find.text('RESOLUÇÃO CONSEPE 2026/04'), findsOneWidget);
-      expect(find.text('Semana 10 de 18'), findsOneWidget);
-      expect(
-        find.text('Janela de Avaliações Parciais e Trabalhos Práticos'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Prazo Final para Digitação e Homologação de Diários'),
-        findsOneWidget,
-      );
-      expect(find.text('Em Andamento'), findsOneWidget);
-      expect(find.text('Futuro'), findsWidgets);
+      expect(find.text('Nenhum marco cadastrado.'), findsOneWidget);
 
       // Testa botão de trava regimental
-      final lockButton = find.text('Ativar Trava Regimental');
+      final lockButton = find.text('Ativar trava');
       expect(lockButton, findsOneWidget);
       await tester.tap(lockButton);
       await tester.pumpAndSettle();
 
-      expect(find.text('Liberar Diários'), findsOneWidget);
+      expect(find.text('Ativar trava'), findsOneWidget);
     });
 
     testWidgets('Renderiza AuditPage com logs de segurança e severidades', (
@@ -545,12 +470,10 @@ void main() {
         find.text('Buscar por ator, ação ou descrição nos logs...'),
         findsOneWidget,
       );
-      expect(find.text('Profa. Dra. Helena Bittencourt'), findsOneWidget);
-      expect(find.text('Docente (DOC-88410)'), findsOneWidget);
-      expect(find.text('ALTERACAO NOTA'), findsOneWidget);
-      expect(find.text('Sistema de Segurança'), findsOneWidget);
-      expect(find.text('INFO'), findsWidgets);
-      expect(find.text('ATENCAO'), findsWidgets);
+      expect(
+        find.text('Nenhum registro de auditoria encontrado para o filtro informado.'),
+        findsOneWidget,
+      );
     });
   });
 }

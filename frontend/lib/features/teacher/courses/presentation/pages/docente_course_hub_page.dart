@@ -51,24 +51,22 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
     {
       'label': 'Módulos & Conteúdos',
       'icon': Icons.layers_outlined,
-      'badge': '8',
+      'badge': null,
     },
     {
       'label': 'Tarefas & Submissões',
       'icon': Icons.description_outlined,
-      'badge': '6 pend.',
-      'badgeColor': Color(0xFFFEF3C7),
-      'badgeTextColor': Color(0xFFD97706),
+      'badge': null,
     },
     {
       'label': 'Fórum da Turma',
       'icon': Icons.chat_bubble_outline,
-      'badge': '2',
+      'badge': null,
     },
     {
       'label': 'Alunos Matriculados',
       'icon': Icons.groups_outlined,
-      'badge': '34',
+      'badge': null,
     },
     {
       'label': 'Plano de Ensino',
@@ -78,7 +76,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
     {
       'label': 'Equipes de Projeto',
       'icon': Icons.emoji_events_outlined,
-      'badge': '3 squads',
+      'badge': null,
     },
   ];
 
@@ -97,13 +95,10 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
     final titleController = TextEditingController();
     final messageController = TextEditingController();
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Disparar Aviso à Turma',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Disparar Aviso ? Turma'),
         content: SizedBox(
           width: 440,
           child: Column(
@@ -111,10 +106,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Título do Aviso',
-                  hintText: 'Ex: Orientações para a entrega da Sprint 1',
-                ),
+                decoration: const InputDecoration(labelText: 'T?tulo do Aviso'),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -122,8 +114,6 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 maxLines: 3,
                 decoration: const InputDecoration(
                   labelText: 'Mensagem aos estudantes',
-                  hintText:
-                      'Digite o comunicado que será enviado ao e-mail e app...',
                 ),
               ),
             ],
@@ -131,7 +121,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -139,126 +129,12 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
               final title = titleController.text.trim();
               final message = messageController.text.trim();
               if (title.isEmpty || message.isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
-                    content: Text('Preencha o título e a mensagem do aviso.'),
+                    content: Text('Preencha o t?tulo e a mensagem.'),
                   ),
                 );
                 return;
-              }
-
-              Future<void> _showForumTopicDialog() async {
-                final title = TextEditingController();
-                final body = TextEditingController();
-                final values = await showDialog<List<String>>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Novo tópico do fórum'),
-                    content: SizedBox(
-                      width: 420,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: title,
-                            decoration: const InputDecoration(labelText: 'Título'),
-                          ),
-                          TextField(
-                            controller: body,
-                            maxLines: 4,
-                            decoration: const InputDecoration(labelText: 'Mensagem'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancelar'),
-                      ),
-                      FilledButton(
-                        onPressed: () {
-                          if (title.text.trim().isEmpty || body.text.trim().isEmpty) return;
-                          Navigator.pop(context, [title.text.trim(), body.text.trim()]);
-                        },
-                        child: const Text('Publicar'),
-                      ),
-                    ],
-                  ),
-                );
-                title.dispose();
-                body.dispose();
-                if (values == null) return;
-                final created = await widget.controller.createForumTopic(
-                  title: values[0],
-                  body: values[1],
-                );
-                if (mounted && !created) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        widget.controller.remoteError ?? 'Não foi possível criar o tópico.',
-                      ),
-                    ),
-                  );
-                }
-
-                Future<void> _createSquadDialog() async {
-                  final name = TextEditingController();
-                  final members = TextEditingController();
-                  final values = await showDialog<List<String>>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Criar equipe'),
-                      content: SizedBox(
-                        width: 420,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextField(
-                              controller: name,
-                              decoration: const InputDecoration(labelText: 'Nome da equipe'),
-                            ),
-                            TextField(
-                              controller: members,
-                              decoration: const InputDecoration(
-                                labelText: 'Identidades dos membros (separadas por vírgula)',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancelar'),
-                        ),
-                        FilledButton(
-                          onPressed: () {
-                            if (name.text.trim().isEmpty) return;
-                            Navigator.pop(context, [name.text.trim(), members.text.trim()]);
-                          },
-                          child: const Text('Salvar'),
-                        ),
-                      ],
-                    ),
-                  );
-                  name.dispose();
-                  members.dispose();
-                  if (values == null) return;
-                  await widget.controller.saveSquads([
-                    ...widget.controller.selectedCourse.squads,
-                    {
-                      'name': values[0],
-                      'members': values[1]
-                          .split(',')
-                          .map((member) => member.trim())
-                          .where((member) => member.isNotEmpty)
-                          .toList(),
-                      'status': 'Ativa',
-                    },
-                  ]);
-                }
               }
               final published = await widget.controller.publishNotice(
                 targetCourse: widget.course.title,
@@ -267,17 +143,18 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 title: title,
                 message: message,
               );
+              if (!mounted || !dialogContext.mounted) return;
               if (!published) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'Não foi possível publicar o aviso para esta turma.',
+                      'N?o foi poss?vel publicar o aviso para esta turma.',
                     ),
                   ),
                 );
                 return;
               }
-              Navigator.pop(ctx);
+              Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -297,7 +174,130 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
           ),
         ],
       ),
+    ).whenComplete(() {
+      titleController.dispose();
+      messageController.dispose();
+    });
+  }
+
+  Future<void> _showForumTopicDialog() async {
+    final title = TextEditingController();
+    final body = TextEditingController();
+    final values = await showDialog<List<String>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Novo t?pico do f?rum'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: title,
+                decoration: const InputDecoration(labelText: 'T?tulo'),
+              ),
+              TextField(
+                controller: body,
+                maxLines: 4,
+                decoration: const InputDecoration(labelText: 'Mensagem'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (title.text.trim().isEmpty || body.text.trim().isEmpty) return;
+              Navigator.pop(dialogContext, [
+                title.text.trim(),
+                body.text.trim(),
+              ]);
+            },
+            child: const Text('Publicar'),
+          ),
+        ],
+      ),
     );
+    title.dispose();
+    body.dispose();
+    if (values == null || !mounted) return;
+    final created = await widget.controller.createForumTopic(
+      title: values[0],
+      body: values[1],
+    );
+    if (mounted && !created) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.controller.remoteError ?? 'N?o foi poss?vel criar o t?pico.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _createSquadDialog() async {
+    final name = TextEditingController();
+    final members = TextEditingController();
+    final values = await showDialog<List<String>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Criar equipe'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Nome da equipe'),
+              ),
+              TextField(
+                controller: members,
+                decoration: const InputDecoration(
+                  labelText: 'Identidades dos membros (separadas por v?rgula)',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (name.text.trim().isEmpty) return;
+              Navigator.pop(dialogContext, [
+                name.text.trim(),
+                members.text.trim(),
+              ]);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    name.dispose();
+    members.dispose();
+    if (values == null || !mounted) return;
+    await widget.controller.saveSquads([
+      ...widget.controller.selectedCourse.squads,
+      {
+        'name': values[0],
+        'members': values[1]
+            .split(',')
+            .map((member) => member.trim())
+            .where((member) => member.isNotEmpty)
+            .toList(),
+        'status': 'Ativa',
+      },
+    ]);
   }
 
   Widget _buildActiveTabContent() {
@@ -305,9 +305,8 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
       case 0:
         return AnimatedBuilder(
           animation: widget.controller,
-          builder: (context, _) => CourseHubGradebookTab(
-            controller: widget.controller,
-          ),
+          builder: (context, _) =>
+              CourseHubGradebookTab(controller: widget.controller),
         );
       case 1:
         return AnimatedBuilder(
@@ -316,17 +315,17 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
               CourseHubAttendanceTab(controller: widget.controller),
         );
       case 2:
-        return CourseHubModulesTab(
-          onNewUnit: null,
-          onUploadSlides: null,
-          onPublishAssignment: () {
-            setState(() => _activeTabIndex = 3);
-          },
-          onQuickNotice: _showQuickNoticeDialog,
-          onReviewSyllabus: _openSyllabusModal,
-          onNavigateToAssignments: () {
-            setState(() => _activeTabIndex = 3);
-          },
+        return AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, _) => CourseHubModulesTab(
+            controller: widget.controller,
+            onNewUnit: _openSyllabusModal,
+            onUploadSlides: _openSyllabusModal,
+            onPublishAssignment: () => setState(() => _activeTabIndex = 3),
+            onQuickNotice: _showQuickNoticeDialog,
+            onReviewSyllabus: _openSyllabusModal,
+            onNavigateToAssignments: () => setState(() => _activeTabIndex = 3),
+          ),
         );
       case 3:
         return const CourseHubAssignmentsTab();

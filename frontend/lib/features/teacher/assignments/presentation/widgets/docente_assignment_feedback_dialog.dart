@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -54,12 +54,10 @@ class _DocenteAssignmentFeedbackDialogState
     _gradeController = TextEditingController(
       text: widget.submission.grade != null
           ? widget.submission.grade!.toStringAsFixed(1)
-          : '9.0',
+          : '',
     );
     _feedbackController = TextEditingController(
-      text:
-          widget.submission.teacherFeedback ??
-          'Excelente estruturação no diagrama de sequência. Atenção apenas na representação do retorno síncrono do gateway de faturamento para evitar inconsistências no modelo de domínio.',
+      text: widget.submission.teacherFeedback ?? '',
     );
   }
 
@@ -481,9 +479,7 @@ class _DocenteAssignmentFeedbackDialogState
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, i) {
                     final msg = doubtThread[i];
-                    final isTeacher =
-                        msg['sender']!.contains('Docente') ||
-                        msg['sender']!.contains('Helena');
+                    final isTeacher = msg['role'] == 'teacher';
 
                     return Align(
                       alignment: isTeacher

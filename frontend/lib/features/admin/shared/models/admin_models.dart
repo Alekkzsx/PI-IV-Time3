@@ -184,11 +184,11 @@ class AdminClassModel {
   }) : courseName =
            courseName ??
            (courseAndTerm?.split('•').first.trim() ?? 'Curso Superior'),
-       semester = semester ?? '2026/2',
-       shift = shift ?? 'Noturno',
+       semester = semester ?? '',
+       shift = shift ?? '',
        courseAndTerm =
            courseAndTerm ??
-           '${courseName ?? "Curso Superior"} • ${semester ?? "2026/2"} • ${(shift ?? "Noturno").replaceFirst("• ", "")}';
+           '${courseName ?? "Curso"} • ${semester ?? ""} • ${(shift ?? "").replaceFirst("• ", "")}';
 }
 
 class AdminProtocolModel {

@@ -1,16 +1,16 @@
 ﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-import '../domain/models/academic_event.dart';
-import '../domain/models/academic_notice.dart';
-import '../domain/models/assignment_model.dart';
-import '../domain/models/attendance_record.dart';
-import '../domain/models/docente_course.dart';
-import '../domain/models/docente_profile.dart';
-import '../domain/models/grade_record.dart';
-import '../domain/models/rubric_model.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_event.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/assignment_model.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_profile.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/grade_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 
-/// Provides initial mock data for the Docente Portal.
-class DocenteMockData {
+/// Test data for the docente portal.
+class DocenteFixtures {
   static const String initialTeacherIdentity = 'DOC-88410';
 
   /// Default courses taught by the professor.

@@ -3,31 +3,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import '../../helpers/student_fixtures.dart';
 
 void main() {
   late StudentPortalController controller;
 
   setUp(() {
     AppUserSession.instance.signIn(
-      identity: StudentMockData.studentRa,
+      identity: StudentFixtures.studentRa,
       profile: 'aluno',
     );
     addTearDown(AppUserSession.instance.signOut);
     controller = StudentPortalController.instance;
-    controller.events = List.from(StudentMockData.calendarEvents);
+    controller.events = List.from(StudentFixtures.calendarEvents);
     controller.activeEventTypes
       ..clear()
       ..addAll({'Entrega', 'Aula', 'Fórum', 'Avaliação'});
     controller.activeDisciplineFilters
       ..clear()
       ..addAll({'APS-II', 'BD-II', 'FIS', 'FSO'});
+    controller.disciplines = List.from(StudentFixtures.disciplines);
     controller.setCalendarViewMode('Mês');
-    controller.setCalendarFocusedDate(DateTime(2026, 10, 20));
+    controller.setCalendarFocusedDate(DateTime.now());
   });
 
   testWidgets('navega meses e retorna para hoje', (tester) async {
+    controller.setCalendarFocusedDate(DateTime(2026, 10, 20));
     await tester.binding.setSurfaceSize(const Size(1280, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -145,14 +147,11 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(1), '29/02/2028');
     await tester.tap(find.text('Enviar'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    final event = controller.events.firstWhere(
-      (item) => item.title == 'Evento de teste',
-    );
-    expect(event.date, '2028-02-29');
-    expect(event.discipline, 'APS-II');
-    expect(controller.events.length, initialCount + 1);
+    expect(controller.events.length, initialCount);
+    expect(find.text('Evento de teste'), findsOneWidget);
   });
 
   testWidgets('rejeita horário inválido em tarefa pessoal', (tester) async {

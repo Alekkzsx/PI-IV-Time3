@@ -915,6 +915,7 @@ class DocenteController extends ChangeNotifier {
     return [
       {
         'sender': doubt['studentName']?.toString() ?? studentRa,
+        'role': 'student',
         'time': doubt['createdAt']?.toString() ?? '',
         'text':
             doubt['question']?.toString() ?? doubt['body']?.toString() ?? '',
@@ -923,6 +924,7 @@ class DocenteController extends ChangeNotifier {
         ...replies.whereType<Map>().map(
           (reply) => {
             'sender': reply['senderName']?.toString() ?? 'Docente',
+            'role': 'teacher',
             'time': reply['createdAt']?.toString() ?? '',
             'text': reply['body']?.toString() ?? '',
           },

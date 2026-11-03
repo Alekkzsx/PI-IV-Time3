@@ -1,7 +1,7 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'admin_fixtures.dart';
 
 class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
   const FakeAdminAcademicDataSource();
@@ -18,7 +18,29 @@ class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
   }
 
   @override
+  Future<void> patchCourse(String code, Map<String, Object?> fields) async {}
+
+  @override
   Future<List<AdminClassModel>> getClasses() async => List.of(_classes);
+
+  @override
+  Future<List<AdminUserModel>> getTeachers() async => AdminMockData.users
+      .where((user) => user.profile == 'docente')
+      .toList();
+
+  @override
+  Future<List<AdminGradeAuditRow>> classGrades(String classCode) async => [];
+
+  @override
+  Future<List<AdminEnrolledStudent>> getEnrollments(String classCode) async =>
+      [];
+
+  @override
+  Future<void> updateEnrollment({
+    required String classCode,
+    required String enrollmentId,
+    required Map<String, Object?> fields,
+  }) async {}
 
   @override
   Future<void> createClass({

@@ -159,7 +159,7 @@ class UserListTable extends StatelessWidget {
           SizedBox(
             width: 130,
             child: Text(
-              u.id,
+              u.identity,
               style: jakarta(
                 size: 13.5,
                 weight: FontWeight.w700,

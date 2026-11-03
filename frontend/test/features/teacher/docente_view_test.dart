@@ -16,15 +16,26 @@ import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.d
 import 'package:pi_iv_time3/features/teacher/settings/presentation/pages/docente_settings_tab.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
+import '../../helpers/fake_teacher_remote_data_source.dart';
 
 void main() {
   group('DocenteController Unit Tests', () {
     late DocenteController controller;
 
-    setUp(() {
-      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+    setUp(() async {
+      AppUserSession.instance.signIn(
+        identity: 'DOC-88410',
+        profile: 'docente',
+        accessToken: 'test-teacher-token',
+      );
       addTearDown(AppUserSession.instance.signOut);
-      controller = DocenteController();
+      final remote = FakeTeacherRemoteDataSource();
+      controller = DocenteController(
+        remoteDataSource: remote,
+        profileRemoteDataSource: FakeTeacherProfileRemoteDataSource(remote),
+      );
+      addTearDown(controller.dispose);
+      await controller.loadRemote();
     });
 
     test(
@@ -193,12 +204,10 @@ void main() {
       expect(controller.events.first.title, equals('Reunião do NDE'));
     });
 
-    test('Two-factor authentication toggle modifies profile state', () {
-      expect(controller.profile.twoFactorEnabled, isTrue);
-      controller.toggleTwoFactor();
-      expect(controller.profile.twoFactorEnabled, isFalse);
-      controller.toggleTwoFactor();
-      expect(controller.profile.twoFactorEnabled, isTrue);
+    test('Two-factor state changes only after backend confirmation', () async {
+      final initialState = controller.profile.twoFactorEnabled;
+      await controller.toggleTwoFactor(password: 'test-password');
+      expect(controller.profile.twoFactorEnabled, initialState);
     });
 
     test('Disconnecting an active session removes it from the list', () {
@@ -229,25 +238,21 @@ void main() {
       expect(updatedUnit.completedClasses, isNot(equals(initialCompleted)));
     });
 
-    test('Publishing course material adds it to course repository', () {
+    test('Publishing course material requires a selected file', () async {
       final course = controller.courses.first;
       final initialCount = course.materials.length;
 
-      controller.publishMaterial(course.id, 'Novo Guia de Arquitetura.pdf');
+      await controller.publishMaterial(
+        course.id,
+        'Novo Guia de Arquitetura.pdf',
+        null,
+      );
       final updatedCourse = controller.courses.firstWhere(
         (c) => c.id == course.id,
       );
 
-      expect(updatedCourse.materials.length, equals(initialCount + 1));
-      expect(
-        updatedCourse.materials.first.title,
-        equals('Novo Guia de Arquitetura.pdf'),
-      );
-      final now = DateTime.now();
-      expect(
-        updatedCourse.materials.first.date,
-        'Hoje, ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
-      );
+      expect(updatedCourse.materials.length, initialCount);
+      expect(controller.remoteError, 'Selecione um arquivo para publicar.');
     });
 
     test(

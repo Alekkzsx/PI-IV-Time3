@@ -150,6 +150,7 @@ class _DocenteProfileSettingsCardState
 
   @override
   Widget build(BuildContext context) {
+    final profile = widget.controller.profile;
     final isCompact = MediaQuery.sizeOf(context).width < 600;
     final emailChangeButton = OutlinedButton.icon(
       onPressed: () =>
@@ -238,7 +239,7 @@ class _DocenteProfileSettingsCardState
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      'P',
+                      profile.fullName.isEmpty ? ' ' : profile.fullName[0],
                       style: jakarta(
                         size: 24,
                         weight: FontWeight.w700,
@@ -249,39 +250,8 @@ class _DocenteProfileSettingsCardState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Seletor de imagem aberto.'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF18181B),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        child: Text(
-                          'Carregar Nova Imagem',
-                          style: jakarta(
-                            size: 12,
-                            weight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
                       Text(
-                        'Formatos recomendados: JPG, PNG ou WebP. Tamanho máximo: 5 MB.',
+                        profile.fullName,
                         style: jakarta(
                           size: 11,
                           color: const Color(0xFF71717A),
@@ -467,14 +437,14 @@ class _DocenteProfileSettingsCardState
                     widthFactor: isCompact ? 1 : 0.31,
                     child: _buildInfoBox(
                       'CURSO VINCULADO',
-                      'Departamento de Computação e Si...',
+                      profile.department,
                     ),
                   ),
                   FractionallySizedBox(
                     widthFactor: isCompact ? 1 : 0.31,
                     child: _buildInfoBox(
                       'PERÍODO LETIVO',
-                      'Corpo Docente Titular (2026/2)',
+                      profile.semester,
                     ),
                   ),
                 ],
@@ -482,7 +452,7 @@ class _DocenteProfileSettingsCardState
               const SizedBox(height: 12),
               _buildInfoBox(
                 'POLO / UNIDADE',
-                'Campus Central - Polo Tecnológico Asa Norte',
+                profile.campus,
               ),
               const SizedBox(height: 16),
               Container(

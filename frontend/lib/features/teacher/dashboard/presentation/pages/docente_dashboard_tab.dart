@@ -44,11 +44,8 @@ class DocenteDashboardTab extends StatelessWidget {
                     children: [
                       // Hero Welcome Section
                       const InstitutionalHeroHeader(
-                        greeting: 'Bem-vinda, Helena.',
-                        subtitleItems: [
-                          'Departamento de Computação',
-                          'Docência 2026/2',
-                        ],
+                        greeting: 'Bem-vindo(a), Docente.',
+                        subtitleItems: ['Portal Docente', 'Gestão acadêmica'],
                       ),
                       const SizedBox(height: 28),
 
@@ -129,38 +126,63 @@ class DocenteDashboardTab extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width > 1100;
 
-    const cards = [
+    final courses = controller.courses;
+    final assignments = controller.assignments;
+    final sessions = controller.sessions;
+    final enrolledCount = courses.fold<int>(
+      0,
+      (total, course) => total + course.enrolledCount,
+    );
+    final completedHours = courses.fold<int>(
+      0,
+      (total, course) => total + course.completedHours,
+    );
+    final totalHours = courses.fold<int>(
+      0,
+      (total, course) => total + course.totalHours,
+    );
+    final attendance = sessions.expand((session) => session.attendanceList);
+    final attendanceRecords = attendance.toList();
+    final attendanceRate = attendanceRecords.isEmpty
+        ? 0.0
+        : attendanceRecords
+                  .where((record) => record.status.name == 'presente')
+                  .length /
+              attendanceRecords.length;
+    final cards = [
       InstitutionalKpiCard(
         title: 'TURMAS ATIVAS',
-        value: '03',
+        value: courses.length.toString(),
         subtitle: 'no Semestre',
         footerLabel: 'Discentes Matriculados',
-        footerValue: '101 alunos',
-        progress: 1.0,
+        footerValue: '$enrolledCount alunos',
+        progress: courses.isEmpty ? 0 : 1,
       ),
       InstitutionalKpiCard(
-        title: 'ENTREGAS DO MÊS',
-        value: '04',
-        subtitle: 'Cadastradas',
-        footerLabel: 'Próximo Vencimento',
-        footerValue: 'Hoje, 23:59',
-        progress: 0.5,
+        title: 'ATIVIDADES',
+        value: assignments.length.toString(),
+        subtitle: 'cadastradas',
+        footerLabel: 'Avisos acadêmicos',
+        footerValue: '${controller.notices.length}',
+        progress: assignments.isEmpty ? 0 : 1,
       ),
       InstitutionalKpiCard(
         title: 'CARGA HORÁRIA TOTAL',
-        value: '158h',
-        subtitle: '/ 240h',
+        value: '${completedHours}h',
+        subtitle: '/ ${totalHours}h',
         footerLabel: 'Cumprimento do Plano',
-        footerValue: '65.8%',
-        progress: 0.658,
+        footerValue: totalHours == 0
+            ? '0%'
+            : '${(completedHours / totalHours * 100).toStringAsFixed(1)}%',
+        progress: totalHours == 0 ? 0 : completedHours / totalHours,
       ),
       InstitutionalKpiCard(
         title: 'FREQUÊNCIA MÉDIA',
-        value: '94.8%',
+        value: '${(attendanceRate * 100).toStringAsFixed(1)}%',
         subtitle: 'das Turmas',
         footerLabel: 'Situação Geral',
-        footerValue: 'Regular',
-        progress: 0.948,
+        footerValue: attendanceRecords.isEmpty ? 'Sem registros' : 'Atualizada',
+        progress: attendanceRate,
       ),
     ];
 

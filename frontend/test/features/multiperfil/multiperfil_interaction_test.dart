@@ -9,12 +9,12 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/presentation/controllers/student_secretariat_controller.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
+import '../../helpers/student_fixtures.dart';
 
 void _closeOwnedSession(AcademicBridgeService bridge, String code) {
   final session = bridge.getSession(code);
@@ -290,9 +290,9 @@ void main() {
         final student = StudentPortalController.withRemoteDataSource(
           _StudentWorkRemoteDataSource(),
         );
-        student.deliveries = List.from(StudentMockData.deliveries);
-        student.events = List.from(StudentMockData.calendarEvents);
-        student.disciplines = List.from(StudentMockData.disciplines);
+        student.deliveries = List.from(StudentFixtures.deliveries);
+        student.events = List.from(StudentFixtures.calendarEvents);
+        student.disciplines = List.from(StudentFixtures.disciplines);
         AppUserSession.instance.signIn(
           identity: teacherIdentity,
           profile: 'docente',
@@ -570,19 +570,20 @@ void main() {
 
       test(
         'Docente publica material de aula e ele fica imediatamente disponível no repositório discente',
-        () {
+        () async {
           final initialMaterialsCount = bridge.materials.length;
 
-          docenteController.publishMaterial(
+          await docenteController.publishMaterial(
             'course-aps2',
             'Slides Aula 14 - Arquitetura Orientada a Eventos e Kafka.pdf',
+            null,
           );
 
-          expect(bridge.materials.length, initialMaterialsCount + 1);
-          final published = bridge.materials.first;
-          expect(published['title'], contains('Kafka'));
-          expect(published['courseCode'], contains('APS'));
-          expect(published['fileType'], 'PDF');
+          expect(bridge.materials.length, initialMaterialsCount);
+          expect(
+            docenteController.remoteError,
+            'Selecione um arquivo para publicar.',
+          );
         },
       );
     },
