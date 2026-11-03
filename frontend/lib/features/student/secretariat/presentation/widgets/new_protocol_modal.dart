@@ -1,6 +1,11 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import '../controllers/student_secretariat_controller.dart';
 
@@ -39,7 +44,9 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
       TextEditingController();
 
   String? _attachedFileName;
+  String? _attachedFileBase64;
   String? _errorMessage;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -55,13 +62,32 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
     super.dispose();
   }
 
-  void _simulateAttachment() {
+  Future<void> _pickAttachment() async {
+    final file = await FilePicker.pickFile(type: FileType.any);
+    if (file == null || !mounted) return;
+    const maxFileBytes = 7 * 1024 * 1024;
+    final size = await file.length();
+    if (!mounted) return;
+    if (size == null || size == 0 || size > maxFileBytes) {
+      setState(() => _errorMessage = 'Selecione um arquivo válido de até 7 MB.');
+      return;
+    }
+    final builder = BytesBuilder(copy: false);
+    var totalBytes = 0;
+    await for (final chunk in file.readAsByteStream()) {
+      totalBytes += chunk.length;
+      if (totalBytes > maxFileBytes) {
+        if (!mounted) return;
+        setState(() => _errorMessage = 'O arquivo deve ter no máximo 7 MB.');
+        return;
+      }
+      builder.add(chunk);
+    }
+    final bytes = builder.takeBytes();
+    if (!mounted || bytes.isEmpty) return;
     setState(() {
-      _attachedFileName = _selectedType.contains('Horas')
-          ? 'Certificado_Atividade_Extracurricular.pdf (1.8 MB)'
-          : _selectedType.contains('Chamada')
-          ? 'Atestado_Medico_CID_J06.pdf (840 KB)'
-          : 'Documento_Comprobatorio_Academico.pdf (1.2 MB)';
+      _attachedFileName = file.name;
+      _attachedFileBase64 = base64Encode(bytes);
       _errorMessage = null;
     });
   }
@@ -69,24 +95,42 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
   void _removeAttachment() {
     setState(() {
       _attachedFileName = null;
+      _attachedFileBase64 = null;
     });
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     final justificationText = _justificationController.text.trim();
-    if (justificationText.isEmpty) {
+    if (justificationText.length < 5) {
       setState(() {
-        _errorMessage = 'Por favor, descreva a justificativa acadêmica.';
+        _errorMessage = 'Descreva a justificativa com pelo menos 5 caracteres.';
       });
       return;
     }
 
-    widget.controller.addProtocolRequest(
-      subjectType: _selectedType,
-      componentObject: _selectedCurricularObject,
-      justification: justificationText,
-      attachmentName: _attachedFileName,
-    );
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await widget.controller.addProtocolRequest(
+        subjectType: _selectedType,
+        componentObject: _selectedCurricularObject,
+        justification: justificationText,
+        attachmentName: _attachedFileName,
+        attachmentBase64: _attachedFileBase64,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = error is ApiException
+            ? error.message
+            : 'Não foi possível registrar o requerimento.';
+      });
+      return;
+    }
+    if (!mounted) return;
 
     Navigator.of(context).pop();
 
@@ -325,7 +369,7 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
                       Expanded(
                         child: Text(
                           _attachedFileName ??
-                              'Nenhum documento selecionado (PDF ou JPG até 10MB)',
+                              'Nenhum documento selecionado (máximo de 7 MB)',
                           overflow: TextOverflow.ellipsis,
                           style: jakarta(
                             size: 12.5,
@@ -341,8 +385,8 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
                       const SizedBox(width: 10),
                       if (_attachedFileName == null)
                         OutlinedButton(
-                          key: const Key('btn_simulate_attachment'),
-                          onPressed: _simulateAttachment,
+                          key: const Key('btn_attach_protocol'),
+                          onPressed: _isSubmitting ? null : _pickAttachment,
                           style: OutlinedButton.styleFrom(
                             backgroundColor: Colors.white,
                             side: const BorderSide(
@@ -358,7 +402,7 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
                             ),
                           ),
                           child: Text(
-                            'Simular Anexo',
+                            'Selecionar arquivo',
                             style: jakarta(
                               size: 12,
                               weight: FontWeight.w600,
@@ -415,14 +459,14 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
                       key: const Key('confirm_new_request_button'),
-                      onPressed: _handleSubmit,
+                          onPressed: _isSubmitting ? null : _handleSubmit,
                       icon: const Icon(
                         Icons.send_rounded,
                         size: 15,
                         color: Colors.white,
                       ),
                       label: Text(
-                        'Protocolar Requerimento',
+                        _isSubmitting ? 'Enviando...' : 'Protocolar Requerimento',
                         style: jakarta(
                           size: 12.5,
                           weight: FontWeight.w600,

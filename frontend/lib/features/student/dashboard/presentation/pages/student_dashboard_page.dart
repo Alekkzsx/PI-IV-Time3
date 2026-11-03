@@ -1,7 +1,6 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import '../widgets/student_dashboard_list_view.dart';
@@ -15,97 +14,23 @@ import '../widgets/student_notices_panel.dart';
 /// Saudação, 4 indicadores de desempenho, aula do dia, disciplinas matriculadas,
 /// prazos pendentes e mural de avisos institucionais.
 class StudentDashboardPage extends StatefulWidget {
-  const StudentDashboardPage({super.key});
+  final StudentPortalController? controller;
+
+  const StudentDashboardPage({super.key, this.controller});
 
   @override
   State<StudentDashboardPage> createState() => _StudentDashboardPageState();
 }
 
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
-  final StudentPortalController _controller = StudentPortalController.instance;
-
-  static const _disciplines = [
-    StudentDisciplineItemData(
-      '218131 - APS-II',
-      'Análise e Projeto de Sistemas II',
-      'Profa. Dra. Helena Bittencourt',
-      0.68,
-    ),
-    StudentDisciplineItemData(
-      '218131 - BD-II',
-      'Estudos de Banco de Dados II',
-      'Profa. Dra. Helena Bittencourt',
-      0.75,
-    ),
-    StudentDisciplineItemData(
-      '218131 - FIS',
-      'Filosofia, Informação e Sociedade',
-      'Prof. Dr. Marcos Vinícius Ferreira',
-      0.82,
-    ),
-    StudentDisciplineItemData(
-      '218131 - FSO',
-      'Fundamentos de Sistemas Operacionais',
-      'Prof. Esp. André Luiz Silveira',
-      0.54,
-    ),
-  ];
-
-  static const _deadlines = [
-    StudentDeadlineItemData(
-      'Entrega: Diagrama de Classes e Sequência',
-      'Análise e Projeto de Sistemas II',
-      'Hoje, 20/09 às 23:59',
-      isUrgent: true,
-    ),
-    StudentDeadlineItemData(
-      'Fórum Temático: Ética na Inteligência Artificial',
-      'Filosofia, Informação e Sociedade',
-      'Amanhã, 21/09 às 18:00',
-      isUrgent: false,
-    ),
-    StudentDeadlineItemData(
-      'Atividade Prática: Modelagem Relacional e N..',
-      'Estudos de Banco de Dados II',
-      'Quinta, 24/09 às 23:59',
-      isUrgent: false,
-    ),
-    StudentDeadlineItemData(
-      'Avaliação Parcial: Gerenciamento de Memória',
-      'Fundamentos de Sistemas Operacionais',
-      'Terça, 29/09 às 20:40',
-      isUrgent: false,
-    ),
-  ];
-
-  static const _notices = [
-    StudentNoticeItemData(
-      'Prof. Carlos Eduardo (APS-II) •',
-      'Hoje, 14:10',
-      'Feedback da Sprint 1 e Orientações para o Diagrama UML',
-      'Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já constam no ambiente de entrega...',
-      true,
-    ),
-    StudentNoticeItemData(
-      'Profª. Eliane Ramos (BD-II) •',
-      'Ontem, 17:45',
-      'Material de Apoio: Normalização em 3FN e BCNF',
-      'Disponibilizei os slides com os exercícios resolvidos em aula sobre dependências funcionais e índices...',
-      true,
-    ),
-    StudentNoticeItemData(
-      'Secretaria Acadêmica AGMRM',
-      '18 de set',
-      'Prazo para Validação de Atividades Complementares 2026/2',
-      'Lembramos a todos os estudantes que o envio de certificados de cursos e palestras para cômputo de...',
-      false,
-    ),
-  ];
+  late final StudentPortalController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = widget.controller ?? StudentPortalController.instance;
     _controller.addListener(_onUpdate);
+    _controller.loadRemote();
   }
 
   @override
@@ -120,8 +45,35 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final dashboard = _controller.remoteDashboard;
+    if (dashboard == null) {
+      if (_controller.isLoadingRemote) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _controller.remoteError ?? 'Nenhum dado acadêmico disponível.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _controller.loadRemote(force: true),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (!_controller.isGridView) {
-      return const StudentDashboardListView();
+      return StudentDashboardListView(dashboard: dashboard);
     }
 
     final isDesktop = MediaQuery.of(context).size.width >= 1024;
@@ -130,35 +82,39 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHero(),
+          _buildHero(dashboard),
           const SizedBox(height: 28),
-          _buildKpis(isDesktop),
+          _buildKpis(dashboard, isDesktop),
           const SizedBox(height: 32),
           if (isDesktop)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _buildLeftColumn()),
+                Expanded(child: _buildLeftColumn(dashboard)),
                 const SizedBox(width: 28),
-                SizedBox(width: 380, child: _buildRightColumn()),
+                SizedBox(width: 380, child: _buildRightColumn(dashboard)),
               ],
             )
           else ...[
-            _buildLeftColumn(),
+            _buildLeftColumn(dashboard),
             const SizedBox(height: 28),
-            _buildRightColumn(),
+            _buildRightColumn(dashboard),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildHero() {
+  Widget _buildHero(dynamic dashboard) {
+    final info = dashboard.studentInfo;
+    final name = (info['socialName'] as String?)?.trim().isNotEmpty == true
+        ? info['socialName'] as String
+        : info['name'] as String? ?? 'Estudante';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Bem-vindo, Gabriel.',
+          'Bem-vindo, $name.',
           style: jakarta(
             size: 34,
             weight: FontWeight.w700,
@@ -169,7 +125,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
         Row(
           children: [
             Text(
-              'Engenharia de Software',
+              info['courseName'] as String? ?? 'Curso não informado',
               style: jakarta(
                 size: 13.5,
                 weight: FontWeight.w700,
@@ -187,7 +143,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
             ),
             const SizedBox(width: 8),
             Text(
-              '5º Semestre',
+              info['semester'] as String? ?? 'Semestre não informado',
               style: jakarta(
                 size: 13.5,
                 weight: FontWeight.w400,
@@ -200,39 +156,51 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     );
   }
 
-  Widget _buildKpis(bool isDesktop) {
+  Widget _buildKpis(dynamic dashboard, bool isDesktop) {
+    final stats = dashboard.stats;
+    final pending = dashboard.deliveries
+        .where((delivery) => delivery.status == 'Pendente')
+        .toList();
+    final nextDue = pending.isEmpty
+        ? 'Nenhuma pendente'
+        : '${pending.first.dueDate} às ${pending.first.dueHour}';
+    final completedHours = (stats['completedHoursSemester'] as num?)?.toInt() ?? 0;
+    final totalHours = (stats['totalHoursSemester'] as num?)?.toInt() ?? 0;
+    final hoursProgress = totalHours > 0 ? completedHours / totalHours : 0.0;
+    final averageAttendance = (stats['averageAttendance'] as num?)?.toDouble() ?? 0;
+    final cr = (stats['cr'] as num?)?.toDouble() ?? 0;
     final cards = [
       _buildKpiCard(
         'Disciplinas',
-        '04',
+        '${stats['activeDisciplines'] ?? 0}',
         'Ativas no Semestre',
         'Frequência Média',
-        '94.8%',
-        0.948,
+        '${averageAttendance.toStringAsFixed(1)}%',
+        averageAttendance / 100,
       ),
       _buildKpiCard(
-        'Entregas do Mês',
-        '04',
-        'Cadastradas',
+        'Entregas Pendentes',
+        '${pending.length}',
+        'No AVA',
         'Próximo Vencimento',
-        'Hoje, 23:59',
-        0.35,
+        nextDue,
+        pending.isEmpty ? 1 : 0.35,
       ),
       _buildKpiCard(
         'Coeficiente de Rendimento (CR)',
-        '8.8',
+        cr.toStringAsFixed(1),
         '/10.0',
         'Situação Acadêmica',
-        'Regular',
-        0.88,
+        stats['academicStatus'] as String? ?? 'Sem situação',
+        cr / 10,
       ),
       _buildKpiCard(
-        'Horas Complementares',
-        '140h',
-        '/ 180h',
-        'Progresso Total',
-        '77.7%',
-        0.777,
+        'Carga Horária do Semestre',
+        '${completedHours}h',
+        '/ ${totalHours}h',
+        'Progresso',
+        '${(hoursProgress * 100).round()}%',
+        hoursProgress,
       ),
     ];
 
@@ -368,49 +336,68 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     );
   }
 
-  Widget _buildLeftColumn() {
+  Widget _buildLeftColumn(dynamic dashboard) {
+    final todayClass = dashboard.todayClass;
+    final List<StudentDisciplineItemData> disciplines =
+      dashboard.disciplines.map<StudentDisciplineItemData>(
+          (discipline) => StudentDisciplineItemData(
+            discipline.fullCode ?? discipline.code,
+            discipline.name,
+            discipline.professor,
+            discipline.progress,
+          ),
+        ).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const StudentLiveClassSection(),
+        StudentLiveClassSection(
+          roomCode: todayClass?['roomCode'] as String?,
+          className: todayClass?['disciplineName'] as String?,
+          time: todayClass?['time'] as String?,
+          teacher: todayClass?['teacher'] as String?,
+          isOpen: todayClass?['isLive'] == true,
+          freeMessage: dashboard.freeSchedule?['message'] as String?,
+        ),
         const SizedBox(height: 36),
         StudentDisciplinesGridSection(
           controller: _controller,
-          disciplines: _disciplines,
+          disciplines: disciplines,
         ),
       ],
     );
   }
 
-  Widget _buildRightColumn() {
+  Widget _buildRightColumn(dynamic dashboard) {
+    final List<StudentDeadlineItemData> deadlines = dashboard.deliveries
+      .where((delivery) => delivery.status == 'Pendente')
+      .map<StudentDeadlineItemData>(
+          (delivery) => StudentDeadlineItemData(
+            delivery.title,
+            delivery.disciplineName,
+            '${delivery.dueDate} às ${delivery.dueHour}',
+          ),
+        )
+        .toList();
+      final List<StudentNoticeItemData> notices = dashboard.messages
+        .map<StudentNoticeItemData>(
+          (message) => StudentNoticeItemData(
+            message['sender']?.toString() ?? 'Comunicado acadêmico',
+            message['dateLabel']?.toString() ?? '',
+            message['title']?.toString() ?? '',
+            message['body']?.toString() ?? '',
+            message['isNew'] == true,
+          ),
+        )
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudentDeadlinesPanel(
           controller: _controller,
-          deadlines: _deadlines,
+          deadlines: deadlines,
         ),
         const SizedBox(height: 24),
-        AnimatedBuilder(
-          animation: AcademicBridgeService.instance,
-          builder: (context, _) {
-            final liveNotices = AcademicBridgeService.instance
-                .noticesForCourses(_controller.disciplines.map((d) => d.code))
-                .map((n) {
-              return StudentNoticeItemData(
-                n['senderName'] as String? ?? 'Coordenação Institucional',
-                n['date'] as String? ?? 'Hoje',
-                n['title'] as String? ?? 'Comunicado Oficial',
-                n['content'] as String? ?? '',
-                true,
-              );
-            }).toList();
-
-            return StudentNoticesPanel(
-              notices: [...liveNotices, ..._notices],
-            );
-          },
-        ),
+        StudentNoticesPanel(notices: notices),
       ],
     );
   }
