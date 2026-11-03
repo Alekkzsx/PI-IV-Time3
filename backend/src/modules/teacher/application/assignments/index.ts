@@ -1,0 +1,1 @@
+export { TeacherAssignmentService } from "./service.js";
