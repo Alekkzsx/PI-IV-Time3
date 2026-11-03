@@ -6,17 +6,19 @@ import express, {
 } from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
-import type { Environment } from "./config/environment.js";
-import type { AuthService } from "./modules/auth/application/auth.service.js";
-import { createAuthRouter } from "./modules/auth/presentation/auth.controller.js";
-import { createAdminAcademicRouter } from "./modules/admin/admin-academic.controller.js";
-import { createAdminUsersRouter } from "./modules/admin/admin-users.controller.js";
-import { createAdminOperationsRouter } from "./modules/admin/admin-operations.controller.js";
-import { createSessionRouter } from "./modules/auth/presentation/session.controller.js";
-import { createStudentDashboardRouter } from "./modules/student/student-dashboard.controller.js"; 
-import { createVideoCallRouter } from "./modules/video-call/video-call.controller.js";
-import { AuthError } from "./shared/auth-error.js";
 import type { Db } from "mongodb";
+import type { Environment } from "./config/environment.js";
+import type { AuthService } from "./modules/auth/application/index.js";
+import { createAuthRouter } from "./modules/auth/presentation/auth.controller.js";
+import { createSessionRouter } from "./modules/auth/presentation/session.controller.js";
+import { createAdminAcademicRouter } from "./modules/admin/presentation/academic/index.js";
+import { createAdminOperationsRouter } from "./modules/admin/presentation/operations/index.js";
+import { createAdminUsersRouter } from "./modules/admin/presentation/users/index.js";
+import { createStudentDashboardRouter } from "./modules/student/presentation/dashboard/index.js";
+import { createFilesRouter } from "./modules/student/presentation/files/index.js";
+import { createTeacherRouter } from "./modules/teacher/presentation/index.js";
+import { createVideoCallRouter } from "./modules/video-call/presentation/index.js";
+import { AuthError } from "./shared/auth-error.js";
 
 /** Monta middlewares e rotas; recebe dependências prontas para facilitar testes. */
 export function createApp(
@@ -30,13 +32,30 @@ export function createApp(
   app.use(helmet());
   app.use(
     cors({
-      origin: environment.corsOrigins,
-      methods: ["GET", "POST", "PATCH", "OPTIONS"],
+      origin: (origin, callback) => {
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        if (environment.corsOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        if (
+          environment.nodeEnv !== "production" &&
+          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+        ) {
+          callback(null, true);
+          return;
+        }
+        callback(null, false);
+      },
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       exposedHeaders: ["X-Total-Count"],
     }),
   );
-  app.use(express.json({ limit: "16kb", strict: true }));
+  app.use(express.json({ limit: "10mb", strict: true }));
 
   app.get("/health", (_request, response) => {
     response.status(200).json({ status: "ok" });
@@ -44,7 +63,7 @@ export function createApp(
 
   const authRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 100,
+    limit: 200,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     message: {
@@ -53,20 +72,18 @@ export function createApp(
     },
   });
   app.use("/api/auth", authRateLimit, createAuthRouter(service));
-  if (adminOptions) app.use("/api/auth", createSessionRouter(adminOptions.database, adminOptions.jwtSecret, service));
+
   if (adminOptions) {
+    app.use("/api/auth", createSessionRouter(adminOptions.database, adminOptions.jwtSecret, service));
     app.use("/api/admin/users", createAdminUsersRouter(adminOptions.database, adminOptions.jwtSecret, service));
     app.use("/api/admin", createAdminOperationsRouter(adminOptions.database, adminOptions.jwtSecret));
-    app.use(
-      "/api/admin",
-      createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret),
-    );
+    app.use("/api/admin", createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret));
     app.use("/api/student", createStudentDashboardRouter(adminOptions.database, adminOptions.jwtSecret));
-    app.use(
-      "/api/video-call",
-      createVideoCallRouter(adminOptions.database, adminOptions.jwtSecret),
-    );
+    app.use("/api/teacher", createTeacherRouter(adminOptions.database, adminOptions.jwtSecret));
+    app.use("/api/files", createFilesRouter(adminOptions.database, adminOptions.jwtSecret));
+    app.use("/api/video-call", createVideoCallRouter(adminOptions.database, adminOptions.jwtSecret));
   }
+
   app.use(notFoundHandler);
   app.use(errorHandler(environment.nodeEnv));
 
@@ -93,11 +110,12 @@ function errorHandler(nodeEnv: Environment["nodeEnv"]): ErrorRequestHandler {
       return;
     }
     if (error && typeof error === "object" && "code" in error && error.code === 11000) {
-      response.status(409).json({ code: "record_exists", message: "Já existe um registro com esses dados." }); return;
+      response.status(409).json({ code: "record_exists", message: "Já existe um registro com esses dados." });
+      return;
     }
-
     if (error && typeof error === "object" && "type" in error && error.type === "entity.too.large") {
-      response.status(413).json({ code: "payload_too_large", message: "Requisi??o excede o limite permitido." }); return;
+      response.status(413).json({ code: "payload_too_large", message: "Requisição excede o limite permitido." });
+      return;
     }
     if (error instanceof SyntaxError && "body" in error) {
       response.status(400).json({
@@ -107,7 +125,7 @@ function errorHandler(nodeEnv: Environment["nodeEnv"]): ErrorRequestHandler {
       return;
     }
 
-    console.error("[auth-api] Erro inesperado; detalhes internos omitidos.");
+    console.error("[auth-api] Erro inesperado; detalhes internos omitidos.", error);
     response.status(500).json({
       code: "internal_error",
       message:

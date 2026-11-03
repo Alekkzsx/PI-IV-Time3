@@ -1,0 +1,1 @@
+export { createAdminAcademicRouter } from "../admin-academic.controller.js";
