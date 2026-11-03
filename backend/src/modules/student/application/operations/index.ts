@@ -1,0 +1,1 @@
+export { StudentPortalOperationsService } from "../student-portal-operations.service.js";
