@@ -41,6 +41,7 @@ dependencies:
   agmrm_security:
     path: ../security
   http: ^1.6.0
+  file_picker: ^13.3.2
 
 dev_dependencies:
   flutter_test:
