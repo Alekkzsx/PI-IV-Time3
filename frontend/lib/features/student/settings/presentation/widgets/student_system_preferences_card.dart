@@ -1,6 +1,8 @@
 ﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Card para gerenciamento de preferências do sistema, tema, acessibilidade e formato de data discente.
@@ -26,6 +28,58 @@ class _StudentSystemPreferencesCardState
   // Preferências do Calendário Acadêmico
   String _firstDayOfWeek = 'Domingo (Padrão)';
   bool _hideWeekends = true;
+  final AuthProfileRemoteDataSource _remote = AuthProfileRemoteDataSource();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final saved = AppUserSession.instance.preferences['system'];
+    if (saved is Map) {
+      _selectedTheme = saved['theme']?.toString() ?? _selectedTheme;
+      _typographyScale =
+          saved['typographyScale']?.toString() ?? _typographyScale;
+      _tableDensity = saved['tableDensity']?.toString() ?? _tableDensity;
+      _highContrast = saved['highContrast'] == true;
+      _reduceMotion = saved['reduceMotion'] == true;
+      _firstDayOfWeek =
+          saved['firstDayOfWeek']?.toString() ?? _firstDayOfWeek;
+      _hideWeekends = saved['hideWeekends'] == true;
+    } else {
+      _highContrast = false;
+      _reduceMotion = false;
+      _hideWeekends = false;
+    }
+  }
+
+  Future<void> _savePreferences() async {
+    setState(() => _isSaving = true);
+    final preferences = Map<String, dynamic>.from(
+      AppUserSession.instance.preferences,
+    )..['system'] = {
+        'theme': _selectedTheme,
+        'typographyScale': _typographyScale,
+        'tableDensity': _tableDensity,
+        'highContrast': _highContrast,
+        'reduceMotion': _reduceMotion,
+        'firstDayOfWeek': _firstDayOfWeek,
+        'hideWeekends': _hideWeekends,
+      };
+    try {
+      await _remote.updateProfile({'preferences': preferences});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preferências do sistema salvas.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -510,17 +564,7 @@ class _StudentSystemPreferencesCardState
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Preferências de sistema e acessibilidade salvas com sucesso!',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Color(0xFF16A34A),
-                        ),
-                      );
-                    },
+                    onPressed: _isSaving ? null : _savePreferences,
                     icon: const Icon(
                       Icons.check,
                       size: 14,
