@@ -114,7 +114,8 @@ class AdminGradeAuditRow {
   });
 
   factory AdminGradeAuditRow.fromJson(Map<String, dynamic> json) {
-    double d(Object? v) => v is num ? v.toDouble() : (double.tryParse('$v') ?? 0.0);
+    double d(Object? v) =>
+        v is num ? v.toDouble() : (double.tryParse('$v') ?? 0.0);
     return AdminGradeAuditRow(
       studentId: json['studentId']?.toString() ?? '',
       ra: json['ra']?.toString() ?? '',
@@ -126,7 +127,9 @@ class AdminGradeAuditRow {
       n1: d(json['n1']),
       n2: d(json['n2']),
       finalAverage: d(json['finalAverage']),
-      attendanceRate: json['attendanceRate'] == null ? 100.0 : d(json['attendanceRate']),
+      attendanceRate: json['attendanceRate'] == null
+          ? 100.0
+          : d(json['attendanceRate']),
       absences: json['absences'] is num ? (json['absences'] as num).toInt() : 0,
       hasGrades: json['hasGrades'] == true,
     );
@@ -285,4 +288,3 @@ class AdminCalendarMilestone {
     );
   }
 }
-

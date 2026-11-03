@@ -1,9 +1,9 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Modal de Inspeção Forense & Comparativo de Dados (Audit Diff Inspector).
 /// Apresenta o antes e depois de mutações de banco de dados, privilégios e dados cadastrais.
@@ -86,11 +86,16 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                              border: Border.all(
+                                color: const Color(0xFFCBD5E1),
+                              ),
                             ),
                             child: Text(
                               log.id,
@@ -117,7 +122,11 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF94A3B8)),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: Color(0xFF94A3B8),
+                  ),
                   tooltip: 'Fechar',
                 ),
               ],
@@ -137,7 +146,10 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildMetaItem('Operador / Ator', '${log.actor} (${log.actorRole ?? "TI/Admin"})'),
+                        child: _buildMetaItem(
+                          'Operador / Ator',
+                          '${log.actor} (${log.actorRole ?? "TI/Admin"})',
+                        ),
                       ),
                       Expanded(
                         child: _buildMetaItem('Data / Hora', log.timestamp),
@@ -156,7 +168,10 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                         ),
                       ),
                       Expanded(
-                        child: _buildMetaItem('Endereço IP & Origem', log.ipAddress),
+                        child: _buildMetaItem(
+                          'Endereço IP & Origem',
+                          log.ipAddress,
+                        ),
                       ),
                     ],
                   ),
@@ -184,17 +199,24 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                   onTap: () => setState(() => _showRawJson = !_showRawJson),
                   borderRadius: BorderRadius.circular(6),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
                         Icon(
-                          _showRawJson ? Icons.table_chart_outlined : Icons.code_rounded,
+                          _showRawJson
+                              ? Icons.table_chart_outlined
+                              : Icons.code_rounded,
                           size: 15,
                           color: const Color(0xFF2563EB),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _showRawJson ? 'Exibir Tabela Visual' : 'Exibir JSON Forense',
+                          _showRawJson
+                              ? 'Exibir Tabela Visual'
+                              : 'Exibir JSON Forense',
                           style: jakarta(
                             size: 12,
                             weight: FontWeight.w600,
@@ -227,11 +249,19 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
-                  child: Text('Concluir Inspeção', style: jakarta(size: 13, weight: FontWeight.w600)),
+                  child: Text(
+                    'Concluir Inspeção',
+                    style: jakarta(size: 13, weight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
@@ -281,21 +311,33 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                     flex: 2,
                     child: Text(
                       'PROPRIEDADE / CAMPO',
-                      style: jakarta(size: 11, weight: FontWeight.w700, color: const Color(0xFF475569)),
+                      style: jakarta(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFF475569),
+                      ),
                     ),
                   ),
                   Expanded(
                     flex: 3,
                     child: Text(
                       'VALOR ANTERIOR (BEFORE)',
-                      style: jakarta(size: 11, weight: FontWeight.w700, color: const Color(0xFFB91C1C)),
+                      style: jakarta(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFFB91C1C),
+                      ),
                     ),
                   ),
                   Expanded(
                     flex: 3,
                     child: Text(
                       'NOVO VALOR (AFTER)',
-                      style: jakarta(size: 11, weight: FontWeight.w700, color: const Color(0xFF047857)),
+                      style: jakarta(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFF047857),
+                      ),
                     ),
                   ),
                 ],
@@ -303,7 +345,10 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
             ),
             for (final key in keys) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: const BoxDecoration(
                   border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
                 ),
@@ -313,20 +358,32 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                       flex: 2,
                       child: Text(
                         key,
-                        style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF1E293B)),
+                        style: jakarta(
+                          size: 12,
+                          weight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                        ),
                       ),
                     ),
                     Expanded(
                       flex: 3,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFEF2F2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          before.containsKey(key) ? '${before[key]}' : '(vazio)',
-                          style: jakarta(size: 12, color: const Color(0xFF991B1B)),
+                          before.containsKey(key)
+                              ? '${before[key]}'
+                              : '(vazio)',
+                          style: jakarta(
+                            size: 12,
+                            color: const Color(0xFF991B1B),
+                          ),
                         ),
                       ),
                     ),
@@ -334,14 +391,23 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                     Expanded(
                       flex: 3,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFECFDF5),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          after.containsKey(key) ? '${after[key]}' : '(removido)',
-                          style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF065F46)),
+                          after.containsKey(key)
+                              ? '${after[key]}'
+                              : '(removido)',
+                          style: jakarta(
+                            size: 12,
+                            weight: FontWeight.w600,
+                            color: const Color(0xFF065F46),
+                          ),
                         ),
                       ),
                     ),
@@ -355,7 +421,10 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
     );
   }
 
-  Widget _buildRawJsonView(Map<String, dynamic> before, Map<String, dynamic> after) {
+  Widget _buildRawJsonView(
+    Map<String, dynamic> before,
+    Map<String, dynamic> after,
+  ) {
     const encoder = JsonEncoder.withIndent('  ');
     final jsonStr = encoder.convert({
       'auditId': widget.log.id,
@@ -393,12 +462,20 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
       children: [
         Text(
           label,
-          style: jakarta(size: 11, weight: FontWeight.w500, color: const Color(0xFF64748B)),
+          style: jakarta(
+            size: 11,
+            weight: FontWeight.w500,
+            color: const Color(0xFF64748B),
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: jakarta(size: 12.5, weight: FontWeight.w600, color: const Color(0xFF0F172A)),
+          style: jakarta(
+            size: 12.5,
+            weight: FontWeight.w600,
+            color: const Color(0xFF0F172A),
+          ),
         ),
       ],
     );

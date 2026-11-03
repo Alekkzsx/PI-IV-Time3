@@ -25,26 +25,26 @@ class AdminRemoteDataSource {
   Future<List<AdminCalendarMilestone>> calendar() async =>
       ((await request('GET', '/calendar')) as List)
           .whereType<Map>()
-          .map((item) => AdminCalendarMilestone.fromJson(
-                Map<String, dynamic>.from(item),
-              ))
+          .map(
+            (item) => AdminCalendarMilestone.fromJson(
+              Map<String, dynamic>.from(item),
+            ),
+          )
           .toList();
 
   Future<Map<String, dynamic>> createCalendarEvent(
     Map<String, Object?> values,
-  ) async =>
-      Map<String, dynamic>.from(
-        await request('POST', '/calendar', values) as Map,
-      );
+  ) async => Map<String, dynamic>.from(
+    await request('POST', '/calendar', values) as Map,
+  );
 
   Future<Map<String, dynamic>> updateCalendarEvent(
     String id,
     Map<String, Object?> values,
-  ) async =>
-      Map<String, dynamic>.from(
-        await request('PATCH', '/calendar/${Uri.encodeComponent(id)}', values)
-            as Map,
-      );
+  ) async => Map<String, dynamic>.from(
+    await request('PATCH', '/calendar/${Uri.encodeComponent(id)}', values)
+        as Map,
+  );
 
   Future<void> deleteCalendarEvent(String id) async {
     await request('DELETE', '/calendar/${Uri.encodeComponent(id)}');
@@ -52,10 +52,9 @@ class AdminRemoteDataSource {
 
   Future<Map<String, dynamic>> createAnnouncement(
     Map<String, Object?> values,
-  ) async =>
-      Map<String, dynamic>.from(
-        await request('POST', '/announcements', values) as Map,
-      );
+  ) async => Map<String, dynamic>.from(
+    await request('POST', '/announcements', values) as Map,
+  );
 
   Future<Map<String, dynamic>> dossier(String id) async =>
       Map<String, dynamic>.from(
@@ -73,11 +72,9 @@ class AdminRemoteDataSource {
   Future<Map<String, dynamic>> updateUser(
     String id,
     Map<String, Object?> fields,
-  ) async =>
-      Map<String, dynamic>.from(
-        await request('PATCH', '/users/${Uri.encodeComponent(id)}', fields)
-            as Map,
-      );
+  ) async => Map<String, dynamic>.from(
+    await request('PATCH', '/users/${Uri.encodeComponent(id)}', fields) as Map,
+  );
 
   Future<List<AdminUserModel>> users() async {
     final values = await request('GET', '/users?limit=500') as List;

@@ -142,7 +142,11 @@ Base local: `http://127.0.0.1:3001`
 | `POST` | `/api/auth/verify-recovery-otp` | Valida OTP e retorna grant temporário de redefinição |
 | `POST` | `/api/auth/reset-password` | Consome o grant de uso único e redefine a senha |
 | `GET` | `/api/student/dashboard` | Painel consolidado do discente autenticado |
+| `GET` | `/api/student/boletim` | Histórico de notas do discente autenticado, agrupado por período |
+| `POST` | `/api/student/enrollment-declaration` | Emite e persiste uma declaração de matrícula com chave de verificação |
+| `GET` | `/api/teacher/notices/:id/reads` | Consulta leituras de comunicado de uma turma vinculada ao docente |
 | `GET` / `POST` | `/api/admin/users` e `/api/admin/teachers` | Gestão administrativa de identidades e docentes (`adminOnly`) |
+| `PATCH` | `/api/admin/announcements/:id` | Atualiza campos permitidos de um comunicado e registra auditoria (`adminOnly`) |
 | `GET` / `POST` | `/api/admin/courses` e `/api/admin/classes` | Gestão de cursos, turmas, matrículas, sessões e calendário (`adminOnly`) |
 | `POST` | `/api/video-call/rooms/enter` | Docente atribuído abre a sala; aluno matriculado entra e recebe ticket WS |
 | `POST` | `/api/video-call/rooms/close` | Docente responsável encerra a sala ao vivo |

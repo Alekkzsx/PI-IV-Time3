@@ -1,5 +1,7 @@
 // Desenvolvido por: Rafael Henrique dos Santos Inácio
+import { randomBytes } from "node:crypto";
 import type { Db, Document } from "mongodb";
+import { AuthError } from "../../../shared/auth-error.js";
 import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
 import {
   mapStudentDeliveries,
@@ -20,7 +22,7 @@ export class StudentDashboardService {
   private readonly repository: StudentDashboardRepository;
   private readonly operations: StudentPortalOperationsService;
 
-  constructor(database: Db) {
+  constructor(private readonly database: Db) {
     this.repository = new StudentDashboardRepository(database);
     this.operations = new StudentPortalOperationsService(database);
   }
@@ -159,6 +161,50 @@ export class StudentDashboardService {
   async getStudentBoletim(studentId: string, user: Document) {
     const boot = await this.getBootstrap(studentId, user);
     return boot.historicalBoletim;
+  }
+
+  async issueEnrollmentDeclaration(studentId: string, user: Document) {
+    const enrollments = await this.database
+      .collection("academic_enrollments")
+      .find({ studentId, status: "active" })
+      .toArray();
+    if (enrollments.length === 0) {
+      throw new AuthError(
+        409,
+        "active_enrollment_required",
+        "É necessário possuir matrícula ativa para emitir a declaração.",
+      );
+    }
+
+    const classCodes = enrollments.map((enrollment) => String(enrollment.classCode));
+    const classes = await this.database
+      .collection("academic_classes")
+      .find({ code: { $in: classCodes }, active: { $ne: false } })
+      .toArray();
+    const issuedAt = new Date();
+    const declaration = {
+      studentId,
+      studentIdentity: String(user.identity),
+      studentName: String(user.displayName ?? user.identity),
+      course: String(user.departmentOrCourse ?? user.department ?? ""),
+      enrollmentCount: enrollments.length,
+      classCodes,
+      classes: classes.map((classroom) => ({
+        code: String(classroom.code),
+        name: String(classroom.subjectName ?? classroom.courseName ?? classroom.code),
+        semester: String(classroom.semester ?? ""),
+      })),
+      verificationKey: `AGMRM-${randomBytes(16).toString("hex").toUpperCase()}`,
+      issuedAt,
+    };
+    const inserted = await this.database
+      .collection("academic_enrollment_declarations")
+      .insertOne(declaration);
+    return {
+      id: String(inserted.insertedId),
+      ...declaration,
+      issuedAt: issuedAt.toISOString(),
+    };
   }
 
   async getStudentDeliveries(studentId: string, user: Document) {
