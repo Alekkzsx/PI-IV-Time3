@@ -371,9 +371,23 @@ class _UserDossierModalState extends State<UserDossierModal> {
                 _buildItem(
                   'Informações Integradas de Turma/Docência',
                   widget.user.linkedInfo ??
-                      'Matrícula regularizada sem pendências regimentais.',
+                      'Nenhum vínculo adicional informado.',
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: SelectableText(
+              const JsonEncoder.withIndent('  ').convert(widget.dossier),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
             ),
           ),
         ],

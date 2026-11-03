@@ -130,8 +130,10 @@ class _UsersPageState extends State<UsersPage> {
 
   Future<void> _showDossierModal(BuildContext context, AdminUserModel u) async {
     try {
-      await _controller.remote.request('GET', '/users/${u.id}/dossier');
-      if (context.mounted) UserDossierModal.show(context: context, user: u);
+      final dossier = await _controller.remote.dossier(u.id);
+      if (context.mounted) {
+        UserDossierModal.show(context: context, user: u, dossier: dossier);
+      }
     } on ApiException catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(

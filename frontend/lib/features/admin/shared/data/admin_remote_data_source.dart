@@ -1,4 +1,6 @@
 // Desenvolvido por Guilherme Henrique Moreira
+import 'dart:convert';
+
 import '../../../../core/network/authenticated_api_client.dart';
 import '../models/admin_models.dart';
 
@@ -116,19 +118,40 @@ class AdminRemoteDataSource {
   Future<List<AdminAuditLogModel>> auditLogs() async =>
       (await request('GET', '/audit-logs?limit=500') as List).map((raw) {
         final value = raw as Map<String, dynamic>;
+        Map<String, dynamic>? mapValue(Object? input) {
+          if (input is Map) return Map<String, dynamic>.from(input);
+          if (input is String) {
+            try {
+              final decoded = jsonDecode(input);
+              if (decoded is Map) return Map<String, dynamic>.from(decoded);
+            } catch (_) {}
+          }
+          return null;
+        }
         return AdminAuditLogModel(
           id: value['id'] as String,
           timestamp: value['createdAt'] as String,
-          actor: value['actorId'] as String,
-          actorRole: 'admin',
+          actor: value['actorName']?.toString() ??
+              value['actorIdentity']?.toString() ??
+              value['actorId']?.toString() ??
+              'Sistema',
+          actorRole: value['actorRole']?.toString(),
           actionType: value['action'] as String,
           description: '${value['action']} · ${value['target']}',
-          ipAddress: 'Não registrado',
-          severity: 'INFO',
+          ipAddress: value['ipAddress']?.toString() ?? 'Não informado',
+          severity: value['severity']?.toString() ?? 'INFO',
           targetUserId: value['target'] as String,
-          diffAfter: value['details'] is Map
-              ? Map<String, dynamic>.from(value['details'] as Map)
-              : null,
+          diffBefore: mapValue(value['diffBefore']),
+          diffAfter: mapValue(value['diffAfter'] ?? value['details']),
         );
       }).toList();
+
+  Future<Map<String, dynamic>> downloadProtocol(String id) async =>
+      Map<String, dynamic>.from(
+        await api.request(
+              'GET',
+              '/api/files/protocols/${Uri.encodeComponent(id)}',
+            )
+            as Map,
+      );
 }
