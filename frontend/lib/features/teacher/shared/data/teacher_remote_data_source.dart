@@ -55,6 +55,32 @@ class TeacherRemoteDataSource {
       TeacherDashboardSnapshot.fromJson(
         await _api.getMap('/api/teacher/bootstrap'),
       );
+
+  Future<Map<String, dynamic>> createOrSelectSession({
+    required String classCode,
+    required DateTime date,
+    int hours = 2,
+  }) {
+    return _api.postMap(
+      '/api/teacher/courses/${Uri.encodeComponent(classCode)}/sessions',
+      {'date': date.toIso8601String(), 'hours': hours},
+    );
+  }
+
+  Future<void> updateSessionAttendance({
+    required String sessionId,
+    required String contentProgram,
+    required String methodology,
+    required bool isHomologated,
+    required List<Map<String, Object?>> attendanceList,
+  }) async {
+    await _api.patchMap('/api/teacher/sessions/${Uri.encodeComponent(sessionId)}', {
+      'contentProgram': contentProgram,
+      'methodology': methodology,
+      'isHomologated': isHomologated,
+      'attendanceList': attendanceList,
+    });
+  }
 }
 
 Map<String, dynamic> _map(dynamic value) =>

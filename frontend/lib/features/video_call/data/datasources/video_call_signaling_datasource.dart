@@ -77,6 +77,7 @@ abstract class IWebRtcSignalingDataSource
 class VideoCallSignalingDataSource
     implements IVideoCallSignalingDataSource, IWebRtcSignalingDataSource {
   final ISignalingChannel Function(String channelName)? _channelFactory;
+  final String? _webSocketTicket;
 
   ISignalingChannel? _channel;
   StreamSubscription<String>? _channelSubscription;
@@ -110,7 +111,9 @@ class VideoCallSignalingDataSource
 
   VideoCallSignalingDataSource({
     ISignalingChannel Function(String channelName)? channelFactory,
-  }) : _channelFactory = channelFactory;
+    String? webSocketTicket,
+  }) : _channelFactory = channelFactory,
+       _webSocketTicket = webSocketTicket;
 
   @override
   Stream<ParticipantModel> get onParticipantJoined =>
@@ -158,7 +161,10 @@ class VideoCallSignalingDataSource
     _channel = customChannel ??
         (_channelFactory != null
             ? _channelFactory(channelName)
-            : createSignalingChannel(channelName));
+        : createSignalingChannel(
+          channelName,
+          ticket: _webSocketTicket,
+          ));
 
     _remoteParticipants.clear();
     _lastSeen.clear();
