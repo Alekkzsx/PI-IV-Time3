@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
 import '../../../../../core/state/app_user_session.dart';
+import '../../../../../core/state/academic_bridge_service.dart';
 import '../../../shared/controllers/student_portal_controller.dart';
 import '../../../shared/data/student_remote_data_source.dart';
 import '../../domain/entities/academic_record_summary.dart';
@@ -23,9 +24,7 @@ class StudentSecretariatController extends ChangeNotifier {
     List<ProtocolRequest>? initialProtocols,
     StudentRemoteDataSource? remoteDataSource,
   }) : _recordSummary = recordSummary ?? emptyRecordSummary,
-       _protocols = List<ProtocolRequest>.from(
-         initialProtocols ?? const [],
-       ),
+       _protocols = List<ProtocolRequest>.from(initialProtocols ?? const []),
        _remote = remoteDataSource ?? StudentRemoteDataSource() {
     // Escuta despachos e pareceres oficiais emitidos pela Secretaria Geral (Admin)
     AcademicBridgeService.instance.onStudentProtocolUpdated =
@@ -69,8 +68,14 @@ class StudentSecretariatController extends ChangeNotifier {
 
     final summary = snapshot.recordSummary;
     _recordSummary = AcademicRecordSummary(
-      ra: summary['ra']?.toString() ?? snapshot.studentInfo['ra']?.toString() ?? '',
-      course: summary['course']?.toString() ?? snapshot.studentInfo['courseName']?.toString() ?? '',
+      ra:
+          summary['ra']?.toString() ??
+          snapshot.studentInfo['ra']?.toString() ??
+          '',
+      course:
+          summary['course']?.toString() ??
+          snapshot.studentInfo['courseName']?.toString() ??
+          '',
       academicIndex: summary['academicIndex']?.toString() ?? '—',
       completedWorkload: summary['completedWorkload']?.toString() ?? '—',
       activeEnrollmentBadge: summary['activeEnrollmentBadge']?.toString() ?? '',
@@ -89,12 +94,19 @@ class StudentSecretariatController extends ChangeNotifier {
     };
     return ProtocolRequest(
       id: json['id']?.toString() ?? json['_id']?.toString(),
-      protocolCode: (json['protocolCode'] ?? json['code'] ?? json['id']).toString(),
+      protocolCode: (json['protocolCode'] ?? json['code'] ?? json['id'])
+          .toString(),
       submittedAt: (json['submittedAt'] ?? json['createdAt'] ?? '').toString(),
-      subjectType: (json['subjectType'] ?? json['requestType'] ?? '').toString(),
-      componentObject: (json['componentObject'] ?? json['targetComponent'] ?? '').toString(),
+      subjectType: (json['subjectType'] ?? json['requestType'] ?? '')
+          .toString(),
+      componentObject:
+          (json['componentObject'] ?? json['targetComponent'] ?? '').toString(),
       status: status,
-      officialOpinion: (json['officialOpinion'] ?? json['decisionNote'] ?? 'Aguardando análise da Secretaria Acadêmica.').toString(),
+      officialOpinion:
+          (json['officialOpinion'] ??
+                  json['decisionNote'] ??
+                  'Aguardando análise da Secretaria Acadêmica.')
+              .toString(),
       justification: json['justification']?.toString() ?? '',
       attachmentName: json['attachmentName']?.toString(),
       approverName: (json['approverName'] ?? json['signedBy'])?.toString(),
@@ -121,12 +133,11 @@ class StudentSecretariatController extends ChangeNotifier {
   ];
 
   /// Lista pré-configurada de componentes curriculares e objetos padrão.
-  static const List<String> availableCurricularObjects = [
-    '218131 - APS-II (Análise e Projeto de Sistemas II) - Profa. Helena Bittencourt',
-    '218132 - Banco de Dados Avançado - Prof. Roberto Tanaka',
-    '218133 - Engenharia de Requisitos - Profa. Marina Silva',
-    '218134 - Sistemas Distribuídos e Cloud - Prof. Carlos Mendes',
-    'Validação de Curso Extracurricular (40h)',
+  List<String> get availableCurricularObjects => [
+    'Geral',
+    ...StudentPortalController.instance.disciplines.map(
+      (discipline) => '${discipline.code} - ${discipline.name}',
+    ),
     'Atividades Complementares e Extensão Universitária',
   ];
 
@@ -156,18 +167,18 @@ class StudentSecretariatController extends ChangeNotifier {
       throw const ApiException('Apenas alunos podem emitir declarações.');
     }
 
-    Future<String?> downloadProtocol(String id) =>
-        StudentPortalController.instance.downloadProtocol(id);
     return _remote.createEnrollmentDeclaration();
   }
 
+  Future<String?> downloadProtocol(String id) =>
+      StudentPortalController.instance.downloadProtocol(id);
+
   /// Prontuário padrão exibido na tela de Secretaria Virtual.
-  static const AcademicRecordSummary emptyRecordSummary =
-      AcademicRecordSummary(
-        ra: '',
-        course: '',
-        academicIndex: '—',
-        completedWorkload: '—',
-        activeEnrollmentBadge: '',
-      );
+  static const AcademicRecordSummary emptyRecordSummary = AcademicRecordSummary(
+    ra: '',
+    course: '',
+    academicIndex: '—',
+    completedWorkload: '—',
+    activeEnrollmentBadge: '',
+  );
 }

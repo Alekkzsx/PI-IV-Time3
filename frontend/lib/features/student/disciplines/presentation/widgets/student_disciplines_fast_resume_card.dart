@@ -22,6 +22,14 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = discipline.progress.clamp(0.0, 1.0);
+    final firstUnit = discipline.syllabusUnits.isEmpty
+        ? null
+        : discipline.syllabusUnits.first;
+    final unitTitle =
+        firstUnit?['title']?.toString() ??
+        firstUnit?['name']?.toString() ??
+        'Nenhum conteúdo foi disponibilizado.';
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -58,7 +66,7 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'SESSÃO ATIVA NO AVA • CONTINUAR DE ONDE PAROU',
+                        'DISCIPLINA • ACESSO AO AVA',
                         style: jakarta(
                           size: 11,
                           weight: FontWeight.w700,
@@ -78,7 +86,7 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'Último acesso há 45 min',
+                      '${(progress * 100).round()}% de progresso',
                       style: jakarta(
                         size: 10.5,
                         color: const Color(0xFFD4D4D8),
@@ -155,7 +163,7 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Módulo 3: Padrões de Projeto Estruturais (GoF)',
+                          'Conteúdo da disciplina',
                           style: jakarta(
                             size: 12.5,
                             weight: FontWeight.w600,
@@ -163,7 +171,7 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Slide 14 de 28 (50%)',
+                          '${(progress * 100).round()}%',
                           style: jakarta(
                             size: 11,
                             weight: FontWeight.w600,
@@ -174,17 +182,17 @@ class StudentDisciplinesFastResumeCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Aula 14: Padrão Adapter — Integração de interfaces legadas com Wrapper e contratos.',
+                      unitTitle,
                       style: jakarta(size: 12, color: const Color(0xFFD4D4D8)),
                     ),
                     const SizedBox(height: 10),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(3),
-                      child: const LinearProgressIndicator(
-                        value: 0.50,
+                      child: LinearProgressIndicator(
+                        value: progress,
                         minHeight: 4,
-                        backgroundColor: Color(0xFF27272A),
-                        valueColor: AlwaysStoppedAnimation<Color>(
+                        backgroundColor: const Color(0xFF27272A),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
                           Color(0xFF22C55E),
                         ),
                       ),

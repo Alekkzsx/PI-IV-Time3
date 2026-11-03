@@ -1,11 +1,40 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Card consolidado de métricas institucionais do estudante (Carga Horária, Média, Frequência e Situação).
 class StudentDisciplinesStatsCard extends StatelessWidget {
   const StudentDisciplinesStatsCard({super.key});
+
+  StudentPortalController get _controller => StudentPortalController.instance;
+
+  int get _completedHours => _controller.disciplines.fold(
+    0,
+    (total, discipline) => total + discipline.completedHours,
+  );
+
+  int get _totalHours => _controller.disciplines.fold(
+    0,
+    (total, discipline) => total + discipline.totalHours,
+  );
+
+  double? get _average => _controller.disciplines.isEmpty
+      ? null
+      : _controller.disciplines.fold<double>(
+              0,
+              (total, discipline) => total + discipline.partialAverage,
+            ) /
+            _controller.disciplines.length;
+
+  double? get _attendance => _controller.disciplines.isEmpty
+      ? null
+      : _controller.disciplines.fold<double>(
+              0,
+              (total, discipline) => total + discipline.attendancePercentage,
+            ) /
+            _controller.disciplines.length;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +108,9 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
   }
 
   Widget _buildCargaHoraria() {
+    final totalHours = _totalHours;
+    final completedHours = _completedHours;
+    final progress = totalHours == 0 ? 0.0 : completedHours / totalHours;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -97,7 +129,7 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
-              '190h',
+              totalHours == 0 ? '—' : '${completedHours}h',
               style: jakarta(
                 size: 22,
                 weight: FontWeight.w700,
@@ -107,12 +139,11 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                'de 280h (68%)',
+                totalHours == 0
+                    ? 'de —'
+                    : 'de ${totalHours}h (${(progress * 100).round()}%)',
                 overflow: TextOverflow.ellipsis,
-                style: jakarta(
-                  size: 11.5,
-                  color: const Color(0xFF71717A),
-                ),
+                style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
               ),
             ),
           ],
@@ -120,11 +151,11 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
         const SizedBox(height: 10),
         ClipRRect(
           borderRadius: BorderRadius.circular(3),
-          child: const LinearProgressIndicator(
-            value: 0.68,
+          child: LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
             minHeight: 3.5,
-            backgroundColor: Color(0xFFF4F4F5),
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF18181B)),
+            backgroundColor: const Color(0xFFF4F4F5),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF18181B)),
           ),
         ),
       ],
@@ -132,6 +163,7 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
   }
 
   Widget _buildMediaPonderada() {
+    final average = _average;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,7 +181,7 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              '8.63',
+              average?.toStringAsFixed(2) ?? '—',
               style: jakarta(
                 size: 22,
                 weight: FontWeight.w700,
@@ -157,39 +189,49 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'Aprovado em todas',
-                  overflow: TextOverflow.ellipsis,
-                  style: jakarta(
-                    size: 10,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFF166534),
+            if (average != null)
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: average >= 6
+                        ? const Color(0xFFDCFCE7)
+                        : const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    average >= 6 ? 'Média parcial ≥ 6' : 'Média parcial < 6',
+                    overflow: TextOverflow.ellipsis,
+                    style: jakarta(
+                      size: 10,
+                      weight: FontWeight.w600,
+                      color: average >= 6
+                          ? const Color(0xFF166534)
+                          : const Color(0xFF991B1B),
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          'Mínimo regimental: 6.0',
-          style: jakarta(
-            size: 11,
-            color: const Color(0xFF71717A),
-          ),
+          'Média das disciplinas com dados disponíveis',
+          style: jakarta(size: 11, color: const Color(0xFF71717A)),
         ),
       ],
     );
   }
 
   Widget _buildFrequencia() {
+    final attendance = _attendance;
+    final absences = _controller.disciplines.fold<int>(
+      0,
+      (total, discipline) => total + discipline.absences,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -208,7 +250,7 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
-              '95.7%',
+              attendance == null ? '—' : '${attendance.toStringAsFixed(1)}%',
               style: jakarta(
                 size: 22,
                 weight: FontWeight.w700,
@@ -218,19 +260,16 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                '(12 faltas)',
+                '($absences faltas)',
                 overflow: TextOverflow.ellipsis,
-                style: jakarta(
-                  size: 11.5,
-                  color: const Color(0xFF71717A),
-                ),
+                style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          'Excelente assiduidade presencial',
+          'Frequência média das disciplinas',
           style: jakarta(
             size: 11,
             weight: FontWeight.w600,
@@ -242,11 +281,21 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
   }
 
   Widget _buildSituacao() {
+    final summary = _controller.recordSummary;
+    final enrollmentStatus =
+        summary['activeEnrollmentBadge']?.toString().trim().isNotEmpty == true
+        ? summary['activeEnrollmentBadge'].toString()
+        : _controller.studentInfo['enrollmentStatus']?.toString() ?? '—';
+    final semester =
+        _controller.studentInfo['semester']?.toString() ??
+        (_controller.disciplines.isEmpty
+            ? '—'
+            : _controller.disciplines.first.semester);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'SITUAÇÃO CURRICULAR 2026/2',
+          'SITUAÇÃO CURRICULAR $semester',
           style: jakarta(
             size: 10.5,
             weight: FontWeight.w700,
@@ -258,14 +307,10 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.check_circle_rounded,
-              size: 18,
-              color: Color(0xFF16A34A),
-            ),
+            const Icon(Icons.info_outline_rounded, size: 18),
             const SizedBox(width: 6),
             Text(
-              'Regular & Apto',
+              enrollmentStatus,
               style: jakarta(
                 size: 15,
                 weight: FontWeight.w700,
@@ -276,11 +321,8 @@ class StudentDisciplinesStatsCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '4 disciplinas em andamento',
-          style: jakarta(
-            size: 11,
-            color: const Color(0xFF71717A),
-          ),
+          '${_controller.disciplines.length} disciplinas em andamento',
+          style: jakarta(size: 11, color: const Color(0xFF71717A)),
         ),
       ],
     );

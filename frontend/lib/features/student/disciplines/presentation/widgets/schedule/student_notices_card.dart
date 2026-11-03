@@ -1,9 +1,8 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Mural somente para leitura com comunicados das disciplinas do aluno.
 class StudentNoticesCard extends StatelessWidget {
@@ -11,13 +10,16 @@ class StudentNoticesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bridge = AcademicBridgeService.instance;
-    final courseCodes = StudentMockData.disciplines.map((d) => d.code);
+    final controller = StudentPortalController.instance;
 
     return AnimatedBuilder(
-      animation: bridge,
+      animation: controller,
       builder: (context, _) {
-        final notices = bridge.noticesForCourses(courseCodes);
+        final courseCodes = controller.disciplines.map((d) => d.code).toSet();
+        final notices = controller.messages.where((message) {
+          final classCode = message['classCode']?.toString();
+          return classCode == null || courseCodes.contains(classCode);
+        }).toList();
         return Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
@@ -74,10 +76,7 @@ class StudentNoticesCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Text(
                     'Nenhum aviso publicado para suas disciplinas.',
-                    style: jakarta(
-                      size: 12,
-                      color: const Color(0xFF71717A),
-                    ),
+                    style: jakarta(size: 12, color: const Color(0xFF71717A)),
                   ),
                 )
               else
@@ -99,7 +98,7 @@ class StudentNoticesCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
-                                notices[i]['targetCourse'] as String? ??
+                                notices[i]['classCode'] as String? ??
                                     'Institucional',
                                 style: jakarta(
                                   size: 10,
@@ -111,7 +110,7 @@ class StudentNoticesCard extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                notices[i]['senderName'] as String? ??
+                                notices[i]['sender'] as String? ??
                                     'Coordenação Institucional',
                                 overflow: TextOverflow.ellipsis,
                                 style: jakarta(
@@ -122,7 +121,7 @@ class StudentNoticesCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              notices[i]['date'] as String? ?? '',
+                              notices[i]['dateLabel'] as String? ?? '',
                               style: jakarta(
                                 size: 11,
                                 color: const Color(0xFF71717A),
@@ -141,7 +140,7 @@ class StudentNoticesCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          notices[i]['content'] as String? ?? '',
+                          notices[i]['body'] as String? ?? '',
                           style: jakarta(
                             size: 11.5,
                             color: const Color(0xFF71717A),

@@ -1,9 +1,10 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 import 'student_disciplines_modals.dart';
 
 typedef DisciplineSelectCallback =
@@ -409,8 +410,10 @@ class StudentDisciplinesGridView extends StatelessWidget {
                               ? () => Navigator.of(context).pushNamed(
                                   '/video-call',
                                   arguments: {
-                                    'name': StudentMockData.studentName,
-                                    'ra': StudentMockData.studentRa,
+                                    'name':
+                                        AppUserSession.instance.effectiveName,
+                                    'ra':
+                                        AppUserSession.instance.identity ?? '',
                                     'roomCode': d.code,
                                     'role': 'aluno',
                                   },
