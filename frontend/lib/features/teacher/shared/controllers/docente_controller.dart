@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/state/app_user_session.dart';
 import '../../../../core/state/academic_bridge_service.dart';
@@ -236,6 +237,56 @@ class DocenteController extends ChangeNotifier {
     _pautaChancelaCodes.clear();
     _assignmentDoubts.clear();
   }
+
+  Future<void> _persistCurrentSession() async {
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty || _currentSession.id.isEmpty) {
+      remoteError = 'Entre novamente para salvar o diário.';
+      notifyListeners();
+      return;
+    }
+    final courseId = _selectedCourseId;
+    final sessionId = _currentSession.id;
+    try {
+      await _remote.updateSessionAttendance(
+        sessionId: sessionId,
+        contentProgram: _currentSession.contentProgram,
+        methodology: _currentSession.methodology,
+        location: _currentSession.location,
+        isHomologated: _currentSession.isHomologated,
+        attendanceList: _currentSession.attendanceList
+            .map((student) => <String, Object?>{
+                  'studentId': student.studentId,
+                  'ra': student.ra,
+                  'name': student.name,
+                  'status': student.status.name,
+                })
+            .toList(),
+      );
+          await _reloadSessionContext(courseId, sessionId);
+    } on ApiException catch (error) {
+          await _reloadSessionContext(courseId, sessionId);
+      remoteError = error.message;
+      notifyListeners();
+    } catch (_) {
+          await _reloadSessionContext(courseId, sessionId);
+      remoteError = 'Não foi possível salvar o diário.';
+      notifyListeners();
+    }
+  }
+
+      Future<void> _reloadSessionContext(String courseId, String sessionId) async {
+        await loadRemote(force: true);
+        if (_courses.any((course) => course.id == courseId)) _selectedCourseId = courseId;
+        _currentSession = _sessions.firstWhere(
+          (session) => session.id == sessionId,
+          orElse: () => _sessions
+              .where((session) => session.courseId == courseId)
+              .firstOrNull ??
+              _emptySession,
+        );
+        notifyListeners();
+      }
 
   static const ClassSession _emptySession = ClassSession(
     id: '',
@@ -498,7 +549,7 @@ class DocenteController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectSessionByDate(DateTime pickedDate) {
+  Future<void> selectSessionByDate(DateTime pickedDate) async {
     if (!selectedCourse.classWeekdays.contains(pickedDate.weekday)) return;
 
     final normalizedDate = DateTime(
@@ -506,69 +557,49 @@ class DocenteController extends ChangeNotifier {
       pickedDate.month,
       pickedDate.day,
     );
-    final existing = _sessions.firstWhere(
+    final existing = _sessions.where(
       (s) =>
           s.courseId == _selectedCourseId &&
           s.sessionDate.year == normalizedDate.year &&
           s.sessionDate.month == normalizedDate.month &&
           s.sessionDate.day == normalizedDate.day,
-      orElse: () => _createSessionForDate(normalizedDate),
-    );
-    if (existing.id == _currentSession.id) return;
-    _currentSession = existing;
-    notifyListeners();
-  }
-
-  ClassSession _createSessionForDate(DateTime pickedDate) {
-    final list = sessionsForSelectedCourse;
-    final insertionIndex = list.indexWhere(
-      (session) => session.sessionDate.isAfter(pickedDate),
-    );
-    final nextNumber = insertionIndex == -1
-        ? (list
-                  .map((s) => s.sessionNumber)
-                  .fold<int>(0, (max, n) => n > max ? n : max)) +
-              1
-        : insertionIndex == 0
-        ? list.first.sessionNumber - 1
-        : list[insertionIndex - 1].sessionNumber + 1;
-
-    if (insertionIndex != -1 &&
-        list.any((session) => session.sessionNumber == nextNumber)) {
-      final sessionsToShift = list.skip(insertionIndex);
-      for (final session in sessionsToShift) {
-        if (session.sessionNumber < nextNumber) continue;
-        final index = _sessions.indexWhere((item) => item.id == session.id);
-        if (index != -1) {
-          _sessions[index] = session.copyWith(
-            sessionNumber: session.sessionNumber + 1,
-          );
-        }
-      }
+    ).firstOrNull;
+    if (existing != null) {
+      if (existing.id == _currentSession.id) return;
+      _currentSession = existing;
+      notifyListeners();
+      return;
     }
 
-    final formatted = formatSessionDate(pickedDate);
-    final courseAttendance = list.isEmpty
-        ? const <AttendanceStudent>[]
-        : list.first.attendanceList;
-    final newSession = ClassSession(
-      id: 'sess-${pickedDate.millisecondsSinceEpoch}',
-      courseId: _selectedCourseId,
-      sessionNumber: nextNumber,
-      hours: 2,
-      date: pickedDate,
-      dateFormatted: formatted,
-      contentProgram:
-          'Planejamento de aula para ${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}',
-      methodology: 'Aula expositiva dialogada e atividades práticas.',
-      location: selectedCourse.room,
-      isHomologated: false,
-      attendanceList: courseAttendance
-          .map((st) => st.copyWith(status: AttendanceStatus.presente))
-          .toList(),
-    );
-    _sessions.add(newSession);
-    return newSession;
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty) {
+      remoteError = 'Entre novamente para agendar uma aula.';
+      notifyListeners();
+      return;
+    }
+    final courseId = _selectedCourseId;
+    final classCode = selectedCourse.code;
+    try {
+      await _remote.createOrSelectSession(
+        classCode: classCode,
+        date: normalizedDate,
+      );
+      await loadRemote(force: true);
+      if (_courses.any((course) => course.id == courseId)) _selectedCourseId = courseId;
+      _currentSession = _sessions.firstWhere(
+        (session) =>
+            session.courseId == courseId &&
+            session.sessionDate.year == normalizedDate.year &&
+            session.sessionDate.month == normalizedDate.month &&
+            session.sessionDate.day == normalizedDate.day,
+        orElse: () => _currentSession,
+      );
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível agendar a aula.';
+    }
+    notifyListeners();
   }
 
   bool get canGoToPreviousSession {
@@ -601,11 +632,11 @@ class DocenteController extends ChangeNotifier {
     }
   }
 
-  void updateSessionContent(
+  Future<void> updateSessionContent(
     String content,
     String methodology, [
     String? location,
-  ]) {
+  ]) async {
     if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
         _currentSession.courseId != _selectedCourseId) {
       return;
@@ -625,9 +656,10 @@ class DocenteController extends ChangeNotifier {
     );
     _syncSessionInList();
     notifyListeners();
+    await _persistCurrentSession();
   }
 
-  void markAllPresent() {
+  Future<void> markAllPresent() async {
     if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
         _currentSession.courseId != _selectedCourseId) {
       return;
@@ -649,6 +681,7 @@ class DocenteController extends ChangeNotifier {
     );
     _syncSessionInList();
     notifyListeners();
+    await _persistCurrentSession();
   }
 
   AttendanceStudent _attendanceWithStatus(
@@ -680,7 +713,7 @@ class DocenteController extends ChangeNotifier {
     );
   }
 
-  void toggleAttendance(String studentId, AttendanceStatus newStatus) {
+  Future<void> toggleAttendance(String studentId, AttendanceStatus newStatus) async {
     if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
         _currentSession.courseId != _selectedCourseId ||
         !_currentSession.attendanceList.any(
@@ -701,9 +734,10 @@ class DocenteController extends ChangeNotifier {
     );
     _syncSessionInList();
     notifyListeners();
+    await _persistCurrentSession();
   }
 
-  void homologateSession() {
+  Future<void> homologateSession() async {
     if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
         _currentSession.courseId != _selectedCourseId) {
       return;
@@ -711,24 +745,8 @@ class DocenteController extends ChangeNotifier {
     _currentSession = _currentSession.copyWith(isHomologated: true);
     _syncSessionInList();
 
-    // Propaga o fechamento da chamada e presenças para os discentes
-    AcademicBridgeService.instance.registerAttendanceHomologation(
-      courseCode: selectedCourse.code,
-      sessionDate: _currentSession.date?.toIso8601String() ?? 'Hoje',
-      attendances: _currentSession.attendanceList
-          .map(
-            (att) => {
-              'ra': att.ra,
-              'studentName': att.name,
-              'status': att.status.name,
-              'accumulatedAbsences': att.accumulatedAbsences,
-              'attendanceRate': att.attendanceRate,
-            },
-          )
-          .toList(),
-    );
-
     notifyListeners();
+    await _persistCurrentSession();
   }
 
   // --- Assignments & Rubric Methods ---

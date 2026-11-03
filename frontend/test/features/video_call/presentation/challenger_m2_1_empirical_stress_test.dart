@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/video_call/data/channel/in_memory_signaling_bus.dart';
+import 'package:pi_iv_time3/features/video_call/data/datasources/video_call_room_remote_data_source.dart';
 import 'package:pi_iv_time3/features/video_call/data/datasources/video_call_signaling_datasource.dart';
 import 'package:pi_iv_time3/features/video_call/data/repositories/video_call_repository_impl.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/meeting_room.dart';
@@ -22,6 +23,15 @@ import 'package:pi_iv_time3/features/video_call/domain/entities/media_state_upda
 import 'package:pi_iv_time3/features/video_call/domain/entities/recording_state.dart';
 import 'package:pi_iv_time3/features/video_call/domain/repositories/video_call_repository.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/participant_video_tile.dart';
+
+class _FakeRoomRemoteDataSource extends VideoCallRoomRemoteDataSource {
+  @override
+  Future<VideoCallRoomAccess> enterRoom(String roomCode) async =>
+      const VideoCallRoomAccess(
+        opened: false,
+        webSocketTicket: 'test-ticket',
+      );
+}
 
 class FakeChallengerRepository implements VideoCallRepository {
   final joinedCtrl = StreamController<Participant>.broadcast(sync: true);
@@ -406,6 +416,7 @@ void main() {
               MaterialApp(
                 home: VideoCallLobbyPage(
                   controller: lobbyController,
+                  roomDataSource: _FakeRoomRemoteDataSource(),
                   initialRoomCode: 'APS-II',
                   onJoin: (name, ra, room, muted, videoOff) {
                     joinedName = name;
