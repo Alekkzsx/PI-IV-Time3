@@ -83,6 +83,7 @@ class AssignmentItem {
   final bool allowLateWithPenalty;
   final List<RubricCriterion> rubricCriteria;
   final List<StudentSubmission> submissions;
+  final List<Map<String, dynamic>> doubts;
 
   const AssignmentItem({
     required this.id,
@@ -98,6 +99,7 @@ class AssignmentItem {
     required this.allowLateWithPenalty,
     required this.rubricCriteria,
     required this.submissions,
+    this.doubts = const [],
   });
 
   int get deliveredCount =>
@@ -122,6 +124,7 @@ class AssignmentItem {
     bool? allowLateWithPenalty,
     List<RubricCriterion>? rubricCriteria,
     List<StudentSubmission>? submissions,
+    List<Map<String, dynamic>>? doubts,
   }) {
     return AssignmentItem(
       id: id ?? this.id,
@@ -137,6 +140,7 @@ class AssignmentItem {
       allowLateWithPenalty: allowLateWithPenalty ?? this.allowLateWithPenalty,
       rubricCriteria: rubricCriteria ?? this.rubricCriteria,
       submissions: submissions ?? this.submissions,
+      doubts: doubts ?? this.doubts,
     );
   }
 }

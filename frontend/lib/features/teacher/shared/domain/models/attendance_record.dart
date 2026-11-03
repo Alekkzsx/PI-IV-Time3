@@ -74,8 +74,8 @@ class ClassSession {
   final List<AttendanceStudent> attendanceList;
 
   const ClassSession({
-    this.id = 'sess-27',
-    this.courseId = 'course-aps2',
+    this.id = '',
+    this.courseId = '',
     required this.sessionNumber,
     required this.hours,
     this.date,
@@ -87,7 +87,7 @@ class ClassSession {
     required this.attendanceList,
   });
 
-  DateTime get sessionDate => date ?? DateTime(2026, 9, 30);
+  DateTime get sessionDate => date ?? DateTime.now();
 
   ClassSession copyWith({
     String? id,

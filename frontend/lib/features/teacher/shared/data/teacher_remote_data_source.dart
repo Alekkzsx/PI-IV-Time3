@@ -75,14 +75,183 @@ class TeacherRemoteDataSource {
     required bool isHomologated,
     required List<Map<String, Object?>> attendanceList,
   }) async {
-    await _api.patchMap('/api/teacher/sessions/${Uri.encodeComponent(sessionId)}', {
-      'contentProgram': contentProgram,
-      'methodology': methodology,
-      'location': location,
-      'isHomologated': isHomologated,
-      'attendanceList': attendanceList,
-    });
+    await _api
+        .patchMap('/api/teacher/sessions/${Uri.encodeComponent(sessionId)}', {
+          'contentProgram': contentProgram,
+          'methodology': methodology,
+          'location': location,
+          'isHomologated': isHomologated,
+          'attendanceList': attendanceList,
+        });
   }
+
+  Future<void> advanceSyllabus(String classCode, String unitId) async {
+    await _api.request(
+      'PATCH',
+      '/api/teacher/courses/${Uri.encodeComponent(classCode)}/syllabus/${Uri.encodeComponent(unitId)}',
+    );
+  }
+
+  Future<Map<String, dynamic>> publishMaterial({
+    required String classCode,
+    required String title,
+    required String fileName,
+    required String mimeType,
+    required String size,
+    required String contentBase64,
+    String? unitAssociated,
+  }) => _api.postMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/materials',
+    {
+      'title': title,
+      'fileName': fileName,
+      'mimeType': mimeType,
+      'size': size,
+      'type': fileName.contains('.') ? fileName.split('.').last : 'arquivo',
+      'contentBase64': contentBase64,
+      if (unitAssociated != null) 'unitAssociated': unitAssociated,
+    },
+  );
+
+  Future<Map<String, dynamic>> createAssignment({
+    required String classCode,
+    required Map<String, Object?> assignment,
+  }) => _api.postMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/assignments',
+    assignment,
+  );
+
+  Future<Map<String, dynamic>> evaluateSubmission({
+    required String assignmentId,
+    required String studentId,
+    required double calculatedGrade,
+    required String feedback,
+    required List<Map<String, Object?>> evaluatedCriteria,
+  }) => _api.patchMap(
+    '/api/teacher/assignments/${Uri.encodeComponent(assignmentId)}/evaluate',
+    {
+      'studentId': studentId,
+      'calculatedGrade': calculatedGrade,
+      'feedback': feedback,
+      'evaluatedCriteria': evaluatedCriteria,
+    },
+  );
+
+  Future<Map<String, dynamic>> replyDoubt({
+    required String assignmentId,
+    required String doubtId,
+    required String reply,
+  }) => _api.postMap(
+    '/api/teacher/assignments/${Uri.encodeComponent(assignmentId)}/doubts/${Uri.encodeComponent(doubtId)}/reply',
+    {'reply': reply},
+  );
+
+  Future<Map<String, dynamic>> updateGrade({
+    required String classCode,
+    required String studentId,
+    double? assignmentsScore,
+    double? p1Score,
+    double? projectsScore,
+    double? p2Score,
+  }) => _api.patchMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/grades/${Uri.encodeComponent(studentId)}',
+    {
+      if (assignmentsScore != null) 'assignmentsScore': assignmentsScore,
+      if (p1Score != null) 'p1Score': p1Score,
+      if (projectsScore != null) 'projectsScore': projectsScore,
+      if (p2Score != null) 'p2Score': p2Score,
+    },
+  );
+
+  Future<Map<String, dynamic>> homologate(String classCode) => _api.postMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/grades/homologate',
+  );
+
+  Future<Map<String, dynamic>> rectify({
+    required String classCode,
+    required String studentId,
+    required String stage,
+    required double newScore,
+    required String justification,
+  }) => _api.postMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/grades/rectify',
+    {
+      'studentId': studentId,
+      'stage': stage,
+      'newScore': newScore,
+      'justification': justification,
+    },
+  );
+
+  Future<Map<String, dynamic>> createForumTopic({
+    required String classCode,
+    required String title,
+    required String body,
+    String? category,
+  }) => _api.postMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/forum',
+    {'title': title, 'body': body, if (category != null) 'category': category},
+  );
+
+  Future<Map<String, dynamic>> replyForumTopic({
+    required String classCode,
+    required String topicId,
+    required String body,
+  }) => _api.postMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/forum/${Uri.encodeComponent(topicId)}/reply',
+    {'body': body},
+  );
+
+  Future<List<Map<String, dynamic>>> saveSquads({
+    required String classCode,
+    required List<Map<String, Object?>> squads,
+  }) async {
+    final result = await _api.putMap(
+      '/api/teacher/courses/${Uri.encodeComponent(classCode)}/squads',
+      {'squads': squads},
+    );
+    final values = result['squads'];
+    return values is List
+        ? values
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
+        : const [];
+  }
+
+  Future<Map<String, dynamic>> createEvent({
+    required String title,
+    required String date,
+    required String time,
+    required String type,
+    required String location,
+  }) => _api.postMap('/api/teacher/events', {
+    'title': title,
+    'date': date,
+    'time': time,
+    'type': type,
+    'location': location,
+  });
+
+  Future<Map<String, dynamic>> publishNotice({
+    required String targetCourse,
+    required String targetAudience,
+    required String classification,
+    required String title,
+    required String message,
+  }) => _api.postMap('/api/teacher/notices', {
+    'targetCourse': targetCourse,
+    'targetAudience': targetAudience,
+    'classification': classification,
+    'title': title,
+    'message': message,
+  });
+
+  Future<Map<String, dynamic>> downloadSubmission(String id) =>
+      _api.getMap('/api/files/submissions/${Uri.encodeComponent(id)}');
+
+  Future<Map<String, dynamic>> noticeReads(String id) =>
+      _api.getMap('/api/teacher/notices/${Uri.encodeComponent(id)}/reads');
 }
 
 Map<String, dynamic> _map(dynamic value) =>
@@ -109,7 +278,10 @@ DocenteProfile _profile(Map<String, dynamic> json) {
   return DocenteProfile(
     fullName: _string(json['fullName'], _string(json['teacherIdentity'])),
     socialName: _string(json['socialName']),
-    registrationId: _string(json['registrationId'], _string(json['teacherIdentity'])),
+    registrationId: _string(
+      json['registrationId'],
+      _string(json['teacherIdentity']),
+    ),
     department: _string(json['department']),
     semester: _string(json['semester']),
     campus: _string(json['campus']),
@@ -118,24 +290,28 @@ DocenteProfile _profile(Map<String, dynamic> json) {
     personalEmail: _string(json['personalEmail']),
     twoFactorEnabled: json['twoFactorEnabled'] == true,
     activeSessions: _maps(json['activeSessions'])
-        .map((item) => ActiveSession(
-              id: _string(item['id']),
-              device: _string(item['device']),
-              location: _string(item['location']),
-              ip: _string(item['ip']),
-              lastActive: _string(item['lastActive']),
-              isCurrent: item['isCurrent'] == true,
-            ))
+        .map(
+          (item) => ActiveSession(
+            id: _string(item['id']),
+            device: _string(item['device']),
+            location: _string(item['location']),
+            ip: _string(item['ip']),
+            lastActive: _string(item['lastActive']),
+            isCurrent: item['isCurrent'] == true,
+          ),
+        )
         .toList(),
     loginAudits: _maps(json['loginAudits'])
-        .map((item) => LoginAudit(
-              date: _string(item['date']),
-              time: _string(item['time']),
-              device: _string(item['device']),
-              location: _string(item['location']),
-              ip: _string(item['ip']),
-              status: _string(item['status']),
-            ))
+        .map(
+          (item) => LoginAudit(
+            date: _string(item['date']),
+            time: _string(item['time']),
+            device: _string(item['device']),
+            location: _string(item['location']),
+            ip: _string(item['ip']),
+            status: _string(item['status']),
+          ),
+        )
         .toList(),
   );
 }
@@ -155,28 +331,35 @@ DocenteCourse _course(Map<String, dynamic> json) {
     enrolledCount: _int(json['enrolledCount']),
     completedHours: _int(json['completedHours']),
     totalHours: _int(json['totalHours']),
-    gradeLocked: json['classGradeLocked'] == true || json['gradeLocked'] == true,
+    gradeLocked:
+        json['classGradeLocked'] == true || json['gradeLocked'] == true,
     pautaHomologated: json['pautaHomologated'] == true,
     chancelaCode: json['chancelaCode']?.toString(),
+    forumTopics: _maps(json['forumTopics']),
+    squads: _maps(json['squads']),
     syllabusUnits: syllabus
-        .map((unit) => SyllabusUnit(
-              id: _string(unit['id']),
-              unitNumber: _int(unit['unitNumber']),
-              title: _string(unit['title']),
-              topics: _strings(unit['topics']),
-              completedClasses: _int(unit['completedClasses']),
-              totalClasses: _int(unit['totalClasses']),
-            ))
+        .map(
+          (unit) => SyllabusUnit(
+            id: _string(unit['id']),
+            unitNumber: _int(unit['unitNumber']),
+            title: _string(unit['title']),
+            topics: _strings(unit['topics']),
+            completedClasses: _int(unit['completedClasses']),
+            totalClasses: _int(unit['totalClasses']),
+          ),
+        )
         .toList(),
     materials: materials
-        .map((material) => CourseMaterial(
-              id: _string(material['id']),
-              courseId: _string(material['courseId']),
-              title: _string(material['title']),
-              date: _string(material['date']),
-              size: _string(material['size']),
-              type: _string(material['type']),
-            ))
+        .map(
+          (material) => CourseMaterial(
+            id: _string(material['id']),
+            courseId: _string(material['courseId']),
+            title: _string(material['title']),
+            date: _string(material['date']),
+            size: _string(material['size']),
+            type: _string(material['type']),
+          ),
+        )
         .toList(),
   );
 }
@@ -240,25 +423,29 @@ AssignmentItem _assignment(Map<String, dynamic> json) {
     allowLateWithPenalty: json['allowLateWithPenalty'] != false,
     rubricCriteria: _maps(json['rubricCriteria']).map(_rubric).toList(),
     submissions: _maps(json['submissions']).map(_submission).toList(),
+    doubts: _maps(json['doubts']),
   );
 }
 
 RubricCriterion _rubric(Map<String, dynamic> json) => RubricCriterion(
-      id: _string(json['id']),
-      title: _string(json['title']),
-      maxPoints: _double(json['maxPoints']),
-      description: _string(json['description']),
-      assignedScore: json['assignedScore'] == null
-          ? null
-          : _double(json['assignedScore']),
-    );
+  id: _string(json['id']),
+  title: _string(json['title']),
+  maxPoints: _double(json['maxPoints']),
+  description: _string(json['description']),
+  assignedScore: json['assignedScore'] == null
+      ? null
+      : _double(json['assignedScore']),
+);
 
 StudentSubmission _submission(Map<String, dynamic> json) {
   final status = switch (_string(json['status']).toLowerCase()) {
     'avaliada' || 'corrigido' => SubmissionStatus.corrigido,
-    'aguardandocorrecao' || 'aguardando correção' => SubmissionStatus.aguardandoCorrecao,
+    'aguardandocorrecao' ||
+    'aguardando correção' => SubmissionStatus.aguardandoCorrecao,
     'atrasado' => SubmissionStatus.atrasado,
-    'pendente' || 'naoentregue' || 'não entregue' => SubmissionStatus.naoEntregue,
+    'pendente' ||
+    'naoentregue' ||
+    'não entregue' => SubmissionStatus.naoEntregue,
     _ => SubmissionStatus.entregue,
   };
   return StudentSubmission(
@@ -267,7 +454,8 @@ StudentSubmission _submission(Map<String, dynamic> json) {
     ra: _string(json['ra']),
     studentName: _string(json['studentName']),
     fileName: json['fileName']?.toString(),
-    submittedAtFormatted: (json['submittedAtFormatted'] ?? json['submittedAt'])?.toString(),
+    submittedAtFormatted: (json['submittedAtFormatted'] ?? json['submittedAt'])
+        ?.toString(),
     fileSize: json['fileSize']?.toString(),
     grade: json['finalGrade'] == null ? null : _double(json['finalGrade']),
     status: status,
@@ -277,16 +465,16 @@ StudentSubmission _submission(Map<String, dynamic> json) {
 }
 
 StudentGrade _grade(Map<String, dynamic> json) => StudentGrade(
-      studentId: _string(json['studentId']),
-      courseId: _string(json['courseId'], _string(json['classCode'])),
-      ra: _string(json['ra']),
-      studentName: _string(json['studentName']),
-      assignmentsScore: _double(json['assignmentsScore']),
-      p1Score: _double(json['p1Score']),
-      projectsScore: _double(json['projectsScore']),
-      p2Score: _double(json['p2Score']),
-      attendanceRate: _double(json['attendanceRate'], 100),
-    );
+  studentId: _string(json['studentId']),
+  courseId: _string(json['courseId'], _string(json['classCode'])),
+  ra: _string(json['ra']),
+  studentName: _string(json['studentName']),
+  assignmentsScore: _double(json['assignmentsScore']),
+  p1Score: _double(json['p1Score']),
+  projectsScore: _double(json['projectsScore']),
+  p2Score: _double(json['p2Score']),
+  attendanceRate: _double(json['attendanceRate'], 100),
+);
 
 AcademicEvent _event(Map<String, dynamic> json) {
   final type = switch (_string(json['type']).toLowerCase()) {
@@ -308,9 +496,13 @@ AcademicEvent _event(Map<String, dynamic> json) {
 }
 
 AcademicNotice _notice(Map<String, dynamic> json) {
-  final classification = switch (_string(json['classification']).toLowerCase()) {
+  final classification = switch (_string(
+    json['classification'],
+  ).toLowerCase()) {
     'urgencia' || 'urgência' => NoticeClassification.urgencia,
-    'convocacao' || 'convocação' || 'secretaria' => NoticeClassification.convocacao,
+    'convocacao' ||
+    'convocação' ||
+    'secretaria' => NoticeClassification.convocacao,
     _ => NoticeClassification.informativo,
   };
   return AcademicNotice(
