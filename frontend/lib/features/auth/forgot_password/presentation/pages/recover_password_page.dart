@@ -85,11 +85,11 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   String _getInputExample() {
     switch (_selectedProfile) {
       case UserProfile.aluno:
-        return 'ex: 2024.1.00892';
+        return 'Informe seu R.A. ou e-mail acadêmico';
       case UserProfile.docente:
-        return 'ex: DOC-40892';
+        return 'Informe sua matrícula ou e-mail institucional';
       case UserProfile.admin:
-        return 'ex: ADM-00123';
+        return 'Informe sua identificação ou e-mail corporativo';
     }
   }
 

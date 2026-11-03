@@ -29,9 +29,9 @@ class AcademicIdentityCard extends StatelessWidget {
   const AcademicIdentityCard({
     super.key,
     this.session,
-    this.studentName = 'Gabriel Soares de Oliveira',
-    this.academicRegistration = 'R.A. 2024.1.00892',
-    this.studentEmail = 'gabriel.oliveira@aluno.universidade.edu.br',
+    this.studentName = 'Usuário',
+    this.academicRegistration = '',
+    this.studentEmail = '',
     this.department,
   });
 
@@ -42,7 +42,7 @@ class AcademicIdentityCard extends StatelessWidget {
         session?.formattedIdentityLabel ?? academicRegistration;
     final effectiveEmail = session?.institutionalEmail ?? studentEmail;
     final effectiveDepartment =
-        session?.departmentOrCourse ?? department ?? 'Engenharia de Software';
+        session?.departmentOrCourse ?? department ?? '';
     final effectiveIcon = session?.profileIcon ?? Icons.school_outlined;
     final effectiveBadge = session?.roleBadge ?? 'Identidade Confirmada';
 
