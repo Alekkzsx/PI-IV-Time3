@@ -1,0 +1,1 @@
+export { createFilesRouter } from "../student-files.controller.js";
