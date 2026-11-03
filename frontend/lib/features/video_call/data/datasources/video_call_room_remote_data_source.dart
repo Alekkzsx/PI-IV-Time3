@@ -1,25 +1,24 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:pi_iv_time3/core/state/app_user_session.dart';
+
+import '../../../../core/network/authenticated_api_client.dart';
 
 class VideoCallRoomRemoteDataSource {
-  static const String _baseUrl = String.fromEnvironment(
-    'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
-  );
-
-  final http.Client _client;
+  final AuthenticatedApiClient _api;
 
   VideoCallRoomRemoteDataSource({http.Client? client})
-    : _client = client ?? http.Client();
+    : _api = AuthenticatedApiClient(client: client);
+
+  Future<List<VideoCallRoomSummary>> listRooms() async => (await _api.getList(
+    '/api/video-call/rooms',
+  )).map(VideoCallRoomSummary.fromJson).toList();
 
   Future<VideoCallRoomAccess> enterRoom(String roomCode) async {
     final response = await _request('/api/video-call/rooms/enter', {
       'roomCode': roomCode,
     });
-    if (response is! Map<String, dynamic> ||
+    if (response is! Map ||
         response['opened'] is! bool ||
         response['webSocketTicket'] is! String ||
         (response['webSocketTicket'] as String).isEmpty) {
@@ -37,53 +36,66 @@ class VideoCallRoomRemoteDataSource {
     await _request('/api/video-call/rooms/close', {'roomCode': roomCode});
   }
 
-  Future<dynamic> _request(String path, Map<String, Object?> body) async {
-    final token = AppUserSession.instance.accessToken;
-    if (token == null || token.isEmpty) {
-      throw const VideoCallRoomApiException(
-        'Entre na sua conta para acessar a videochamada.',
-      );
-    }
+  Future<void> recordAttendance({
+    required String roomCode,
+    required String event,
+    int? connectedSeconds,
+  }) async {
+    await _request('/api/video-call/rooms/attendance', {
+      'roomCode': roomCode,
+      'event': event,
+      if (connectedSeconds != null) 'connectedSeconds': connectedSeconds,
+    });
+  }
 
-    late final http.Response response;
+  Future<dynamic> _request(String path, Map<String, Object?> body) async {
     try {
-      response = await _client
-          .post(
-            Uri.parse('$_baseUrl$path'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(const Duration(seconds: 8));
-    } on http.ClientException {
-      throw const VideoCallRoomApiException(
-        'Não foi possível conectar ao serviço de videochamada.',
-      );
+      return await _api.request('POST', path, body: body);
+    } on ApiException catch (error) {
+      throw VideoCallRoomApiException(error.message);
     } on TimeoutException {
       throw const VideoCallRoomApiException(
         'O serviço de videochamada demorou para responder.',
       );
     }
-
-    dynamic decoded;
-    if (response.body.isNotEmpty) {
-      try {
-        decoded = jsonDecode(response.body);
-      } on FormatException {
-        throw const VideoCallRoomApiException('Resposta inválida da API.');
-      }
-    }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message =
-          decoded is Map<String, dynamic> && decoded['message'] is String
-          ? decoded['message'] as String
-          : 'A API não conseguiu acessar a sala.';
-      throw VideoCallRoomApiException(message);
-    }
-    return decoded;
   }
+}
+
+class VideoCallRoomSummary {
+  final String roomCode;
+  final String classCode;
+  final String title;
+  final String courseName;
+  final String semester;
+  final String shift;
+  final String location;
+  final String? professorName;
+  final bool isOpen;
+
+  const VideoCallRoomSummary({
+    required this.roomCode,
+    required this.classCode,
+    required this.title,
+    this.courseName = '',
+    this.semester = '',
+    this.shift = '',
+    this.location = '',
+    this.professorName,
+    required this.isOpen,
+  });
+
+  factory VideoCallRoomSummary.fromJson(Map<String, dynamic> json) =>
+      VideoCallRoomSummary(
+        roomCode: json['roomCode']?.toString() ?? '',
+        classCode: json['classCode']?.toString() ?? '',
+        title: json['title']?.toString() ?? '',
+        courseName: json['courseName']?.toString() ?? '',
+        semester: json['semester']?.toString() ?? '',
+        shift: json['shift']?.toString() ?? '',
+        location: json['location']?.toString() ?? '',
+        professorName: json['professorName']?.toString(),
+        isOpen: json['isOpen'] == true,
+      );
 }
 
 class VideoCallRoomAccess {

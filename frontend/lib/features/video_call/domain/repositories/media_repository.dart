@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'dart:async';
 
@@ -20,7 +20,10 @@ abstract class MediaRepository {
   Future<void> initializePreview();
 
   /// Inicia a captura de dispositivos locais (câmera e microfone).
-  Future<void> startLocalMedia({bool startAudio = true, bool startVideo = true});
+  Future<void> startLocalMedia({
+    bool startAudio = true,
+    bool startVideo = true,
+  });
 
   /// Encerra todas as faixas locais de mídia e libera o hardware da webcam e microfone.
   Future<void> stopLocalMedia();

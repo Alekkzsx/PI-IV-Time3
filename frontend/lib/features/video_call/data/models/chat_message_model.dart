@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../../domain/entities/chat_message.dart';
 
@@ -30,7 +30,8 @@ class ChatMessageModel {
     if (rawTimestamp is int) {
       parsedTimestamp = rawTimestamp;
     } else if (rawTimestamp is String) {
-      parsedTimestamp = DateTime.tryParse(rawTimestamp)?.millisecondsSinceEpoch ??
+      parsedTimestamp =
+          DateTime.tryParse(rawTimestamp)?.millisecondsSinceEpoch ??
           DateTime.now().millisecondsSinceEpoch;
     } else {
       parsedTimestamp = DateTime.now().millisecondsSinceEpoch;
@@ -97,14 +98,8 @@ class ChatMessageModel {
           timestamp == other.timestamp;
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        senderId,
-        senderName,
-        senderRa,
-        text,
-        timestamp,
-      );
+  int get hashCode =>
+      Object.hash(id, senderId, senderName, senderRa, text, timestamp);
 
   @override
   String toString() {

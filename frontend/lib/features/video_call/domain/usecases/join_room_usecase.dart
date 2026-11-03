@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/meeting_room.dart';
 import '../entities/participant.dart';
@@ -57,7 +57,10 @@ class JoinRoomUseCase {
       );
     }
 
-    final validatedRoom = room.copyWith(id: sanitizedRoomId, title: sanitizedTitle);
+    final validatedRoom = room.copyWith(
+      id: sanitizedRoomId,
+      title: sanitizedTitle,
+    );
     final validatedParticipant = localParticipant.copyWith(
       id: sanitizedPeerId,
       name: sanitizedName,

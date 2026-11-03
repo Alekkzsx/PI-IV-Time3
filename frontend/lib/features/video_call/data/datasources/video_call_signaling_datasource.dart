@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'dart:async';
 import '../../domain/entities/hand_raise_item.dart';
@@ -31,7 +31,10 @@ abstract class IVideoCallSignalingDataSource {
 
   Future<void> broadcastChatMessage(String roomId, ChatMessageModel message);
 
-  Future<void> broadcastEmojiReaction(String roomId, EmojiReactionModel reaction);
+  Future<void> broadcastEmojiReaction(
+    String roomId,
+    EmojiReactionModel reaction,
+  );
 
   Future<void> broadcastHandRaise(
     String roomId, {
@@ -50,7 +53,10 @@ abstract class IVideoCallSignalingDataSource {
     double? audioLevel,
   });
 
-  Future<void> broadcastRecordingState(String roomId, RecordingStateModel state);
+  Future<void> broadcastRecordingState(
+    String roomId,
+    RecordingStateModel state,
+  );
 
   void updateLocalAudioLevel(double level);
 
@@ -158,13 +164,11 @@ class VideoCallSignalingDataSource
     _localParticipant = localParticipant;
 
     final channelName = 'p2p_videocall_$_roomId';
-    _channel = customChannel ??
+    _channel =
+        customChannel ??
         (_channelFactory != null
             ? _channelFactory(channelName)
-        : createSignalingChannel(
-          channelName,
-          ticket: _webSocketTicket,
-          ));
+            : createSignalingChannel(channelName, ticket: _webSocketTicket));
 
     _remoteParticipants.clear();
     _lastSeen.clear();
@@ -222,7 +226,8 @@ class VideoCallSignalingDataSource
   }
 
   void _broadcastLeaveSync() {
-    if (_roomId == null || _localParticipant == null || _channel == null) return;
+    if (_roomId == null || _localParticipant == null || _channel == null)
+      return;
 
     final leaveEnvelope = SignalingEnvelopeModel.create(
       type: SignalingEnvelopeType.leave,
@@ -244,7 +249,8 @@ class VideoCallSignalingDataSource
   }
 
   void _onHeartbeatTick(Timer timer) {
-    if (_roomId == null || _localParticipant == null || _channel == null) return;
+    if (_roomId == null || _localParticipant == null || _channel == null)
+      return;
 
     final heartbeatPayload = {
       'peerId': _localParticipant!.id,
@@ -287,7 +293,8 @@ class VideoCallSignalingDataSource
 
       // Descartar envelopes de salas alheias ou eco do próprio remetente local
       if (envelope.roomId != _roomId) return;
-      if (_localParticipant != null && envelope.senderId == _localParticipant!.id) {
+      if (_localParticipant != null &&
+          envelope.senderId == _localParticipant!.id) {
         return;
       }
 
@@ -418,7 +425,10 @@ class VideoCallSignalingDataSource
   void _handleHandRaise(SignalingEnvelopeModel envelope) {
     final payload = envelope.payload;
     final peerId = (payload['peerId'] as String?) ?? envelope.senderId;
-    final name = (payload['name'] ?? payload['participantName'] ?? envelope.senderName) as String? ?? '';
+    final name =
+        (payload['name'] ?? payload['participantName'] ?? envelope.senderName)
+            as String? ??
+        '';
     final ra = (payload['ra'] ?? payload['academicId']) as String? ?? '';
     final isRaised = (payload['isRaised'] as bool?) ?? true;
     final raisedAtMs = payload['raisedAt'];
@@ -488,7 +498,8 @@ class VideoCallSignalingDataSource
     required String type,
     required Map<String, dynamic> payload,
   }) async {
-    if (_channel == null || _roomId == null || _localParticipant == null) return;
+    if (_channel == null || _roomId == null || _localParticipant == null)
+      return;
 
     final envelope = SignalingEnvelopeModel.create(
       type: type,
@@ -506,7 +517,10 @@ class VideoCallSignalingDataSource
   }
 
   @override
-  Future<void> broadcastChatMessage(String roomId, ChatMessageModel message) async {
+  Future<void> broadcastChatMessage(
+    String roomId,
+    ChatMessageModel message,
+  ) async {
     await _broadcastEnvelope(
       type: SignalingEnvelopeType.chat,
       payload: message.toJson(),
@@ -514,7 +528,10 @@ class VideoCallSignalingDataSource
   }
 
   @override
-  Future<void> broadcastEmojiReaction(String roomId, EmojiReactionModel reaction) async {
+  Future<void> broadcastEmojiReaction(
+    String roomId,
+    EmojiReactionModel reaction,
+  ) async {
     await _broadcastEnvelope(
       type: SignalingEnvelopeType.emoji,
       payload: reaction.toJson(),
@@ -578,7 +595,10 @@ class VideoCallSignalingDataSource
   }
 
   @override
-  Future<void> broadcastRecordingState(String roomId, RecordingStateModel state) async {
+  Future<void> broadcastRecordingState(
+    String roomId,
+    RecordingStateModel state,
+  ) async {
     await _broadcastEnvelope(
       type: SignalingEnvelopeType.recordingState,
       payload: state.toJson(),
