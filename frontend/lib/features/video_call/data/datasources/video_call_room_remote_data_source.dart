@@ -15,16 +15,22 @@ class VideoCallRoomRemoteDataSource {
   VideoCallRoomRemoteDataSource({http.Client? client})
     : _client = client ?? http.Client();
 
-  Future<bool> enterRoom(String roomCode) async {
+  Future<VideoCallRoomAccess> enterRoom(String roomCode) async {
     final response = await _request('/api/video-call/rooms/enter', {
       'roomCode': roomCode,
     });
-    if (response is! Map<String, dynamic> || response['opened'] is! bool) {
+    if (response is! Map<String, dynamic> ||
+        response['opened'] is! bool ||
+        response['webSocketTicket'] is! String ||
+        (response['webSocketTicket'] as String).isEmpty) {
       throw const VideoCallRoomApiException(
         'Resposta inválida da API de videochamada.',
       );
     }
-    return response['opened'] as bool;
+    return VideoCallRoomAccess(
+      opened: response['opened'] as bool,
+      webSocketTicket: response['webSocketTicket'] as String,
+    );
   }
 
   Future<void> closeRoom(String roomCode) async {
@@ -78,6 +84,16 @@ class VideoCallRoomRemoteDataSource {
     }
     return decoded;
   }
+}
+
+class VideoCallRoomAccess {
+  final bool opened;
+  final String webSocketTicket;
+
+  const VideoCallRoomAccess({
+    required this.opened,
+    required this.webSocketTicket,
+  });
 }
 
 class VideoCallRoomApiException implements Exception {
