@@ -43,6 +43,7 @@ const classRecord: TestClass = { code: "CLASS-101" };
 const activeSessions = new Map<string, Record<string, unknown>>();
 const authSessions = new Map<string, Record<string, unknown>>();
 const webSocketTickets = new Map<string, Record<string, unknown>>();
+const attendanceRecords: Record<string, unknown>[] = [];
 const userCollection = {
   async findOne(query: Record<string, unknown>) {
     return (
@@ -175,6 +176,20 @@ const authSessionCollection = {
       : null;
   },
 };
+const attendanceCollection = {
+  async insertOne(record: Record<string, unknown>) {
+    attendanceRecords.push(record);
+    return { insertedId: new ObjectId() };
+  },
+};
+const classSessionCollection = {
+  async findOne() {
+    return null;
+  },
+  async updateOne() {
+    return { matchedCount: 0 };
+  },
+};
 const database = {
   collection(name: string) {
     switch (name) {
@@ -190,6 +205,10 @@ const database = {
         return webSocketTicketCollection;
       case "auth_sessions":
         return authSessionCollection;
+      case "video_call_attendance_logs":
+        return attendanceCollection;
+      case "academic_class_sessions":
+        return classSessionCollection;
       default:
         return {
           find() {
@@ -288,6 +307,11 @@ function token(profile: string, id: ObjectId): string {
   });
 }
 
+function revokeToken(authToken: string): void {
+  const claims = jwt.decode(authToken) as { jti?: string } | null;
+  if (claims?.jti) authSessions.delete(claims.jti);
+}
+
 async function post(
   path: string,
   authToken: string,
@@ -346,6 +370,12 @@ describe("administração de docentes e acesso à videochamada", () => {
     assert.equal("passwordHash" in listedTeacher, false);
 
     const teacherToken = token("docente", teacher._id);
+    const deniedAttendanceBeforeAssignment = await post(
+      "/api/video-call/rooms/attendance",
+      teacherToken,
+      { roomCode: classRecord.code, event: "join" },
+    );
+    assert.equal(deniedAttendanceBeforeAssignment.status, 403);
     const deniedBeforeAssignment = await post(
       "/api/video-call/rooms/enter",
       teacherToken,
@@ -413,6 +443,19 @@ describe("administração de docentes e acesso à videochamada", () => {
       opened: false,
     });
     assert.match(joinedBody.webSocketTicket, /^[A-Za-z0-9_-]{43}$/);
+
+    const attendance = await post("/api/video-call/rooms/attendance", token("aluno", student._id), {
+      roomCode: classRecord.code,
+      event: "join",
+    });
+    assert.equal(attendance.status, 200);
+    assert.equal(attendanceRecords.at(-1)?.event, "join");
+
+    revokeToken(teacherToken);
+    const revokedSession = await post("/api/video-call/rooms/enter", teacherToken, {
+      roomCode: classRecord.code,
+    });
+    assert.equal(revokedSession.status, 401);
   });
 });
 
