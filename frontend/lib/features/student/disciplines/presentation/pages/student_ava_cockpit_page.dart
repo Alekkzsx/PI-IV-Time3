@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import '../widgets/student_ava_left_sidebar.dart';
 import '../widgets/student_ava_right_sidebar.dart';
 import '../widgets/student_ava_home_tab.dart';
@@ -224,7 +223,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
               ),
             ),
             const SizedBox(width: 8),
-            for (final d in StudentMockData.disciplines) ...[
+            for (final d in _controller.disciplines) ...[
               Padding(
                 padding: const EdgeInsets.only(right: 6.0),
                 child: InkWell(

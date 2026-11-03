@@ -1,7 +1,9 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:flutter/services.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Modal para exibição do Comprovante Digital de Entrega de uma atividade submetida.
 class DeliveryReceiptModal extends StatelessWidget {
@@ -17,6 +19,29 @@ class DeliveryReceiptModal extends StatelessWidget {
       context: context,
       builder: (_) => DeliveryReceiptModal(item: item),
     );
+  }
+
+  Future<void> _download(BuildContext context) async {
+    final id = item.submissionId;
+    if (id == null || id.isEmpty) return;
+    try {
+      final path = await StudentPortalController.instance.downloadSubmission(id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path == null
+                ? 'Não foi possível salvar a submissão.'
+                : 'Submissão salva em $path',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   @override
@@ -96,7 +121,7 @@ class DeliveryReceiptModal extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       SelectableText(
-                        item.protocol ?? 'AGR-2026-0928-8472',
+                        item.protocol ?? '—',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -107,11 +132,17 @@ class DeliveryReceiptModal extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.copy, size: 16, color: Color(0xFF64748B)),
                         tooltip: 'Copiar código',
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Código de protocolo copiado para a área de transferência.')),
-                          );
-                        },
+                        onPressed: item.protocol == null
+                            ? null
+                            : () async {
+                                await Clipboard.setData(
+                                  ClipboardData(text: item.protocol!),
+                                );
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Protocolo copiado.')),
+                                );
+                              },
                       ),
                     ],
                   ),
@@ -127,11 +158,11 @@ class DeliveryReceiptModal extends StatelessWidget {
             const SizedBox(height: 10),
             _buildDetailRow('Docente Titular:', item.professor ?? 'Docente Titular'),
             const SizedBox(height: 10),
-            _buildDetailRow('Data da Submissão:', item.submissionDate ?? '28/09/2026'),
+            _buildDetailRow('Data da Submissão:', item.submissionDate ?? '—'),
             const SizedBox(height: 10),
             _buildDetailRow('Anexos Vinculados:', '${item.attachmentCount} arquivo(s) protocolado(s)'),
             const SizedBox(height: 10),
-            _buildDetailRow('Status do Processo:', 'Em fila de correção pedagógica pelo docente'),
+            _buildDetailRow('Status do Processo:', item.status),
             const SizedBox(height: 24),
 
             // Ações
@@ -139,14 +170,11 @@ class DeliveryReceiptModal extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Download do comprovante assinado iniciado (PDF).')),
-                      );
-                    },
+                    onPressed: item.submissionId == null
+                        ? null
+                        : () => _download(context),
                     icon: const Icon(Icons.download, size: 16),
-                    label: const Text('Baixar Recibo (PDF)'),
+                    label: const Text('Baixar submissão'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF334155),
                       side: const BorderSide(color: Color(0xFFCBD5E1)),
