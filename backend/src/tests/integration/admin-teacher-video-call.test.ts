@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 import jwt from "jsonwebtoken";
 import { ObjectId, type Db, type Document } from "mongodb";
@@ -40,6 +41,7 @@ const student: TestUser = {
 const users: TestUser[] = [student];
 const classRecord: TestClass = { code: "CLASS-101" };
 const activeSessions = new Map<string, Record<string, unknown>>();
+const authSessions = new Map<string, Record<string, unknown>>();
 const webSocketTickets = new Map<string, Record<string, unknown>>();
 const userCollection = {
   async findOne(query: Record<string, unknown>) {
@@ -160,6 +162,19 @@ const webSocketTicketCollection = {
     return record;
   },
 };
+const authSessionCollection = {
+  async findOne(query: Record<string, unknown>) {
+    const record = authSessions.get(String(query.sessionId));
+    const expiration = (query.expiresAt as { $gt: Date } | undefined)?.$gt;
+    return record &&
+        record.userId === query.userId &&
+        record.expiresAt instanceof Date &&
+        expiration instanceof Date &&
+        record.expiresAt > expiration
+      ? record
+      : null;
+  },
+};
 const database = {
   collection(name: string) {
     switch (name) {
@@ -173,6 +188,8 @@ const database = {
         return sessionCollection;
       case "video_call_ws_tickets":
         return webSocketTicketCollection;
+      case "auth_sessions":
+        return authSessionCollection;
       default:
         return {
           find() {
@@ -258,7 +275,17 @@ const server = createServer(app);
 let baseUrl: string;
 
 function token(profile: string, id: ObjectId): string {
-  return jwt.sign({ profile }, jwtSecret, { subject: id.toString() });
+  if (profile === "admin") {
+    return jwt.sign({ profile }, jwtSecret, { subject: id.toString() });
+  }
+  const sessionId = randomUUID();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  authSessions.set(sessionId, { sessionId, userId: id.toString(), expiresAt });
+  return jwt.sign({ profile, ver: 0 }, jwtSecret, {
+    subject: id.toString(),
+    jwtid: sessionId,
+    expiresIn: "15m",
+  });
 }
 
 async function post(

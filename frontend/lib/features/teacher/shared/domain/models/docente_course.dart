@@ -80,6 +80,9 @@ class DocenteCourse {
   final int totalHours;
   final List<SyllabusUnit> syllabusUnits;
   final List<CourseMaterial> materials;
+  final bool gradeLocked;
+  final bool pautaHomologated;
+  final String? chancelaCode;
 
   const DocenteCourse({
     required this.id,
@@ -95,62 +98,40 @@ class DocenteCourse {
     required this.totalHours,
     required this.syllabusUnits,
     required this.materials,
+    this.gradeLocked = false,
+    this.pautaHomologated = false,
+    this.chancelaCode,
   });
 
-  /// Alias for title for convenient usage across widgets.
   String get name => title;
-
-  /// Alias for term/semester.
   String get semester => term;
-
-  /// Alias for total workload hours.
   int get workloadHours => totalHours;
-
-  /// Ratio of completed hours to total hours (0.0 to 1.0).
   double get progress => totalHours == 0 ? 0.0 : completedHours / totalHours;
-
   double get progressPercentage =>
       totalHours == 0 ? 0.0 : (completedHours / totalHours) * 100;
 
-  /// List of ISO weekday integers (1 = Monday, 7 = Sunday) when this course meets according to schedule.
   List<int> get classWeekdays {
     final lower = schedule.toLowerCase();
     final days = <int>[];
-    if (lower.contains('segunda')) {
-      days.add(DateTime.monday);
-    }
-    if (lower.contains('terça') || lower.contains('terca')) {
-      days.add(DateTime.tuesday);
-    }
-    if (lower.contains('quarta')) {
-      days.add(DateTime.wednesday);
-    }
-    if (lower.contains('quinta')) {
-      days.add(DateTime.thursday);
-    }
-    if (lower.contains('sexta')) {
-      days.add(DateTime.friday);
-    }
-    if (lower.contains('sábado') || lower.contains('sabado')) {
-      days.add(DateTime.saturday);
-    }
-    if (days.isEmpty) {
-      return [DateTime.monday, DateTime.wednesday];
-    }
-    return days;
+    if (lower.contains('segunda')) days.add(DateTime.monday);
+    if (lower.contains('terça') || lower.contains('terca')) days.add(DateTime.tuesday);
+    if (lower.contains('quarta')) days.add(DateTime.wednesday);
+    if (lower.contains('quinta')) days.add(DateTime.thursday);
+    if (lower.contains('sexta')) days.add(DateTime.friday);
+    if (lower.contains('sábado') || lower.contains('sabado')) days.add(DateTime.saturday);
+    return days.isEmpty ? [DateTime.monday, DateTime.wednesday] : days;
   }
 
-  /// Human-friendly summary of class days.
   String get classDaysLabel {
-    final days = <String>[];
-    final w = classWeekdays;
-    if (w.contains(DateTime.monday)) days.add('Segundas');
-    if (w.contains(DateTime.tuesday)) days.add('Terças');
-    if (w.contains(DateTime.wednesday)) days.add('Quartas');
-    if (w.contains(DateTime.thursday)) days.add('Quintas');
-    if (w.contains(DateTime.friday)) days.add('Sextas');
-    if (w.contains(DateTime.saturday)) days.add('Sábados');
-    return days.join(' e ');
+    final labels = <String>[];
+    final weekdays = classWeekdays;
+    if (weekdays.contains(DateTime.monday)) labels.add('Segundas');
+    if (weekdays.contains(DateTime.tuesday)) labels.add('Terças');
+    if (weekdays.contains(DateTime.wednesday)) labels.add('Quartas');
+    if (weekdays.contains(DateTime.thursday)) labels.add('Quintas');
+    if (weekdays.contains(DateTime.friday)) labels.add('Sextas');
+    if (weekdays.contains(DateTime.saturday)) labels.add('Sábados');
+    return labels.join(' e ');
   }
 
   DocenteCourse copyWith({
@@ -167,6 +148,9 @@ class DocenteCourse {
     int? totalHours,
     List<SyllabusUnit>? syllabusUnits,
     List<CourseMaterial>? materials,
+    bool? gradeLocked,
+    bool? pautaHomologated,
+    String? chancelaCode,
   }) {
     return DocenteCourse(
       id: id ?? this.id,
@@ -182,6 +166,9 @@ class DocenteCourse {
       totalHours: totalHours ?? this.totalHours,
       syllabusUnits: syllabusUnits ?? this.syllabusUnits,
       materials: materials ?? this.materials,
+      gradeLocked: gradeLocked ?? this.gradeLocked,
+      pautaHomologated: pautaHomologated ?? this.pautaHomologated,
+      chancelaCode: chancelaCode ?? this.chancelaCode,
     );
   }
 }
