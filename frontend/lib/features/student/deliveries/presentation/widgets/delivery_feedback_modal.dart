@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
@@ -7,10 +7,7 @@ import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 class DeliveryFeedbackModal extends StatelessWidget {
   final StudentDeliveryItem item;
 
-  const DeliveryFeedbackModal({
-    super.key,
-    required this.item,
-  });
+  const DeliveryFeedbackModal({super.key, required this.item});
 
   static Future<void> show(BuildContext context, StudentDeliveryItem item) {
     return showDialog<void>(
@@ -21,7 +18,7 @@ class DeliveryFeedbackModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scoreStr = item.score != null ? item.score!.toStringAsFixed(1) : '10.0';
+    final scoreStr = item.score?.toStringAsFixed(1) ?? '—';
 
     return Dialog(
       backgroundColor: Colors.white,
@@ -59,13 +56,20 @@ class DeliveryFeedbackModal extends StatelessWidget {
                         Text(
                           '${item.activityCode ?? item.disciplineCode} • ${item.title}',
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF64748B)),
+                    icon: const Icon(
+                      Icons.close,
+                      size: 20,
+                      color: Color(0xFF64748B),
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -92,7 +96,11 @@ class DeliveryFeedbackModal extends StatelessWidget {
                         children: [
                           Row(
                             children: const [
-                              Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 24),
+                              Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF16A34A),
+                                size: 24,
+                              ),
                               SizedBox(width: 10),
                               Text(
                                 'Nota Oficial Atribuída:',
@@ -123,12 +131,19 @@ class DeliveryFeedbackModal extends StatelessWidget {
                       children: [
                         const Text(
                           'Parecer Descritivo do Docente:',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Color(0xFF0F172A),
+                          ),
                         ),
                         if (item.feedbackDate != null)
                           Text(
                             'Emitido em ${item.feedbackDate}',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                       ],
                     ),
@@ -142,8 +157,13 @@ class DeliveryFeedbackModal extends StatelessWidget {
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Text(
-                        item.feedback ?? 'Trabalho avaliado em conformidade com as rubricas regimentais da disciplina.',
-                        style: const TextStyle(fontSize: 13, height: 1.45, color: Color(0xFF334155)),
+                        item.feedback ??
+                            'Nenhum parecer descritivo foi informado.',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.45,
+                          color: Color(0xFF334155),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -151,27 +171,64 @@ class DeliveryFeedbackModal extends StatelessWidget {
                     // Detalhamento por Rubricas
                     const Text(
                       'Detalhamento por Rubrica Avaliativa:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
                     const SizedBox(height: 8),
                     if (item.rubrics.isNotEmpty)
                       Table(
-                        border: TableBorder.all(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(8)),
+                        border: TableBorder.all(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         children: [
                           const TableRow(
                             decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
                             children: [
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                child: Text('CRITÉRIO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF475569))),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Text(
+                                  'CRITÉRIO',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF475569),
+                                  ),
+                                ),
                               ),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                child: Text('PESO MÁXIMO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF475569))),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Text(
+                                  'PESO MÁXIMO',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF475569),
+                                  ),
+                                ),
                               ),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                child: Text('NOTA OBTIDA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF475569))),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Text(
+                                  'NOTA OBTIDA',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: Color(0xFF475569),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -179,18 +236,43 @@ class DeliveryFeedbackModal extends StatelessWidget {
                             return TableRow(
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  child: Text(r['criterio'] as String, style: const TextStyle(fontSize: 12, color: Color(0xFF1E293B))),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  child: Text(
+                                    r['criterio'] as String,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  child: Text('${r['pontos']} pts', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  child: Text(
+                                    '${r['pontos']} pts',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
                                   child: Text(
                                     '${r['nota']} pts',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF16A34A)),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Color(0xFF16A34A),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -208,7 +290,10 @@ class DeliveryFeedbackModal extends StatelessWidget {
                         ),
                         child: const Text(
                           'Nota atribuída globalmente pelo docente titular.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ),
                     const SizedBox(height: 16),
@@ -224,12 +309,19 @@ class DeliveryFeedbackModal extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Protocolo Oficial: ${item.protocol ?? "AGR-2026-SUB"}',
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                            'Protocolo Oficial: ${item.protocol ?? "—"}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF475569),
+                            ),
                           ),
                           Text(
                             'Submetido em ${item.submissionDate ?? item.dueDate}',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                         ],
                       ),
@@ -253,7 +345,11 @@ class DeliveryFeedbackModal extends StatelessWidget {
                     onPressed: () {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Download do parecer pedagógico assinado iniciado (PDF).')),
+                        const SnackBar(
+                          content: Text(
+                            'Download do parecer pedagógico assinado iniciado (PDF).',
+                          ),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.download, size: 16),
@@ -261,7 +357,10 @@ class DeliveryFeedbackModal extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF334155),
                       side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                   ElevatedButton(
@@ -269,8 +368,13 @@ class DeliveryFeedbackModal extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0F172A),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: const Text('Fechar'),
                   ),

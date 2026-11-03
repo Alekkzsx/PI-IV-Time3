@@ -1,8 +1,9 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 import 'student_ava_cockpit_page.dart';
 import '../widgets/student_disciplines_stats_card.dart';
 import '../widgets/student_disciplines_fast_resume_card.dart';
@@ -73,7 +74,9 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
     if (_selectedFilter == 'Com Tarefas Pendentes') {
       list = list.where((d) => d.hasPendingTask).toList();
     } else if (_selectedFilter == 'Aulas em Laboratório') {
-      list = list.where((d) => d.location.toLowerCase().contains('lab')).toList();
+      list = list
+          .where((d) => d.location.toLowerCase().contains('lab'))
+          .toList();
     }
 
     final query = _searchController.text.trim().toLowerCase();
@@ -111,7 +114,8 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           if (_controller.disciplines.isNotEmpty)
             StudentDisciplinesFastResumeCard(
               discipline: _controller.disciplines.first,
-              onResume: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+              onResume: (discipline, [tab = 0]) =>
+                  _openCockpit(discipline, tab),
             ),
           const SizedBox(height: 24),
           _buildFilterAndSearchRow(),
@@ -124,16 +128,19 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           else if (_isGridView)
             StudentDisciplinesGridView(
               disciplines: _filteredDisciplines,
-              onSelectDiscipline: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+              onSelectDiscipline: (discipline, [tab = 0]) =>
+                  _openCockpit(discipline, tab),
             )
           else
             StudentDisciplinesListView(
               disciplines: _filteredDisciplines,
-              onSelectDiscipline: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+              onSelectDiscipline: (discipline, [tab = 0]) =>
+                  _openCockpit(discipline, tab),
             ),
           const SizedBox(height: 32),
           StudentDisciplinesScheduleTable(
-            onSelectDisciplineByCode: (code, [tab = 0]) => _openCockpitByCode(code, tab),
+            onSelectDisciplineByCode: (code, [tab = 0]) =>
+                _openCockpitByCode(code, tab),
           ),
         ],
       ),
@@ -159,10 +166,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
               const SizedBox(height: 4),
               Text(
                 'Ambiente Virtual de Aprendizagem (AVA), cronograma de aulas, tarefas ativas e boletim oficial.',
-                style: jakarta(
-                  size: 13,
-                  color: const Color(0xFF71717A),
-                ),
+                style: jakarta(size: 13, color: const Color(0xFF71717A)),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -192,7 +196,9 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
             backgroundColor: Colors.white,
             side: const BorderSide(color: Color(0xFFE5E7EB)),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
       ],
@@ -200,7 +206,11 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
   }
 
   Widget _buildFilterAndSearchRow() {
-    final filters = ['Todas as Disciplinas', 'Com Tarefas Pendentes', 'Aulas em Laboratório'];
+    final filters = [
+      'Todas as Disciplinas',
+      'Com Tarefas Pendentes',
+      'Aulas em Laboratório',
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -263,7 +273,9 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFF18181B) : Colors.white,
               border: Border.all(
-                color: isSelected ? const Color(0xFF18181B) : const Color(0xFFE5E7EB),
+                color: isSelected
+                    ? const Color(0xFF18181B)
+                    : const Color(0xFFE5E7EB),
               ),
               borderRadius: BorderRadius.circular(6),
             ),
@@ -294,12 +306,18 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           InkWell(
             key: const Key('btn_modo_grade_disciplinas'),
             onTap: () => setState(() => _isGridView = true),
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(6)),
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(6),
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: _isGridView ? const Color(0xFF18181B) : Colors.transparent,
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                color: _isGridView
+                    ? const Color(0xFF18181B)
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(5),
+                ),
               ),
               child: Icon(
                 Icons.grid_view_rounded,
@@ -311,12 +329,18 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           InkWell(
             key: const Key('btn_modo_lista_disciplinas'),
             onTap: () => setState(() => _isGridView = false),
-            borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(6),
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: !_isGridView ? const Color(0xFF18181B) : Colors.transparent,
-                borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                color: !_isGridView
+                    ? const Color(0xFF18181B)
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(
+                  right: Radius.circular(5),
+                ),
               ),
               child: Icon(
                 Icons.view_agenda_outlined,
@@ -340,8 +364,15 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
         decoration: InputDecoration(
           hintText: 'Filtrar por nome, código ou docente...',
           hintStyle: jakarta(size: 11.5, color: const Color(0xFFA1A1AA)),
-          prefixIcon: const Icon(Icons.search, size: 16, color: Color(0xFFA1A1AA)),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+          prefixIcon: const Icon(
+            Icons.search,
+            size: 16,
+            color: Color(0xFFA1A1AA),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 0,
+            horizontal: 10,
+          ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(

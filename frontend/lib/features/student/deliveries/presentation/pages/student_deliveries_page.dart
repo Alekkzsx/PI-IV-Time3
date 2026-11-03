@@ -211,8 +211,8 @@ class _StudentDeliveriesPageState extends State<StudentDeliveriesPage> {
             borderRadius: BorderRadius.circular(6),
             border: Border.all(color: const Color(0xFFE5E7EB)),
           ),
-          child: const Text(
-            'Semestre Letivo: 2026/2',
+          child: Text(
+            'Semestre Letivo: ${_controller.studentInfo['semester'] ?? '—'}',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,

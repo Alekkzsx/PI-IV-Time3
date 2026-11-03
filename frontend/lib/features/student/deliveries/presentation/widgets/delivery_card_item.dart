@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
@@ -48,7 +48,10 @@ class DeliveryCardItem extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(6),
@@ -126,7 +129,11 @@ class DeliveryCardItem extends StatelessWidget {
                       value: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.access_time, size: 13, color: Color(0xFF64748B)),
+                          const Icon(
+                            Icons.access_time,
+                            size: 13,
+                            color: Color(0xFF64748B),
+                          ),
                           const SizedBox(width: 4),
                           Text('${item.dueDate}, ${item.dueHour}'),
                         ],
@@ -140,7 +147,9 @@ class DeliveryCardItem extends StatelessWidget {
                     const SizedBox(height: 10),
                     _buildMetaColumn(
                       header: 'CRITÉRIO E PESO',
-                      value: Text('Peso ${item.weight.toStringAsFixed(1)} • Nota Máx: ${item.maxScore.toStringAsFixed(1)}'),
+                      value: Text(
+                        'Peso ${item.weight.toStringAsFixed(1)} • Nota Máx: ${item.maxScore.toStringAsFixed(1)}',
+                      ),
                     ),
                   ],
                 );
@@ -154,7 +163,11 @@ class DeliveryCardItem extends StatelessWidget {
                       value: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.access_time, size: 13, color: Color(0xFF64748B)),
+                          const Icon(
+                            Icons.access_time,
+                            size: 13,
+                            color: Color(0xFF64748B),
+                          ),
                           const SizedBox(width: 4),
                           Text('${item.dueDate}, ${item.dueHour}'),
                         ],
@@ -172,7 +185,9 @@ class DeliveryCardItem extends StatelessWidget {
                   Expanded(
                     child: _buildMetaColumn(
                       header: 'CRITÉRIO E PESO',
-                      value: Text('Peso ${item.weight.toStringAsFixed(1)} • Nota Máx: ${item.maxScore.toStringAsFixed(1)}'),
+                      value: Text(
+                        'Peso ${item.weight.toStringAsFixed(1)} • Nota Máx: ${item.maxScore.toStringAsFixed(1)}',
+                      ),
                     ),
                   ),
                 ],
@@ -185,9 +200,7 @@ class DeliveryCardItem extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: _buildFooterInfo(),
-              ),
+              Expanded(child: _buildFooterInfo()),
               const SizedBox(width: 16),
               _buildActionButton(),
             ],
@@ -225,7 +238,7 @@ class DeliveryCardItem extends StatelessWidget {
 
   Widget _buildStatusBadge() {
     if (item.status == 'Avaliada') {
-      final scoreStr = item.score != null ? item.score!.toStringAsFixed(1) : '10.0';
+      final scoreStr = item.score?.toStringAsFixed(1) ?? '—';
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
@@ -236,7 +249,11 @@ class DeliveryCardItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline, size: 13, color: Color(0xFF16A34A)),
+            const Icon(
+              Icons.check_circle_outline,
+              size: 13,
+              color: Color(0xFF16A34A),
+            ),
             const SizedBox(width: 5),
             Text(
               'Nota: $scoreStr / ${item.maxScore.toStringAsFixed(1)}',
@@ -265,7 +282,7 @@ class DeliveryCardItem extends StatelessWidget {
             const Icon(Icons.send_outlined, size: 12, color: Color(0xFF2563EB)),
             const SizedBox(width: 5),
             Text(
-              'Enviada em ${item.submissionDate ?? '28/09/2026'}',
+              'Enviada em ${item.submissionDate ?? '—'}',
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -278,14 +295,17 @@ class DeliveryCardItem extends StatelessWidget {
     }
 
     // Pendente
-    final isUrgent = item.isUrgent || (item.deadlineBadge?.contains('fatal') ?? false);
+    final isUrgent =
+        item.isUrgent || (item.deadlineBadge?.contains('fatal') ?? false);
     final badgeText = item.deadlineBadge ?? 'Prazo em aberto';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: isUrgent ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-        border: Border.all(color: isUrgent ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isUrgent ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+        ),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -302,7 +322,9 @@ class DeliveryCardItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: isUrgent ? const Color(0xFFDC2626) : const Color(0xFF64748B),
+              color: isUrgent
+                  ? const Color(0xFFDC2626)
+                  : const Color(0xFF64748B),
             ),
           ),
         ],
@@ -313,7 +335,7 @@ class DeliveryCardItem extends StatelessWidget {
   Widget _buildFooterInfo() {
     if (item.status == 'Avaliada') {
       return Text(
-        'Parecer emitido em ${item.feedbackDate ?? '17/09/2026'}',
+        'Parecer emitido em ${item.feedbackDate ?? '—'}',
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
@@ -326,11 +348,15 @@ class DeliveryCardItem extends StatelessWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.verified_user_outlined, size: 14, color: Color(0xFF16A34A)),
+          const Icon(
+            Icons.verified_user_outlined,
+            size: 14,
+            color: Color(0xFF16A34A),
+          ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              'Protocolo: ${item.protocol ?? 'AGR-2026-0928-8472'} (${item.attachmentCount} anexo)',
+              'Protocolo: ${item.protocol ?? '—'} (${item.attachmentCount} anexo)',
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontSize: 12,
@@ -344,12 +370,9 @@ class DeliveryCardItem extends StatelessWidget {
     }
 
     return Text(
-      item.allowedFormats ?? 'Formatos aceitos: .pdf, .zip • Max: 25MB',
+      item.allowedFormats ?? 'Formatos permitidos não informados.',
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 11,
-        color: Color(0xFF64748B),
-      ),
+      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
     );
   }
 
@@ -358,7 +381,9 @@ class DeliveryCardItem extends StatelessWidget {
       return ElevatedButton(
         onPressed: onFeedback,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF14532D), // Verde floresta institucional
+          backgroundColor: const Color(
+            0xFF14532D,
+          ), // Verde floresta institucional
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
@@ -367,7 +392,10 @@ class DeliveryCardItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Text('Ver Devolutiva & Nota', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              'Ver Devolutiva & Nota',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
             SizedBox(width: 6),
             Icon(Icons.chevron_right, size: 16),
           ],
@@ -379,7 +407,9 @@ class DeliveryCardItem extends StatelessWidget {
       return ElevatedButton(
         onPressed: onReceipt,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF14532D), // Verde floresta institucional
+          backgroundColor: const Color(
+            0xFF14532D,
+          ), // Verde floresta institucional
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
@@ -388,7 +418,10 @@ class DeliveryCardItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Text('Ver Comprovante', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              'Ver Comprovante',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
             SizedBox(width: 6),
             Icon(Icons.chevron_right, size: 16),
           ],
@@ -409,7 +442,10 @@ class DeliveryCardItem extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: const [
-          Text('Realizar Entrega', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            'Realizar Entrega',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
           SizedBox(width: 6),
           Icon(Icons.chevron_right, size: 16),
         ],

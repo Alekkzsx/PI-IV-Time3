@@ -1,5 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
@@ -62,7 +64,9 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
     const maxFileBytes = 7 * 1024 * 1024;
     if (file.sizeBytes == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível ler o arquivo selecionado.')),
+        const SnackBar(
+          content: Text('Não foi possível ler o arquivo selecionado.'),
+        ),
       );
       return;
     }
@@ -98,7 +102,10 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   }
 
   Future<void> _handleProtocolarEnvio() async {
-    if (!_agreedToIntegrity || _attachedFileName == null || _attachedBytes == null) return;
+    if (!_agreedToIntegrity ||
+        _attachedFileName == null ||
+        _attachedBytes == null)
+      return;
 
     setState(() => _isSubmitting = true);
     try {
@@ -126,8 +133,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
         _isSuccess = true;
         _generatedProtocol = receipt['protocolCode']?.toString() ?? '';
         _sha256 = receipt['sha256']?.toString() ?? '';
-        _submissionId = receipt['submissionId']?.toString() ??
-            receipt['id']?.toString();
+        _submissionId =
+            receipt['submissionId']?.toString() ?? receipt['id']?.toString();
         _timestampStr = timeFormatted;
       });
     } catch (error) {
@@ -136,30 +143,34 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
       final message = error is ApiException
           ? error.message
           : 'Não foi possível protocolar a entrega.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
+  }
 
-    Future<void> _downloadSubmission() async {
-      final id = _submissionId;
-      if (id == null || id.isEmpty) return;
-      try {
-        final path = await StudentPortalController.instance.downloadSubmission(id);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              path == null
-                  ? 'Não foi possível salvar a submissão.'
-                  : 'Submissão salva em $path',
-            ),
+  Future<void> _downloadSubmission() async {
+    final id = _submissionId;
+    if (id == null || id.isEmpty) return;
+    try {
+      final path = await StudentPortalController.instance.downloadSubmission(
+        id,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path == null
+                ? 'Não foi possível salvar a submissão.'
+                : 'Submissão salva em $path',
           ),
-        );
-      } catch (error) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
-      }
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -734,7 +745,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Assinatura Digital:',
                       style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),

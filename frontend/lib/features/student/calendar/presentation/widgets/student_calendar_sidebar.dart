@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
@@ -16,14 +16,6 @@ class StudentCalendarSidebar extends StatefulWidget {
 class _StudentCalendarSidebarState extends State<StudentCalendarSidebar> {
   bool _isCalendarsExpanded = true;
   bool _isNoDateExpanded = false;
-
-  final Map<String, bool> _calendarChecks = {
-    'ALEX GABRIEL SOARES SOUSA': true,
-    '218131 - ANÁLISE E PROJETO DE SISTEMAS II (MAT) 0103-04-26-2s': true,
-    '218131 - ESTUDOS DE BANCO DE DADOS II (MAT) 0103-04-26-2s': true,
-    '218131 - FILOSOFIA, INFORMAÇÃO E SOCIEDADE (MAT) 0103-04-26-2s': true,
-    '218131 - FUNDAMENTOS DE SISTEMAS OPERACIONAIS': true,
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -198,15 +190,8 @@ class _StudentCalendarSidebarState extends State<StudentCalendarSidebar> {
     return '${months[date.month - 1]} ${date.year}';
   }
 
-  String? _disciplineCodeForCalendar(String title) {
-    if (title.contains('ANÁLISE E PROJETO DE SISTEMAS II')) return 'APS-II';
-    if (title.contains('ESTUDOS DE BANCO DE DADOS II')) return 'BD-II';
-    if (title.contains('FILOSOFIA, INFORMAÇÃO E SOCIEDADE')) return 'FIS';
-    if (title.contains('FUNDAMENTOS DE SISTEMAS OPERACIONAIS')) return 'FSO';
-    return null;
-  }
-
   Widget _buildCalendarsCard() {
+    final disciplines = widget.controller.disciplines;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -245,29 +230,24 @@ class _StudentCalendarSidebarState extends State<StudentCalendarSidebar> {
           ),
           if (_isCalendarsExpanded) ...[
             const SizedBox(height: 10),
-            ..._calendarChecks.keys.map((title) {
-              final disciplineCode = _disciplineCodeForCalendar(title);
-              final isChecked = disciplineCode == null
-                  ? _calendarChecks[title] ?? true
-                  : widget.controller.activeDisciplineFilters.contains(
-                      disciplineCode,
-                    );
+            ...disciplines.map((discipline) {
+              final title = '${discipline.code} - ${discipline.name}';
+              final disciplineCode = discipline.code;
+              final isChecked =
+                  widget.controller.activeDisciplineFilters.isEmpty ||
+                  widget.controller.activeDisciplineFilters.contains(
+                    disciplineCode,
+                  );
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     InkWell(
-                      key: Key(
-                        'calendar_filter_${disciplineCode ?? 'personal'}',
-                      ),
+                      key: Key('calendar_filter_$disciplineCode'),
                       onTap: () {
-                        if (disciplineCode == null) {
-                          setState(() => _calendarChecks[title] = !isChecked);
-                        } else {
-                          widget.controller.toggleDisciplineFilter(
-                            disciplineCode,
-                          );
-                        }
+                        widget.controller.toggleDisciplineFilter(
+                          disciplineCode,
+                        );
                       },
                       child: Container(
                         width: 14,
