@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -8,10 +8,7 @@ import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_contr
 class SecretaryFilterBar extends StatelessWidget {
   final AdminPortalController controller;
 
-  const SecretaryFilterBar({
-    super.key,
-    required this.controller,
-  });
+  const SecretaryFilterBar({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +23,8 @@ class SecretaryFilterBar extends StatelessWidget {
       spacing: 10,
       runSpacing: 10,
       children: filters.map((f) {
-        final isSelected = controller.protocolFilter == f ||
+        final isSelected =
+            controller.protocolFilter == f ||
             (controller.protocolFilter == 'Todos' &&
                 f == 'Todos Os Protocolos') ||
             (controller.protocolFilter == 'Aguardando' &&

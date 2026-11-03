@@ -6,7 +6,7 @@ import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_al
 import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_list_table.dart';
 import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_regime_formula_modal.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 import 'supervision_cockpit_page.dart';
