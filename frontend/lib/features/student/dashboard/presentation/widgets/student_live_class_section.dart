@@ -1,12 +1,26 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Seção "Aula do Dia" da Dashboard do Aluno com card de transmissão ao vivo e horário livre.
 class StudentLiveClassSection extends StatelessWidget {
-  const StudentLiveClassSection({super.key});
+  final String? roomCode;
+  final String? className;
+  final String? time;
+  final String? teacher;
+  final bool isOpen;
+  final String? freeMessage;
+
+  const StudentLiveClassSection({
+    super.key,
+    this.roomCode,
+    this.className,
+    this.time,
+    this.teacher,
+    this.isOpen = false,
+    this.freeMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +40,7 @@ class StudentLiveClassSection extends StatelessWidget {
               ),
             ),
             Text(
-              'HOJE, 20 SET',
+              _todayLabel(),
               style: jakarta(
                 size: 10.5,
                 weight: FontWeight.w700,
@@ -37,42 +51,14 @@ class StudentLiveClassSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isSmall = constraints.maxWidth < 640;
-            if (isSmall) {
-              return Column(
-                children: [
-                  _buildLiveCard(context),
-                  const SizedBox(height: 14),
-                  SizedBox(height: 160, child: _buildFreeCard()),
-                ],
-              );
-            }
-
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _buildLiveCard(context)),
-                  const SizedBox(width: 14),
-                  Expanded(child: _buildFreeCard()),
-                ],
-              ),
-            );
-          },
-        ),
+        className?.trim().isNotEmpty == true
+            ? _buildLiveCard(context)
+            : _buildFreeCard(),
       ],
     );
   }
 
   Widget _buildLiveCard(BuildContext context) {
-    return AnimatedBuilder(
-      animation: AcademicBridgeService.instance,
-      builder: (context, _) {
-        final isOpen = AcademicBridgeService.instance.isSessionOpen('APS-II');
-        final session = AcademicBridgeService.instance.getSession('APS-II');
-
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -122,7 +108,7 @@ class StudentLiveClassSection extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                '19:00 - 20:40',
+                                time ?? 'Horário não informado',
                                 style: jakarta(
                                   size: 11.5,
                                   weight: FontWeight.w600,
@@ -180,7 +166,7 @@ class StudentLiveClassSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          'Análise e Projeto de Sistemas II',
+                          className ?? 'Disciplina',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: jakarta(
@@ -192,8 +178,8 @@ class StudentLiveClassSection extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           isOpen
-                              ? 'Aberta por ${session.openedByName ?? "Profa. Dra. Helena Bittencourt"}'
-                              : 'Profa. Dra. Helena Bittencourt • Sala Fechada',
+                              ? 'Sala aberta • ${teacher ?? "Docente responsável"}'
+                              : '${teacher ?? "Docente responsável"} • Sala Fechada',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: jakarta(
@@ -242,7 +228,7 @@ class StudentLiveClassSection extends StatelessWidget {
                                 if (isOpen) {
                                   Navigator.of(context).pushNamed(
                                     '/video-call',
-                                    arguments: {'roomCode': 'APS-II'},
+                                    arguments: {'roomCode': roomCode},
                                   );
                                 } else {
                                   showDialog<void>(
@@ -261,8 +247,8 @@ class StudentLiveClassSection extends StatelessWidget {
                                           Text('Aula ainda não iniciada'),
                                         ],
                                       ),
-                                      content: const Text(
-                                        'A videochamada da disciplina Análise e Projeto de Sistemas II ainda não foi aberta pela Profa. Dra. Helena Bittencourt ou pela coordenação.\n\nPor favor, aguarde o professor iniciar a aula ao vivo para poder ingressar na sala.',
+                                      content: Text(
+                                        'A sala de ${className ?? "esta disciplina"} ainda não foi aberta. Aguarde o docente responsável iniciar a aula.',
                                       ),
                                       actions: [
                                         TextButton(
@@ -337,8 +323,6 @@ class StudentLiveClassSection extends StatelessWidget {
             ),
           ),
         );
-      },
-    );
   }
 
   Widget _buildFreeCard() {
@@ -370,7 +354,7 @@ class StudentLiveClassSection extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Reservado para estudos e atividades práticas',
+                freeMessage ?? 'Nenhuma aula está agendada para este momento.',
                 textAlign: TextAlign.center,
                 style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
               ),
@@ -379,5 +363,13 @@ class StudentLiveClassSection extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _todayLabel() {
+    const weekdays = [
+      'DOMINGO', 'SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO',
+    ];
+    final now = DateTime.now();
+    return '${weekdays[now.weekday % 7]}, ${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}';
   }
 }
