@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_profile.dart';
@@ -10,6 +11,109 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
   final DocenteController controller;
 
   const DocenteSecuritySessionsCard({super.key, required this.controller});
+
+  Future<void> _changePassword(BuildContext context) async {
+    final current = TextEditingController();
+    final next = TextEditingController();
+    final confirm = TextEditingController();
+    final values = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Alterar senha'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: current,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Senha atual'),
+            ),
+            TextField(
+              controller: next,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Nova senha'),
+            ),
+            TextField(
+              controller: confirm,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confirmar senha'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (current.text.isEmpty ||
+                  next.text.length < 8 ||
+                  next.text != confirm.text) {
+                return;
+              }
+              Navigator.pop(context, [current.text, next.text]);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (values != null) {
+      final changed = await controller.changePassword(
+        currentPassword: values[0],
+        newPassword: values[1],
+      );
+      if (changed) {
+        AppUserSession.instance.signOut();
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+        }
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              controller.remoteError ?? 'Não foi possível alterar a senha.',
+            ),
+          ),
+        );
+      }
+    }
+    current.dispose();
+    next.dispose();
+    confirm.dispose();
+  }
+
+  Future<void> _showBackupCodes(BuildContext context) async {
+    try {
+      final codes = await controller.backupCodes();
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Códigos de recuperação'),
+          content: SizedBox(
+            width: 360,
+            child: codes.isEmpty
+                ? const Text('Nenhum código disponível.')
+                : SelectableText(codes.join('\n')),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fechar'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +217,7 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _changePassword(context),
                 icon: const Icon(
                   Icons.lock_reset_rounded,
                   size: 14,
@@ -298,7 +402,37 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
                 ],
               ),
               OutlinedButton(
-                onPressed: () => controller.toggleTwoFactor(),
+                onPressed: () async {
+                  final password = TextEditingController();
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirmar com sua senha'),
+                      content: TextField(
+                        controller: password,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Senha atual',
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancelar'),
+                        ),
+                        FilledButton(
+                          onPressed: () =>
+                              Navigator.pop(context, password.text.isNotEmpty),
+                          child: const Text('Confirmar'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    await controller.toggleTwoFactor(password: password.text);
+                  }
+                  password.dispose();
+                },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFDC2626),
                   side: const BorderSide(color: Color(0xFFFECACA)),
@@ -348,7 +482,9 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Ativado em 15 de Agosto de 2026',
+                      profile.twoFactorEnabled
+                          ? 'Autenticação de dois fatores habilitada.'
+                          : 'Autenticação de dois fatores desabilitada.',
                       style: jakarta(
                         size: 10.5,
                         color: const Color(0xFFA1A1AA),
@@ -441,7 +577,7 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          '8 disponíveis',
+                          'Códigos protegidos',
                           style: jakarta(
                             size: 10,
                             weight: FontWeight.w600,
@@ -454,7 +590,7 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
                 ],
               ),
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () => _showBackupCodes(context),
                 icon: const Icon(
                   Icons.vpn_key_outlined,
                   size: 13,
@@ -594,310 +730,43 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
             style: jakarta(size: 12, color: const Color(0xFF71717A)),
           ),
           const SizedBox(height: 18),
-          ...profile.activeSessions.map((session) {
-            final isMobile =
-                session.device.toLowerCase().contains('iphone') ||
-                session.device.toLowerCase().contains('android') ||
-                session.device.toLowerCase().contains('mobile');
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAFAFA),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE4E4E7)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    isMobile
-                        ? Icons.smartphone_rounded
-                        : Icons.laptop_mac_rounded,
-                    size: 20,
-                    color: const Color(0xFF52525B),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              session.device,
-                              style: jakarta(
-                                size: 12.5,
-                                weight: FontWeight.w600,
-                                color: const Color(0xFF18181B),
-                              ),
-                            ),
-                            if (session.isCurrent) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF18181B),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'ESTA SESSÃO',
-                                  style: jakarta(
-                                    size: 9,
-                                    weight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${session.location} • IP ${session.ip} • ${session.lastActive}',
-                          style: jakarta(
-                            size: 11,
-                            color: const Color(0xFF71717A),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: controller.securitySessions(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Text('Falha ao carregar sessões: ${snapshot.error}');
+              }
+              final sessions = snapshot.data ?? const [];
+              if (sessions.isEmpty) return const Text('Nenhuma sessão ativa.');
+              return Column(
+                children: sessions.map((session) {
+                  final id = session['id']?.toString() ?? '';
+                  final current = session['isCurrent'] == true;
+                  final device =
+                      session['device']?.toString() ?? 'Dispositivo';
+                  final location = session['location']?.toString() ?? '';
+                  final ip = session['ip']?.toString() ?? '';
+                  final lastActive =
+                      session['lastActive']?.toString() ??
+                      session['lastSeenAt']?.toString() ??
+                      '';
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.devices_outlined),
+                    title: Text(current ? '$device · Esta sessão' : device),
+                    subtitle: Text('$location · $ip · $lastActive'),
+                    trailing: current
+                        ? null
+                        : IconButton(
+                            tooltip: 'Revogar sessão',
+                            onPressed: () => controller.disconnectSession(id),
+                            icon: const Icon(Icons.logout),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!session.isCurrent)
-                    OutlinedButton(
-                      onPressed: () => controller.disconnectSession(session.id),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFD4D4D8)),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        backgroundColor: Colors.white,
-                      ),
-                      child: Text(
-                        'Desconectar',
-                        style: jakarta(
-                          size: 11,
-                          weight: FontWeight.w500,
-                          color: const Color(0xFF18181B),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAuditLogsCard(BuildContext context) {
-    final auditLogs = [
-      {
-        'data': '22/09/2026 às 08:14',
-        'device': 'Chrome / Windows 11',
-        'local': 'São Paulo, Brasil',
-        'ip': '177.136.***.42',
-        'status': 'Autorizado',
-      },
-      {
-        'data': '21/09/2026 às 20:30',
-        'device': 'Safari / iPhone 15',
-        'local': 'São Paulo, Brasil',
-        'ip': '189.40.***.118',
-        'status': 'Autorizado',
-      },
-      {
-        'data': '21/09/2026 às 18:45',
-        'device': 'Firefox / Linux',
-        'local': 'Campinas, Brasil',
-        'ip': '201.82.***.93',
-        'status': 'Autorizado',
-      },
-      {
-        'data': '19/09/2026 às 23:10',
-        'device': 'Desconhecido / Android',
-        'local': 'Belo Horizonte, Brasil',
-        'ip': '45.178.***.12',
-        'status': 'Bloqueado',
-      },
-      {
-        'data': '19/09/2026 às 14:02',
-        'device': 'Chrome / Windows 11',
-        'local': 'São Paulo, Brasil',
-        'ip': '177.136.***.42',
-        'status': 'Autorizado',
-      },
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.history_rounded,
-                size: 18,
-                color: Color(0xFF18181B),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Histórico Recente de Acesso (Auditoria de Segurança)',
-                style: jakarta(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Registro dos últimos logins efetuados com suas credenciais para monitoramento preventivo.',
-            style: jakarta(size: 12, color: const Color(0xFF71717A)),
-          ),
-          const SizedBox(height: 18),
-          // Audit Table
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFAFAFA),
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFF4F4F5), width: 1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Text('DATA & HORA', style: _tableHeaderStyle),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Text('DISPOSITIVO', style: _tableHeaderStyle),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Text('LOCALIZAÇÃO ESTIMADA', style: _tableHeaderStyle),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text('ENDEREÇO IP', style: _tableHeaderStyle),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text('STATUS', style: _tableHeaderStyle),
-                ),
-              ],
-            ),
-          ),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: auditLogs.length,
-            separatorBuilder: (_, __) =>
-                const Divider(height: 1, color: Color(0xFFF4F4F5)),
-            itemBuilder: (context, index) {
-              final log = auditLogs[index];
-              final isBloqueado = log['status'] == 'Bloqueado';
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        log['data']!,
-                        style: jakarta(
-                          size: 11.5,
-                          color: const Color(0xFF52525B),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        log['device']!,
-                        style: jakarta(
-                          size: 11.5,
-                          weight: FontWeight.w500,
-                          color: const Color(0xFF18181B),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        log['local']!,
-                        style: jakarta(
-                          size: 11.5,
-                          color: const Color(0xFF52525B),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        log['ip']!,
-                        style: jakarta(
-                          size: 11.5,
-                          color: const Color(0xFF71717A),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Row(
-                        children: [
-                          Icon(
-                            isBloqueado
-                                ? Icons.cancel_outlined
-                                : Icons.check_rounded,
-                            size: 14,
-                            color: isBloqueado
-                                ? const Color(0xFFDC2626)
-                                : const Color(0xFF16A34A),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            log['status']!,
-                            style: jakarta(
-                              size: 11,
-                              weight: FontWeight.w600,
-                              color: isBloqueado
-                                  ? const Color(0xFFDC2626)
-                                  : const Color(0xFF16A34A),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                }).toList(),
               );
             },
           ),
@@ -906,10 +775,53 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
     );
   }
 
-  static const TextStyle _tableHeaderStyle = TextStyle(
-    fontFamily: 'Plus Jakarta Sans',
-    fontSize: 10,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF71717A),
-  );
+  Widget _buildAuditLogsCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Hist?rico recente de acesso',
+            style: jakarta(size: 14, weight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: controller.securityLogs(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Text('Falha ao carregar o hist?rico: ${snapshot.error}');
+              }
+              final logs = snapshot.data ?? const [];
+              if (logs.isEmpty) return const Text('Nenhum acesso registrado.');
+              return Column(
+                children: logs.map((log) {
+                  final time = log['createdAt'] ?? log['timestamp'] ?? log['date'] ?? '';
+                  final action = log['action'] ?? log['event'] ?? log['status'] ?? 'Acesso';
+                  final device = log['device'] ?? log['userAgent'] ?? '';
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.history),
+                    title: Text(action.toString()),
+                    subtitle: Text(
+                      '$time${device.toString().isEmpty ? '' : ' · $device'}',
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
 }

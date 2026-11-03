@@ -29,7 +29,7 @@ class _DocenteProfileSettingsCardState
     final profile = widget.controller.profile;
     _civilNameController = TextEditingController(text: profile.fullName);
     _socialNameController = TextEditingController(
-      text: profile.socialName.isNotEmpty ? profile.socialName : 'Profa.',
+      text: profile.socialName,
     );
     _institutionalEmailController = TextEditingController(
       text: profile.institutionalEmail,
@@ -49,17 +49,19 @@ class _DocenteProfileSettingsCardState
     super.dispose();
   }
 
-  void _handleSave() {
-    widget.controller.updateProfile(
+  Future<void> _handleSave() async {
+    final saved = await widget.controller.updateProfile(
       socialName: _socialNameController.text.trim(),
       personalEmail: _personalEmailController.text.trim(),
     );
-
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Alterações de perfil salvas com sucesso!'),
+      SnackBar(
+        content: Text(saved
+            ? 'Alterações de perfil salvas com sucesso!'
+            : widget.controller.remoteError ?? 'Não foi possível salvar.'),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF16A34A),
+        backgroundColor: saved ? const Color(0xFF16A34A) : Colors.red,
       ),
     );
   }

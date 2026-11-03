@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 /// Represents a syllabus unit within a course curriculum.
 class SyllabusUnit {
@@ -83,6 +83,8 @@ class DocenteCourse {
   final bool gradeLocked;
   final bool pautaHomologated;
   final String? chancelaCode;
+  final List<Map<String, dynamic>> forumTopics;
+  final List<Map<String, dynamic>> squads;
 
   const DocenteCourse({
     required this.id,
@@ -101,6 +103,8 @@ class DocenteCourse {
     this.gradeLocked = false,
     this.pautaHomologated = false,
     this.chancelaCode,
+    this.forumTopics = const [],
+    this.squads = const [],
   });
 
   String get name => title;
@@ -114,12 +118,14 @@ class DocenteCourse {
     final lower = schedule.toLowerCase();
     final days = <int>[];
     if (lower.contains('segunda')) days.add(DateTime.monday);
-    if (lower.contains('terça') || lower.contains('terca')) days.add(DateTime.tuesday);
+    if (lower.contains('terça') || lower.contains('terca'))
+      days.add(DateTime.tuesday);
     if (lower.contains('quarta')) days.add(DateTime.wednesday);
     if (lower.contains('quinta')) days.add(DateTime.thursday);
     if (lower.contains('sexta')) days.add(DateTime.friday);
-    if (lower.contains('sábado') || lower.contains('sabado')) days.add(DateTime.saturday);
-    return days.isEmpty ? [DateTime.monday, DateTime.wednesday] : days;
+    if (lower.contains('sábado') || lower.contains('sabado'))
+      days.add(DateTime.saturday);
+    return days;
   }
 
   String get classDaysLabel {
@@ -151,6 +157,8 @@ class DocenteCourse {
     bool? gradeLocked,
     bool? pautaHomologated,
     String? chancelaCode,
+    List<Map<String, dynamic>>? forumTopics,
+    List<Map<String, dynamic>>? squads,
   }) {
     return DocenteCourse(
       id: id ?? this.id,
@@ -169,6 +177,8 @@ class DocenteCourse {
       gradeLocked: gradeLocked ?? this.gradeLocked,
       pautaHomologated: pautaHomologated ?? this.pautaHomologated,
       chancelaCode: chancelaCode ?? this.chancelaCode,
+      forumTopics: forumTopics ?? this.forumTopics,
+      squads: squads ?? this.squads,
     );
   }
 }
