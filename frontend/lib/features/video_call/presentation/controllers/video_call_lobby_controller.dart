@@ -2,9 +2,11 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 import '../../data/datasources/video_call_signaling_datasource.dart';
 import '../../data/media/call_media_engine.dart';
 import '../../data/media/call_media_engine_factory.dart';
+import '../../data/datasources/video_call_room_remote_data_source.dart';
 import '../../data/repositories/video_call_repository_impl.dart';
 import '../../domain/entities/meeting_room.dart';
 import '../../domain/entities/participant.dart';
@@ -15,10 +17,14 @@ import 'video_call_controller.dart';
 class VideoCallLobbyController extends ChangeNotifier {
   final VideoCallRepository? _injectedRepository;
   final ICallMediaEngine _mediaEngine;
+  final VideoCallRoomRemoteDataSource _roomDataSource;
 
   String _name = '';
   String _ra = '';
-  String _roomCode = 'SALA-101';
+  String _roomCode = '';
+  List<VideoCallRoomSummary> _rooms = [];
+  bool isLoadingRooms = false;
+  String? roomError;
   bool _isAudioMuted = false;
   bool _isVideoOff = false;
   double _audioLevel = 0.05;
@@ -34,14 +40,18 @@ class VideoCallLobbyController extends ChangeNotifier {
   VideoCallLobbyController({
     VideoCallRepository? repository,
     ICallMediaEngine? mediaEngine,
+    VideoCallRoomRemoteDataSource? roomDataSource,
   }) : _injectedRepository = repository,
-       _mediaEngine = mediaEngine ?? createPlatformMediaEngine() {
+       _mediaEngine = mediaEngine ?? createPlatformMediaEngine(),
+       _roomDataSource = roomDataSource ?? VideoCallRoomRemoteDataSource() {
     _mediaInitialization = _initHardwarePreview();
+    unawaited(loadRooms());
   }
 
   String get name => _name;
   String get ra => _ra;
   String get roomCode => _roomCode;
+  List<VideoCallRoomSummary> get rooms => List.unmodifiable(_rooms);
   bool get isAudioMuted => _isAudioMuted;
   bool get isVideoOff => _isVideoOff;
   double get audioLevel => _isAudioMuted ? 0.0 : _audioLevel;
@@ -126,8 +136,37 @@ class VideoCallLobbyController extends ChangeNotifier {
   }
 
   void setRoomCode(String value) {
-    _roomCode = value;
+    _roomCode = normalizeRoomCode(value);
     notifyListeners();
+  }
+
+  String normalizeRoomCode(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), '-');
+
+  void selectRoom(VideoCallRoomSummary room) => setRoomCode(room.roomCode);
+
+  Future<void> loadRooms() async {
+    isLoadingRooms = true;
+    roomError = null;
+    notifyListeners();
+    try {
+      _rooms = await _roomDataSource.listRooms();
+      if (_roomCode.isEmpty && _rooms.isNotEmpty) {
+        _roomCode = _rooms.first.roomCode;
+      }
+    } on ApiException catch (error) {
+      roomError = error.message;
+      _rooms = [];
+    } on VideoCallRoomApiException catch (error) {
+      roomError = error.message;
+      _rooms = [];
+    } catch (_) {
+      roomError = 'Não foi possível carregar as salas.';
+      _rooms = [];
+    } finally {
+      isLoadingRooms = false;
+      notifyListeners();
+    }
   }
 
   void toggleAudio() {
@@ -169,8 +208,9 @@ class VideoCallLobbyController extends ChangeNotifier {
     if (val == null || val.trim().isEmpty) {
       return 'Informe o código da sala';
     }
-    final regex = RegExp(r'^[A-Z0-9\-]{3,32}$', caseSensitive: false);
-    if (!regex.hasMatch(val.trim())) {
+    final normalized = normalizeRoomCode(val);
+    final regex = RegExp(r'^[A-Za-z0-9._\-]{2,60}$');
+    if (!regex.hasMatch(normalized)) {
       return 'Código da sala inválido';
     }
     return null;
@@ -184,7 +224,7 @@ class VideoCallLobbyController extends ChangeNotifier {
     String role = 'participant',
     String? webSocketTicket,
   }) {
-    final sanitizedRoom = roomCode.trim().toUpperCase();
+    final sanitizedRoom = normalizeRoomCode(roomCode);
     final sanitizedName = name.trim();
     final sanitizedRa = ra.trim();
 
