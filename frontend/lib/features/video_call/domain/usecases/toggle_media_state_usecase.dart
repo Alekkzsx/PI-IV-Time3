@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../errors/video_call_failures.dart';
 import '../repositories/video_call_repository.dart';
@@ -23,12 +23,16 @@ class ToggleMediaStateUseCase {
   }) async {
     final cleanRoomId = roomId.trim();
     if (cleanRoomId.isEmpty) {
-      throw const VideoCallValidationException('Identificador da sala não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador da sala não pode ser vazio.',
+      );
     }
 
     final cleanPeerId = peerId.trim();
     if (cleanPeerId.isEmpty) {
-      throw const VideoCallValidationException('Identificador do participante não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador do participante não pode ser vazio.',
+      );
     }
 
     if (isAudioMuted == null &&
