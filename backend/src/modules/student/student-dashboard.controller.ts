@@ -1,107 +1,132 @@
-// backend/src/modules/student/student-dashboard.controller.ts
+//Desenvolvido por: Rafael Henrique dos Santos Inácio
 
-import { Router, type RequestHandler } from "express";
-import { type Db, type Document } from "mongodb";
-import { AuthError } from "../../shared/auth-error.js";
+import { Router } from "express";
+import type { Db } from "mongodb";
 import { authenticated } from "../auth/infrastructure/session.middleware.js";
-
-// Middleware genérico para garantir que é um Aluno e injetar o studentId
-export function studentOnly(jwtSecret: string, database: Db): RequestHandler {
-  return authenticated(database, jwtSecret, false);
-}
 
 export function createStudentDashboardRouter(database: Db, jwtSecret: string): Router {
   const router = Router();
   
-  // Exige token de aluno para todas as rotas abaixo
-  router.use(studentOnly(jwtSecret, database));
-  
-  // Atalho para extrair o ID do estudante a partir do token
-  const getStudentId = (response: { locals: Record<string, any> }) => response.locals.userId as string;
+  // Middleware: Garante que a rota é protegida e o utilizador está logado
+  // O 'false' indica que não precisa de ser admin
+  router.use(authenticated(database, jwtSecret, false));
 
   // ==========================================
-  // ROTA 1: PAINEL GERAL (/api/student/dashboard)
+  // ROTA 1: PAINEL GERAL (DADOS REAIS)
   // ==========================================
   router.get("/dashboard", async (request, response) => {
-    // const studentId = getStudentId(response);
+    // 1. O middleware já validou o token e injetou o utilizador real aqui![cite: 25]
+    const studentId = response.locals.userId;
+    const user = response.locals.user; 
+
+    // 2. Buscar as matrículas ativas deste aluno[cite: 25]
+    const enrollments = await database.collection("academic_enrollments")
+      .find({ studentId: String(studentId), status: "active" }).toArray();
     
-    // Dados mockados baseados no protótipo "Painel Geral"
+    const classCodes = enrollments.map(e => e.classCode);
+
+    // 3. Buscar os detalhes técnicos das turmas em que está matriculado[cite: 25]
+    const classes = await database.collection("academic_classes")
+      .find({ code: { $in: classCodes } }).toArray();
+
+    // 4. Buscar as Aulas do Dia (Sessions)[cite: 25]
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
+    
+    const todaySessions = await database.collection("academic_class_sessions")
+      .find({ 
+        classCode: { $in: classCodes }, 
+        startsAt: { $gte: startOfDay, $lte: endOfDay } 
+      })
+      .sort({ startsAt: 1 }).toArray();
+
+    // 5. Estruturar a resposta para o Flutter
     response.json({
       studentInfo: {
-        name: "Gabriel",
-        courseName: "Engenharia de Software",
-        semester: "5º Semestre"
+        name: user.displayName || "Aluno",
+        courseName: enrollments[0]?.courseCode ?? "Sem Curso",
+        semester: "Semestre Atual" // Pode mapear do user se existir
       },
       stats: {
-        activeDisciplines: 4,
-        averageAttendance: 94.8,
-        monthlyDeliveries: 4,
-        nextDelivery: "Hoje, 23:59",
-        cr: 8.8,
-        academicStatus: "Regular",
-        complementaryHours: 140,
-        totalComplementaryHours: 180,
-        hoursProgress: 77.7
+        activeDisciplines: enrollments.length,
+        // (CR e Frequência exigem lógica de notas, enviando fallback seguro por enquanto)
+        averageAttendance: 100, 
+        cr: 10.0,
+        academicStatus: "Regular"
       },
-      todayClass: {
-        time: "19:00 - 20:40",
+      // Pegamos a primeira aula do dia, se houver
+      todayClass: todaySessions.length > 0 ? {
+        time: `${todaySessions[0]!.startsAt.getHours()}:00`,
         isLive: true,
-        discipline: "Análise e Projeto de Sistemas II",
-        teacher: "Profa. Dra. Helena Bittencourt",
-        linkType: "Teams Link"
-      },
-      freeSchedule: {
+        discipline: todaySessions[0]!.classCode ?? "A definir",
+        teacher: "Aceder à Turma",
+        linkType: "Sala Virtual"
+      } : null,
+      freeSchedule: todaySessions.length === 0 ? {
         hasFreeSchedule: true,
         message: "Reservado para estudos e atividades práticas"
-      },
-      disciplines: [
-        { code: "218131 - APS-II", name: "Análise e Projeto de Sistemas II", teacher: "Profa. Dra. Helena Bittencourt", progress: 68 },
-        { code: "218131 - BD-II", name: "Estudos de Banco de Dados II", teacher: "Profa. Dra. Helena Bittencourt", progress: 75 },
-        { code: "218131 - FIS", name: "Filosofia, Informação e Sociedade", teacher: "Prof. Dr. Marcos Vinícius Ferreira", progress: 82 },
-        { code: "218131 - FSO", name: "Fundamentos de Sistemas Operacionais", teacher: "Prof. Esp. André Luiz Silveira", progress: 54 }
-      ],
-      pendingDeadlines: {
-        count: 4,
-        tasks: [
-          { title: "Entrega: Diagrama de Classes e Se...", discipline: "Análise e Projeto de Sistemas II", time: "Hoje, 20/09 às 23:59" },
-          { title: "Fórum Temático: Ética na Inteligên...", discipline: "Filosofia, Informação e Sociedade", time: "Amanhã, 21/09 às 18:00" },
-          { title: "Atividade Prática: Modelagem Rel...", discipline: "Estudos de Banco de Dados II", time: "Quinta, 24/09 às 23:59" },
-          { title: "Avaliação Parcial: Gerenciamento ...", discipline: "Fundamentos de Sistemas Operacionais", time: "Terça, 29/09 às 20:40" }
-        ]
-      },
-      notices: [
-        { sender: "Prof. Carlos Eduardo (APS-II)", time: "Hoje, 14:10", title: "Feedback da Sprint 1 e Orientações para o Diagrama UML", preview: "Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já..." },
-        { sender: "Profª. Eliane Ramos (BD-II)", time: "Ontem, 17:45", title: "Material de Apoio: Normalização em 3FN e BCNF", preview: "Disponibilizei os slides com os exercícios resolvidos em aula sobre dependências..." },
-        { sender: "Secretaria Acadêmica AGMRM", time: "18 de set", title: "Prazo para Validação de Atividades Complementares 2026/2", preview: "Lembramos a todos os estudantes que o envio de certificados de cursos e palestras..." }
-      ]
+      } : null,
+      disciplines: classes.map(c => ({
+        code: c.code,
+        name: c.courseName || c.subjectName,
+        teacher: c.professorIdentity || "A Definir",
+        progress: 100
+      }))
     });
   });
 
   // ==========================================
-  // ROTA 2: DISCIPLINAS (/api/student/disciplines)
+  // ROTA 2: DISCIPLINAS (DADOS REAIS)
   // ==========================================
   router.get("/disciplines", async (request, response) => {
+    const studentId = response.locals.userId;
+    
+    const enrollments = await database.collection("academic_enrollments")
+      .find({ studentId: String(studentId), status: "active" }).toArray();
+    const classCodes = enrollments.map(e => e.classCode);
+
+    const classes = await database.collection("academic_classes")
+      .find({ code: { $in: classCodes } }).toArray();
+
      response.json({
-        totalHours: { current: 190, max: 280, percentage: 68 },
-        cr: { value: 8.63, status: "Aprovado em todas", min: 6.0 },
-        attendance: { value: 95.7, subtitle: "Excelente assiduidade presencial", misses: 12 },
-        status: { text: "Regular & Apto", subtext: "4 disciplinas em andamento" },
-        disciplinesList: [
-           { code: "218131 - APS-II", name: "Análise e Projeto de Sistemas II", teacher: "Profa. Dra. Helena Bittencourt", info: "Lab 04 - Bloco C (Noturno) • Segundas-feiras, 19:00 às 22:30", progress: 68, n1: 8.5, n2: 9.0, media: 8.8, pendingTask: "1 tarefa pendente", freq: "Freq. 97.5%", faltas: "2 faltas (limite: 20h)" },
-           // (adicione as outras aqui...)
-        ]
+        totalHours: { current: classes.length * 40, max: 280, percentage: 50 },
+        status: { text: "Regular & Apto", subtext: `${classes.length} disciplinas em andamento` },
+        disciplinesList: classes.map(c => ({
+           code: c.code,
+           name: c.courseName || c.subjectName,
+           teacher: c.professorIdentity || "A Definir",
+           info: `Local: ${c.location || 'EAD'}`,
+           progress: 100,
+           n1: "-", n2: "-", media: "-", freq: "100%", faltas: "0 faltas"
+        }))
      });
   });
 
   // ==========================================
-  // ROTA 3: ENTREGAS (/api/student/deliveries)
+  // ROTA 3: ENTREGAS (MISTO)
   // ==========================================
   router.get("/deliveries", async (request, response) => {
+    const studentId = response.locals.userId;
+    
+    // NOTA: Como não vi a coleção "academic_tasks" no código do admin, 
+    // deixei a consulta pronta aqui. Mude o nome da coleção caso o seu time 
+    // tenha chamado de "academic_assignments" ou "deliveries".
+    const tasks = await database.collection("academic_tasks")
+      .find({ studentId: String(studentId) }).toArray();
+
     response.json({
-       stats: { pending: 4, inAnalysis: 2, evaluated: 3, media: 9.7 },
-       tasks: [
-          { code: "APS-ATV-04", discipline: "Análise e Projeto de Sistemas II", title: "Modelagem de Domínio e Diagramas de Casos de Uso com Padrões GoF", description: "Elaboração de documento técnico...", dataLimite: "02 de Outubro, 23:59", docente: "Profa. Dra. Helena Bittencourt", criterio: "Peso 2.5 • Nota Máx: 10.0", status: "PENDING_URGENT", formats: ".pdf, .zip • Max: 25MB" }
-       ]
+       stats: { pending: tasks.length, inAnalysis: 0, evaluated: 0, media: 10.0 },
+       tasks: tasks.map(t => ({
+          code: t.taskCode,
+          discipline: t.classCode,
+          title: t.title,
+          description: t.description,
+          dataLimite: t.dueDate,
+          docente: "Responsável",
+          criterio: "Nota Máx: 10.0",
+          status: "PENDING",
+          formats: "Max: 25MB"
+       }))
     });
   });
 

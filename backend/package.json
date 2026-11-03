@@ -12,6 +12,7 @@
     "start": "node dist/server.js",
     "test": "npm run build && node --test dist/config/environment.test.js dist/modules/auth/application/auth.service.test.js dist/modules/auth/presentation/auth.controller.test.js dist/scripts/admin-demo.seed.test.js dist/tests/backend.integration.test.js",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
+    "seed:student": "tsx src/scripts/seed-student.ts",
     "test:integration": "npm run build && node --test dist/tests/backend.integration.test.js"
   },
   "dependencies": {
