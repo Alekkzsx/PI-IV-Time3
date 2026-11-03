@@ -49,6 +49,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   void initState() {
     super.initState();
     _controller.addListener(_onUpdate);
+    _controller.loadClassSupervision(widget.classModel.code);
   }
 
   @override
@@ -735,48 +736,24 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       );
     }
 
-    final gradeRows = [
-      {
-        'nome': 'Gabriel Soares de Oliveira',
-        'ra': '2024.1.00892',
-        'p1': '8.5',
-        'p2': '9.0',
-        'trab': '9.5',
-        'media': '8.9',
-        'faltas': '4',
-        'parecer': 'Aprovado por Média e Freq.',
-      },
-      {
-        'nome': 'Mariana Rios Costa',
-        'ra': '2024.1.00912',
-        'p1': '9.0',
-        'p2': '9.5',
-        'trab': '9.8',
-        'media': '9.4',
-        'faltas': '2',
-        'parecer': 'Aprovado por Média e Freq.',
-      },
-      {
-        'nome': 'Lucas Silva Santos',
-        'ra': '2024.1.00940',
-        'p1': '4.0',
-        'p2': '5.0',
-        'trab': '6.0',
-        'media': '5.0',
-        'faltas': '14',
-        'parecer': 'Exame Final Necessário',
-      },
-      {
-        'nome': 'Beatriz Castro Lima',
-        'ra': '2024.1.00955',
-        'p1': '8.0',
-        'p2': '8.5',
-        'trab': '9.0',
-        'media': '8.4',
-        'faltas': '6',
-        'parecer': 'Aprovado por Média e Freq.',
-      },
-    ];
+    final gradeRows = _controller.supervisedGrades.map((grade) {
+      final approved = grade.hasGrades &&
+          grade.finalAverage >= 6.0 && grade.attendanceRate >= 75;
+      return <String, String>{
+        'nome': grade.studentName,
+        'ra': grade.ra,
+        'p1': grade.p1Score.toStringAsFixed(1),
+        'p2': grade.p2Score.toStringAsFixed(1),
+        'trab': grade.assignmentsScore.toStringAsFixed(1),
+        'media': grade.finalAverage.toStringAsFixed(1),
+        'faltas': grade.absences.toString(),
+        'parecer': !grade.hasGrades
+            ? 'Sem notas lan?adas'
+            : approved
+                ? 'Aprovado por m?dia e frequ?ncia'
+                : 'Pendente de aprova??o',
+      };
+    }).toList();
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1072,13 +1049,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 4: Discentes & Vagas (Print 52) ---
   Widget _buildStudentsTab() {
-    final enrolledStudents = _controller.users
-        .where(
-          (user) =>
-              user.profile == 'aluno' &&
-              widget.classModel.enrolledStudentRas.contains(user.id),
-        )
-        .toList();
+    final enrolledStudents = _controller.supervisedEnrollments;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1120,7 +1091,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           if (enrolledStudents.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Nenhum cadastro de demonstração vinculado à turma.'),
+              child: Text('Nenhum estudante matriculado nesta turma.'),
             )
           else
             ...enrolledStudents.map((u) {
@@ -1130,17 +1101,13 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                   child: Icon(Icons.school, color: InstColors.ink),
                 ),
                 title: Text(
-                  u.name,
+                  u.displayName,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
-                subtitle: Text('R.A.: ${u.id} • ${u.email}'),
-                trailing: Chip(
-                  label: Text(u.status),
-                  backgroundColor: const Color(0xFFDCFCE7),
-                ),
+                subtitle: Text('R.A.: ${u.ra}'),
               );
             }),
         ],

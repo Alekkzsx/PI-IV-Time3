@@ -160,6 +160,27 @@ class AdminPortalController extends ChangeNotifier {
 
   Future<bool> deleteCalendarEvent(String id) =>
       persist(() => remote.deleteCalendarEvent(id));
+
+  Future<void> loadClassSupervision(String classCode) async {
+    try {
+      final values = await Future.wait<dynamic>([
+        academicRemote.classGrades(classCode),
+        academicRemote.getEnrollments(classCode),
+      ]);
+      supervisedGrades = values[0] as List<AdminGradeAuditRow>;
+      supervisedEnrollments = values[1] as List<AdminEnrolledStudent>;
+      remoteError = null;
+    } catch (error) {
+      remoteError = error is ApiException
+          ? error.message
+          : error is AdminAcademicApiException
+          ? error.message
+          : 'Não foi possível carregar os dados de supervisão.';
+      supervisedGrades = [];
+      supervisedEnrollments = [];
+    }
+    notifyListeners();
+  }
   static final AdminPortalController instance =
       AdminPortalController._internal();
   AdminPortalController._internal();

@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import '../../../shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_sidebar.dart';
@@ -158,7 +159,7 @@ class PainelGeralPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Bem-vindo, Carlos.',
+          'Bem-vindo, ${AppUserSession.instance.effectiveName}.',
           style: jakarta(
             size: 42,
             weight: FontWeight.w600,

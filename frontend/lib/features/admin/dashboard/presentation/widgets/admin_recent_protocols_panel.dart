@@ -25,47 +25,20 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
 
   const AdminRecentProtocolsPanel({super.key, this.onSeeAll, this.onItemTap});
 
-  static const List<AdminRecentProtocolItemData> defaultProtocols = [
-    AdminRecentProtocolItemData(
-      studentName: 'Camila Duarte Fagundes',
-      dateText: 'Hoje, 09:15',
-      protocolTitle: 'PROT-2026/8841 • APS-II e BD-II (Afastamento 29 a 30/09)',
-      description:
-          'Apresentação de atestado médico com CID-10 J06.9 para abono e justificativa legal de ausências.',
-    ),
-    AdminRecentProtocolItemData(
-      studentName: 'Gabriel Soares de Oliveira',
-      dateText: 'Ontem, 16:20',
-      protocolTitle:
-          'PROT-2026/8835 • Validação de Curso Extracurricular (40h)',
-      description:
-          'Certificado de conclusão do curso avançado de Arquitetura Limpa e Microsserviços (40 horas).',
-    ),
-    AdminRecentProtocolItemData(
-      studentName: 'Rodrigo Antunes Nogueira',
-      dateText: 'Hoje, 10:45',
-      protocolTitle: 'PROT-2026/8850 • APS-II – Prova Substitutiva',
-      description:
-          'Solicitação de 2ª chamada da Prova Parcial por motivo de declaração de trabalho em regime de escala.',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final portal = AdminPortalController.instance;
-    final protocols = portal.usesRemote
-        ? portal.protocols
-              .take(3)
-              .map(
-                (item) => AdminRecentProtocolItemData(
-                  studentName: item.studentName,
-                  dateText: item.date,
-                  protocolTitle: item.requestType,
-                  description: item.justification,
-                ),
-              )
-              .toList()
-        : defaultProtocols;
+    final protocols = portal.protocols
+        .take(3)
+        .map(
+          (item) => AdminRecentProtocolItemData(
+            studentName: item.studentName,
+            dateText: item.date,
+            protocolTitle: item.requestType,
+            description: item.justification,
+          ),
+        )
+        .toList();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
