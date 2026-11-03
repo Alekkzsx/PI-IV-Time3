@@ -119,12 +119,24 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
                     const SizedBox(width: 12),
                   ],
                 ),
-                body: const Center(
+                body: Center(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'Nenhuma turma está vinculada a esta matrícula docente.',
-                      textAlign: TextAlign.center,
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Nenhuma turma está vinculada a esta matrícula docente.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed('/video-call'),
+                          icon: const Icon(Icons.video_call_outlined),
+                          label: const Text('Acessar videochamada da turma'),
+                        ),
+                      ],
                     ),
                   ),
                 ),

@@ -104,16 +104,30 @@ Base local: `http://127.0.0.1:3001`
 | `POST` | `/api/auth/send-recovery-otp` | Solicita OTP sem revelar se a identidade existe |
 | `POST` | `/api/auth/verify-recovery-otp` | Valida OTP e retorna grant temporário de redefinição |
 | `POST` | `/api/auth/reset-password` | Consome o grant e troca a senha |
+| `GET` | `/api/admin/teachers` | Lista docentes persistidos; exige JWT de admin |
+| `POST` | `/api/admin/teachers` | Cria uma conta de docente; exige JWT de admin |
 | `GET` / `POST` | `/api/admin/courses` | Lista e cadastra cursos; exige JWT de admin |
 | `GET` / `POST` | `/api/admin/classes` | Lista e abre turmas; exige JWT de admin |
+| `PATCH` | `/api/admin/classes/:classCode/professor` | Atribui um docente ativo à turma |
 | `GET` / `POST` | `/api/admin/classes/:classCode/enrollments` | Consulta e registra matrículas de alunos ativos |
 | `GET` / `POST` | `/api/admin/classes/:classCode/sessions` | Consulta e agenda aulas da turma |
+| `POST` | `/api/video-call/rooms/enter` | Docente atribuído abre a sala; aluno matriculado entra |
+| `POST` | `/api/video-call/rooms/close` | Docente responsável encerra a sala |
 
 As rotas administrativas usam o token Bearer emitido pelo login e validam o
 perfil no servidor. Os dados ficam nas coleções `academic_courses`,
 `academic_classes`, `academic_enrollments` e `academic_class_sessions`; elas e
 seus índices são criados pela inicialização do backend. No frontend, as telas de
 cursos e turmas usam essas rotas e exibem estado vazio quando não há dados reais.
+O cadastro administrativo cria uma identidade `DOC-...` em `auth_users` com
+senha aleatória armazenada somente como hash. O docente define a própria senha
+pela opção “Esqueci minha senha”. Uma chamada só pode ser aberta pelo docente
+atribuído à turma; alunos precisam de matrícula ativa. As salas ativas ficam na
+coleção `academic_live_sessions` e expiram após oito horas.
+
+Na versão Web, a sinalização da chamada usa `BroadcastChannel`: os participantes
+precisam usar o mesmo navegador, origem e código de turma. A autorização e o
+estado de abertura da sala são validados pelo backend.
 
 O OTP é gerado criptograficamente, armazenado como HMAC, expira conforme
 `AUTH_OTP_TTL_SECONDS` e é revogado após `AUTH_OTP_MAX_ATTEMPTS`. O token de

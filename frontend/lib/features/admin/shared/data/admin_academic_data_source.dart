@@ -18,6 +18,10 @@ abstract interface class AdminAcademicDataSource {
     required int maxCapacity,
     String? professorIdentity,
   });
+  Future<void> assignTeacherToClass({
+    required String classCode,
+    required String professorIdentity,
+  });
   Future<void> createEnrollment({
     required String classCode,
     required String studentIdentity,
@@ -94,6 +98,18 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
         if (professorIdentity != null && professorIdentity.trim().isNotEmpty)
           'professorIdentity': professorIdentity.trim(),
       },
+    );
+  }
+
+  @override
+  Future<void> assignTeacherToClass({
+    required String classCode,
+    required String professorIdentity,
+  }) async {
+    await _request(
+      'PATCH',
+      '/api/admin/classes/${Uri.encodeComponent(classCode)}/professor',
+      body: {'professorIdentity': professorIdentity.trim()},
     );
   }
 
