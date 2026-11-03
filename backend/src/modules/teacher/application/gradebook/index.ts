@@ -1,0 +1,1 @@
+export { TeacherGradebookService } from "./service.js";

@@ -1,0 +1,1 @@
+export { TeacherCommunicationService } from "../teacher-communication.service.js";
