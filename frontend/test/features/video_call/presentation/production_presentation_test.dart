@@ -13,6 +13,7 @@ import 'package:pi_iv_time3/features/video_call/domain/entities/meeting_room.dar
 import 'package:pi_iv_time3/features/video_call/domain/entities/participant.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/recording_state.dart';
 import 'package:pi_iv_time3/features/video_call/domain/repositories/video_call_repository.dart';
+import 'package:pi_iv_time3/features/video_call/data/datasources/video_call_room_remote_data_source.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/controllers/video_call_controller.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/controllers/video_call_lobby_controller.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_lobby_page.dart';
@@ -23,6 +24,16 @@ import 'package:pi_iv_time3/features/video_call/presentation/widgets/floating_re
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/participant_video_tile.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/raised_hands_banner.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/screen_share_view.dart';
+
+class FakeVideoCallRoomRemoteDataSource
+    extends VideoCallRoomRemoteDataSource {
+  @override
+  Future<VideoCallRoomAccess> enterRoom(String roomCode) async =>
+      const VideoCallRoomAccess(
+        opened: false,
+        webSocketTicket: 'test-ticket',
+      );
+}
 
 /// Implementação de teste para VideoCallRepository da camada de domínio.
 class FakeDomainVideoCallRepository implements VideoCallRepository {
@@ -675,6 +686,7 @@ void main() {
                 settings: RouteSettings(name: initialRoute),
                 builder: (_) => VideoCallLobbyPage(
                   initialRoomCode: 'APS-II',
+                  roomDataSource: FakeVideoCallRoomRemoteDataSource(),
                   onJoin: (name, ra, room, muted, videoOff) {
                     submittedName = name;
                     submittedRa = ra;

@@ -8,11 +8,11 @@ import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/presentation/controllers/student_secretariat_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/teacher/shared/domain/models/assignment_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
 
@@ -27,6 +27,75 @@ void _closeOwnedSession(AcademicBridgeService bridge, String code) {
   AppUserSession.instance.signIn(identity: identity, profile: role);
   bridge.closeSession(code);
   AppUserSession.instance.signOut();
+}
+
+class _ProtocolRemoteDataSource extends StudentRemoteDataSource {
+  @override
+  Future<Map<String, dynamic>> submitProtocol({
+    required String requestType,
+    required String targetComponent,
+    required String justification,
+    String? attachmentName,
+    String? attachmentBase64,
+  }) async => {
+    'protocolCode': 'PROT-API-001',
+    'submittedAt': '03/11/2026',
+    'subjectType': requestType,
+    'componentObject': targetComponent,
+    'status': 'pending',
+    'officialOpinion': 'Aguardando análise.',
+    'justification': justification,
+    'attachmentName': attachmentName,
+  };
+}
+
+class _StudentWorkRemoteDataSource extends StudentRemoteDataSource {
+  bool submitted = false;
+
+  @override
+  Future<StudentDashboardSnapshot> getBootstrap() async =>
+      StudentDashboardSnapshot.fromJson({
+        'studentInfo': {'name': 'Gabriel', 'ra': '2024.1.00892'},
+        'stats': {'activeDisciplines': 1},
+        'disciplines': [
+          {
+            'code': 'APS-II',
+            'name': 'Análise e Projeto de Sistemas II',
+            'professor': 'Profa. Responsável',
+            'progress': 0.6,
+          },
+        ],
+        'deliveries': [
+          {
+            'id': 'DEL-01',
+            'sourceAssignmentId': 'asg-1',
+            'title': 'Modelagem GoF',
+            'disciplineCode': 'APS-II',
+            'disciplineName': 'Análise e Projeto de Sistemas II',
+            'dueDate': '25/11/2026',
+            'dueHour': '23:59',
+            'status': submitted ? 'Em Análise' : 'Pendente',
+            'weight': 2.5,
+            'protocol': submitted ? 'AGR-TEST-001' : null,
+          },
+        ],
+        'events': [],
+        'messages': [],
+      });
+
+  @override
+  Future<Map<String, dynamic>> submitDelivery({
+    required String assignmentId,
+    required String fileName,
+    required String fileSize,
+    required String mimeType,
+    required String contentBase64,
+    String? gitUrl,
+    String? comments,
+  }) async {
+    submitted = true;
+    return {'protocolCode': 'AGR-TEST-001'};
+  }
 }
 
 void main() {
@@ -64,6 +133,7 @@ void main() {
       AppUserSession.instance.signIn(
         identity: studentIdentity,
         profile: 'aluno',
+        displayName: 'Gabriel Soares de Oliveira',
       );
       final success = bridge.openSession(
         rawCourseCode: 'APS-II',
@@ -128,6 +198,7 @@ void main() {
       AppUserSession.instance.signIn(
         identity: studentIdentity,
         profile: 'aluno',
+        displayName: 'Gabriel Soares de Oliveira',
       );
       expect(bridge.closeSession('APS-II'), isFalse);
       expect(bridge.isSessionOpen('APS-II'), isTrue);
@@ -216,7 +287,9 @@ void main() {
       late StudentPortalController studentController;
 
       setUp(() {
-        final student = StudentPortalController.instance;
+        final student = StudentPortalController.withRemoteDataSource(
+          _StudentWorkRemoteDataSource(),
+        );
         student.deliveries = List.from(StudentMockData.deliveries);
         student.events = List.from(StudentMockData.calendarEvents);
         student.disciplines = List.from(StudentMockData.disciplines);
@@ -226,7 +299,7 @@ void main() {
         );
         addTearDown(AppUserSession.instance.signOut);
         docenteController = DocenteController();
-        studentController = StudentPortalController.instance;
+        studentController = student;
       });
 
       test(
@@ -286,16 +359,22 @@ void main() {
       );
 
       test(
-        'Aluno submete arquivo de entrega e Docente recebe a submissão para correção',
-        () {
+        'Aluno submete arquivo de entrega e recebe protocolo persistido',
+        () async {
           // Aluno envia arquivo
           AppUserSession.instance.signIn(
             identity: studentIdentity,
             profile: 'aluno',
+            displayName: 'Gabriel Soares de Oliveira',
+            accessToken: 'test-student-token',
           );
-          final generatedProtocol = studentController.submitDelivery(
+          await studentController.loadRemote();
+          final generatedProtocol = await studentController.submitDelivery(
             deliveryId: 'DEL-01',
             fileName: 'modelagem_gof_gabriel_oliveira.pdf',
+            fileSize: '4 KB',
+            mimeType: 'application/pdf',
+            contentBase64: 'dGVzdA==',
             gitUrl: 'https://github.com/gabriel/aps-gof',
             comments:
                 'Trabalho concluído com os testes do padrão Observer e Strategy.',
@@ -310,30 +389,25 @@ void main() {
           expect(studentItem.status, 'Em Análise');
           expect(studentItem.protocol, generatedProtocol);
 
-          // Verifica recepção na visão do Docente
-          final apsAssignment = docenteController.assignments.firstWhere(
-            (a) => a.id == 'asg-1' || a.courseId == 'course-aps2',
-          );
-          final gabrielSub = apsAssignment.submissions.firstWhere(
-            (s) => s.ra == '2024.1.00892',
-          );
-
-          expect(gabrielSub.fileName, 'modelagem_gof_gabriel_oliveira.pdf');
-          expect(gabrielSub.status, SubmissionStatus.aguardandoCorrecao);
-          expect(gabrielSub.teacherFeedback, contains(generatedProtocol));
         },
       );
 
       test(
         'Docente corrige entrega com rubrica e Aluno vê status Avaliada e notas recalculadas',
-        () {
+        () async {
           AppUserSession.instance.signIn(
             identity: studentIdentity,
             profile: 'aluno',
+            displayName: 'Gabriel Soares de Oliveira',
+            accessToken: 'test-student-token',
           );
-          studentController.submitDelivery(
+          await studentController.loadRemote();
+          await studentController.submitDelivery(
             deliveryId: 'DEL-01',
             fileName: 'modelagem_gof_gabriel_oliveira.pdf',
+            fileSize: '4 KB',
+            mimeType: 'application/pdf',
+            contentBase64: 'dGVzdA==',
             gitUrl: 'https://github.com/gabriel/aps-gof',
           );
 
@@ -394,18 +468,31 @@ void main() {
       AppUserSession.instance.signIn(
         identity: studentIdentity,
         profile: 'aluno',
+        displayName: 'Gabriel Soares de Oliveira',
       );
       addTearDown(AppUserSession.instance.signOut);
       adminController = AdminPortalController.instance;
-      secretariatStudentController = StudentSecretariatController();
+      secretariatStudentController = StudentSecretariatController(
+        remoteDataSource: _ProtocolRemoteDataSource(),
+        initialProtocols: const [
+          ProtocolRequest(
+            protocolCode: 'PROT-2026/8835',
+            submittedAt: '02/11/2026',
+            subjectType: 'Horas Complementares',
+            componentObject: 'APS-II',
+            status: ProtocolStatus.pending,
+            officialOpinion: 'Aguardando análise.',
+          ),
+        ],
+      );
     });
 
     test(
       'Aluno abre requerimento e Admin recebe imediatamente na Mesa da Secretaria',
-      () {
+      () async {
         final initialAdminProtocolsCount = adminController.protocols.length;
 
-        secretariatStudentController.addProtocolRequest(
+        await secretariatStudentController.addProtocolRequest(
           subjectType: '2ª Chamada de Avaliação / Prova Substitutiva',
           componentObject: '218131 - APS-II',
           justification:

@@ -2,12 +2,36 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/messages/domain/entities/academic_message.dart';
 import 'package:pi_iv_time3/features/student/messages/presentation/controllers/student_messages_controller.dart';
 import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
 import 'package:pi_iv_time3/features/student/secretariat/presentation/controllers/student_secretariat_controller.dart';
 import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/student_secretariat_page.dart';
+import 'package:pi_iv_time3/features/student/secretariat/domain/entities/academic_record_summary.dart';
+import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
+import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
+
+class _ProtocolDataSource extends StudentRemoteDataSource {
+  @override
+  Future<Map<String, dynamic>> submitProtocol({
+    required String requestType,
+    required String targetComponent,
+    required String justification,
+    String? attachmentName,
+    String? attachmentBase64,
+  }) async => {
+    'protocolCode': 'PROT-TEST-001',
+    'submittedAt': '03/11/2026',
+    'subjectType': requestType,
+    'componentObject': targetComponent,
+    'status': 'pending',
+    'officialOpinion': 'Aguardando análise da Secretaria Acadêmica.',
+    'justification': justification,
+    'attachmentName': attachmentName,
+  };
+}
 
 void main() {
   group('StudentMessagesController & StudentMessagesPage', () {
@@ -73,31 +97,37 @@ void main() {
       addTearDown(AppUserSession.instance.signOut);
     });
 
-    test('Adiciona novo protocolo de requerimento', () {
-      final controller = StudentSecretariatController();
-      expect(controller.protocols.length, 1);
-      expect(controller.protocolCountLabel, '1 requerimento registrado');
-
-      controller.addProtocolRequest(
-        subjectType: 'Segunda Chamada de Prova',
-        componentObject: 'Cálculo Numérico',
+    test('Adiciona novo protocolo de requerimento', () async {
+      final controller = StudentSecretariatController(
+        remoteDataSource: _ProtocolDataSource(),
       );
+      expect(controller.protocols, isEmpty);
 
-      expect(controller.protocols.length, 2);
-      expect(controller.protocolCountLabel, '2 requerimentos registrados');
-      expect(controller.protocols.first.protocolCode, 'PROT-2026/8836');
-    });
-
-    test('Perfil docente não pode criar protocolo de aluno', () {
-      final controller = StudentSecretariatController();
-      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
-
-      controller.addProtocolRequest(
+      await controller.addProtocolRequest(
         subjectType: 'Segunda Chamada de Prova',
         componentObject: 'Cálculo Numérico',
+        justification: 'Solicito segunda chamada conforme comprovante anexado.',
       );
 
       expect(controller.protocols, hasLength(1));
+      expect(controller.protocolCountLabel, '1 requerimento registrado');
+      expect(controller.protocols.first.protocolCode, 'PROT-TEST-001');
+    });
+
+    test('Perfil docente não pode criar protocolo de aluno', () async {
+      final controller = StudentSecretariatController();
+      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+
+      await expectLater(
+        controller.addProtocolRequest(
+          subjectType: 'Segunda Chamada de Prova',
+          componentObject: 'Cálculo Numérico',
+          justification: 'Solicito segunda chamada.',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+
+      expect(controller.protocols, isEmpty);
     });
 
     testWidgets(
@@ -106,18 +136,40 @@ void main() {
         await tester.binding.setSurfaceSize(const Size(1280, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
+        final controller = StudentSecretariatController(
+          recordSummary: const AcademicRecordSummary(
+            ra: '2024.1.00892',
+            course: 'Engenharia de Software',
+            academicIndex: '8.8',
+            completedWorkload: '40h / 80h',
+            activeEnrollmentBadge: 'MATRÍCULA ATIVA',
+          ),
+          initialProtocols: const [
+            ProtocolRequest(
+              protocolCode: 'PROT-TEST-001',
+              submittedAt: '03/11/2026',
+              subjectType: 'Horas Complementares',
+              componentObject: 'Curso extracurricular',
+              status: ProtocolStatus.pending,
+              officialOpinion: 'Aguardando análise.',
+              justification: 'Protocolo de teste.',
+            ),
+          ],
+        );
         await tester.pumpWidget(
-          const MaterialApp(home: Scaffold(body: StudentSecretariatPage())),
+          MaterialApp(
+            home: Scaffold(body: StudentSecretariatPage(controller: controller)),
+          ),
         );
         await tester.pumpAndSettle();
 
         expect(find.text('Secretaria Virtual & Requerimentos'), findsOneWidget);
         expect(find.text('Prontuário Acadêmico Regular'), findsOneWidget);
         expect(find.text('2024.1.00892'), findsOneWidget);
-        expect(find.text('PROT-2026/8835'), findsOneWidget);
+        expect(find.text('PROT-TEST-001'), findsOneWidget);
 
         // Abre modal de Parecer
-        await tester.tap(find.byKey(const Key('view_opinion_PROT-2026/8835')));
+        await tester.tap(find.byKey(const Key('view_opinion_PROT-TEST-001')));
         await tester.pumpAndSettle();
 
         expect(find.text('Parecer Formal:'), findsOneWidget);

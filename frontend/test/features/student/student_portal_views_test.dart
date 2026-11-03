@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_ava_cockpit_page.dart';
@@ -12,7 +13,105 @@ import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/av
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
 import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
-import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
+
+class _StudentDashboardDataSource extends StudentRemoteDataSource {
+  bool submitted = false;
+  final List<Map<String, dynamic>> reminders = [];
+
+  @override
+  Future<StudentDashboardSnapshot> getBootstrap() async =>
+      StudentDashboardSnapshot.fromJson({
+        'studentInfo': {
+          'name': 'Gabriel',
+          'courseName': 'Engenharia de Software',
+          'semester': '5º Semestre',
+        },
+        'stats': {
+          'activeDisciplines': 1,
+          'averageAttendance': 94.8,
+          'cr': 8.8,
+          'academicStatus': 'Regular',
+          'completedHoursSemester': 40,
+          'totalHoursSemester': 80,
+        },
+        'todayClass': {
+          'roomCode': 'APS-II',
+          'disciplineName': 'Análise e Projeto de Sistemas II',
+          'time': '19:00 - 20:40',
+          'teacher': 'Profa. Responsável',
+          'isLive': false,
+        },
+        'disciplines': [
+          {
+            'code': 'APS-II',
+            'fullCode': '218131 - APS-II',
+            'name': 'Análise e Projeto de Sistemas II',
+            'professor': 'Profa. Responsável',
+            'progress': 0.5,
+          },
+        ],
+        'deliveries': [
+          {
+            'id': 'assignment-1',
+            'title': 'Entrega real de teste',
+            'disciplineCode': 'APS-II',
+            'disciplineName': 'Análise e Projeto de Sistemas II',
+            'dueDate': '20/09/2026',
+            'dueHour': '23:59',
+            'status': submitted ? 'Em Análise' : 'Pendente',
+            'protocol': submitted ? 'AGR-TEST-001' : null,
+            'weight': 2,
+          },
+        ],
+        'events': [
+          {
+            'id': 'event-1',
+            'title': 'Aula registrada no servidor',
+            'date': '2026-09-20T19:00:00.000Z',
+            'timeRange': '19:00 - 20:40',
+            'category': 'aula',
+            'courseCode': 'APS-II',
+          },
+          ...reminders,
+        ],
+        'messages': [],
+      });
+
+  @override
+  Future<Map<String, dynamic>> submitDelivery({
+    required String assignmentId,
+    required String fileName,
+    required String fileSize,
+    required String mimeType,
+    required String contentBase64,
+    String? gitUrl,
+    String? comments,
+  }) async {
+    submitted = true;
+    return {'protocolCode': 'AGR-TEST-001'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> addReminder({
+    required String title,
+    required String date,
+    required String timeRange,
+    required String courseCode,
+    required String location,
+  }) async {
+    final reminder = {
+      'id': 'reminder-${reminders.length + 1}',
+      'title': title,
+      'date': date,
+      'timeRange': timeRange,
+      'category': 'lembrete',
+      'courseCode': courseCode,
+      'location': location,
+    };
+    reminders.add(reminder);
+    return reminder;
+  }
+}
 
 void main() {
   testWidgets('Boletim mostra notas da disciplina selecionada', (tester) async {
@@ -65,11 +164,18 @@ void main() {
       expect(controller.selectedDiscipline.code, 'BD-II');
     });
 
-    test('Filtra eventos e adiciona novo evento no calendário', () {
-      final controller = StudentPortalController();
+    test('Persiste lembrete acadêmico pelo datasource', () async {
+      final source = _StudentDashboardDataSource();
+      final controller = StudentPortalController.withRemoteDataSource(source);
+      AppUserSession.instance.signIn(
+        identity: StudentMockData.studentRa,
+        profile: 'aluno',
+        accessToken: 'test-student-token',
+      );
+      await controller.loadRemote();
       final initialCount = controller.events.length;
 
-      controller.addCalendarEvent(
+      await controller.addCalendarEvent(
         title: 'Plantão Extra de Dúvidas GoF',
         date: '2026-10-28',
         time: '18:00',
@@ -79,18 +185,24 @@ void main() {
       );
 
       expect(controller.events.length, initialCount + 1);
-      expect(controller.events.first.title, 'Plantão Extra de Dúvidas GoF');
+      expect(
+        controller.events.any((event) => event.title == 'Plantão Extra de Dúvidas GoF'),
+        isTrue,
+      );
     });
 
-    test('Aluno sem vínculo com os dados demo não altera o calendário', () {
-      final controller = StudentPortalController();
-      final initialCount = controller.events.length;
+    test('Identidade sem registro demo persiste lembrete no servidor', () async {
+      final source = _StudentDashboardDataSource();
+      final controller = StudentPortalController.withRemoteDataSource(source);
       AppUserSession.instance.signIn(
         identity: '2024.1.00001',
         profile: 'aluno',
+        accessToken: 'test-student-token',
       );
+      await controller.loadRemote();
+      final initialCount = controller.events.length;
 
-      controller.addCalendarEvent(
+      await controller.addCalendarEvent(
         title: 'Evento sem vínculo',
         date: '2026-10-28',
         time: '18:00',
@@ -99,29 +211,36 @@ void main() {
         location: 'Sala Virtual',
       );
 
-      expect(controller.events, hasLength(initialCount));
+      expect(controller.events, hasLength(initialCount + 1));
+      expect(
+        controller.events.any((event) => event.title == 'Evento sem vínculo'),
+        isTrue,
+      );
     });
 
-    test('Protocolar submissão de atividade gera protocolo e muda status', () {
-      final controller = StudentPortalController();
-      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
-      DocenteController();
+    test('Protocolar submissão de atividade gera protocolo e muda status', () async {
+      final source = _StudentDashboardDataSource();
+      final controller = StudentPortalController.withRemoteDataSource(source);
       AppUserSession.instance.signIn(
         identity: StudentMockData.studentRa,
         profile: 'aluno',
+        accessToken: 'test-student-token',
       );
-      controller.submitDelivery(
-        deliveryId: 'DEL-01',
+      await controller.loadRemote();
+      final protocol = await controller.submitDelivery(
+        deliveryId: 'assignment-1',
         fileName: 'teste_entrega.zip',
+        fileSize: '4 KB',
+        mimeType: 'application/zip',
+        contentBase64: 'dGVzdA==',
         gitUrl: 'https://github.com/teste/repo',
         comments: 'Trabalho completo.',
       );
 
-      final submitted = controller.deliveries.firstWhere(
-        (d) => d.id == 'DEL-01',
-      );
+      final submitted = controller.deliveries.single;
+      expect(protocol, 'AGR-TEST-001');
       expect(submitted.status, 'Em Análise');
-      expect(submitted.protocol, isNotNull);
+      expect(submitted.protocol, 'AGR-TEST-001');
     });
 
     test('Navegação de abas no Cockpit do AVA e avanço de slides', () {
@@ -154,17 +273,28 @@ void main() {
     ) async {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
+      AppUserSession.instance.signIn(
+        identity: '2024.1.00892',
+        profile: 'aluno',
+        accessToken: 'test-student-token',
+      );
+      addTearDown(AppUserSession.instance.signOut);
+      final controller = StudentPortalController.withRemoteDataSource(
+        _StudentDashboardDataSource(),
+      );
 
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: StudentDashboardPage())),
+        MaterialApp(
+          home: Scaffold(body: StudentDashboardPage(controller: controller)),
+        ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Bem-vindo, Gabriel.'), findsOneWidget);
       expect(find.text('DISCIPLINAS'), findsOneWidget);
-      expect(find.text('ENTREGAS DO MÊS'), findsOneWidget);
+      expect(find.text('ENTREGAS PENDENTES'), findsOneWidget);
       expect(find.text('COEFICIENTE DE RENDIMENTO (CR)'), findsOneWidget);
-      expect(find.text('HORAS COMPLEMENTARES'), findsOneWidget);
+      expect(find.text('CARGA HORÁRIA DO SEMESTRE'), findsOneWidget);
       expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
     });
 
@@ -174,64 +304,26 @@ void main() {
         await tester.binding.setSurfaceSize(const Size(1280, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
 
-        final controller = StudentPortalController.instance;
+        AppUserSession.instance.signIn(
+          identity: '2024.1.00892',
+          profile: 'aluno',
+          accessToken: 'test-student-token',
+        );
+        addTearDown(AppUserSession.instance.signOut);
+        final controller = StudentPortalController.withRemoteDataSource(
+          _StudentDashboardDataSource(),
+        );
         controller.toggleDashboardView(false); // Ativa modo lista
 
         await tester.pumpWidget(
-          const MaterialApp(home: Scaffold(body: StudentDashboardPage())),
+          MaterialApp(
+            home: Scaffold(body: StudentDashboardPage(controller: controller)),
+          ),
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Quinta-feira, 17 de setembro'), findsOneWidget);
-        expect(
-          find.text(
-            'Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Sexta-feira, 18 de setembro'), findsOneWidget);
-        expect(
-          find.text(
-            'Fórum Avaliativo: Impactos éticos da IA em Sistemas Críticos',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Ontem, 19 de setembro'), findsOneWidget);
-        expect(
-          find.text('Material Complementar: Estudo de Caso de Microsserviços'),
-          findsOneWidget,
-        );
-        expect(find.text('Hoje, 20 de setembro'), findsOneWidget);
-        expect(
-          find.text('Atividade Prática 03: Implementação de API REST'),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'Fórum Temático: Desafios da Concorrência em Sistemas Distribuídos',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Amanhã, 21 de setembro'), findsOneWidget);
-        expect(
-          find.text('Fórum de Dúvidas: Preparação para a Avaliação A1'),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Cálculo Diferencial e Integral • Profª. Sandra Helena'),
-          findsOneWidget,
-        );
-        expect(find.text('setembro 22 a dezembro 12'), findsOneWidget);
-        expect(find.text('Término das avaliações semestrais'), findsOneWidget);
-        expect(find.text('Férias e encerramento de notas'), findsOneWidget);
-        expect(
-          find.text('Início das aulas do próximo período letivo'),
-          findsOneWidget,
-        );
-
-        // Toca na tarefa do fórum para alternar checkbox
-        await tester.tap(find.byKey(const Key('btn_toggle_item_21_sep')));
-        await tester.pumpAndSettle();
+        expect(find.text('20/09/2026'), findsOneWidget);
+        expect(find.text('Entrega real de teste'), findsOneWidget);
 
         // Restaura para modo bloco/grid
         controller.toggleDashboardView(true);
