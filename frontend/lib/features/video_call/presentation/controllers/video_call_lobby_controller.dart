@@ -182,6 +182,7 @@ class VideoCallLobbyController extends ChangeNotifier {
     required String ra,
     required String roomCode,
     String role = 'participant',
+    String? webSocketTicket,
   }) {
     final sanitizedRoom = roomCode.trim().toUpperCase();
     final sanitizedName = name.trim();
@@ -206,7 +207,11 @@ class VideoCallLobbyController extends ChangeNotifier {
 
     final repo =
         _injectedRepository ??
-        VideoCallRepositoryImpl(dataSource: VideoCallSignalingDataSource());
+        VideoCallRepositoryImpl(
+          dataSource: VideoCallSignalingDataSource(
+            webSocketTicket: webSocketTicket,
+          ),
+        );
 
     _handedOffMediaEngine = true;
 
