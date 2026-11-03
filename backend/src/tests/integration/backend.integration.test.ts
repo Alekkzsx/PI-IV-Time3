@@ -361,7 +361,7 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     assert.ok(Array.isArray(boletim.body));
     const declaration = await request("POST", "/api/student/enrollment-declaration", {}, studentToken);
     assert.equal(declaration.status, 201);
-    assert.match(declaration.body.verificationKey, /^AGMRM-[A-F0-9]{8}$/);
+    assert.match(declaration.body.verificationKey, /^AGMRM-[A-F0-9]{32}$/);
     assert.ok(await database.collection("academic_enrollment_declarations").findOne({
       verificationKey: declaration.body.verificationKey,
       studentId: String((await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo1" }))!._id),
