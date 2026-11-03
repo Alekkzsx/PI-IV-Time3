@@ -5,7 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/student/shell/presentation/models/student_nav_item.dart';
+import '../../../../core/network/authenticated_api_client.dart';
+import '../data/student_remote_data_source.dart';
 import '../data/student_mock_data.dart';
+import '../models/student_models.dart' as remote_models;
 
 DateTime _today() {
   final now = DateTime.now();
@@ -17,10 +20,77 @@ class StudentPortalController extends ChangeNotifier {
   // Singleton para compartilhamento de estado entre páginas e shell
   static final StudentPortalController instance =
       StudentPortalController._internal();
-  StudentPortalController._internal() {
+  final StudentRemoteDataSource _remote;
+
+  StudentPortalController._internal({StudentRemoteDataSource? remote})
+    : _remote = remote ?? StudentRemoteDataSource() {
     _initAcademicBridgeListener();
   }
+
+  @visibleForTesting
+  StudentPortalController.withRemoteDataSource(StudentRemoteDataSource remote)
+    : _remote = remote {
+    _initAcademicBridgeListener();
+  }
+
   factory StudentPortalController() => instance;
+  StudentDashboardSnapshot? remoteDashboard;
+  bool isLoadingRemote = false;
+  String? remoteError;
+  String? _loadedForToken;
+
+  /// Loads only server-owned student data; it never falls back to fixtures.
+  Future<void> loadRemote({bool force = false}) async {
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty) {
+      remoteDashboard = null;
+      _loadedForToken = null;
+      remoteError = 'Entre novamente para carregar seus dados acadêmicos.';
+      disciplines = [];
+      deliveries = [];
+      events = [];
+      notifyListeners();
+      return;
+    }
+    if (isLoadingRemote || (!force && _loadedForToken == token)) return;
+
+    isLoadingRemote = true;
+    remoteError = null;
+    if (_loadedForToken != token) remoteDashboard = null;
+    notifyListeners();
+    try {
+      final result = await _remote.getBootstrap();
+      if (AppUserSession.instance.accessToken == token) {
+        remoteDashboard = result;
+        _loadedForToken = token;
+        AcademicBridgeService.instance.registerStudentEnrollments(
+          result.studentInfo['ra']?.toString() ??
+              AppUserSession.instance.identity ??
+              '',
+          result.disciplines.map((discipline) => discipline.code),
+          studentEmail: result.studentInfo['email']?.toString(),
+        );
+        disciplines = result.disciplines.map(_legacyDiscipline).toList();
+        deliveries = result.deliveries.map(_legacyDelivery).toList();
+        events = result.events.map(_legacyEvent).toList();
+        if (disciplines.isNotEmpty) selectedDiscipline = disciplines.first;
+        studentPersonalNotes = result.personalNotes.values
+            .map((value) => value.toString())
+            .firstOrNull ?? '';
+      }
+    } on ApiException catch (error) {
+      if (AppUserSession.instance.accessToken == token) {
+        remoteError = error.message;
+      }
+    } catch (_) {
+      if (AppUserSession.instance.accessToken == token) {
+        remoteError = 'Não foi possível carregar os dados acadêmicos.';
+      }
+    } finally {
+      isLoadingRemote = false;
+      notifyListeners();
+    }
+  }
 
   // Disciplinas do Aluno (mutáveis para recálculo de notas e presenças)
   late List<StudentDisciplineModel> disciplines = List.from(
@@ -180,33 +250,25 @@ class StudentPortalController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addCalendarEvent({
+  Future<void> addCalendarEvent({
     required String title,
     required String date,
     required String time,
     required String type,
     required String discipline,
     required String location,
-  }) {
-    if (!AppUserSession.instance.hasPermission('manage_personal_calendar') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        )) {
-      return;
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem criar lembretes pessoais.');
     }
-    events.insert(
-      0,
-      StudentCalendarEvent(
-        id: 'EV-${DateTime.now().millisecondsSinceEpoch}',
-        title: title,
-        date: date,
-        time: time,
-        type: type,
-        discipline: discipline,
-        location: location,
-      ),
+    await _remote.addReminder(
+      title: title,
+      date: date,
+      timeRange: time,
+      courseCode: discipline,
+      location: location,
     );
-    notifyListeners();
+    await loadRemote(force: true);
   }
 
   void setDeliveryFilter(String filter) {
@@ -221,8 +283,46 @@ class StudentPortalController extends ChangeNotifier {
 
     AcademicBridgeService.instance.onAssignmentPublishedToStudent =
         (delivery, event) {
-          deliveries.insert(0, delivery);
-          events.insert(0, event);
+          deliveries.insert(
+            0,
+            StudentDeliveryItem(
+              id: delivery.id,
+              sourceAssignmentId: delivery.sourceAssignmentId,
+              title: delivery.title,
+              disciplineCode: delivery.disciplineCode,
+              disciplineName: delivery.disciplineName,
+              dueDate: delivery.dueDate,
+              dueHour: delivery.dueHour,
+              status: delivery.status,
+              weight: delivery.weight,
+              score: delivery.score,
+              feedback: delivery.feedback,
+              protocol: delivery.protocol,
+              rubrics: delivery.rubrics,
+              activityCode: delivery.activityCode,
+              description: delivery.description,
+              professor: delivery.professor,
+              deadlineBadge: delivery.deadlineBadge,
+              isUrgent: delivery.isUrgent,
+              allowedFormats: delivery.allowedFormats,
+              submissionDate: delivery.submissionDate,
+              feedbackDate: delivery.feedbackDate,
+              maxScore: delivery.maxScore,
+              attachmentCount: delivery.attachmentCount,
+            ),
+          );
+          events.insert(
+            0,
+            StudentCalendarEvent(
+              id: event.id,
+              title: event.title,
+              date: event.date,
+              time: event.time,
+              type: event.type,
+              discipline: event.discipline,
+              location: event.location,
+            ),
+          );
 
           final discIdx = disciplines.indexWhere(
             (d) => d.code == delivery.disciplineCode,
@@ -444,79 +544,104 @@ class StudentPortalController extends ChangeNotifier {
         };
   }
 
-  String submitDelivery({
+  Future<String> submitDelivery({
     required String deliveryId,
     required String fileName,
+    required String fileSize,
+    required String mimeType,
+    required String contentBase64,
     String? gitUrl,
     String? comments,
-  }) {
-    if (!AppUserSession.instance.hasPermission('submit_assignments') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        )) {
-      debugPrint('[StudentPortal] Submissão negada para o perfil atual.');
-      return '';
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem enviar atividades.');
     }
-    final index = deliveries.indexWhere((d) => d.id == deliveryId);
-    if (index != -1) {
-      final old = deliveries[index];
-      if (old.status != 'Pendente') {
-        debugPrint(
-          '[StudentPortal] Submissão recusada: a atividade não está pendente.',
-        );
-        return '';
-      }
-      final now = DateTime.now();
-      final dateStr =
-          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-      final randomSuffix = (1000 + (now.millisecondsSinceEpoch % 9000))
-          .toString();
-      final generatedProtocol =
-          'AGR-${now.year}-${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-$randomSuffix';
-
-      final accepted = AcademicBridgeService.instance.notifySubmissionToDocente(
-        deliveryId: deliveryId,
-        assignmentId: old.sourceAssignmentId ?? old.id,
-        courseCode: old.disciplineCode,
-        studentName: StudentMockData.studentName,
-        studentRa: StudentMockData.studentRa,
+    final response = await _remote.submitDelivery(
+      assignmentId: deliveryId,
+      fileName: fileName,
+      fileSize: fileSize,
+      mimeType: mimeType,
+      contentBase64: contentBase64,
+      gitUrl: gitUrl,
+      comments: comments,
+    );
+    final protocol = response['protocolCode'];
+    if (protocol is! String || protocol.isEmpty) {
+      throw const ApiException('A API não retornou o protocolo da entrega.');
+    }
+    final deliveryIndex = deliveries.indexWhere(
+      (delivery) =>
+          delivery.id == deliveryId || delivery.sourceAssignmentId == deliveryId,
+    );
+    if (deliveryIndex != -1) {
+      final delivery = deliveries[deliveryIndex];
+      final session = AppUserSession.instance;
+      AcademicBridgeService.instance.notifySubmissionToDocente(
+        deliveryId: delivery.id,
+        assignmentId: delivery.sourceAssignmentId ?? deliveryId,
+        courseCode: delivery.disciplineCode,
+        studentName: session.effectiveName,
+        studentRa: session.identity ?? '',
         fileName: fileName,
-        protocol: generatedProtocol,
+        protocol: protocol,
         comments: comments,
       );
-      if (!accepted) return '';
-
-      deliveries[index] = StudentDeliveryItem(
-        id: old.id,
-        sourceAssignmentId: old.sourceAssignmentId,
-        activityCode: old.activityCode,
-        title: old.title,
-        disciplineCode: old.disciplineCode,
-        disciplineName: old.disciplineName,
-        description: old.description,
-        dueDate: old.dueDate,
-        dueHour: old.dueHour,
-        deadlineBadge: 'Enviada hoje',
-        isUrgent: false,
-        professor: old.professor,
-        allowedFormats: old.allowedFormats,
-        submissionDate: dateStr,
-        status: 'Em Análise',
-        weight: old.weight,
-        maxScore: old.maxScore,
-        score: null,
-        feedback: comments ?? 'Aguardando avaliação docente.',
-        protocol: generatedProtocol,
-        attachmentCount: 1,
-        rubrics: old.rubrics,
-      );
-
-      notifyListeners();
-      return generatedProtocol;
     }
-    debugPrint('[StudentPortal] Submissão recusada: atividade não encontrada.');
-    return '';
+    await loadRemote(force: true);
+    return protocol;
   }
+
+  StudentDisciplineModel _legacyDiscipline(remote_models.StudentDisciplineModel value) => StudentDisciplineModel(
+    code: value.code,
+    fullCode: value.fullCode,
+    name: value.name,
+    professor: value.professor,
+    time: value.time,
+    location: value.location,
+    progress: value.progress,
+    n1: value.n1,
+    n2: value.n2,
+    p1: value.p1,
+    p2: value.p2,
+    trab: value.trab,
+    partialAverage: value.partialAverage,
+    attendancePercentage: value.attendancePercentage,
+    absences: value.absences,
+    totalHours: value.totalHours,
+    completedHours: value.completedHours,
+    maxAbsenceHours: value.maxAbsenceHours,
+    hasPendingTask: value.hasPendingTask,
+  );
+
+  StudentDeliveryItem _legacyDelivery(remote_models.StudentDeliveryItem value) => StudentDeliveryItem(
+    id: value.id,
+    sourceAssignmentId: value.sourceAssignmentId,
+    title: value.title,
+    disciplineCode: value.disciplineCode,
+    disciplineName: value.disciplineName,
+    dueDate: value.dueDate,
+    dueHour: value.dueHour,
+    status: value.status,
+    weight: value.weight,
+    score: value.score,
+    feedback: value.feedback,
+    protocol: value.protocol,
+    rubrics: value.rubrics,
+    description: value.description,
+    professor: value.professor,
+    submissionDate: value.submissionDate,
+    maxScore: value.maxScore,
+  );
+
+  StudentCalendarEvent _legacyEvent(remote_models.StudentCalendarEvent value) => StudentCalendarEvent(
+    id: value.id,
+    title: value.title,
+    date: value.date,
+    time: value.time,
+    type: value.type,
+    discipline: value.discipline,
+    location: value.location,
+  );
 
   String get settingsSubtab {
     switch (selectedSettingsTabIndex) {

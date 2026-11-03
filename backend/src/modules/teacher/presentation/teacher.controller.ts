@@ -57,6 +57,7 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
       z.object({
         contentProgram: z.string().max(4000).optional(),
         methodology: z.string().max(2000).optional(),
+        location: z.string().max(200).optional(),
         isHomologated: z.boolean().optional(),
         attendanceList: z
           .array(
