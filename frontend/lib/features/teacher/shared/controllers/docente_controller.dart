@@ -2,10 +2,12 @@
 
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:convert';
+import '../../../../core/network/auth_profile_remote_data_source.dart';
+import '../../../../core/utils/platform_file_helper.dart';
 import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/state/app_user_session.dart';
 import '../../../../core/state/academic_bridge_service.dart';
-import '../data/docente_mock_data.dart';
 import '../data/teacher_remote_data_source.dart';
 import '../domain/models/academic_event.dart';
 import '../domain/models/academic_notice.dart';
@@ -31,6 +33,7 @@ enum DocenteNavTab {
 /// Reactive controller managing all frontend state for the Docente Portal.
 class DocenteController extends ChangeNotifier {
   final TeacherRemoteDataSource _remote;
+  final AuthProfileRemoteDataSource _profileRemote;
   bool isLoadingRemote = false;
   String? remoteError;
 
@@ -38,132 +41,36 @@ class DocenteController extends ChangeNotifier {
   bool _isSidebarCollapsed = false;
 
   List<DocenteCourse> _courses = [];
-  String _selectedCourseId = 'course-aps2';
+  String _selectedCourseId = '';
 
-  ClassSession _currentSession = DocenteMockData.initialClassSession;
+  ClassSession _currentSession = _emptySession;
   List<ClassSession> _sessions = [];
   List<AssignmentItem> _assignments = [];
-  String _selectedAssignmentId = 'asg-1';
+  String _selectedAssignmentId = '';
 
   List<StudentGrade> _gradebook = [];
   List<AcademicEvent> _events = [];
   List<AcademicNotice> _notices = [];
-  DocenteProfile _profile = DocenteMockData.initialProfile;
+  DocenteProfile _profile = _emptyProfile;
   String _ownerIdentity = '';
 
   String _settingsSubtab =
       'perfil'; // 'perfil', 'seguranca', 'notificacoes', 'preferencias', 'privacidade'
 
   // Homologação de Pauta & Chancela Digital do Docente Titular
-  final Map<String, bool> _pautaHomologada = {
-    'course-aps2': false,
-    'course-bd2': true,
-    'course-fso': false,
-  };
-
-  final Map<String, String> _pautaChancelaCodes = {
-    'course-bd2': 'DOC-CHANCELA-2026/88410-BD2',
-  };
+  final Map<String, bool> _pautaHomologada = {};
+  final Map<String, String> _pautaChancelaCodes = {};
 
   final List<Map<String, dynamic>> _retificacaoRequests = [];
+  final Map<String, List<Map<String, dynamic>>> _forumTopicsByCourse = {};
 
-  // Canal Contextual de Dúvidas de Atividades (assignmentId -> studentRa -> list of messages)
-  final Map<String, Map<String, List<Map<String, String>>>>
-  _assignmentDoubts = {
-    'asg-1': {
-      '2024.1.00892': [
-        {
-          'sender': 'Gabriel Soares (Discente)',
-          'time': 'Ontem às 16:30',
-          'text':
-              'Professora, no diagrama de sequência para o caso de uso de Checkout, devemos instanciar o Gateway de Pagamento síncrono ou modelar como chamada assíncrona?',
-        },
-        {
-          'sender': 'Profa. Dra. Helena Bittencourt',
-          'time': 'Hoje às 09:15',
-          'text':
-              'Olá Gabriel! Como acordado na aula 26, modele a chamada síncrona com mensagem com resposta imediata (<<return>>) e trate a confirmação do webhook na esteira assíncrona.',
-        },
-      ],
-      '2024.1.00901': [
-        {
-          'sender': 'Mariana Rios Costa (Discente)',
-          'time': 'Hoje às 11:20',
-          'text':
-              'Profa. Helena, a rubrica considera perda de nota se usarmos nomes em inglês nos estereótipos dos diagramas?',
-        },
-      ],
-    },
-  };
-
-  DocenteController({TeacherRemoteDataSource? remoteDataSource})
-    : _remote = remoteDataSource ?? TeacherRemoteDataSource() {
-    final session = AppUserSession.instance;
-    final identity = session.hasRole('docente') ? session.identity ?? '' : '';
-    _ownerIdentity = identity;
-    _courses = DocenteMockData.coursesForIdentity(identity);
-    _selectedCourseId = _courses.isNotEmpty ? _courses.first.id : '';
-    final assignedCourseIds = _courses.map((course) => course.id).toSet();
-    _sessions = DocenteMockData.defaultSessions
-        .where((session) => assignedCourseIds.contains(session.courseId))
-        .toList();
-    _assignments = _addMissingAssignmentSubmissions(
-      DocenteMockData.initialAssignments
-          .where(
-            (assignment) => assignedCourseIds.contains(assignment.courseId),
-          )
-          .toList(),
-    );
-    _gradebook = DocenteMockData.initialGradebook
-        .where((grade) => assignedCourseIds.contains(grade.courseId))
-        .toList();
-    _events = List.from(DocenteMockData.initialEvents);
-    _notices = List.from(DocenteMockData.initialNotices);
-    _currentSession = _sessions.firstWhere(
-      (s) => s.courseId == _selectedCourseId && s.sessionNumber == 27,
-      orElse: () => _sessions.firstWhere(
-        (s) => s.courseId == _selectedCourseId,
-        orElse: () => DocenteMockData.initialClassSession,
-      ),
-    );
-
-    // Registro da ponte institucional para receber submissões e arquivos do Aluno
-    AcademicBridgeService
-        .instance
-        .onDocenteSubmissionReceived = (assignmentId, courseCode, submission) {
-      final asgIndex = _assignments.indexWhere(
-        (assignment) =>
-            assignment.id == assignmentId &&
-            AcademicBridgeService.instance.courseCodesMatch(
-              assignment.courseCode,
-              courseCode,
-            ),
-      );
-      if (asgIndex != -1) {
-        final assignment = _assignments[asgIndex];
-        final enrolledStudent = _sessions
-            .where((session) => session.courseId == assignment.courseId)
-            .expand((session) => session.attendanceList)
-            .where((student) => student.ra == submission.ra)
-            .firstOrNull;
-        if (enrolledStudent == null) return false;
-        final enrolledSubmission = submission.copyWith(
-          studentId: enrolledStudent.studentId,
-        );
-        final exists = assignment.submissions.any((s) => s.ra == submission.ra);
-        final updatedSubmissions = exists
-            ? assignment.submissions
-                  .map((s) => s.ra == submission.ra ? enrolledSubmission : s)
-                  .toList()
-            : [enrolledSubmission, ...assignment.submissions];
-        _assignments[asgIndex] = assignment.copyWith(
-          submissions: updatedSubmissions,
-        );
-        notifyListeners();
-        return true;
-      }
-      return false;
-    };
+  DocenteController({
+    TeacherRemoteDataSource? remoteDataSource,
+    AuthProfileRemoteDataSource? profileRemoteDataSource,
+  }) : _remote = remoteDataSource ?? TeacherRemoteDataSource(),
+       _profileRemote =
+           profileRemoteDataSource ?? AuthProfileRemoteDataSource() {
+    _ownerIdentity = '';
   }
 
   Future<void> loadRemote({bool force = false}) async {
@@ -188,7 +95,7 @@ class DocenteController extends ChangeNotifier {
       _courses = snapshot.courses;
       _selectedCourseId = _courses.isEmpty ? '' : _courses.first.id;
       _sessions = snapshot.sessions;
-      _assignments = _addMissingAssignmentSubmissions(snapshot.assignments);
+      _assignments = snapshot.assignments;
       _gradebook = snapshot.grades;
       _events = snapshot.events;
       _notices = snapshot.notices;
@@ -201,13 +108,36 @@ class DocenteController extends ChangeNotifier {
       _pautaHomologada
         ..clear()
         ..addEntries(
-          _courses.map((course) => MapEntry(course.id, course.pautaHomologated)),
+          _courses.map(
+            (course) => MapEntry(course.id, course.pautaHomologated),
+          ),
+        );
+      _pautaChancelaCodes
+        ..clear()
+        ..addEntries(
+          _courses
+              .where((course) => course.chancelaCode != null)
+              .map((course) => MapEntry(course.id, course.chancelaCode!)),
+        );
+      _selectedAssignmentId = _assignments.isEmpty ? '' : _assignments.first.id;
+      _forumTopicsByCourse
+        ..clear()
+        ..addEntries(
+          _courses.map((course) => MapEntry(course.code, course.forumTopics)),
         );
       AcademicBridgeService.instance.registerTeacherCourses(
         _ownerIdentity,
         _courses.map((course) => course.code),
         teacherEmail: _profile.academicEmail,
       );
+      for (final course in _courses) {
+        AcademicBridgeService.instance.registerClassRoom(
+          code: course.code,
+          subjectName: course.title,
+          professorName: _profile.fullName,
+          professorIdentity: _ownerIdentity,
+        );
+      }
     } on ApiException catch (error) {
       if (AppUserSession.instance.accessToken == token) {
         remoteError = error.message;
@@ -235,7 +165,7 @@ class DocenteController extends ChangeNotifier {
     _selectedAssignmentId = '';
     _pautaHomologada.clear();
     _pautaChancelaCodes.clear();
-    _assignmentDoubts.clear();
+    _forumTopicsByCourse.clear();
   }
 
   Future<void> _persistCurrentSession() async {
@@ -255,38 +185,41 @@ class DocenteController extends ChangeNotifier {
         location: _currentSession.location,
         isHomologated: _currentSession.isHomologated,
         attendanceList: _currentSession.attendanceList
-            .map((student) => <String, Object?>{
-                  'studentId': student.studentId,
-                  'ra': student.ra,
-                  'name': student.name,
-                  'status': student.status.name,
-                })
+            .map(
+              (student) => <String, Object?>{
+                'studentId': student.studentId,
+                'ra': student.ra,
+                'name': student.name,
+                'status': student.status.name,
+              },
+            )
             .toList(),
       );
-          await _reloadSessionContext(courseId, sessionId);
+      await _reloadSessionContext(courseId, sessionId);
     } on ApiException catch (error) {
-          await _reloadSessionContext(courseId, sessionId);
       remoteError = error.message;
       notifyListeners();
     } catch (_) {
-          await _reloadSessionContext(courseId, sessionId);
       remoteError = 'Não foi possível salvar o diário.';
       notifyListeners();
     }
   }
 
-      Future<void> _reloadSessionContext(String courseId, String sessionId) async {
-        await loadRemote(force: true);
-        if (_courses.any((course) => course.id == courseId)) _selectedCourseId = courseId;
-        _currentSession = _sessions.firstWhere(
-          (session) => session.id == sessionId,
-          orElse: () => _sessions
+  Future<void> _reloadSessionContext(String courseId, String sessionId) async {
+    await loadRemote(force: true);
+    if (_courses.any((course) => course.id == courseId)) {
+      _selectedCourseId = courseId;
+    }
+    _currentSession = _sessions.firstWhere(
+      (session) => session.id == sessionId,
+      orElse: () =>
+          _sessions
               .where((session) => session.courseId == courseId)
               .firstOrNull ??
-              _emptySession,
-        );
-        notifyListeners();
-      }
+          _emptySession,
+    );
+    notifyListeners();
+  }
 
   static const ClassSession _emptySession = ClassSession(
     id: '',
@@ -327,37 +260,36 @@ class DocenteController extends ChangeNotifier {
       AppUserSession.instance.hasPermission(permission) &&
       _courses.any((course) => course.id == courseId);
 
-  List<AssignmentItem> _addMissingAssignmentSubmissions(
-    List<AssignmentItem> assignments,
-  ) {
-    return assignments.map((assignment) {
-      final roster = _sessions
-          .where((session) => session.courseId == assignment.courseId)
-          .expand((session) => session.attendanceList)
-          .fold<Map<String, AttendanceStudent>>({}, (students, student) {
-            students[student.studentId] = student;
-            return students;
-          })
-          .values;
-      final existingByStudent = {
-        for (final submission in assignment.submissions)
-          submission.studentId: submission,
-      };
-      final submissions = <StudentSubmission>[
-        for (final student in roster)
-          existingByStudent.remove(student.studentId) ??
-              StudentSubmission(
-                id: 'sub-${assignment.id}-${student.studentId}',
-                studentId: student.studentId,
-                ra: student.ra,
-                studentName: student.name,
-                status: SubmissionStatus.naoEntregue,
-              ),
-        ...existingByStudent.values,
-      ];
-      return assignment.copyWith(submissions: submissions);
-    }).toList();
-  }
+  static const DocenteCourse _emptyCourse = DocenteCourse(
+    id: '',
+    teacherIdentity: '',
+    code: '',
+    title: '',
+    term: '',
+    shift: '',
+    room: '',
+    schedule: '',
+    enrolledCount: 0,
+    completedHours: 0,
+    totalHours: 0,
+    syllabusUnits: [],
+    materials: [],
+  );
+
+  static const AssignmentItem _emptyAssignment = AssignmentItem(
+    id: '',
+    courseId: '',
+    courseCode: '',
+    title: '',
+    weight: 0,
+    stage: '',
+    dueDateFormatted: '',
+    isUrgent: false,
+    modality: '',
+    allowLateWithPenalty: false,
+    rubricCriteria: [],
+    submissions: [],
+  );
 
   // --- Getters ---
   DocenteNavTab get activeTab => _activeTab;
@@ -397,12 +329,12 @@ class DocenteController extends ChangeNotifier {
 
   DocenteCourse get selectedCourse => _courses.firstWhere(
     (c) => c.id == _selectedCourseId,
-    orElse: () => _courses.first,
+    orElse: () => _emptyCourse,
   );
 
   AssignmentItem get selectedAssignment => _assignments.firstWhere(
     (a) => a.id == _selectedAssignmentId,
-    orElse: () => _assignments.first,
+    orElse: () => _emptyAssignment,
   );
 
   bool isPautaHomologada(String courseId) =>
@@ -444,61 +376,50 @@ class DocenteController extends ChangeNotifier {
   }
 
   // --- Course & Syllabus Methods ---
-  void advanceSyllabusClasses(String courseId, String unitId) {
+  Future<void> advanceSyllabusClasses(String courseId, String unitId) async {
     if (!_canManageCourse(courseId, 'manage_course_content')) return;
-    final courseIndex = _courses.indexWhere((c) => c.id == courseId);
-    if (courseIndex == -1) return;
-
-    final course = _courses[courseIndex];
-    final updatedUnits = course.syllabusUnits.map((u) {
-      if (u.id == unitId) {
-        // The control cycles the progress marker so a teacher can correct a
-        // mistaken advance without editing the teaching plan itself.
-        final newClasses = u.completedClasses >= u.totalClasses
-            ? (u.completedClasses - 2).clamp(0, u.totalClasses)
-            : (u.completedClasses + 2).clamp(0, u.totalClasses);
-        return u.copyWith(completedClasses: newClasses);
-      }
-      return u;
-    }).toList();
-
-    _courses[courseIndex] = course.copyWith(syllabusUnits: updatedUnits);
+    try {
+      await _remote.advanceSyllabus(selectedCourse.code, unitId);
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível avançar o plano de ensino.';
+    }
     notifyListeners();
   }
 
-  void publishMaterial(String courseId, String title) {
+  Future<void> publishMaterial(
+    String courseId,
+    String title,
+    PickedPlatformFile? file,
+  ) async {
     if (!_canManageCourse(courseId, 'manage_materials') ||
-        title.trim().isEmpty) {
+        title.trim().isEmpty ||
+        file == null ||
+        file.sizeBytes > 25 * 1024 * 1024) {
+      if (file == null) remoteError = 'Selecione um arquivo para publicar.';
+      if (file != null && file.sizeBytes > 25 * 1024 * 1024) {
+        remoteError = 'O arquivo deve ter no máximo 25 MB.';
+      }
+      notifyListeners();
       return;
     }
-    final courseIndex = _courses.indexWhere((c) => c.id == courseId);
-    if (courseIndex == -1) return;
-
-    final now = DateTime.now();
-    final formattedDate =
-        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
-    final newMaterial = CourseMaterial(
-      id: 'mat-${DateTime.now().millisecondsSinceEpoch}',
-      courseId: courseId,
-      title: title.trim(),
-      date: 'Hoje, $formattedDate',
-      size: '1.5 MB',
-      type: 'PDF',
-    );
-
-    final updatedMaterials = [newMaterial, ..._courses[courseIndex].materials];
-    _courses[courseIndex] = _courses[courseIndex].copyWith(
-      materials: updatedMaterials,
-    );
-
-    // Propaga institucionalmente para o AVA discente
-    AcademicBridgeService.instance.addCourseMaterial(
-      courseCode: _courses[courseIndex].code,
-      title: newMaterial.title,
-      fileType: newMaterial.type,
-      fileSize: newMaterial.size,
-    );
-
+    try {
+      await _remote.publishMaterial(
+        classCode: selectedCourse.code,
+        title: title.trim(),
+        fileName: file.name,
+        mimeType: file.mimeType,
+        size: file.sizeLabel,
+        contentBase64: file.base64Content,
+      );
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível publicar o material.';
+    }
     notifyListeners();
   }
 
@@ -557,13 +478,15 @@ class DocenteController extends ChangeNotifier {
       pickedDate.month,
       pickedDate.day,
     );
-    final existing = _sessions.where(
-      (s) =>
-          s.courseId == _selectedCourseId &&
-          s.sessionDate.year == normalizedDate.year &&
-          s.sessionDate.month == normalizedDate.month &&
-          s.sessionDate.day == normalizedDate.day,
-    ).firstOrNull;
+    final existing = _sessions
+        .where(
+          (s) =>
+              s.courseId == _selectedCourseId &&
+              s.sessionDate.year == normalizedDate.year &&
+              s.sessionDate.month == normalizedDate.month &&
+              s.sessionDate.day == normalizedDate.day,
+        )
+        .firstOrNull;
     if (existing != null) {
       if (existing.id == _currentSession.id) return;
       _currentSession = existing;
@@ -585,7 +508,8 @@ class DocenteController extends ChangeNotifier {
         date: normalizedDate,
       );
       await loadRemote(force: true);
-      if (_courses.any((course) => course.id == courseId)) _selectedCourseId = courseId;
+      if (_courses.any((course) => course.id == courseId))
+        _selectedCourseId = courseId;
       _currentSession = _sessions.firstWhere(
         (session) =>
             session.courseId == courseId &&
@@ -688,32 +612,13 @@ class DocenteController extends ChangeNotifier {
     AttendanceStudent record,
     AttendanceStatus newStatus,
   ) {
-    final wasAbsent = record.status == AttendanceStatus.ausente;
-    final willBeAbsent = newStatus == AttendanceStatus.ausente;
-    final delta = wasAbsent == willBeAbsent ? 0 : (willBeAbsent ? 1 : -1);
-    final newAbsences = (record.accumulatedAbsences + delta)
-        .clamp(0, record.maxAbsences)
-        .toInt();
-    const totalClassesHeld = 38;
-    final newRate = double.parse(
-      (((totalClassesHeld - newAbsences) / totalClassesHeld) * 100)
-          .clamp(0, 100)
-          .toStringAsFixed(1),
-    );
-    final risk = newRate < 75
-        ? AttendanceRiskLevel.critico
-        : newRate < 80
-        ? AttendanceRiskLevel.atencao
-        : AttendanceRiskLevel.regular;
-    return record.copyWith(
-      status: newStatus,
-      accumulatedAbsences: newAbsences,
-      attendanceRate: newRate,
-      riskLevel: risk,
-    );
+    return record.copyWith(status: newStatus);
   }
 
-  Future<void> toggleAttendance(String studentId, AttendanceStatus newStatus) async {
+  Future<void> toggleAttendance(
+    String studentId,
+    AttendanceStatus newStatus,
+  ) async {
     if (!_canManageCourse(_selectedCourseId, 'manage_attendance') ||
         _currentSession.courseId != _selectedCourseId ||
         !_currentSession.attendanceList.any(
@@ -759,7 +664,7 @@ class DocenteController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool createAssignment({
+  Future<bool> createAssignment({
     required String courseId,
     required String courseCode,
     required String title,
@@ -770,7 +675,7 @@ class DocenteController extends ChangeNotifier {
     required String modality,
     required bool allowLateWithPenalty,
     required List<RubricCriterion> rubricCriteria,
-  }) {
+  }) async {
     if (!_canManageCourse(courseId, 'manage_assignments') ||
         !_courses.any(
           (course) =>
@@ -787,73 +692,47 @@ class DocenteController extends ChangeNotifier {
         rubricCriteria.isEmpty) {
       return false;
     }
-    final courseSessions = _sessions
-        .where((s) => s.courseId == courseId)
-        .toList();
-    final enrolledStudents = courseSessions.isEmpty
-        ? const <AttendanceStudent>[]
-        : courseSessions.first.attendanceList;
-    final newAssignment = AssignmentItem(
-      id: 'asg-${DateTime.now().millisecondsSinceEpoch}',
-      courseId: courseId,
-      courseCode: courseCode,
-      title: title,
-      description: description.trim(),
-      weight: weight,
-      stage: stage,
-      dueDateFormatted: dueDateFormatted,
-      isUrgent: false,
-      modality: modality,
-      allowLateWithPenalty: allowLateWithPenalty,
-      rubricCriteria: rubricCriteria,
-      submissions: enrolledStudents.map((st) {
-        return StudentSubmission(
-          id: 'sub-${st.studentId}',
-          studentId: st.studentId,
-          ra: st.ra,
-          studentName: st.name,
-          fileName: null,
-          submittedAtFormatted: null,
-          fileSize: null,
-          grade: null,
-          status: SubmissionStatus.naoEntregue,
-          rubricEvaluations: rubricCriteria,
-        );
-      }).toList(),
-    );
-
-    _assignments = [newAssignment, ..._assignments];
-    _selectedAssignmentId = newAssignment.id;
-
-    // Publica no barramento institucional para sincronizar automaticamente com o Aluno
-    final course = _courses.firstWhere(
-      (c) => c.id == courseId,
-      orElse: () => _courses.first,
-    );
-    AcademicBridgeService.instance.publishAssignmentToStudent(
-      courseCode: courseCode,
-      courseTitle: course.title,
-      professorName: 'Profa. Dra. Helena Bittencourt',
-      assignmentId: newAssignment.id,
-      title: title,
-      description: description,
-      weight: weight,
-      dueDateFormatted: dueDateFormatted,
-      rubricCriteria: rubricCriteria,
-      modality: modality,
-    );
-
+    try {
+      await _remote.createAssignment(
+        classCode: courseCode,
+        assignment: {
+          'title': title.trim(),
+          'description': description.trim(),
+          'weight': weight,
+          'stage': stage,
+          'dueDateFormatted': dueDateFormatted,
+          'modality': modality,
+          'allowLateWithPenalty': allowLateWithPenalty,
+          'rubricCriteria': rubricCriteria
+              .map(
+                (criterion) => {
+                  'id': criterion.id,
+                  'title': criterion.title,
+                  'maxPoints': criterion.maxPoints,
+                  'description': criterion.description,
+                },
+              )
+              .toList(),
+        },
+      );
+      await loadRemote(force: true);
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível criar a atividade.';
+    }
     notifyListeners();
-    return true;
+    return false;
   }
 
-  void evaluateRubric({
+  Future<void> evaluateRubric({
     required String assignmentId,
     required String submissionId,
     required double calculatedGrade,
     required String feedback,
     required List<RubricCriterion> evaluatedCriteria,
-  }) {
+  }) async {
     final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId);
     if (!_hasActiveTeacherAccess ||
         !AppUserSession.instance.hasPermission('manage_assignments') ||
@@ -875,42 +754,44 @@ class DocenteController extends ChangeNotifier {
         )) {
       return;
     }
-    final updatedSubmissions = assignment.submissions.map((sub) {
-      if (sub.id == submissionId) {
-        return sub.copyWith(
-          grade: calculatedGrade,
-          status: SubmissionStatus.corrigido,
-          teacherFeedback: feedback,
-          rubricEvaluations: evaluatedCriteria,
-        );
-      }
-      return sub;
-    }).toList();
-
-    _assignments[asgIndex] = assignment.copyWith(
-      submissions: updatedSubmissions,
+    final submission = assignment.submissions.firstWhere(
+      (item) => item.id == submissionId,
     );
-
-    // Sincroniza nota, feedback e rubricas avaliadas diretamente com o Aluno
-    AcademicBridgeService.instance.notifyGradedToStudent(
-      deliveryId: assignmentId,
-      courseCode: assignment.courseCode,
-      finalScore: calculatedGrade,
-      feedback: feedback,
-      evaluatedRubrics: evaluatedCriteria,
-    );
-
+    try {
+      await _remote.evaluateSubmission(
+        assignmentId: assignmentId,
+        studentId: submission.studentId,
+        calculatedGrade: calculatedGrade,
+        feedback: feedback.trim(),
+        evaluatedCriteria: evaluatedCriteria
+            .map(
+              (criterion) => <String, Object?>{
+                'id': criterion.id,
+                'title': criterion.title,
+                'maxPoints': criterion.maxPoints,
+                'assignedScore': criterion.assignedScore ?? 0,
+                'description': criterion.description,
+              },
+            )
+            .toList(),
+      );
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível avaliar a entrega.';
+    }
     notifyListeners();
   }
 
   // --- Gradebook Methods ---
-  void updateStudentGrade(
+  Future<void> updateStudentGrade(
     String studentId, {
     double? assignments,
     double? p1,
     double? projects,
     double? p2,
-  }) {
+  }) async {
     if (!_hasActiveTeacherAccess ||
         !AppUserSession.instance.hasPermission('edit_grades') ||
         !gradebook.any((grade) => grade.studentId == studentId)) {
@@ -926,37 +807,50 @@ class DocenteController extends ChangeNotifier {
     final normalizedP1 = normalize(p1);
     final normalizedProjects = normalize(projects);
     final normalizedP2 = normalize(p2);
-    _gradebook = _gradebook.map((grade) {
-      if (grade.studentId == studentId) {
-        return grade.copyWith(
-          assignmentsScore: normalizedAssignments ?? grade.assignmentsScore,
-          p1Score: normalizedP1 ?? grade.p1Score,
-          projectsScore: normalizedProjects ?? grade.projectsScore,
-          p2Score: normalizedP2 ?? grade.p2Score,
-        );
-      }
-      return grade;
-    }).toList();
+    try {
+      await _remote.updateGrade(
+        classCode: selectedCourse.code,
+        studentId: studentId,
+        assignmentsScore: normalizedAssignments,
+        p1Score: normalizedP1,
+        projectsScore: normalizedProjects,
+        p2Score: normalizedP2,
+      );
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível salvar a nota.';
+    }
     notifyListeners();
   }
 
   // --- Métodos de Homologação, Chancela Digital & Retificação com Coordenação ---
 
-  void homologarPautaComChancela(String courseId) {
+  Future<void> homologarPautaComChancela(String courseId) async {
     if (!_canManageCourse(courseId, 'edit_grades') ||
         !_courses.any((course) => course.id == courseId)) {
       return;
     }
-    _pautaHomologada[courseId] = true;
     final course = _courses.firstWhere((c) => c.id == courseId);
-    final codeSuffix = course.code
-        .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
-        .toUpperCase();
-    _pautaChancelaCodes[courseId] = 'DOC-CHANCELA-2026/88410-$codeSuffix';
+    try {
+      final result = await _remote.homologate(course.code);
+      if (result['pautaHomologated'] == true) {
+        _pautaHomologada[courseId] = true;
+      }
+      if (result['chancelaCode'] is String) {
+        _pautaChancelaCodes[courseId] = result['chancelaCode'] as String;
+      }
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível homologar a pauta.';
+    }
     notifyListeners();
   }
 
-  void solicitarRetificacaoNota({
+  Future<void> solicitarRetificacaoNota({
     required String courseId,
     required String studentRa,
     required String studentName,
@@ -964,7 +858,7 @@ class DocenteController extends ChangeNotifier {
     required double notaAnterior,
     required double novaNota,
     required String justificativa,
-  }) {
+  }) async {
     final course = _courses.where((item) => item.id == courseId).firstOrNull;
     final isEnrolledStudent = _sessions
         .where((session) => session.courseId == courseId)
@@ -981,20 +875,25 @@ class DocenteController extends ChangeNotifier {
         justificativa.trim().isEmpty) {
       return;
     }
-    _retificacaoRequests.insert(0, {
-      'id':
-          'RET-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-      'courseId': courseId,
-      'studentRa': studentRa,
-      'studentName': studentName,
-      'avaliacao': avaliacao,
-      'notaAnterior': notaAnterior,
-      'novaNota': novaNota,
-      'justificativa': justificativa,
-      'status': 'Aguardando Parecer da Coordenação',
-      'dataSolicitacao':
-          'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-    });
+    final student = _sessions
+        .where((session) => session.courseId == courseId)
+        .expand((session) => session.attendanceList)
+        .firstWhere((record) => record.ra == studentRa);
+    try {
+      final result = await _remote.rectify(
+        classCode: course.code,
+        studentId: student.studentId,
+        stage: avaliacao,
+        newScore: novaNota,
+        justification: justificativa.trim(),
+      );
+      _retificacaoRequests.insert(0, result);
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível solicitar a retificação.';
+    }
     notifyListeners();
   }
 
@@ -1004,14 +903,38 @@ class DocenteController extends ChangeNotifier {
     String assignmentId,
     String studentRa,
   ) {
-    return _assignmentDoubts[assignmentId]?[studentRa] ?? [];
+    final assignment = _assignments
+        .where((item) => item.id == assignmentId)
+        .firstOrNull;
+    if (assignment == null) return const [];
+    final doubt = assignment.doubts
+        .where((item) => item['ra']?.toString() == studentRa)
+        .firstOrNull;
+    if (doubt == null) return const [];
+    final replies = doubt['replies'];
+    return [
+      {
+        'sender': doubt['studentName']?.toString() ?? studentRa,
+        'time': doubt['createdAt']?.toString() ?? '',
+        'text':
+            doubt['question']?.toString() ?? doubt['body']?.toString() ?? '',
+      },
+      if (replies is List)
+        ...replies.whereType<Map>().map(
+          (reply) => {
+            'sender': reply['senderName']?.toString() ?? 'Docente',
+            'time': reply['createdAt']?.toString() ?? '',
+            'text': reply['body']?.toString() ?? '',
+          },
+        ),
+    ];
   }
 
-  void enviarRespostaDuvida(
+  Future<void> enviarRespostaDuvida(
     String assignmentId,
     String studentRa,
     String reply,
-  ) {
+  ) async {
     final assignment = _assignments
         .where((item) => item.id == assignmentId)
         .firstOrNull;
@@ -1029,13 +952,26 @@ class DocenteController extends ChangeNotifier {
         reply.trim().isEmpty) {
       return;
     }
-    _assignmentDoubts.putIfAbsent(assignmentId, () => {});
-    _assignmentDoubts[assignmentId]!.putIfAbsent(studentRa, () => []);
-    _assignmentDoubts[assignmentId]![studentRa]!.add({
-      'sender': 'Profa. Dra. Helena Bittencourt (Docente)',
-      'time': 'Agora mesmo',
-      'text': reply.trim(),
-    });
+    final doubt = assignment!.doubts
+        .where((item) => item['ra']?.toString() == studentRa)
+        .firstOrNull;
+    if (doubt == null || doubt['id'] == null) {
+      remoteError = 'A dúvida não está mais disponível.';
+      notifyListeners();
+      return;
+    }
+    try {
+      await _remote.replyDoubt(
+        assignmentId: assignmentId,
+        doubtId: doubt['id'].toString(),
+        reply: reply.trim(),
+      );
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível responder à dúvida.';
+    }
     notifyListeners();
   }
 
@@ -1063,27 +999,23 @@ class DocenteController extends ChangeNotifier {
         )) {
       return;
     }
-    if (asgIndex != -1) {
-      final assignment = _assignments[asgIndex];
-      final updatedSubmissions = assignment.submissions.map((sub) {
-        if (sub.ra == studentRa) {
-          return sub.copyWith(
-            grade: nota,
-            status: SubmissionStatus.corrigido,
-            teacherFeedback: feedback.trim(),
-          );
-        }
-        return sub;
-      }).toList();
-      _assignments[asgIndex] = assignment.copyWith(
-        submissions: updatedSubmissions,
-      );
-    }
-
+    final assignment = _assignments[asgIndex];
+    final submission = assignment.submissions
+        .where((item) => item.ra == studentRa)
+        .firstOrNull;
+    if (submission == null) return;
+    unawaited(
+      evaluateRubric(
+        assignmentId: assignmentId,
+        submissionId: submission.id,
+        calculatedGrade: nota,
+        feedback: feedback.trim(),
+        evaluatedCriteria: submission.rubricEvaluations,
+      ),
+    );
     if (teacherReply != null && teacherReply.trim().isNotEmpty) {
-      enviarRespostaDuvida(assignmentId, studentRa, teacherReply);
+      unawaited(enviarRespostaDuvida(assignmentId, studentRa, teacherReply));
     }
-    notifyListeners();
   }
 
   void notificarAlunoInfrequencia(String studentId, String studentName) {
@@ -1101,39 +1033,42 @@ class DocenteController extends ChangeNotifier {
   }
 
   // --- Agenda & Events Methods ---
-  void addEvent({
+  Future<void> addEvent({
     required String title,
     required String date,
     required String time,
     required EventType type,
     required String location,
-  }) {
+  }) async {
     if (!_canManageCourse(_selectedCourseId, 'manage_course_calendar') ||
         title.trim().isEmpty) {
       return;
     }
-    final newEvent = AcademicEvent(
-      id: 'ev-${DateTime.now().millisecondsSinceEpoch}',
-      title: title.trim(),
-      date: date,
-      time: time,
-      type: type,
-      location: location.trim(),
-      isSynced: true,
-    );
-
-    _events = [newEvent, ..._events];
+    try {
+      await _remote.createEvent(
+        title: title.trim(),
+        date: date,
+        time: time,
+        type: type.name,
+        location: location.trim(),
+      );
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível salvar o evento.';
+    }
     notifyListeners();
   }
 
   // --- Notices & Announcements Methods ---
-  bool publishNotice({
+  Future<bool> publishNotice({
     required String targetCourse,
     required String targetAudience,
     required NoticeClassification classification,
     required String title,
     required String message,
-  }) {
+  }) async {
     if (!_hasActiveTeacherAccess ||
         !AppUserSession.instance.hasPermission(
           'publish_course_announcements',
@@ -1152,69 +1087,220 @@ class DocenteController extends ChangeNotifier {
         !_courses.any((course) => course.id == recipientCourse.id)) {
       return false;
     }
-    final newNotice = AcademicNotice(
-      id: 'not-${DateTime.now().millisecondsSinceEpoch}',
-      author: 'Você (Profa. Helena Bittencourt)',
-      targetCourse: targetCourse,
-      targetAudience: targetAudience,
-      classification: classification,
-      publishedAt:
-          'Hoje, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-      title: title.trim(),
-      message: message.trim(),
-      readCount: 0,
-      totalRecipients: recipientCourse.enrolledCount,
-      isFromSecretaria: false,
-    );
-
-    _notices = [newNotice, ..._notices];
-
-    // Propaga comunicado para a Central de Mensagens e Mural do Aluno
-    AcademicBridgeService.instance.broadcastNotice(
-      title: title.trim(),
-      content: message.trim(),
-      senderRole: 'docente',
-      senderName: '${profile.fullName} (${recipientCourse.code})',
-      targetCourse: recipientCourse.code,
-    );
-
+    try {
+      await _remote.publishNotice(
+        targetCourse: recipientCourse.code,
+        targetAudience: targetAudience.trim(),
+        classification: classification.name,
+        title: title.trim(),
+        message: message.trim(),
+      );
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      remoteError = 'Não foi possível publicar o comunicado.';
+      notifyListeners();
+      return false;
+    }
     notifyListeners();
     return true;
   }
 
+  List<Map<String, dynamic>> get currentForumTopics =>
+      List.unmodifiable(selectedCourse.forumTopics);
+
+  Future<bool> createForumTopic({
+    required String title,
+    required String body,
+    String? category,
+  }) async {
+    if (!_canManageCourse(_selectedCourseId, 'manage_course_content') ||
+        title.trim().isEmpty ||
+        body.trim().isEmpty) {
+      return false;
+    }
+    try {
+      await _remote.createForumTopic(
+        classCode: selectedCourse.code,
+        title: title.trim(),
+        body: body.trim(),
+        category: category,
+      );
+      await loadRemote(force: true);
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível criar o tópico.';
+    }
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> replyForumTopic({
+    required String topicId,
+    required String body,
+  }) async {
+    if (!_canManageCourse(_selectedCourseId, 'manage_course_content') ||
+        body.trim().isEmpty) {
+      return false;
+    }
+    try {
+      await _remote.replyForumTopic(
+        classCode: selectedCourse.code,
+        topicId: topicId,
+        body: body.trim(),
+      );
+      await loadRemote(force: true);
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível responder no fórum.';
+    }
+    notifyListeners();
+    return false;
+  }
+
+  Future<void> saveSquads(List<Map<String, Object?>> squads) async {
+    if (!_canManageCourse(_selectedCourseId, 'manage_course_content')) return;
+    try {
+      await _remote.saveSquads(classCode: selectedCourse.code, squads: squads);
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível salvar as equipes.';
+    }
+    notifyListeners();
+  }
+
+  Future<String?> downloadSubmission(StudentSubmission submission) async {
+    try {
+      final file = await _remote.downloadSubmission(submission.id);
+      final encoded = file['contentBase64'];
+      if (encoded is! String || encoded.isEmpty) {
+        throw const ApiException('A API não retornou o arquivo da entrega.');
+      }
+      final bytes = base64Decode(encoded);
+      final saved = await PlatformFileHelper.saveOrDownloadFile(
+        fileName:
+            file['fileName']?.toString() ??
+            submission.fileName ??
+            'entrega-${submission.id}.bin',
+        bytes: bytes,
+        mimeType: file['mimeType']?.toString() ?? 'application/octet-stream',
+      );
+      if (saved == null) {
+        throw const ApiException('Não foi possível salvar o arquivo.');
+      }
+      return saved;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível baixar a submissão.';
+    }
+    notifyListeners();
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> getNoticeReads(String id) async {
+    try {
+      return await _remote.noticeReads(id);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    }
+    notifyListeners();
+    return null;
+  }
+
   // --- Settings & Profile Methods ---
-  void updateProfile({String? socialName, String? personalEmail}) {
+  Future<bool> updateProfile({
+    String? socialName,
+    String? personalEmail,
+  }) async {
+    if (!_hasActiveTeacherAccess) return false;
+    try {
+      await _profileRemote.updateProfile({
+        if (socialName != null) 'socialName': socialName.trim(),
+        if (personalEmail != null) 'personalEmail': personalEmail.trim(),
+      });
+      await _profileRemote.me();
+      await loadRemote(force: true);
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível atualizar o perfil.';
+    }
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _profileRemote.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    }
+    notifyListeners();
+    return false;
+  }
+
+  Future<List<String>> backupCodes() => _profileRemote.backupCodes();
+
+  Future<List<Map<String, dynamic>>> securitySessions() =>
+      _profileRemote.sessions();
+
+  Future<List<Map<String, dynamic>>> securityLogs() =>
+      _profileRemote.securityLogs();
+
+  Future<Map<String, dynamic>> exportPersonalData() =>
+      _profileRemote.lgpdExport();
+
+  Future<void> toggleTwoFactor({required String password}) async {
     if (!_hasActiveTeacherAccess) return;
-    _profile = _profile.copyWith(
-      socialName: socialName ?? _profile.socialName,
-      personalEmail: personalEmail ?? _profile.personalEmail,
-    );
+    try {
+      await _profileRemote.toggleTwoFactor(
+        password: password,
+        enabled: !_profile.twoFactorEnabled,
+      );
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    }
     notifyListeners();
   }
 
-  void toggleTwoFactor() {
+  Future<void> disconnectSession(String sessionId) async {
     if (!_hasActiveTeacherAccess) return;
-    _profile = _profile.copyWith(twoFactorEnabled: !_profile.twoFactorEnabled);
-    notifyListeners();
-  }
-
-  void disconnectSession(String sessionId) {
-    if (!_hasActiveTeacherAccess) return;
-    final updatedSessions = _profile.activeSessions
-        .where((s) => s.id != sessionId)
-        .toList();
-    _profile = _profile.copyWith(activeSessions: updatedSessions);
+    try {
+      await _profileRemote.revokeSession(sessionId);
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    }
     notifyListeners();
   }
 
   /// Ends all sessions except the device currently in use.
-  void disconnectOtherSessions() {
+  Future<void> disconnectOtherSessions() async {
     if (!_hasActiveTeacherAccess) return;
-    _profile = _profile.copyWith(
-      activeSessions: _profile.activeSessions
-          .where((session) => session.isCurrent)
-          .toList(),
-    );
+    try {
+      await _profileRemote.logoutOthers();
+      await loadRemote(force: true);
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    }
     notifyListeners();
   }
 }

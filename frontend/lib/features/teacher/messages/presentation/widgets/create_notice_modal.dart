@@ -47,10 +47,10 @@ class _CreateNoticeModalState extends State<CreateNoticeModal> {
     super.dispose();
   }
 
-  void _submitNotice() {
+  Future<void> _submitNotice() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final published = widget.controller.publishNotice(
+    final published = await widget.controller.publishNotice(
       targetCourse: _selectedCourse,
       targetAudience: _selectedAudience,
       classification: _selectedClassification,

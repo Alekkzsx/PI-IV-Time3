@@ -1,7 +1,11 @@
 ﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 
 /// Card para gerenciamento de privacidade, visibilidade de dados funcionais e direitos LGPD.
 class DocentePrivacyLgpdCard extends StatefulWidget {
@@ -12,8 +16,82 @@ class DocentePrivacyLgpdCard extends StatefulWidget {
 }
 
 class _DocentePrivacyLgpdCardState extends State<DocentePrivacyLgpdCard> {
+  final _profileRemote = AuthProfileRemoteDataSource();
   bool _exibirEmailTurma = true;
   bool _mostrarStatusPresenca = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final profile = await _profileRemote.me();
+      final preferences = profile['preferences'];
+      if (!mounted || preferences is! Map) return;
+      setState(() {
+        _exibirEmailTurma = preferences['showInstitutionalEmail'] != false;
+        _mostrarStatusPresenca = preferences['showPresenceStatus'] != false;
+      });
+    } catch (_) {
+      // Preferences remain at their neutral defaults when unavailable.
+    }
+  }
+
+  Future<void> _savePreferences() async {
+    try {
+      await _profileRemote.updateProfile({
+        'preferences': {
+          'showInstitutionalEmail': _exibirEmailTurma,
+          'showPresenceStatus': _mostrarStatusPresenca,
+        },
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preferências de privacidade salvas.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportData({required bool asJson}) async {
+    try {
+      final data = await _profileRemote.lgpdExport();
+      final content = asJson
+          ? const JsonEncoder.withIndent('  ').convert(data)
+          : data.entries.map((entry) => '${entry.key}: ${entry.value}').join('\n');
+      final saved = await PlatformFileHelper.saveOrDownloadFile(
+        fileName: asJson ? 'exportacao-lgpd.json' : 'exportacao-lgpd.txt',
+        bytes: utf8.encode(content),
+        mimeType: asJson ? 'application/json' : 'text/plain',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              saved == null
+                  ? 'Não foi possível salvar a exportação.'
+                  : 'Exportação salva: $saved',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -247,17 +325,7 @@ class _DocentePrivacyLgpdCardState extends State<DocentePrivacyLgpdCard> {
                     Row(
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Download do arquivo JSON iniciado...',
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
+                          onPressed: () => _exportData(asJson: true),
                           icon: const Icon(
                             Icons.data_object_rounded,
                             size: 15,
@@ -284,17 +352,7 @@ class _DocentePrivacyLgpdCardState extends State<DocentePrivacyLgpdCard> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Download do relatório (.txt) iniciado...',
-                                ),
-                                behavior: SnackBarBehavior.floating,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
+                          onPressed: () => _exportData(asJson: false),
                           icon: const Icon(
                             Icons.description_outlined,
                             size: 15,
@@ -335,17 +393,7 @@ class _DocentePrivacyLgpdCardState extends State<DocentePrivacyLgpdCard> {
         Align(
           alignment: Alignment.centerRight,
           child: ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Preferências de privacidade salvas com sucesso!',
-                  ),
-                  behavior: SnackBarBehavior.floating,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
+            onPressed: _savePreferences,
             icon: const Icon(
               Icons.check_rounded,
               size: 16,
