@@ -330,5 +330,14 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
     response.status(201).json(created);
   });
 
+  router.get("/notices/:id/reads", async (request, response) => {
+    const reads = await service.getNoticeReads(
+      response.locals.userId,
+      response.locals.user,
+      request.params.id!,
+    );
+    response.json(reads);
+  });
+
   return router;
 }

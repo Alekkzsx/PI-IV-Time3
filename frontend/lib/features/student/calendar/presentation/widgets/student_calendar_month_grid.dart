@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 
 /// Grade mensal construída a partir do mês selecionado e dos eventos do aluno.
 class StudentCalendarMonthGrid extends StatelessWidget {
