@@ -4,7 +4,9 @@ import academic.BoletimHandler;
 import academic.PresencaHandler;
 import academic.TarefasHandler;
 import academic.TesteTiposHandler;
+import auth.AuthSessionHandler;
 import core.ServidorHttpNativo;
+import utils.ConfigEnv;
 import videocall.VideoCallAttendanceHandler;
 import videocall.VideoCallInteractionHandler;
 import videocall.VideoCallRoomHandler;
@@ -14,25 +16,30 @@ import java.io.IOException;
 
 /**
  * Ponto de entrada central do servidor HTTP nativo da plataforma AGMRM.
- * Orquestra e registra os modulos academicos e de videochamada.
+ * Orquestra e registra os modulos de autenticacao JWT, academicos e de videochamada.
  */
 public class Main {
     private static final int PORTA_PADRAO = 8080;
 
     public static void main(String[] args) {
-        int porta = PORTA_PADRAO;
+        int porta = ConfigEnv.obterInteiro("SERVER_PORT", PORTA_PADRAO);
         if (args != null && args.length > 0) {
             try {
                 porta = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.out.println("[CONFIG] Porta informada invalida. Utilizando porta padrao: " + PORTA_PADRAO);
+                System.out.println("[CONFIG] Porta informada invalida. Utilizando porta: " + porta);
             }
         }
 
         ServidorHttpNativo servidor = new ServidorHttpNativo(porta);
 
         // =========================================================================
-        // 1. MODULO ACADEMICO (Boletim, Frequencia, Tarefas e Tipos)
+        // 1. MODULO DE AUTENTICACAO DE SESSAO / VALIDACAO JWT HS256
+        // =========================================================================
+        servidor.registrarRota("/api/auth/session", new AuthSessionHandler());
+
+        // =========================================================================
+        // 2. MODULO ACADEMICO (Boletim, Frequencia, Tarefas e Tipos)
         // =========================================================================
         servidor.registrarRota("/api/teste-tipos", new TesteTiposHandler());
         servidor.registrarRota("/api/presenca", new PresencaHandler());
@@ -40,7 +47,7 @@ public class Main {
         servidor.registrarRota("/api/notas/boletim", new BoletimHandler());
 
         // =========================================================================
-        // 2. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
+        // 3. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
         // =========================================================================
         VideoCallRoomHandler roomHandler = new VideoCallRoomHandler();
         servidor.registrarRota("/api/videocall/rooms", roomHandler);
