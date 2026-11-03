@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'ava_section_card.dart';
 
@@ -18,10 +18,11 @@ class AvaLiveClassroomTab extends StatelessWidget {
     return AnimatedBuilder(
       animation: AcademicBridgeService.instance,
       builder: (context, _) {
-        final disciplineCode = controller.selectedDiscipline.code;
+        final disciplineCode = controller.selectedDiscipline?.code ?? '';
         final isOpen = AcademicBridgeService.instance.isSessionOpen(
           disciplineCode,
-        );
+        ) ||
+            controller.selectedDiscipline?.isLive == true;
         final session = AcademicBridgeService.instance.getSession(
           disciplineCode,
         );
@@ -70,8 +71,8 @@ class AvaLiveClassroomTab extends StatelessWidget {
                           Navigator.of(context).pushNamed(
                             '/video-call',
                             arguments: {
-                              'name': StudentMockData.studentName,
-                              'ra': StudentMockData.studentRa,
+                              'name': AppUserSession.instance.effectiveName,
+                              'ra': AppUserSession.instance.identity ?? '',
                               'roomCode': disciplineCode,
                               'role': 'aluno',
                             },
