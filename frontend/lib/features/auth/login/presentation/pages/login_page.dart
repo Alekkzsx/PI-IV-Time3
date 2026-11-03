@@ -7,6 +7,7 @@ import '../widgets/brand_panel.dart';
 import '../widgets/login_form_fields.dart';
 import '../widgets/login_profile_tabs.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
+import '../../../../../core/state/app_user_session.dart';
 import '../../../shared/presentation/change_password_dialog.dart';
 
 /// Página principal de autenticação de usuários no portal acadêmico.
@@ -38,6 +39,13 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     widget.controller.addListener(_onControllerChanged);
+    final remembered = AppUserSession.instance.getRememberedIdentity();
+    if (remembered != null) {
+      _identityController.text = remembered;
+      _rememberCredential = true;
+    } else {
+      _rememberCredential = false;
+    }
   }
 
   @override
@@ -88,9 +96,9 @@ class _LoginPageState extends State<LoginPage> {
   String get _identityExample {
     switch (_selectedProfile) {
       case UserProfile.aluno:
-        return 'ex: 2024.1.00892';
+        return 'ex: 202610401';
       case UserProfile.docente:
-        return 'ex: DOC-40892';
+        return 'ex: docente.agmrm';
       case UserProfile.admin:
         return 'ex: ADM-00123';
     }
@@ -145,6 +153,11 @@ class _LoginPageState extends State<LoginPage> {
           'GET',
           '/api/auth/me',
         );
+        if (account is Map) {
+          AppUserSession.instance.applyProfileMap(
+            Map<String, dynamic>.from(account),
+          );
+        }
         if (!mounted) return;
         if (account is Map && account['requirePasswordChange'] == true) {
           await showPasswordChangeDialog(context, requiredChange: true);
@@ -160,6 +173,9 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     if (success) {
+      AppUserSession.instance.setRememberedIdentity(
+        _rememberCredential ? identity : null,
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,

@@ -1,12 +1,9 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Modal interativo de submissão de atividade ("Realizar Entrega").
@@ -43,6 +40,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   List<int>? _attachedBytes;
   bool _isSuccess = false;
   String _generatedProtocol = '';
+  String _sha256 = '';
+  String? _submissionId;
   String _timestampStr = '';
 
   @override
@@ -58,44 +57,27 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   }
 
   Future<void> _onPickFile() async {
-    final file = await FilePicker.pickFile(
-      type: FileType.any,
-    );
+    final file = await PlatformFileHelper.pickFile();
     if (file == null || !mounted) return;
     const maxFileBytes = 7 * 1024 * 1024;
-    final size = await file.length();
-    if (!mounted) return;
-    if (size == null || size == 0) {
+    if (file.sizeBytes == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Não foi possível ler o arquivo selecionado.')),
       );
       return;
     }
-    if (size > maxFileBytes) {
+    if (file.sizeBytes > maxFileBytes) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('O arquivo deve ter no máximo 7 MB.')),
       );
       return;
     }
-    final builder = BytesBuilder(copy: false);
-    var totalBytes = 0;
-    await for (final chunk in file.readAsByteStream()) {
-      totalBytes += chunk.length;
-      if (totalBytes > maxFileBytes) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('O arquivo deve ter no máximo 7 MB.')),
-        );
-        return;
-      }
-      builder.add(chunk);
-    }
-    final bytes = builder.takeBytes();
+    final bytes = file.bytes;
     if (bytes.isEmpty || !mounted) return;
     setState(() {
       _attachedFileName = file.name;
-      _attachedFileSize = '${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB';
-      _attachedMimeType = 'application/octet-stream';
+      _attachedFileSize = file.sizeLabel;
+      _attachedMimeType = file.mimeType;
       _attachedBytes = bytes;
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -120,7 +102,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
 
     setState(() => _isSubmitting = true);
     try {
-      final protocol = await StudentPortalController.instance.submitDelivery(
+      final receipt = await StudentPortalController.instance.submitDelivery(
         deliveryId: widget.item.id,
         fileName: _attachedFileName!,
         fileSize: _attachedFileSize!,
@@ -142,7 +124,10 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
       setState(() {
         _isSubmitting = false;
         _isSuccess = true;
-        _generatedProtocol = protocol;
+        _generatedProtocol = receipt['protocolCode']?.toString() ?? '';
+        _sha256 = receipt['sha256']?.toString() ?? '';
+        _submissionId = receipt['submissionId']?.toString() ??
+            receipt['id']?.toString();
         _timestampStr = timeFormatted;
       });
     } catch (error) {
@@ -152,6 +137,29 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
           ? error.message
           : 'Não foi possível protocolar a entrega.';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    }
+
+    Future<void> _downloadSubmission() async {
+      final id = _submissionId;
+      if (id == null || id.isEmpty) return;
+      try {
+        final path = await StudentPortalController.instance.downloadSubmission(id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              path == null
+                  ? 'Não foi possível salvar a submissão.'
+                  : 'Submissão salva em $path',
+            ),
+          ),
+        );
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
     }
   }
 
@@ -731,8 +739,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                       'Assinatura Digital:',
                       style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                     ),
-                    Text(
-                      'SHA-256 Validado',
+                    SelectableText(
+                      _sha256.isEmpty ? 'Hash SHA-256 não retornado' : _sha256,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -751,17 +759,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Download do comprovante de entrega iniciado (PDF).',
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _submissionId == null
+                      ? null
+                      : () => _downloadSubmission(),
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Baixar Comprovante (PDF)'),
+                  label: const Text('Baixar submissão'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF334155),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
