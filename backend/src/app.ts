@@ -13,6 +13,7 @@ import { createAdminAcademicRouter } from "./modules/admin/admin-academic.contro
 import { createAdminUsersRouter } from "./modules/admin/admin-users.controller.js";
 import { createAdminOperationsRouter } from "./modules/admin/admin-operations.controller.js";
 import { createSessionRouter } from "./modules/auth/presentation/session.controller.js";
+import { createStudentDashboardRouter } from "./modules/student/student-dashboard.controller.js"; 
 import { AuthError } from "./shared/auth-error.js";
 import type { Db } from "mongodb";
 
@@ -59,6 +60,7 @@ export function createApp(
       "/api/admin",
       createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret),
     );
+    app.use("/api/student", createStudentDashboardRouter(adminOptions.database, adminOptions.jwtSecret));
   }
   app.use(notFoundHandler);
   app.use(errorHandler(environment.nodeEnv));
