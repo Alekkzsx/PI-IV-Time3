@@ -1,6 +1,11 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
@@ -34,6 +39,8 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   // Estado do Arquivo Anexado
   String? _attachedFileName;
   String? _attachedFileSize;
+  String? _attachedMimeType;
+  List<int>? _attachedBytes;
   bool _isSuccess = false;
   String _generatedProtocol = '';
   String _timestampStr = '';
@@ -41,10 +48,6 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   @override
   void initState() {
     super.initState();
-    // Sugestão de nome padrão amigável baseado no ID
-    _attachedFileName =
-        'submissao_${widget.item.id.toLowerCase()}_trabalho.zip';
-    _attachedFileSize = '4.2 MB';
   }
 
   @override
@@ -54,11 +57,46 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
     super.dispose();
   }
 
-  void _onPickFile() {
+  Future<void> _onPickFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.any,
+    );
+    if (file == null || !mounted) return;
+    const maxFileBytes = 7 * 1024 * 1024;
+    final size = await file.length();
+    if (!mounted) return;
+    if (size == null || size == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível ler o arquivo selecionado.')),
+      );
+      return;
+    }
+    if (size > maxFileBytes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('O arquivo deve ter no máximo 7 MB.')),
+      );
+      return;
+    }
+    final builder = BytesBuilder(copy: false);
+    var totalBytes = 0;
+    await for (final chunk in file.readAsByteStream()) {
+      totalBytes += chunk.length;
+      if (totalBytes > maxFileBytes) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('O arquivo deve ter no máximo 7 MB.')),
+        );
+        return;
+      }
+      builder.add(chunk);
+    }
+    final bytes = builder.takeBytes();
+    if (bytes.isEmpty || !mounted) return;
     setState(() {
-      _attachedFileName =
-          '${widget.item.activityCode?.replaceAll(' ', '').toLowerCase() ?? 'entrega'}_final.pdf';
-      _attachedFileSize = '2.8 MB';
+      _attachedFileName = file.name;
+      _attachedFileSize = '${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB';
+      _attachedMimeType = 'application/octet-stream';
+      _attachedBytes = bytes;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -72,20 +110,22 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
     setState(() {
       _attachedFileName = null;
       _attachedFileSize = null;
+      _attachedMimeType = null;
+      _attachedBytes = null;
     });
   }
 
-  void _handleProtocolarEnvio() {
-    if (!_agreedToIntegrity || _attachedFileName == null) return;
+  Future<void> _handleProtocolarEnvio() async {
+    if (!_agreedToIntegrity || _attachedFileName == null || _attachedBytes == null) return;
 
     setState(() => _isSubmitting = true);
-
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-
-      final protocol = StudentPortalController.instance.submitDelivery(
+    try {
+      final protocol = await StudentPortalController.instance.submitDelivery(
         deliveryId: widget.item.id,
         fileName: _attachedFileName!,
+        fileSize: _attachedFileSize!,
+        mimeType: _attachedMimeType ?? 'application/octet-stream',
+        contentBase64: base64Encode(_attachedBytes!),
         gitUrl: _gitController.text.trim().isNotEmpty
             ? _gitController.text.trim()
             : null,
@@ -94,18 +134,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
             : null,
       );
 
-      if (protocol.isEmpty) {
-        setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Não foi possível protocolar a entrega. Confira a atividade e tente novamente.',
-            ),
-          ),
-        );
-        return;
-      }
-
+      if (!mounted) return;
       final now = DateTime.now();
       final timeFormatted =
           '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} às ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
@@ -116,7 +145,14 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
         _generatedProtocol = protocol;
         _timestampStr = timeFormatted;
       });
-    });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      final message = error is ApiException
+          ? error.message
+          : 'Não foi possível protocolar a entrega.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override
