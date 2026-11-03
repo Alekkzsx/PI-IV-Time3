@@ -1,0 +1,1 @@
+export { createAdminOperationsRouter } from "../admin-operations.controller.js";
