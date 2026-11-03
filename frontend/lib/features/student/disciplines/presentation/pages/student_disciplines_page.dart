@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'student_ava_cockpit_page.dart';
 import '../widgets/student_disciplines_stats_card.dart';
@@ -31,11 +30,23 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
   final TextEditingController _searchController = TextEditingController();
   StudentDisciplineModel? _activeDisciplineCockpit;
   int _cockpitInitialTab = 0;
-  String _selectedFilter = 'Todas as Disciplinas (4)';
+  String _selectedFilter = 'Todas as Disciplinas';
   bool _isGridView = true;
 
   @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onControllerChanged);
+    _controller.loadRemote();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -50,19 +61,18 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
   }
 
   void _openCockpitByCode(String code, [int targetTab = 0]) {
-    final discipline = StudentMockData.disciplines.firstWhere(
-      (d) => d.code == code,
-      orElse: () => StudentMockData.disciplines.first,
-    );
+    final matches = _controller.disciplines.where((d) => d.code == code);
+    if (matches.isEmpty) return;
+    final discipline = matches.first;
     _openCockpit(discipline, targetTab);
   }
 
   List<StudentDisciplineModel> get _filteredDisciplines {
-    var list = StudentMockData.disciplines;
+    var list = _controller.disciplines;
 
-    if (_selectedFilter == 'Com Tarefas Pendentes (3)') {
+    if (_selectedFilter == 'Com Tarefas Pendentes') {
       list = list.where((d) => d.hasPendingTask).toList();
-    } else if (_selectedFilter == 'Aulas em Laboratório (2)') {
+    } else if (_selectedFilter == 'Aulas em Laboratório') {
       list = list.where((d) => d.location.toLowerCase().contains('lab')).toList();
     }
 
@@ -98,14 +108,20 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
           const SizedBox(height: 24),
           const StudentDisciplinesStatsCard(),
           const SizedBox(height: 20),
-          StudentDisciplinesFastResumeCard(
-            discipline: StudentMockData.disciplines.first,
-            onResume: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
-          ),
+          if (_controller.disciplines.isNotEmpty)
+            StudentDisciplinesFastResumeCard(
+              discipline: _controller.disciplines.first,
+              onResume: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
+            ),
           const SizedBox(height: 24),
           _buildFilterAndSearchRow(),
           const SizedBox(height: 20),
-          if (_isGridView)
+          if (_filteredDisciplines.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: Text('Nenhuma disciplina disponível.')),
+            )
+          else if (_isGridView)
             StudentDisciplinesGridView(
               disciplines: _filteredDisciplines,
               onSelectDiscipline: (discipline, [tab = 0]) => _openCockpit(discipline, tab),
@@ -155,7 +171,10 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
         const SizedBox(width: 16),
         OutlinedButton.icon(
           key: const Key('btn_boletim_historico_oficial'),
-          onPressed: () => StudentDisciplinesModals.showBoletimModal(context),
+          onPressed: () => StudentDisciplinesModals.showBoletimModal(
+            context,
+            controller: _controller,
+          ),
           icon: const Icon(
             Icons.receipt_long_outlined,
             size: 16,
@@ -181,11 +200,7 @@ class _StudentDisciplinesPageState extends State<StudentDisciplinesPage> {
   }
 
   Widget _buildFilterAndSearchRow() {
-    final filters = [
-      'Todas as Disciplinas (4)',
-      'Com Tarefas Pendentes (3)',
-      'Aulas em Laboratório (2)',
-    ];
+    final filters = ['Todas as Disciplinas', 'Com Tarefas Pendentes', 'Aulas em Laboratório'];
 
     return LayoutBuilder(
       builder: (context, constraints) {
