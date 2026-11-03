@@ -127,7 +127,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
     super.dispose();
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final weight = double.tryParse(
@@ -176,7 +176,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
       );
     }
 
-    final created = widget.controller.createAssignment(
+    final created = await widget.controller.createAssignment(
       courseId: selectedCourse.id,
       courseCode: selectedCourse.code,
       title: _titleController.text.trim(),
@@ -201,9 +201,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
       const SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Color(0xFF334155),
-        content: Text(
-          'Atividade criada nesta sessão. A publicação oficial depende da integração com o servidor.',
-        ),
+        content: Text('Atividade publicada com sucesso.'),
       ),
     );
   }

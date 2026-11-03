@@ -69,10 +69,7 @@ class _DocenteMessagesTabState extends State<DocenteMessagesTab> {
                                 ScienceTrackingDialog.show(
                                   context,
                                   notice: notice,
-                                  attendanceList: widget
-                                      .controller
-                                      .currentSession
-                                      .attendanceList,
+                                  controller: widget.controller,
                                 );
                               },
                             ),

@@ -22,10 +22,8 @@ class CourseHubHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final courseCode = course.code.isNotEmpty ? course.code : '218131 - APS-II';
-    final courseTitle = course.title.isNotEmpty
-        ? course.title
-        : 'Análise e Projeto de Sistemas II';
+    final courseCode = course.code;
+    final courseTitle = course.title;
 
     return Container(
       width: double.infinity,
@@ -103,7 +101,7 @@ class CourseHubHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Turma $courseCode • 34 Alunos Matriculados • Turno Noturno • Semestre 2026/2 • Sala Lab 04',
+                    'Turma $courseCode • ${course.enrolledCount} discentes • ${course.shift} • ${course.term} • ${course.room}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF71717A),

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
@@ -362,9 +362,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
                           }
                         },
                   icon: const Icon(Icons.attach_file),
-                  label: Text(
-                    _selectedMaterial?.name ?? 'Selecionar arquivo',
-                  ),
+                  label: Text(_selectedMaterial?.name ?? 'Selecionar arquivo'),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -393,8 +391,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    error ??
-                                        'Material disponibilizado no AVA.',
+                                    error ?? 'Material disponibilizado no AVA.',
                                   ),
                                 ),
                               );

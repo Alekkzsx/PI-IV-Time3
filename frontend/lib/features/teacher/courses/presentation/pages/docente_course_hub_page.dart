@@ -121,7 +121,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 controller: messageController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  labelText: 'Mensagem aos 34 Alunos',
+                  labelText: 'Mensagem aos estudantes',
                   hintText:
                       'Digite o comunicado que será enviado ao e-mail e app...',
                 ),
@@ -135,7 +135,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final title = titleController.text.trim();
               final message = messageController.text.trim();
               if (title.isEmpty || message.isEmpty) {
@@ -146,7 +146,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 );
                 return;
               }
-              final published = widget.controller.publishNotice(
+              final published = await widget.controller.publishNotice(
                 targetCourse: widget.course.title,
                 targetAudience: 'Todos os discentes da turma',
                 classification: NoticeClassification.informativo,
