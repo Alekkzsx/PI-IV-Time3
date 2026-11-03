@@ -3,12 +3,21 @@
 import '../../../../core/network/authenticated_api_client.dart';
 
 import 'package:http/http.dart' as http;
-import 'admin_mock_data.dart';
+import '../models/admin_models.dart';
 
 abstract interface class AdminAcademicDataSource {
   Future<List<AdminCourseModel>> getCourses();
   Future<void> createCourse(AdminCourseModel course);
+  Future<void> patchCourse(String code, Map<String, Object?> fields);
   Future<List<AdminClassModel>> getClasses();
+  Future<List<AdminUserModel>> getTeachers();
+  Future<List<AdminGradeAuditRow>> classGrades(String classCode);
+  Future<List<AdminEnrolledStudent>> getEnrollments(String classCode);
+  Future<void> updateEnrollment({
+    required String classCode,
+    required String enrollmentId,
+    required Map<String, Object?> fields,
+  });
   Future<void> createClass({
     required String code,
     required String courseCode,
@@ -67,12 +76,88 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
   }
 
   @override
+  Future<void> patchCourse(String code, Map<String, Object?> fields) async {
+    await _request(
+      'PATCH',
+      '/api/admin/courses/${Uri.encodeComponent(code)}',
+      body: fields,
+    );
+  }
+
+  @override
   Future<List<AdminClassModel>> getClasses() async {
     final response = await _request('GET', '/api/admin/classes');
     if (response is! List) {
       throw const AdminAcademicApiException('Resposta inválida da API.');
     }
     return response.map(_classFromJson).toList();
+  }
+
+  @override
+  Future<List<AdminUserModel>> getTeachers() async {
+    final response = await _request('GET', '/api/admin/teachers');
+    if (response is! List) {
+      throw const AdminAcademicApiException('Resposta inválida da API.');
+    }
+    return response.whereType<Map>().map((item) {
+      final value = Map<String, dynamic>.from(item);
+      return AdminUserModel(
+        id: value['id']?.toString() ?? value['identity']?.toString() ?? '',
+        identity: value['identity']?.toString() ?? '',
+        name: value['name']?.toString() ?? '',
+        email: value['email']?.toString() ?? '',
+        profile: 'docente',
+        departmentOrCourse: value['department']?.toString() ?? '',
+        status: value['active'] == true ? 'Ativo' : 'Suspenso',
+        twoFactorRequired: false,
+        activeSessionsCount: 0,
+      );
+    }).toList();
+  }
+
+  @override
+  Future<List<AdminGradeAuditRow>> classGrades(String classCode) async {
+    final response = await _request(
+      'GET',
+      '/api/admin/classes/${Uri.encodeComponent(classCode)}/grades',
+    );
+    if (response is! List) {
+      throw const AdminAcademicApiException('Resposta inválida da API.');
+    }
+    return response
+        .whereType<Map>()
+        .map((item) =>
+            AdminGradeAuditRow.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  @override
+  Future<List<AdminEnrolledStudent>> getEnrollments(String classCode) async {
+    final response = await _request(
+      'GET',
+      '/api/admin/classes/${Uri.encodeComponent(classCode)}/enrollments',
+    );
+    if (response is! List) {
+      throw const AdminAcademicApiException('Resposta inválida da API.');
+    }
+    return response
+        .whereType<Map>()
+        .map((item) =>
+            AdminEnrolledStudent.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
+
+  @override
+  Future<void> updateEnrollment({
+    required String classCode,
+    required String enrollmentId,
+    required Map<String, Object?> fields,
+  }) async {
+    await _request(
+      'PATCH',
+      '/api/admin/classes/${Uri.encodeComponent(classCode)}/enrollments/${Uri.encodeComponent(enrollmentId)}',
+      body: fields,
+    );
   }
 
   @override
@@ -184,20 +269,47 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
       );
     }
     final formulaRegime = value['formulaRegime'] as String?;
+    final enrolledStudents = value['enrolledStudents'];
     return AdminClassModel(
       code: value['code'] as String,
+      courseCode: value['courseCode'] as String? ?? '',
       gradeLocked: value['gradeLocked'] == true,
-      subjectName: value['courseName'] as String,
-      courseName: value['courseName'] as String,
+      pautaHomologated: value['pautaHomologated'] == true,
+      chancelaCode: value['chancelaCode'] as String?,
+      subjectName: value['subjectName'] as String? ??
+          value['courseName'] as String? ??
+          '',
+      courseName: value['courseName'] as String? ??
+          value['subjectName'] as String? ??
+          '',
       semester: value['semester'] as String,
       shift: value['shift'] as String,
+      schedule: value['schedule'] as String? ?? '',
       location: value['location'] as String,
       enrolled: value['enrolled'] as int? ?? 0,
       maxCapacity: value['maxCapacity'] as int,
-      professor: value['professorIdentity'] as String? ?? 'Não atribuído',
+      enrolledStudentRas: (value['enrolledStudentRas'] as List?)
+              ?.map((item) => item.toString())
+              .toList() ??
+          const [],
+      enrolledStudents: enrolledStudents is List
+          ? enrolledStudents
+                .whereType<Map>()
+                .map((item) => AdminEnrolledStudent.fromJson(
+                      Map<String, dynamic>.from(item),
+                    ))
+                .toList()
+          : const [],
+      professor: value['professorName'] as String? ??
+          value['professorIdentity'] as String? ??
+          'Não alocado',
+      professorIdentity: value['professorIdentity'] as String?,
       formulaRegime: formulaRegime == 'admin'
           ? 'Impor pelo Admin'
           : 'Autonomia Docente',
+      evaluationFormula: value['evaluationFormula'] as String? ??
+          '(N1 × 0.4) + (N2 × 0.6)',
+      isLive: value['isLive'] == true,
     );
   }
 }
