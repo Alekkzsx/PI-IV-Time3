@@ -1,5 +1,7 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/pages/docente_assignments_tab.dart';
@@ -35,6 +37,7 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   void initState() {
     super.initState();
     _controller = DocenteController();
+    unawaited(_controller.loadRemote());
     if (widget.initialTab != DocenteNavTab.painel) {
       _controller.navigateToTab(widget.initialTab);
     }
@@ -103,6 +106,45 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        if (_controller.isLoadingRemote && _controller.courses.isEmpty) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (_controller.remoteError != null && _controller.courses.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Portal Docente'),
+              actions: [
+                TextButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sair'),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_controller.remoteError!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => unawaited(_controller.loadRemote(force: true)),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         return LayoutBuilder(
           builder: (context, constraints) {
             if (_controller.courses.isEmpty) {
