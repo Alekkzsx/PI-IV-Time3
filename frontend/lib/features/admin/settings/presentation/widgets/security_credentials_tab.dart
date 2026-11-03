@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
+import '../../../../../core/network/auth_profile_remote_data_source.dart';
 import '../../../../../core/state/app_user_session.dart';
-import '../../../../auth/shared/presentation/change_password_dialog.dart';
 
 /// Configuration tab for Administrator Security & Credentials.
 ///
@@ -16,6 +16,7 @@ class SecurityCredentialsTab extends StatefulWidget {
 }
 
 class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
+  final _profileRemote = AuthProfileRemoteDataSource();
   bool? _twoFactor;
   String? _error;
   @override
@@ -27,12 +28,13 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
   Future<void> _loadAccount() async {
     if (AppUserSession.instance.accessToken == null) return;
     try {
-      final user = await AuthenticatedApiClient().request(
-        'GET',
-        '/api/auth/me',
-      );
+      final user = await _profileRemote.me();
       if (mounted) {
-        setState(() => _twoFactor = (user as Map)['twoFactorRequired'] == true);
+        setState(
+          () => _twoFactor =
+              user['twoFactorEnabled'] == true ||
+              user['twoFactorRequired'] == true,
+        );
       }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -40,10 +42,54 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
   }
 
   Future<void> _changePassword() async {
-    final changed = await showPasswordChangeDialog(context);
-    if (changed == true && mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    final current = TextEditingController();
+    final next = TextEditingController();
+    final confirm = TextEditingController();
+    final values = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Alterar senha'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: current, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Senha atual')),
+            TextField(controller: next, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Nova senha')),
+            TextField(controller: confirm, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Confirmar senha')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () {
+              if (next.text.length < 8 || next.text != confirm.text) return;
+              Navigator.pop(context, [current.text, next.text]);
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    if (values != null) {
+      try {
+        await _profileRemote.changePassword(
+          currentPassword: values[0],
+          newPassword: values[1],
+        );
+        AppUserSession.instance.signOut();
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+      } on ApiException catch (error) {
+        if (mounted) setState(() => _error = error.message);
+      }
     }
+    current.dispose();
+    next.dispose();
+    confirm.dispose();
   }
 
   Future<void> _toggleTwoFactor() async {
@@ -72,14 +118,49 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
     password.dispose();
     if (entered == null || !mounted) return;
     try {
-      await AuthenticatedApiClient().request(
-        'POST',
-        '/api/auth/two-factor',
-        body: {'password': entered, 'enabled': _twoFactor != true},
+      await _profileRemote.toggleTwoFactor(
+        password: entered,
+        enabled: _twoFactor != true,
       );
       AppUserSession.instance.signOut();
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+
+      Future<void> _showBackupCodes() async {
+        try {
+          final codes = await _profileRemote.backupCodes();
+          if (!mounted) return;
+          await showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Códigos de recuperação'),
+              content: SizedBox(
+                width: 360,
+                child: codes.isEmpty
+                    ? const Text('Nenhum código disponível.')
+                    : SelectableText(codes.join('\n')),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fechar'),
+                ),
+              ],
+            ),
+          );
+        } on ApiException catch (error) {
+          if (mounted) setState(() => _error = error.message);
+        }
+      }
+
+      Future<void> _logoutOthers() async {
+        try {
+          await _profileRemote.logoutOthers();
+          if (mounted) setState(() {});
+        } on ApiException catch (error) {
+          if (mounted) setState(() => _error = error.message);
+        }
       }
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -109,6 +190,114 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
         child: _buildInfoColumn(
           'Senhas protegidas com bcrypt',
           'A troca da senha encerra as sessões anteriores.',
+        ),
+      ),
+      const SizedBox(height: 20),
+      _buildSecurityCard(
+        icon: Icons.key_outlined,
+        title: 'Códigos de recuperação',
+        badgeText: 'Protegidos',
+        badgeBg: const Color(0xFFEFF6FF),
+        badgeBorder: const Color(0xFFBFDBFE),
+        badgeTextColor: const Color(0xFF1D4ED8),
+        subtitle: 'Consulte os códigos de recuperação emitidos para sua conta.',
+        actionButton: OutlinedButton(
+          onPressed: _showBackupCodes,
+          child: const Text('Consultar códigos'),
+        ),
+        child: const Text('Os códigos devem ser armazenados em local seguro.'),
+      ),
+      const SizedBox(height: 20),
+      _buildSecurityCard(
+        icon: Icons.devices_outlined,
+        title: 'Sessões e acessos recentes',
+        badgeText: 'Gerenciar',
+        badgeBg: const Color(0xFFF1F5F9),
+        badgeBorder: const Color(0xFFE2E8F0),
+        badgeTextColor: const Color(0xFF334155),
+        subtitle: 'Revogue sessões que você não reconhece.',
+        actionButton: OutlinedButton(
+          onPressed: _logoutOthers,
+          child: const Text('Encerrar outras sessões'),
+        ),
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _profileRemote.sessions(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LinearProgressIndicator();
+            }
+            if (snapshot.hasError) {
+              return Text('Falha ao carregar sessões: ${snapshot.error}');
+            }
+            final sessions = snapshot.data ?? const [];
+            if (sessions.isEmpty) return const Text('Nenhuma sessão ativa.');
+            return Column(
+              children: sessions.map((session) {
+                final id = session['id']?.toString() ?? '';
+                final current = session['isCurrent'] == true;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    '${session['device'] ?? 'Dispositivo'}${current ? ' · Esta sessão' : ''}',
+                  ),
+                  subtitle: Text(
+                    '${session['location'] ?? ''} · ${session['lastActive'] ?? ''}',
+                  ),
+                  trailing: current
+                      ? null
+                      : IconButton(
+                          tooltip: 'Revogar sessão',
+                          onPressed: () async {
+                            try {
+                              await _profileRemote.revokeSession(id);
+                              if (mounted) setState(() {});
+                            } on ApiException catch (error) {
+                              if (mounted) setState(() => _error = error.message);
+                            }
+                          },
+                          icon: const Icon(Icons.logout),
+                        ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 20),
+      _buildSecurityCard(
+        icon: Icons.history,
+        title: 'Registros de segurança',
+        badgeText: 'Auditoria',
+        badgeBg: const Color(0xFFF1F5F9),
+        badgeBorder: const Color(0xFFE2E8F0),
+        badgeTextColor: const Color(0xFF334155),
+        subtitle: 'Atividades de segurança recentes da sua conta.',
+        actionButton: const SizedBox.shrink(),
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _profileRemote.securityLogs(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const LinearProgressIndicator();
+            }
+            if (snapshot.hasError) {
+              return Text('Falha ao carregar os registros: ${snapshot.error}');
+            }
+            final logs = snapshot.data ?? const [];
+            if (logs.isEmpty) return const Text('Nenhum registro disponível.');
+            return Column(
+              children: logs
+                  .map((log) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          '${log['action'] ?? log['event'] ?? 'Atividade de segurança'}',
+                        ),
+                        subtitle: Text(
+                          '${log['createdAt'] ?? log['timestamp'] ?? ''}',
+                        ),
+                      ))
+                  .toList(),
+            );
+          },
         ),
       ),
       const SizedBox(height: 20),

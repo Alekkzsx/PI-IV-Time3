@@ -468,7 +468,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Disciplina: ${widget.item.disciplineName} • Docente: ${widget.item.professor ?? "Docente Titular"} • Peso: ${widget.item.weight.toStringAsFixed(1)}',
+            'Disciplina: ${widget.item.disciplineName} • Docente: ${widget.item.professor ?? "—"} • Peso: ${widget.item.weight.toStringAsFixed(1)}',
             style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
           ),
         ],
@@ -514,7 +514,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Tamanho: ${_attachedFileSize ?? "4.2 MB"} • Arquivo íntegro verificado',
+                    'Tamanho: ${_attachedFileSize ?? "—"} • Arquivo selecionado',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF16A34A),
@@ -584,7 +584,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
             const SizedBox(height: 4),
             Text(
               widget.item.allowedFormats ??
-                  'Formatos aceitos: .pdf, .zip • Max: 25MB',
+                  'Formatos não informados • Tamanho máximo: 7 MB',
               style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
             ),
           ],
