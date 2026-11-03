@@ -135,11 +135,9 @@ class AppRouter {
     final roomCode = arguments is Map
         ? arguments['roomCode']?.toString()
         : null;
-    if (roomCode == null || roomCode.trim().isEmpty) {
-      return _accessDenied(context, 'Selecione uma turma para continuar.');
-    }
-
-    return VideoCallLobbyPage(initialRoomCode: roomCode);
+    return VideoCallLobbyPage(
+      initialRoomCode: roomCode?.trim().isNotEmpty == true ? roomCode : null,
+    );
   }
 
   static Widget _accessDenied(BuildContext context, String message) {

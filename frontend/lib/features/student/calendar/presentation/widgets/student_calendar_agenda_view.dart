@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 
 /// Visualização em lista/agenda dos compromissos e prazos do estudante.
 class StudentCalendarAgendaView extends StatefulWidget {
