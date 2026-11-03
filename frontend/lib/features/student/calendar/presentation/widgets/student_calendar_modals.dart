@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
@@ -33,32 +33,34 @@ class _CalendarEventDialogState extends State<_CalendarEventDialog> {
 
   // Controllers da aba Evento
   final _eventTitleController = TextEditingController();
-  final _eventDateController = TextEditingController(text: '20/10/2026');
+  final _eventDateController = TextEditingController();
   final _eventLocationController = TextEditingController();
   String _startTime = '19:00';
   String _endTime = '20:40';
   String _frequency = 'Não se repete';
-  String _selectedCalendar =
-      '218131 - ANÁLISE E PROJETO DE SISTEMAS II (MAT) 0103-04-26-2s';
+  late String _selectedCalendar;
 
   // Controllers da aba Tarefa
   final _taskTitleController = TextEditingController();
-  final _taskDateController = TextEditingController(text: '20/10/2026');
+  final _taskDateController = TextEditingController();
   final _taskTimeController = TextEditingController(text: '23:59');
   final _taskDetailsController = TextEditingController();
 
-  final List<String> _calendarOptions = [
-    '218131 - ANÁLISE E PROJETO DE SISTEMAS II (MAT) 0103-04-26-2s',
-    '218131 - ESTUDOS DE BANCO DE DADOS II (MAT) 0103-04-26-2s',
-    '218131 - FILOSOFIA, INFORMAÇÃO E SOCIEDADE (MAT) 0103-04-26-2s',
-    '218131 - FUNDAMENTOS DE SISTEMAS OPERACIONAIS',
+  List<String> get _calendarOptions => [
+    'Pessoal',
+    ...widget.controller.disciplines.map((discipline) => discipline.code),
   ];
-  final List<String> _calendarDisciplineCodes = [
-    'APS-II',
-    'BD-II',
-    'FIS',
-    'FSO',
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final today = DateTime.now();
+    final date =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+    _eventDateController.text = date;
+    _taskDateController.text = date;
+    _selectedCalendar = _calendarOptions.firstOrNull ?? 'Pessoal';
+  }
 
   @override
   void dispose() {
@@ -160,9 +162,8 @@ class _CalendarEventDialogState extends State<_CalendarEventDialog> {
 
     final isoDate =
         '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    final calendarIndex = _calendarOptions.indexOf(_selectedCalendar);
-    final discipline = calendarIndex >= 0
-        ? _calendarDisciplineCodes[calendarIndex]
+    final discipline = _calendarOptions.contains(_selectedCalendar)
+        ? _selectedCalendar
         : 'Pessoal';
     try {
       await widget.controller.addCalendarEvent(
@@ -178,7 +179,13 @@ class _CalendarEventDialogState extends State<_CalendarEventDialog> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error is ApiException ? error.message : 'Não foi possível salvar o evento.')),
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : 'Não foi possível salvar o evento.',
+          ),
+        ),
       );
       return;
     }

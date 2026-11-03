@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
 
 /// Tabela responsiva de usuários com identificação, perfil, curso/lotação, status e ações de segurança.
@@ -10,7 +10,6 @@ class UserListTable extends StatelessWidget {
   final List<AdminUserModel> users;
   final ValueChanged<AdminUserModel> onResetPassword;
   final ValueChanged<String> onToggleStatus;
-  final ValueChanged<AdminUserModel>? onImpersonate;
   final ValueChanged<AdminUserModel>? onManageSessions;
   final ValueChanged<AdminUserModel>? onSuspendWithReason;
   final ValueChanged<AdminUserModel>? onViewDossier;
@@ -21,7 +20,6 @@ class UserListTable extends StatelessWidget {
     required this.users,
     required this.onResetPassword,
     required this.onToggleStatus,
-    this.onImpersonate,
     this.onManageSessions,
     this.onSuspendWithReason,
     this.onViewDossier,
@@ -381,9 +379,6 @@ class UserListTable extends StatelessWidget {
                   elevation: 4,
                   onSelected: (val) {
                     switch (val) {
-                      case 'impersonate':
-                        onImpersonate?.call(u);
-                        break;
                       case 'sessions':
                         onManageSessions?.call(u);
                         break;
@@ -400,23 +395,6 @@ class UserListTable extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'impersonate',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.visibility_outlined,
-                            size: 16,
-                            color: Color(0xFF2563EB),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Modo Suporte (Impersonate)',
-                            style: jakarta(size: 12.5),
-                          ),
-                        ],
-                      ),
-                    ),
                     PopupMenuItem(
                       value: 'sessions',
                       child: Row(

@@ -1,8 +1,8 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Diálogo institucional de ativação do Modo Suporte / Visualização Espelho (Impersonation).
 /// Garante ciência de auditoria sob a LGPD e resoluções do CONSEPE.

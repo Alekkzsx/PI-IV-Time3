@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 class AdminUserRemoteDataSource {
   static const String _baseUrl = String.fromEnvironment(

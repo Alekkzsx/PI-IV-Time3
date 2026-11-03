@@ -1,7 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 import 'package:flutter/material.dart';
 import '../../../shared/controllers/admin_portal_controller.dart';
-import '../../../shared/data/admin_mock_data.dart';
+import '../../../shared/models/admin_models.dart';
 
 Future<bool?> showUserEditDialog(BuildContext context, AdminUserModel user) =>
     showDialog<bool>(

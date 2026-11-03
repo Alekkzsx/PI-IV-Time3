@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
 import '../../../../../core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Diálogo para inspeção e encerramento forçado de sessões ativas do usuário.
 class UserSessionsDialog extends StatelessWidget {
