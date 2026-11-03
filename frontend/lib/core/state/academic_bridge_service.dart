@@ -1,24 +1,23 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-// Barramento Central de Sincronização e Regras de Negócio Multiperfil (Aluno, Docente, Admin)
+// Barramento Reativo de Sincronização Multiperfil (Aluno, Docente, Admin) — 100% alimentado por dados reais da API/MongoDB.
 
 import 'package:flutter/foundation.dart';
 import 'app_user_session.dart';
 import 'role_permission_policy.dart';
-import '../../features/student/shared/data/student_mock_data.dart';
+import '../../features/student/shared/models/student_models.dart';
 import '../../features/teacher/shared/domain/models/assignment_model.dart';
 import '../../features/teacher/shared/domain/models/rubric_model.dart';
-import '../../features/teacher/shared/data/docente_mock_data.dart';
-import '../../features/admin/shared/data/admin_mock_data.dart';
+import '../../features/admin/shared/models/admin_models.dart';
 import '../../features/student/secretariat/domain/entities/protocol_request.dart';
 
-/// Modelo de sessão de aula / vídeo chamada de uma turma.
+/// Modelo de sessão síncrona / videochamada de uma turma registrada.
 class AcademicLiveSession {
-  final String courseCode; // Ex: '218131 - APS-II' ou 'APS-II'
+  final String courseCode;
   final String courseTitle;
   final String professorName;
   final String roomCode;
   bool isOpen;
-  String? openedByRole; // 'docente', 'admin'
+  String? openedByRole;
   String? openedByName;
   String? openedByIdentity;
   DateTime? openedAt;
@@ -56,45 +55,120 @@ class AcademicLiveSession {
   }
 }
 
-/// Ouvinte para atualização de protocolos entre Aluno e Admin.
 typedef ProtocolUpdateCallback = void Function(ProtocolRequest request);
 
-/// Serviço Singleton responsável pela ponte em tempo real entre visões do Aluno, Docente e Admin.
+/// Barramento reativo entre controladores ativos no cliente (sincronizado com a API e MongoDB, sem mocks estáticos).
 class AcademicBridgeService extends ChangeNotifier {
   static final AcademicBridgeService instance =
       AcademicBridgeService._internal();
 
-  AcademicBridgeService._internal() {
-    _initLiveSessions();
-  }
+  AcademicBridgeService._internal();
 
   factory AcademicBridgeService() => instance;
 
-  // ===========================================================================
-  // 1. GESTÃO E PERMISSÕES DE VÍDEO CHAMADAS POR TURMA
-  // ===========================================================================
   final Map<String, AcademicLiveSession> _liveSessions = {};
   final Map<String, String> _courseCodeAliases = {};
+  final Map<String, Set<String>> _teacherCoursesByIdentity = {};
+  final Map<String, Set<String>> _studentCoursesByIdentity = {};
 
-  void _initLiveSessions() {
-    for (final classModel in AdminMockData.classes) {
-      final classCode = classModel.code.trim().toUpperCase();
-      final shortCode = classCode.split(' - ').last.trim();
-      _courseCodeAliases[classCode] = shortCode;
-      _courseCodeAliases[shortCode] = shortCode;
-      _liveSessions.putIfAbsent(
-        shortCode,
-        () => AcademicLiveSession(
-          courseCode: shortCode,
-          courseTitle: classModel.subjectName,
-          professorName: classModel.professor,
-          roomCode: shortCode,
-        ),
-      );
+  /// Registra uma turma real carregada do backend (Admin, Docente ou Aluno).
+  void registerClassRoom({
+    required String code,
+    required String subjectName,
+    required String professorName,
+    String? professorIdentity,
+    bool? isOpen,
+    String? openedByName,
+    String? openedByRole,
+    String? openedByIdentity,
+  }) {
+    final fullUpper = code.trim().toUpperCase();
+    if (fullUpper.isEmpty) return;
+    final shortCode = fullUpper.contains(' - ')
+        ? fullUpper.split(' - ').last.trim()
+        : fullUpper;
+    final sanitized = sanitizeRoomCode(shortCode);
+
+    _courseCodeAliases[fullUpper] = shortCode;
+    _courseCodeAliases[shortCode] = shortCode;
+    _courseCodeAliases[sanitized] = shortCode;
+    _courseCodeAliases[sanitizeRoomCode(fullUpper)] = shortCode;
+
+    final existing = _liveSessions[shortCode];
+    final session = AcademicLiveSession(
+      courseCode: shortCode,
+      courseTitle: subjectName,
+      professorName: professorName,
+      roomCode: sanitized,
+      isOpen: isOpen ?? existing?.isOpen ?? false,
+      openedByRole: openedByRole ?? existing?.openedByRole,
+      openedByName: openedByName ?? existing?.openedByName,
+      openedByIdentity: openedByIdentity ?? existing?.openedByIdentity,
+      openedAt: (isOpen == true && existing?.openedAt == null)
+          ? DateTime.now()
+          : existing?.openedAt,
+    );
+    _liveSessions[shortCode] = session;
+    _liveSessions[sanitized] = session;
+
+    if (professorIdentity != null && professorIdentity.trim().isNotEmpty) {
+      final norm = professorIdentity.trim().toLowerCase();
+      (_teacherCoursesByIdentity[norm] ??= <String>{}).add(shortCode);
     }
   }
 
-  /// Retorna as informações da sessão de uma turma ou cria um placeholder.
+  /// Registra vínculos reais de turmas lecionadas por um docente.
+  void registerTeacherCourses(
+    String teacherIdentity,
+    Iterable<String> courseCodes, {
+    String? teacherEmail,
+  }) {
+    final norm = teacherIdentity.trim().toLowerCase();
+    if (norm.isEmpty) return;
+    final normalizedSet = courseCodes.map(_normalizeCourseCode).toSet();
+    _teacherCoursesByIdentity[norm] = normalizedSet;
+    if (teacherEmail != null && teacherEmail.trim().isNotEmpty) {
+      _teacherCoursesByIdentity[teacherEmail.trim().toLowerCase()] =
+          normalizedSet;
+    }
+  }
+
+  /// Registra vínculos reais de matrículas de um discente.
+  void registerStudentEnrollments(
+    String studentIdentity,
+    Iterable<String> courseCodes, {
+    String? studentEmail,
+  }) {
+    final norm = studentIdentity.trim().toLowerCase();
+    if (norm.isEmpty) return;
+    final normalizedSet = courseCodes.map(_normalizeCourseCode).toSet();
+    _studentCoursesByIdentity[norm] = normalizedSet;
+    if (studentEmail != null && studentEmail.trim().isNotEmpty) {
+      _studentCoursesByIdentity[studentEmail.trim().toLowerCase()] =
+          normalizedSet;
+    }
+  }
+
+  /// Limpa os vínculos em memória ao deslogar ou redefinir suítes de teste.
+  void clearRuntimeBindings() {
+    _liveSessions.clear();
+    _courseCodeAliases.clear();
+    _teacherCoursesByIdentity.clear();
+    _studentCoursesByIdentity.clear();
+    _sharedMaterials.clear();
+    _broadcastNotices.clear();
+    _deliveryIdsByAssignment.clear();
+  }
+
+  static String sanitizeRoomCode(String raw) {
+    return raw
+        .trim()
+        .toUpperCase()
+        .replaceAll(RegExp(r'\s*-\s*'), '-')
+        .replaceAll(RegExp(r'\s+'), '-')
+        .replaceAll(RegExp(r'[^A-Z0-9._-]'), '');
+  }
+
   AcademicLiveSession getSession(String rawCode) {
     final cleanCode = _normalizeCourseCode(rawCode);
     return _liveSessions[cleanCode] ??
@@ -102,12 +176,11 @@ class AcademicBridgeService extends ChangeNotifier {
           courseCode: cleanCode,
           courseTitle: 'Turma $cleanCode',
           professorName: 'Docente Responsável',
-          roomCode: cleanCode,
+          roomCode: sanitizeRoomCode(cleanCode),
           isOpen: false,
         );
   }
 
-  /// Verifica se a sessão de uma turma está aberta no momento.
   bool isSessionOpen(String rawCode) {
     final cleanCode = _normalizeCourseCode(rawCode);
     return _liveSessions[cleanCode]?.isOpen ?? false;
@@ -117,12 +190,24 @@ class AcademicBridgeService extends ChangeNotifier {
     return _liveSessions.containsKey(_normalizeCourseCode(rawCode));
   }
 
-  /// Valida se o perfil do usuário possui autorização institucional para ABRIR a vídeo chamada.
-  /// A autorização por turma é verificada em [canUserOpenSessionForCourse].
   bool canUserOpenSession({required String role}) {
     final normalized = role.toLowerCase().trim();
     return normalized == RolePermissionPolicy.teacher ||
         normalized == RolePermissionPolicy.admin;
+  }
+
+  bool _teacherOwnsCourse(String? teacherIdentity, String normalizedCode) {
+    final norm = (teacherIdentity ?? '').trim().toLowerCase();
+    if (norm.isEmpty) return false;
+    final set = _teacherCoursesByIdentity[norm];
+    return set != null && set.contains(normalizedCode);
+  }
+
+  bool _studentEnrolledInCourse(String? studentIdentity, String normalizedCode) {
+    final norm = (studentIdentity ?? '').trim().toLowerCase();
+    if (norm.isEmpty) return false;
+    final set = _studentCoursesByIdentity[norm];
+    return set != null && set.contains(normalizedCode);
   }
 
   bool canUserOpenSessionForCourse({
@@ -137,9 +222,7 @@ class AcademicBridgeService extends ChangeNotifier {
       return false;
     }
     if (normalizedRole == 'admin') return true;
-    return DocenteMockData.coursesForIdentity(
-      teacherIdentity ?? '',
-    ).any((course) => _normalizeCourseCode(course.code) == courseCode);
+    return _teacherOwnsCourse(teacherIdentity, courseCode);
   }
 
   bool canUserJoinSession({
@@ -163,14 +246,9 @@ class AcademicBridgeService extends ChangeNotifier {
     if (normalizedRole != RolePermissionPolicy.student) {
       return false;
     }
-    final normalizedRa = studentRa?.trim();
-    if (normalizedRa != StudentMockData.studentRa) return false;
-    return StudentMockData.disciplines.any(
-      (discipline) => _normalizeCourseCode(discipline.code) == courseCode,
-    );
+    return _studentEnrolledInCourse(studentRa, courseCode);
   }
 
-  /// Abre a vídeo chamada da turma. Retorna `true` se autorizado, `false` se negado.
   bool openSession({
     required String rawCourseCode,
     required String openedByRole,
@@ -188,9 +266,6 @@ class AcademicBridgeService extends ChangeNotifier {
           teacherIdentity: openedByIdentity,
         ) ||
         (roomCode != null && _normalizeCourseCode(roomCode) != cleanCode)) {
-      debugPrint(
-        '[AcademicBridge] Abertura negada para papel/turma sem autorização válida.',
-      );
       return false;
     }
 
@@ -205,25 +280,20 @@ class AcademicBridgeService extends ChangeNotifier {
     _liveSessions[session.roomCode] = session;
 
     notifyListeners();
-    debugPrint(
-      '[AcademicBridge] Sala ${session.roomCode} ABERTA com sucesso por $openedByName ($openedByRole).',
-    );
     return true;
   }
 
-  /// Encerra a vídeo chamada da turma.
   bool closeSession(String rawCourseCode) {
     final cleanCode = _normalizeCourseCode(rawCourseCode);
     final session = _liveSessions[cleanCode];
     final user = AppUserSession.instance;
     if (session == null ||
         !session.isOpen ||
-        !(user.hasRole(RolePermissionPolicy.admin) &&
-                user.hasPermission('manage_video_calls') ||
-            user.hasRole(RolePermissionPolicy.teacher) &&
+        !((user.hasRole(RolePermissionPolicy.admin) &&
+                user.hasPermission('manage_video_calls')) ||
+            (user.hasRole(RolePermissionPolicy.teacher) &&
                 session.openedByRole == RolePermissionPolicy.teacher &&
-                session.openedByIdentity == user.identity)) {
-      debugPrint('[AcademicBridge] Encerramento negado para o perfil atual.');
+                session.openedByIdentity == user.identity))) {
       return false;
     }
     session.isOpen = false;
@@ -232,23 +302,41 @@ class AcademicBridgeService extends ChangeNotifier {
     session.openedByIdentity = null;
     session.openedAt = null;
     notifyListeners();
-    debugPrint('[AcademicBridge] Sala $cleanCode ENCERRADA.');
     return true;
+  }
+
+  /// Sincroniza estado real vindo de `/api/video-call/rooms` sem exigir regras de clique local.
+  void syncServerRoomStatus({
+    required String classCode,
+    required String title,
+    required String professorName,
+    required bool isOpen,
+    String? openedByName,
+  }) {
+    registerClassRoom(
+      code: classCode,
+      subjectName: title,
+      professorName: professorName,
+      isOpen: isOpen,
+      openedByName: openedByName,
+      openedByRole: isOpen ? 'docente' : null,
+    );
+    notifyListeners();
   }
 
   String _normalizeCourseCode(String raw) {
     final trimmed = raw.trim().toUpperCase();
-    return _courseCodeAliases[trimmed] ?? trimmed;
+    return _courseCodeAliases[trimmed] ??
+        _courseCodeAliases[sanitizeRoomCode(trimmed)] ??
+        trimmed;
   }
 
   bool courseCodesMatch(String first, String second) =>
       _normalizeCourseCode(first) == _normalizeCourseCode(second);
 
   // ===========================================================================
-  // 2. ATIVIDADES, TAREFAS, UPLOADS E AVALIAÇÃO COM RUBRICA (DOCENTE <-> ALUNO)
+  // 2. ATIVIDADES, SUBMISSÕES E AVALIAÇÕES (DOCENTE <-> ALUNO)
   // ===========================================================================
-
-  /// Callback registrado pelo DocenteController para receber notificações de novas submissões do aluno.
   bool Function(
     String assignmentId,
     String courseCode,
@@ -256,14 +344,12 @@ class AcademicBridgeService extends ChangeNotifier {
   )?
   onDocenteSubmissionReceived;
 
-  /// Callback registrado pelo StudentPortalController para incorporar nova atividade do professor.
   void Function(
     StudentDeliveryItem newDelivery,
     StudentCalendarEvent calendarEvent,
   )?
   onAssignmentPublishedToStudent;
 
-  /// Callback registrado pelo StudentPortalController para atualizar nota e rubricas avaliadas pelo docente.
   void Function(
     String deliveryId,
     double finalScore,
@@ -272,11 +358,9 @@ class AcademicBridgeService extends ChangeNotifier {
   )?
   onGradedReceivedByStudent;
 
-  /// Callback registrado pelo StudentPortalController para receber atividades publicadas ou notas.
   VoidCallback? onStudentDataChanged;
   final Map<String, String> _deliveryIdsByAssignment = {};
 
-  /// Publica uma nova atividade do Docente para a visão do Aluno.
   void publishAssignmentToStudent({
     required String courseCode,
     required String courseTitle,
@@ -291,9 +375,9 @@ class AcademicBridgeService extends ChangeNotifier {
   }) {
     final session = AppUserSession.instance;
     final cleanDiscCode = _normalizeCourseCode(courseCode);
-    final teachesCourse = DocenteMockData.coursesForIdentity(
-      session.identity ?? '',
-    ).any((course) => courseCodesMatch(course.code, courseCode));
+    final teachesCourse =
+        session.hasRole('admin') ||
+        _teacherOwnsCourse(session.identity, cleanDiscCode);
     if (!session.hasPermission('manage_assignments') ||
         !teachesCourse ||
         !_liveSessions.containsKey(cleanDiscCode) ||
@@ -302,15 +386,12 @@ class AcademicBridgeService extends ChangeNotifier {
         weight <= 0 ||
         !weight.isFinite ||
         rubricCriteria.isEmpty) {
-      debugPrint(
-        '[AcademicBridge] Publicação de atividade recusada por perfil, turma ou dados inválidos.',
-      );
       return;
     }
     final delivery = StudentDeliveryItem(
       id: assignmentId,
       sourceAssignmentId: assignmentId,
-      activityCode: '${cleanDiscCode.split('-').first} - ATV - 05',
+      activityCode: '${cleanDiscCode.split('-').first} - ATV',
       title: title,
       disciplineCode: cleanDiscCode,
       disciplineName: courseTitle,
@@ -325,7 +406,7 @@ class AcademicBridgeService extends ChangeNotifier {
       professor: professorName,
       deadlineBadge: 'Prazo: $dueDateFormatted',
       isUrgent: false,
-      allowedFormats: '.pdf, .zip, .drawio • Max: 50MB',
+      allowedFormats: '.pdf, .zip, .txt • Max: 10MB',
       rubrics: rubricCriteria
           .map(
             (r) => {
@@ -350,20 +431,11 @@ class AcademicBridgeService extends ChangeNotifier {
       location: 'Ambiente Virtual de Aprendizagem (AVA)',
     );
 
-    if (onAssignmentPublishedToStudent != null) {
-      onAssignmentPublishedToStudent!(delivery, event);
-    }
-
+    onAssignmentPublishedToStudent?.call(delivery, event);
     notifyListeners();
-    if (onStudentDataChanged != null) {
-      onStudentDataChanged!();
-    }
-    debugPrint(
-      '[AcademicBridge] Atividade "$title" publicada pelo professor para a turma $courseCode.',
-    );
+    onStudentDataChanged?.call();
   }
 
-  /// O Aluno realiza o upload de uma entrega e notifica o Docente responsável.
   bool notifySubmissionToDocente({
     required String deliveryId,
     required String assignmentId,
@@ -373,33 +445,36 @@ class AcademicBridgeService extends ChangeNotifier {
     required String fileName,
     required String protocol,
     String? comments,
+    String? studentId,
   }) {
     final cleanCourseCode = _normalizeCourseCode(courseCode);
     final session = AppUserSession.instance;
+    final activeIdentity = (session.identity ?? '').trim().toLowerCase();
+    final matchesAuthenticatedStudent =
+        activeIdentity.isNotEmpty &&
+        (activeIdentity == studentRa.trim().toLowerCase() ||
+            activeIdentity == (session.email ?? '').trim().toLowerCase()) &&
+        _studentEnrolledInCourse(studentRa, cleanCourseCode);
     if (!session.hasPermission('submit_assignments') ||
-        !StudentMockData.ownsDemoRecords(session.identity ?? '') ||
-        studentRa != StudentMockData.studentRa ||
+        !matchesAuthenticatedStudent ||
         cleanCourseCode.isEmpty ||
         assignmentId.trim().isEmpty ||
         deliveryId.trim().isEmpty ||
         fileName.trim().isEmpty) {
-      debugPrint(
-        '[AcademicBridge] Submissão recusada: atividade ou turma inválida.',
-      );
       return false;
     }
     final submission = StudentSubmission(
       id: 'sub-$deliveryId-$studentRa',
-      studentId: 'st-1',
+      studentId: studentId ?? session.userId ?? studentRa,
       ra: studentRa,
       studentName: studentName,
       fileName: fileName,
       submittedAtFormatted:
           'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-      fileSize: '2.8 MB',
+      fileSize: '',
       grade: null,
       status: SubmissionStatus.aguardandoCorrecao,
-      teacherFeedback: comments != null
+      teacherFeedback: comments != null && comments.isNotEmpty
           ? 'Comentário do Aluno: $comments [Prot: $protocol]'
           : null,
       rubricEvaluations: const [],
@@ -411,22 +486,13 @@ class AcademicBridgeService extends ChangeNotifier {
           cleanCourseCode,
           submission,
         ) ??
-        false;
-    if (!accepted) {
-      debugPrint(
-        '[AcademicBridge] Submissão recusada: atividade, turma ou matrícula não conferem.',
-      );
-      return false;
-    }
+        true;
+    if (!accepted) return false;
     _deliveryIdsByAssignment[assignmentId] = deliveryId;
     notifyListeners();
-    debugPrint(
-      '[AcademicBridge] Aluno $studentName submeteu arquivo "$fileName" com protocolo $protocol.',
-    );
     return true;
   }
 
-  /// O Docente avalia a atividade com rubricas e notas, sincronizando a visão do Aluno.
   void notifyGradedToStudent({
     required String deliveryId,
     required String courseCode,
@@ -435,44 +501,34 @@ class AcademicBridgeService extends ChangeNotifier {
     required List<RubricCriterion> evaluatedRubrics,
   }) {
     final session = AppUserSession.instance;
-    final teachesCourse = DocenteMockData.coursesForIdentity(
-      session.identity ?? '',
-    ).any((course) => courseCodesMatch(course.code, courseCode));
+    final cleanCode = _normalizeCourseCode(courseCode);
+    final teachesCourse =
+        session.hasRole('admin') ||
+        _teacherOwnsCourse(session.identity, cleanCode);
     if (!session.hasPermission('manage_assignments') ||
         !teachesCourse ||
         !finalScore.isFinite ||
         finalScore < 0 ||
         finalScore > 10) {
-      debugPrint('[AcademicBridge] Avaliação negada para o perfil atual.');
       return;
     }
     final studentDeliveryId =
         _deliveryIdsByAssignment[deliveryId] ?? deliveryId;
-    if (onGradedReceivedByStudent != null) {
-      onGradedReceivedByStudent!(
-        studentDeliveryId,
-        finalScore,
-        feedback,
-        evaluatedRubrics,
-      );
-    }
-    notifyListeners();
-    if (onStudentDataChanged != null) {
-      onStudentDataChanged!();
-    }
-    debugPrint(
-      '[AcademicBridge] Submissão $deliveryId avaliada pelo docente com nota $finalScore.',
+    onGradedReceivedByStudent?.call(
+      studentDeliveryId,
+      finalScore,
+      feedback,
+      evaluatedRubrics,
     );
+    notifyListeners();
+    onStudentDataChanged?.call();
   }
 
   // ===========================================================================
-  // 3. SECRETARIA ACADÊMICA GERAL E PROTOCOLOS (ALUNO <-> ADMIN)
+  // 3. SECRETARIA ACADÊMICA E PROTOCOLOS (ALUNO <-> ADMIN)
   // ===========================================================================
-
-  /// Callback registrado pelo AdminPortalController para receber novos requerimentos protocolados pelo aluno.
   void Function(AdminProtocolModel protocol)? onAdminProtocolReceived;
 
-  /// Callback registrado pelo StudentSecretariatController para receber despachos homologados pelo admin.
   void Function(
     String protocolCode,
     bool isApproved,
@@ -481,7 +537,6 @@ class AcademicBridgeService extends ChangeNotifier {
   )?
   onStudentProtocolUpdated;
 
-  /// O Aluno cadastra um novo requerimento formal na Secretaria Virtual.
   void submitProtocolFromStudent({
     required String protocolCode,
     required String studentName,
@@ -491,17 +546,20 @@ class AcademicBridgeService extends ChangeNotifier {
     required String justification,
     String? attachmentName,
   }) {
-    if (!AppUserSession.instance.hasPermission('submit_protocols') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        ) ||
-        studentRa != StudentMockData.studentRa ||
+    final session = AppUserSession.instance;
+    final activeIdentity = (session.identity ?? '').trim().toLowerCase();
+    final isSameStudent =
+        activeIdentity.isNotEmpty &&
+        (activeIdentity == studentRa.trim().toLowerCase() ||
+            activeIdentity == (session.email ?? '').trim().toLowerCase());
+    if (!session.hasPermission('submit_protocols') ||
+        !isSameStudent ||
         protocolCode.trim().isEmpty) {
-      debugPrint('[AcademicBridge] Protocolo recusado para o perfil atual.');
       return;
     }
     final adminProtocol = AdminProtocolModel(
       id: protocolCode,
+      code: protocolCode,
       studentName: studentName,
       studentRa: studentRa,
       requestType: subjectType,
@@ -515,16 +573,10 @@ class AcademicBridgeService extends ChangeNotifier {
       signedBy: 'Mesa Receptora Central',
     );
 
-    if (onAdminProtocolReceived != null) {
-      onAdminProtocolReceived!(adminProtocol);
-    }
+    onAdminProtocolReceived?.call(adminProtocol);
     notifyListeners();
-    debugPrint(
-      '[AcademicBridge] Novo protocolo $protocolCode de $studentName encaminhado à Mesa da Secretaria.',
-    );
   }
 
-  /// O Administrador analisa o requerimento e emite despacho oficial (Deferimento/Indeferimento).
   void dispatchProtocolDecision({
     required String protocolCode,
     required bool isApproved,
@@ -532,31 +584,23 @@ class AcademicBridgeService extends ChangeNotifier {
     required String approverName,
   }) {
     if (!AppUserSession.instance.hasPermission('dispatch_protocols')) {
-      debugPrint('[AcademicBridge] Despacho negado para o perfil atual.');
       return;
     }
-    if (onStudentProtocolUpdated != null) {
-      onStudentProtocolUpdated!(
-        protocolCode,
-        isApproved,
-        decisionNote,
-        approverName,
-      );
-    }
-    notifyListeners();
-    debugPrint(
-      '[AcademicBridge] Protocolo $protocolCode decidido pelo Admin: ${isApproved ? 'DEFERIDO' : 'INDEFERIDO'}.',
+    onStudentProtocolUpdated?.call(
+      protocolCode,
+      isApproved,
+      decisionNote,
+      approverName,
     );
+    notifyListeners();
   }
 
   // ===========================================================================
-  // 4. MATERIAIS DE AULA (DOCENTE -> ALUNO)
+  // 4. MATERIAIS DE AULA E COMUNICADOS
   // ===========================================================================
   final List<Map<String, dynamic>> _sharedMaterials = [];
-
   List<Map<String, dynamic>> get materials =>
       List.unmodifiable(_sharedMaterials);
-
   void Function(Map<String, dynamic> material)? onMaterialAdded;
 
   void addCourseMaterial({
@@ -564,19 +608,20 @@ class AcademicBridgeService extends ChangeNotifier {
     required String title,
     required String fileType,
     required String fileSize,
+    String? id,
   }) {
     final session = AppUserSession.instance;
-    final teachesCourse = DocenteMockData.coursesForIdentity(
-      session.identity ?? '',
-    ).any((course) => courseCodesMatch(course.code, courseCode));
+    final cleanCode = _normalizeCourseCode(courseCode);
+    final teachesCourse =
+        session.hasRole('admin') ||
+        _teacherOwnsCourse(session.identity, cleanCode);
     if (!session.hasPermission('manage_materials') ||
         !teachesCourse ||
         title.trim().isEmpty) {
-      debugPrint('[AcademicBridge] Publicação de material negada.');
       return;
     }
     final item = {
-      'id': 'mat-${DateTime.now().millisecondsSinceEpoch}',
+      'id': id ?? 'mat-${DateTime.now().millisecondsSinceEpoch}',
       'courseCode': courseCode,
       'title': title,
       'fileType': fileType,
@@ -585,20 +630,12 @@ class AcademicBridgeService extends ChangeNotifier {
           'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
     };
     _sharedMaterials.insert(0, item);
-    if (onMaterialAdded != null) {
-      onMaterialAdded!(item);
-    }
+    onMaterialAdded?.call(item);
     notifyListeners();
-    if (onStudentDataChanged != null) {
-      onStudentDataChanged!();
-    }
+    onStudentDataChanged?.call();
   }
 
-  // ===========================================================================
-  // 5. COMUNICADOS E AVISOS (DOCENTE/ADMIN -> ALUNO)
-  // ===========================================================================
   final List<Map<String, dynamic>> _broadcastNotices = [];
-
   List<Map<String, dynamic>> get broadcastNotices =>
       List.unmodifiable(_broadcastNotices);
 
@@ -611,6 +648,7 @@ class AcademicBridgeService extends ChangeNotifier {
               .toUpperCase();
           return target == 'GERAL' ||
               target == 'INSTITUCIONAL' ||
+              target == 'TODOS' ||
               normalizedCourses.contains(_normalizeCourseCode(target));
         })
         .toList(growable: false);
@@ -621,23 +659,21 @@ class AcademicBridgeService extends ChangeNotifier {
   void broadcastNotice({
     required String title,
     required String content,
-    required String senderRole, // 'docente' ou 'admin'
+    required String senderRole,
     required String senderName,
     String? targetCourse,
   }) {
     final session = AppUserSession.instance;
+    final cleanTarget = _normalizeCourseCode(targetCourse ?? '');
     final canPublish = senderRole == RolePermissionPolicy.admin
         ? session.hasPermission('publish_announcements')
         : senderRole == RolePermissionPolicy.teacher &&
               session.hasPermission('publish_course_announcements') &&
-              DocenteMockData.coursesForIdentity(session.identity ?? '').any(
-                (course) => courseCodesMatch(course.code, targetCourse ?? ''),
-              );
+              _teacherOwnsCourse(session.identity, cleanTarget);
     if (!session.hasRole(senderRole) ||
         !canPublish ||
         title.trim().isEmpty ||
         content.trim().isEmpty) {
-      debugPrint('[AcademicBridge] Publicação de comunicado negada.');
       return;
     }
     final notice = {
@@ -651,15 +687,10 @@ class AcademicBridgeService extends ChangeNotifier {
           'Hoje às ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
     };
     _broadcastNotices.insert(0, notice);
-    if (onNoticeBroadcasted != null) {
-      onNoticeBroadcasted!(notice);
-    }
+    onNoticeBroadcasted?.call(notice);
     notifyListeners();
   }
 
-  // ===========================================================================
-  // 6. FREQUÊNCIA & DIÁRIO DE CLASSE (DOCENTE -> ALUNO)
-  // ===========================================================================
   void Function(
     String courseCode,
     String sessionDate,
@@ -673,19 +704,14 @@ class AcademicBridgeService extends ChangeNotifier {
     required List<Map<String, dynamic>> attendances,
   }) {
     final session = AppUserSession.instance;
-    final teachesCourse = DocenteMockData.coursesForIdentity(
-      session.identity ?? '',
-    ).any((course) => courseCodesMatch(course.code, courseCode));
+    final cleanCode = _normalizeCourseCode(courseCode);
+    final teachesCourse =
+        session.hasRole('admin') ||
+        _teacherOwnsCourse(session.identity, cleanCode);
     if (!session.hasPermission('manage_attendance') || !teachesCourse) {
-      debugPrint('[AcademicBridge] Homologação de frequência negada.');
       return;
     }
-    if (onAttendanceHomologated != null) {
-      onAttendanceHomologated!(courseCode, sessionDate, attendances);
-    }
+    onAttendanceHomologated?.call(courseCode, sessionDate, attendances);
     notifyListeners();
-    debugPrint(
-      '[AcademicBridge] Diário de classe homologado para $courseCode com ${attendances.length} discentes.',
-    );
   }
 }
