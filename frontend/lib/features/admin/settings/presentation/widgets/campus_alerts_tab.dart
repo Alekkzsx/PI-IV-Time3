@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 
@@ -65,13 +65,15 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
                             _buildChannelCard(
                               icon: Icons.notifications_active_rounded,
                               title: 'Alertas no Portal (AVA)',
-                              description: 'Notificações instantâneas exibidas no sino superior do seu painel de estudos.',
+                              description:
+                                  'Notificações instantâneas exibidas no sino superior do seu painel de estudos.',
                             ),
                             const SizedBox(height: 14),
                             _buildChannelCard(
                               icon: Icons.mail_rounded,
                               title: 'Notificações por E-mail',
-                              description: 'Mensagens enviadas para o seu e-mail institucional e alternativo.',
+                              description:
+                                  'Mensagens enviadas para o seu e-mail institucional e alternativo.',
                             ),
                           ],
                         )
@@ -129,7 +131,8 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               _buildAlertRow(
                 icon: Icons.near_me_outlined,
                 title: 'Prazos de Tarefas & Trabalhos',
-                description: 'Lembretes automáticos antes do encerramento do prazo de submissão.',
+                description:
+                    'Lembretes automáticos antes do encerramento do prazo de submissão.',
                 customLeadTime: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 8,
@@ -137,10 +140,16 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
                   children: [
                     const Text(
                       'Lembrar-me com antecedência de:',
-                      style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(6),
@@ -170,7 +179,8 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
                             ),
                           ],
                           onChanged: (val) {
-                            if (val != null) setState(() => _selectedLeadTime = val);
+                            if (val != null)
+                              setState(() => _selectedLeadTime = val);
                           },
                         ),
                       ),
@@ -179,8 +189,10 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
                 ),
                 portalVal: _portalTasks,
                 emailVal: _emailTasks,
-                onPortalChanged: (val) => setState(() => _portalTasks = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailTasks = val ?? false),
+                onPortalChanged: (val) =>
+                    setState(() => _portalTasks = val ?? false),
+                onEmailChanged: (val) =>
+                    setState(() => _emailTasks = val ?? false),
               ),
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
@@ -189,11 +201,14 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               _buildAlertRow(
                 icon: Icons.assignment_turned_in_outlined,
                 title: 'Notas & Correções de Professores',
-                description: 'Aviso imediato assim que uma nota de prova ou trabalho for publicada.',
+                description:
+                    'Aviso imediato assim que uma nota de prova ou trabalho for publicada.',
                 portalVal: _portalGrades,
                 emailVal: _emailGrades,
-                onPortalChanged: (val) => setState(() => _portalGrades = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailGrades = val ?? false),
+                onPortalChanged: (val) =>
+                    setState(() => _portalGrades = val ?? false),
+                onEmailChanged: (val) =>
+                    setState(() => _emailGrades = val ?? false),
               ),
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
@@ -202,11 +217,14 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               _buildAlertRow(
                 icon: Icons.chat_bubble_outline_rounded,
                 title: 'Fóruns & Respostas',
-                description: 'Quando alguém responder ou curtir uma mensagem em tópicos que você participa.',
+                description:
+                    'Quando alguém responder ou curtir uma mensagem em tópicos que você participa.',
                 portalVal: _portalForums,
                 emailVal: _emailForums,
-                onPortalChanged: (val) => setState(() => _portalForums = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailForums = val ?? false),
+                onPortalChanged: (val) =>
+                    setState(() => _portalForums = val ?? false),
+                onEmailChanged: (val) =>
+                    setState(() => _emailForums = val ?? false),
               ),
 
               const Divider(height: 32, color: Color(0xFFF1F5F9)),
@@ -215,11 +233,14 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               _buildAlertRow(
                 icon: Icons.message_outlined,
                 title: 'Mensagens Diretas & Avisos de Tutores',
-                description: 'Comunicações diretas individuais enviadas por coordenadores e tutores.',
+                description:
+                    'Comunicações diretas individuais enviadas por coordenadores e tutores.',
                 portalVal: _portalMessages,
                 emailVal: _emailMessages,
-                onPortalChanged: (val) => setState(() => _portalMessages = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailMessages = val ?? false),
+                onPortalChanged: (val) =>
+                    setState(() => _portalMessages = val ?? false),
+                onEmailChanged: (val) =>
+                    setState(() => _emailMessages = val ?? false),
               ),
             ],
           ),
@@ -268,7 +289,11 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
                 const SizedBox(height: 3),
                 Text(
                   description,
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), height: 1.3),
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
@@ -316,7 +341,10 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               const SizedBox(height: 2),
               Text(
                 description,
-                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: Color(0xFF64748B),
+                ),
               ),
               if (customLeadTime != null) ...[
                 const SizedBox(height: 8),
@@ -333,22 +361,34 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               value: portalVal,
               activeColor: const Color(0xFF0F172A),
               onChanged: onPortalChanged,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
             const Text(
               'No Portal',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF334155),
+              ),
             ),
             const SizedBox(width: 16),
             Checkbox(
               value: emailVal,
               activeColor: const Color(0xFF0F172A),
               onChanged: onEmailChanged,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
             const Text(
               'Por E-mail',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF334155),
+              ),
             ),
           ],
         ),

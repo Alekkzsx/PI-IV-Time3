@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 
 /// Tela do Calendário Acadêmico Oficial e Prazos Regimentais (CONSEPE) na Visão do Administrador.
@@ -70,11 +71,14 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                       const SizedBox(height: 28),
 
-                      // Card Resolução CONSEPE 2026/04
-                      _buildConsepeResolutionCard(),
-                      const SizedBox(height: 24),
-
-                      // Card Lista de Prazos Regimentais
+                      if (_controller.remoteError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            _controller.remoteError!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
                       _buildTimelineCard(),
                     ],
                   ),
@@ -182,163 +186,262 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       child: Column(
         children: [
-          // Item 1: Período N1
-          _buildTimelineRow(
-            tag: 'Período N1',
-            dateText: '20 de Setembro a 10 de Outubro de 2026',
-            title: 'Janela de Avaliações Parciais e Trabalhos Práticos',
-            trailing: _buildBadge(
-              label: 'Em Andamento',
-              textColor: const Color(0xFF2563EB),
-              backgroundColor: const Color(0xFFEFF6FF),
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
-
-          // Item 2: Fechamento N1 & Trava Regimental
-          _buildTimelineRow(
-            tag: 'Fechamento N1',
-            dateText: '15 de Outubro de 2026 às 23:59',
-            title: 'Prazo Final para Digitação e Homologação de Diários',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _controller.isRegimentalLockActive
-                        ? const Color(0xFFFEE2E2)
-                        : const Color(0xFFF4F4F5),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _controller.isRegimentalLockActive
-                          ? const Color(0xFFFECACA)
-                          : const Color(0xFFE4E4E7),
-                    ),
-                  ),
+                const Expanded(
                   child: Text(
-                    _controller.isRegimentalLockActive
-                        ? 'Trava Regimental Ativa'
-                        : 'Aberto para Digitação',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: _controller.isRegimentalLockActive
-                          ? const Color(0xFFDC2626)
-                          : const Color(0xFF27272A),
-                    ),
+                    'Marcos do calend?rio acad?mico',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    if (_controller.usesRemote) {
-                      if (!await _controller.persistRegimentalLock()) {
-                        if (mounted) {
+                OutlinedButton.icon(
+                  onPressed: _controller.isSavingRemote
+                      ? null
+                      : () => _editEvent(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Adicionar marco'),
+                ),
+              ],
+            ),
+          ),
+          if (_controller.calendarEvents.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Nenhum marco cadastrado.'),
+            )
+          else
+            for (
+              var index = 0;
+              index < _controller.calendarEvents.length;
+              index++
+            ) ...[
+              if (index > 0) const Divider(height: 1, color: Color(0xFFF4F4F5)),
+              _buildTimelineRow(
+                tag: _controller.calendarEvents[index].type,
+                dateText: _formatEventDate(
+                  _controller.calendarEvents[index].startsAt,
+                  _controller.calendarEvents[index].endsAt,
+                ),
+                title: _controller.calendarEvents[index].title,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Editar marco',
+                      onPressed: () =>
+                          _editEvent(_controller.calendarEvents[index]),
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                    IconButton(
+                      tooltip: 'Excluir marco',
+                      onPressed: () =>
+                          _deleteEvent(_controller.calendarEvents[index].id),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          const Divider(height: 1, color: Color(0xFFF4F4F5)),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _controller.isRegimentalLockActive
+                        ? 'Trava regimental ativa'
+                        : 'Di?rios abertos para digita??o',
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: _controller.isSavingRemote
+                      ? null
+                      : () async {
+                          final saved = await _controller
+                              .persistRegimentalLock();
+                          if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                _controller.remoteError ?? 'Falha ao salvar.',
+                                saved
+                                    ? 'Configura??o da trava atualizada.'
+                                    : _controller.remoteError ??
+                                          'Falha ao atualizar a trava.',
                               ),
                             ),
                           );
-                        }
-                        return;
-                      }
-                    } else {
-                      _controller.toggleRegimentalLock();
-                    }
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          _controller.isRegimentalLockActive
-                              ? 'Trava Regimental ativada. Lançamento e retificação de notas bloqueados.'
-                              : 'Trava Regimental liberada. Diários abertos para digitação.',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  },
-                  icon: Icon(
+                        },
+                  child: Text(
                     _controller.isRegimentalLockActive
-                        ? Icons.lock_open
-                        : Icons.lock_outline,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                  label: Text(
-                    _controller.isRegimentalLockActive
-                        ? 'Liberar Diários'
-                        : 'Ativar Trava Regimental',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF18181B),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    elevation: 0,
+                        ? 'Liberar di?rios'
+                        : 'Ativar trava',
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
+        ],
+      ),
+    );
+  }
 
-          // Item 3: Período N2
-          _buildTimelineRow(
-            tag: 'Período N2',
-            dateText: '20 de Novembro a 05 de Dezembro de 2026',
-            title:
-                'Janela de Avaliações Finais e Defesa de Projetos Integradores',
-            trailing: _buildBadge(
-              label: 'Futuro',
-              textColor: const Color(0xFF71717A),
-              backgroundColor: const Color(0xFFF4F4F5),
+  String _formatEventDate(String startsAt, String? endsAt) {
+    final start = DateTime.tryParse(startsAt)?.toLocal();
+    final end = DateTime.tryParse(endsAt ?? '')?.toLocal();
+    if (start == null) return startsAt;
+    String date(DateTime value) =>
+        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+    return end == null ? date(start) : '${date(start)} ? ${date(end)}';
+  }
+
+  String? _inputDate(String? value) {
+    final date = DateTime.tryParse(value ?? '')?.toLocal();
+    if (date == null) return null;
+    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  DateTime? _parseDate(String value) =>
+      DateTime.tryParse(value.trim().replaceFirst(' ', 'T'));
+
+  Future<void> _editEvent([AdminCalendarMilestone? event]) async {
+    final title = TextEditingController(text: event?.title ?? '');
+    final description = TextEditingController(text: event?.description ?? '');
+    final starts = TextEditingController(
+      text:
+          _inputDate(event?.startsAt) ??
+          DateTime.now()
+              .add(const Duration(days: 1))
+              .toIso8601String()
+              .substring(0, 16),
+    );
+    final ends = TextEditingController(text: _inputDate(event?.endsAt) ?? '');
+    var type = event?.type ?? 'academic';
+    final values = await showDialog<Map<String, Object?>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(event == null ? 'Novo marco' : 'Editar marco'),
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: title,
+                    decoration: const InputDecoration(labelText: 'T?tulo'),
+                  ),
+                  TextField(
+                    controller: description,
+                    maxLines: 3,
+                    decoration: const InputDecoration(labelText: 'Descri??o'),
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: type,
+                    decoration: const InputDecoration(labelText: 'Tipo'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'academic',
+                        child: Text('Acad?mico'),
+                      ),
+                      DropdownMenuItem(value: 'deadline', child: Text('Prazo')),
+                      DropdownMenuItem(
+                        value: 'holiday',
+                        child: Text('Feriado'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setDialogState(() => type = value);
+                    },
+                  ),
+                  TextField(
+                    controller: starts,
+                    decoration: const InputDecoration(
+                      labelText: 'In?cio (AAAA-MM-DD HH:MM)',
+                    ),
+                  ),
+                  TextField(
+                    controller: ends,
+                    decoration: const InputDecoration(
+                      labelText: 'T?rmino opcional (AAAA-MM-DD HH:MM)',
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
-
-          // Item 4: Exames Finais
-          _buildTimelineRow(
-            tag: 'Exames Finais',
-            dateText: '10 de Dezembro a 15 de Dezembro de 2026',
-            title: 'Semana de Provas Regimentais de Exame Final',
-            trailing: _buildBadge(
-              label: 'Futuro',
-              textColor: const Color(0xFF71717A),
-              backgroundColor: const Color(0xFFF4F4F5),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
             ),
+            FilledButton(
+              onPressed: () {
+                final start = _parseDate(starts.text);
+                final end = ends.text.trim().isEmpty
+                    ? null
+                    : _parseDate(ends.text);
+                if (title.text.trim().length < 2 ||
+                    start == null ||
+                    (ends.text.trim().isNotEmpty && end == null))
+                  return;
+                Navigator.pop(context, {
+                  'title': title.text.trim(),
+                  'description': description.text.trim(),
+                  'type': type,
+                  'startsAt': start.toUtc().toIso8601String(),
+                  'endsAt': end?.toUtc().toIso8601String(),
+                });
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    title.dispose();
+    description.dispose();
+    starts.dispose();
+    ends.dispose();
+    if (values == null) return;
+    final saved = event == null
+        ? await _controller.createCalendarEvent(values)
+        : await _controller.updateCalendarEvent(event.id, values);
+    if (mounted && !saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_controller.remoteError ?? 'Falha ao salvar.')),
+      );
+    }
+  }
+
+  Future<void> _deleteEvent(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir marco?'),
+        content: const Text('Esta a??o n?o pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
           ),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
-
-          // Item 5: Atas Finais
-          _buildTimelineRow(
-            tag: 'Atas Finais',
-            dateText: '18 de Dezembro de 2026',
-            title: 'Emissão, Assinatura Eletrônica e Arquivo Geral das Atas',
-            trailing: _buildBadge(
-              label: 'Futuro',
-              textColor: const Color(0xFF71717A),
-              backgroundColor: const Color(0xFFF4F4F5),
-            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir'),
           ),
         ],
       ),
     );
+    if (confirm != true) return;
+    final deleted = await _controller.deleteCalendarEvent(id);
+    if (mounted && !deleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_controller.remoteError ?? 'Falha ao excluir.')),
+      );
+    }
   }
 
   Widget _buildTimelineRow({
