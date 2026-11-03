@@ -1,0 +1,1 @@
+export { createStudentDashboardRouter } from "../student-dashboard.controller.js";
