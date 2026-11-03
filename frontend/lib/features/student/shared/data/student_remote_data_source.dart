@@ -2,6 +2,7 @@
 
 import '../../../../core/network/authenticated_api_client.dart';
 import '../models/student_models.dart' as models;
+import 'dart:convert';
 
 class StudentDashboardSnapshot {
   final Map<String, dynamic> studentInfo;
@@ -15,6 +16,7 @@ class StudentDashboardSnapshot {
   final List<Map<String, dynamic>> messages;
   final Map<String, dynamic> personalNotes;
   final List<Map<String, dynamic>> protocols;
+  final List<Map<String, dynamic>> forumTopics;
 
   const StudentDashboardSnapshot({
     required this.studentInfo,
@@ -28,6 +30,7 @@ class StudentDashboardSnapshot {
     required this.messages,
     required this.personalNotes,
     required this.protocols,
+    required this.forumTopics,
   });
 
   factory StudentDashboardSnapshot.fromJson(Map<String, dynamic> json) {
@@ -59,6 +62,7 @@ class StudentDashboardSnapshot {
       messages: _asMaps(json['messages']),
       personalNotes: _asMap(json['personalNotes']),
       protocols: _asMaps(json['protocols']),
+      forumTopics: _asMaps(json['forumTopics']),
     );
   }
 
@@ -83,6 +87,14 @@ class StudentRemoteDataSource {
     return StudentDashboardSnapshot.fromJson(response);
   }
 
+  Future<List<models.StudentBoletimPeriod>> getBoletim() async {
+    final response = await _api.getList('/api/student/boletim');
+    return response.map(models.StudentBoletimPeriod.fromJson).toList();
+  }
+
+  Future<Map<String, dynamic>> createEnrollmentDeclaration() =>
+      _api.postMap('/api/student/enrollment-declaration', const {});
+
   Future<Map<String, dynamic>> submitDelivery({
     required String assignmentId,
     required String fileName,
@@ -100,6 +112,16 @@ class StudentRemoteDataSource {
       if (gitUrl != null) 'gitUrl': gitUrl,
       if (comments != null) 'comments': comments,
     });
+  }
+
+  Future<Map<String, dynamic>> postDoubt({
+    required String assignmentId,
+    required String question,
+  }) {
+    return _api.postMap(
+      '/api/student/assignments/$assignmentId/doubts',
+      {'question': question},
+    );
   }
 
   Future<Map<String, dynamic>> addReminder({
@@ -132,5 +154,67 @@ class StudentRemoteDataSource {
       if (attachmentName != null) 'attachmentName': attachmentName,
       if (attachmentBase64 != null) 'attachmentBase64': attachmentBase64,
     });
+  }
+
+  Future<void> markMessageRead(String id) async {
+    await _api.patchMap('/api/student/messages/$id/read', const {});
+  }
+
+  Future<void> markAllRead() async {
+    await _api.postMap('/api/student/messages/read-all');
+  }
+
+  Future<void> saveNote({
+    required String classCode,
+    required String content,
+  }) async {
+    await _api.putMap('/api/student/disciplines/$classCode/notes', {
+      'content': content,
+    });
+  }
+
+  Future<Map<String, dynamic>> createForumTopic({
+    required String classCode,
+    required String title,
+    required String body,
+    String? category,
+  }) {
+    return _api.postMap('/api/student/disciplines/$classCode/forum', {
+      'title': title,
+      'body': body,
+      if (category != null) 'category': category,
+    });
+  }
+
+  Future<Map<String, dynamic>> replyForumTopic({
+    required String classCode,
+    required String topicId,
+    required String body,
+  }) {
+    return _api.postMap(
+      '/api/student/disciplines/$classCode/forum/$topicId/reply',
+      {'body': body},
+    );
+  }
+
+  Future<Map<String, dynamic>> downloadMaterial(String id) =>
+      _api.getMap('/api/files/materials/$id');
+
+  Future<Map<String, dynamic>> downloadSubmission(String id) =>
+      _api.getMap('/api/files/submissions/$id');
+
+  Future<Map<String, dynamic>> downloadProtocol(String id) =>
+      _api.getMap('/api/files/protocols/$id');
+
+  List<int> decodeFileContent(Map<String, dynamic> response) {
+    final encoded = response['contentBase64']?.toString();
+    if (encoded == null || encoded.isEmpty) {
+      throw const ApiException('A API não retornou o conteúdo do arquivo.');
+    }
+    try {
+      return base64Decode(encoded);
+    } on FormatException {
+      throw const ApiException('O conteúdo do arquivo está inválido.');
+    }
   }
 }

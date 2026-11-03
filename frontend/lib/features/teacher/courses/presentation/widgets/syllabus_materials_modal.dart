@@ -1,6 +1,7 @@
 ﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
 import 'package:pi_iv_time3/features/teacher/shared/theme/docente_colors.dart';
@@ -26,6 +27,8 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _materialTitleController = TextEditingController();
+  PickedPlatformFile? _selectedMaterial;
+  bool _isPublishing = false;
 
   @override
   void initState() {
@@ -342,6 +345,28 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
                   ),
                 ),
                 const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _isPublishing
+                      ? null
+                      : () async {
+                          final selected = await PlatformFileHelper.pickFile(
+                            allowedExtensions: const [
+                              'pdf',
+                              'zip',
+                              'docx',
+                              'sql',
+                            ],
+                          );
+                          if (mounted && selected != null) {
+                            setState(() => _selectedMaterial = selected);
+                          }
+                        },
+                  icon: const Icon(Icons.attach_file),
+                  label: Text(
+                    _selectedMaterial?.name ?? 'Selecionar arquivo',
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -353,23 +378,31 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        if (_materialTitleController.text.trim().isNotEmpty) {
-                          widget.controller.publishMaterial(
-                            course.id,
-                            _materialTitleController.text.trim(),
-                          );
-                          _materialTitleController.clear();
-                          setState(() {});
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Material disponibilizado no AVA com sucesso!',
-                              ),
-                            ),
-                          );
-                        }
-                      },
+                      onPressed: _isPublishing
+                          ? null
+                          : () async {
+                              setState(() => _isPublishing = true);
+                              await widget.controller.publishMaterial(
+                                course.id,
+                                _materialTitleController.text.trim(),
+                                _selectedMaterial,
+                              );
+                              if (!mounted) return;
+                              setState(() => _isPublishing = false);
+                              final error = widget.controller.remoteError;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    error ??
+                                        'Material disponibilizado no AVA.',
+                                  ),
+                                ),
+                              );
+                              if (error == null) {
+                                _materialTitleController.clear();
+                                _selectedMaterial = null;
+                              }
+                            },
                       icon: const Icon(Icons.upload_file_rounded, size: 16),
                       label: const Text('Publicar Material'),
                       style: ElevatedButton.styleFrom(

@@ -299,7 +299,6 @@ class DocenteSubmissionsTable extends StatelessWidget {
                 const Divider(height: 1, color: Color(0xFFF4F4F5)),
             itemBuilder: (context, index) {
               final sub = assignment.submissions[index];
-              final isOnline = sub.studentName == 'Gabriel Soares de Oliveira';
 
               return Container(
                 padding: const EdgeInsets.symmetric(
@@ -338,30 +337,6 @@ class DocenteSubmissionsTable extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (isOnline) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: const Color(0xFFFDE68A),
-                                ),
-                              ),
-                              child: Text(
-                                'DISCENTE CONECTADO',
-                                style: jakarta(
-                                  size: 9,
-                                  weight: FontWeight.w700,
-                                  color: const Color(0xFFD97706),
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -386,6 +361,30 @@ class DocenteSubmissionsTable extends StatelessWidget {
                                       weight: FontWeight.w400,
                                       color: const Color(0xFF27272A),
                                     ),
+                                    if (controller != null)
+                                      IconButton(
+                                        tooltip: 'Baixar submissão',
+                                        visualDensity: VisualDensity.compact,
+                                        onPressed: () async {
+                                          final result = await controller!
+                                              .downloadSubmission(sub);
+                                          if (context.mounted && result == null) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      controller!.remoteError ??
+                                                          'Não foi possível baixar o arquivo.',
+                                                    ),
+                                                  ),
+                                                );
+                                          }
+                                        },
+                                        icon: const Icon(
+                                          Icons.download_outlined,
+                                          size: 16,
+                                        ),
+                                      ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
