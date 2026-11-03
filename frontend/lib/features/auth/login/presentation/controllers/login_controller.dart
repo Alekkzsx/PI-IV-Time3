@@ -103,6 +103,7 @@ class LoginController extends ChangeNotifier {
         profile: profile,
         accessToken: accessToken,
       );
+      await AppUserSession.instance.refreshProfileFromServer();
       _isSuccess = true;
       _isLoading = false;
       notifyListeners();
@@ -157,6 +158,7 @@ class LoginController extends ChangeNotifier {
           profile: _pendingProfile!,
           accessToken: token,
         );
+        await AppUserSession.instance.refreshProfileFromServer();
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;
@@ -186,6 +188,7 @@ class LoginController extends ChangeNotifier {
           profile: profile,
           accessToken: accessToken,
         );
+        await AppUserSession.instance.refreshProfileFromServer();
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;
