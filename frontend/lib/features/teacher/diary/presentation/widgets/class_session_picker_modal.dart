@@ -27,8 +27,8 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
     final picked = await showDatePicker(
       context: context,
       initialDate: currentSession.sessionDate,
-      firstDate: DateTime(2026, 8, 1),
-      lastDate: DateTime(2026, 12, 20),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
       helpText: 'CALENDÁRIO DA TURMA (${course.classDaysLabel.toUpperCase()})',
       confirmText: 'SELECIONAR AULA',
       cancelText: 'CANCELAR',

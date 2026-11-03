@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -32,124 +32,115 @@ class DocenteGradebookTable extends StatelessWidget {
         child: SizedBox(
           width: constraints.maxWidth < 1120 ? 1120 : constraints.maxWidth,
           child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Table Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFAFAFA),
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFF4F4F5), width: 1),
-              ),
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 100,
-                  child: Text('R.A.', style: _colHeaderStyle),
-                ),
-                const Expanded(
-                  flex: 3,
-                  child: Text('ESTUDANTE', style: _colHeaderStyle),
-                ),
-                SizedBox(
-                  width: 72,
-                  child: Center(
-                    child: Text('ATIV. N1', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 76,
-                  child: Center(
-                    child: Text('PROVA P1', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 72,
-                  child: Center(
-                    child: Text('TOTAL N1', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 72,
-                  child: Center(
-                    child: Text('PROJ. N2', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 76,
-                  child: Center(
-                    child: Text('PROVA P2', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 72,
-                  child: Center(
-                    child: Text('TOTAL N2', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 86,
-                  child: Center(
-                    child: Text('MÉDIA FINAL', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 80,
-                  child: Center(
-                    child: Text('FREQ. (%)', style: _colHeaderStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: 120,
-                  child: Center(
-                    child: Text('SITUAÇÃO', style: _colHeaderStyle),
-                  ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE4E4E7)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ),
-          // Rows
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: gradebook.length,
-            separatorBuilder: (context, index) =>
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Table Header
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFAFAFA),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFF4F4F5), width: 1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: Text('R.A.', style: _colHeaderStyle),
+                      ),
+                      const Expanded(
+                        flex: 3,
+                        child: Text('ESTUDANTE', style: _colHeaderStyle),
+                      ),
+                      SizedBox(
+                        width: 72,
+                        child: Center(
+                          child: Text('ATIV. N1', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 76,
+                        child: Center(
+                          child: Text('PROVA P1', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 72,
+                        child: Center(
+                          child: Text('TOTAL N1', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 72,
+                        child: Center(
+                          child: Text('PROJ. N2', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 76,
+                        child: Center(
+                          child: Text('PROVA P2', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 72,
+                        child: Center(
+                          child: Text('TOTAL N2', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 86,
+                        child: Center(
+                          child: Text('MÉDIA FINAL', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 80,
+                        child: Center(
+                          child: Text('FREQ. (%)', style: _colHeaderStyle),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 120,
+                        child: Center(
+                          child: Text('SITUAÇÃO', style: _colHeaderStyle),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Rows
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: gradebook.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: Color(0xFFF4F4F5)),
+                  itemBuilder: (context, index) {
+                    final student = gradebook[index];
+                    return _buildStudentRow(context, student);
+                  },
+                ),
                 const Divider(height: 1, color: Color(0xFFF4F4F5)),
-            itemBuilder: (context, index) {
-              final student = gradebook[index];
-              return _buildStudentRow(context, student);
-            },
-          ),
-          const Divider(height: 1, color: Color(0xFFF4F4F5)),
-          // The current gradebook is client-side mock state, not persisted.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Text(
-              'Notas e médias estão nesta sessão; a sincronização oficial requer integração com o servidor.',
-              style: jakarta(
-                size: 11.5,
-                weight: FontWeight.w400,
-                color: const Color(0xFF71717A),
-              ),
+              ],
             ),
-          ),
-        ],
-      ),
           ),
         ),
       ),
@@ -157,8 +148,6 @@ class DocenteGradebookTable extends StatelessWidget {
   }
 
   Widget _buildStudentRow(BuildContext context, StudentGrade student) {
-    final isOnline = student.studentName == 'Gabriel Soares de Oliveira';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       color: Colors.white,
@@ -193,28 +182,6 @@ class DocenteGradebookTable extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isOnline) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFFDE68A)),
-                    ),
-                    child: Text(
-                      'DISCENTE CONECTADO',
-                      style: jakarta(
-                        size: 9,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFFD97706),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

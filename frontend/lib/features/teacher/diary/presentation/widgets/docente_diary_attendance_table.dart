@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
@@ -321,49 +321,39 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
                 ),
                 if (student.observation != null) ...[
                   const SizedBox(height: 3),
-                  if (student.observation!.contains('Atestado'))
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFFA7F3D0)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.verified_user_rounded,
-                            size: 11,
-                            color: Color(0xFF047857),
-                          ),
-                          const SizedBox(width: 4),
-                          const Expanded(
-                            child: Text(
-                              'Falta Abonada (Secretaria Prot. 2026/8841)',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF047857),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Text(
-                      student.observation!,
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: Color(0xFF71717A),
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
                     ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFA7F3D0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.verified_user_rounded,
+                          size: 11,
+                          color: Color(0xFF047857),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            student.observation!,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF047857),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ],
             ),

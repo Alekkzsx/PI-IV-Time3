@@ -51,7 +51,9 @@ class CourseHubStudentsTab extends StatelessWidget {
           const Card(
             child: Padding(
               padding: EdgeInsets.all(20),
-              child: Text('Ainda não há alunos registrados no diário desta turma.'),
+              child: Text(
+                'Ainda não há alunos registrados no diário desta turma.',
+              ),
             ),
           )
         else
