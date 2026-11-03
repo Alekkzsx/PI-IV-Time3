@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -30,7 +30,8 @@ class ClassAlocarDocenteModal extends StatefulWidget {
   }
 
   @override
-  State<ClassAlocarDocenteModal> createState() => _ClassAlocarDocenteModalState();
+  State<ClassAlocarDocenteModal> createState() =>
+      _ClassAlocarDocenteModalState();
 }
 
 class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
@@ -108,7 +109,11 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF737373)),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color: Color(0xFF737373),
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -137,7 +142,10 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                     const SizedBox(height: 4),
                     Text(
                       '${c.courseName} • ${c.semester} • ${c.location}',
-                      style: jakarta(size: 12.5, color: const Color(0xFF64748B)),
+                      style: jakarta(
+                        size: 12.5,
+                        color: const Color(0xFF64748B),
+                      ),
                     ),
                   ],
                 ),
@@ -157,10 +165,16 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                 controller: _profController,
                 decoration: InputDecoration(
                   hintText: 'Ex: Profa. Dra. Helena Bittencourt',
-                  hintStyle: jakarta(size: 13.5, color: const Color(0xFFA3A3A3)),
+                  hintStyle: jakarta(
+                    size: 13.5,
+                    color: const Color(0xFFA3A3A3),
+                  ),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
@@ -171,7 +185,10 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF18181B), width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF18181B),
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 style: jakarta(size: 13.5, color: const Color(0xFF18181B)),
@@ -184,11 +201,18 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     child: Text(
                       'Cancelar',
-                      style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF525252)),
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF525252),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -198,27 +222,27 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                       if (newProfessor.isNotEmpty) {
                         widget.onConfirmAllocation(newProfessor);
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Docente alocado com sucesso! Diário atualizado.',
-                              style: jakarta(size: 13, color: Colors.white),
-                            ),
-                            backgroundColor: const Color(0xFF18181B),
-                          ),
-                        );
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF18181B),
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 13,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: Text(
                       'Confirmar Alocação',
-                      style: jakarta(size: 13, weight: FontWeight.w600, color: Colors.white),
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],

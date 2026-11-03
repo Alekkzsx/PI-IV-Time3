@@ -9,12 +9,19 @@ import { rateLimit } from "express-rate-limit";
 import type { Environment } from "./config/environment.js";
 import type { AuthService } from "./modules/auth/application/auth.service.js";
 import { createAuthRouter } from "./modules/auth/presentation/auth.controller.js";
+import { createAdminAcademicRouter } from "./modules/admin/admin-academic.controller.js";
+import { createAdminUsersRouter } from "./modules/admin/admin-users.controller.js";
+import { createAdminOperationsRouter } from "./modules/admin/admin-operations.controller.js";
+import { createSessionRouter } from "./modules/auth/presentation/session.controller.js";
+import { createStudentDashboardRouter } from "./modules/student/student-dashboard.controller.js"; 
 import { AuthError } from "./shared/auth-error.js";
+import type { Db } from "mongodb";
 
 /** Monta middlewares e rotas; recebe dependências prontas para facilitar testes. */
 export function createApp(
   service: AuthService,
   environment: Pick<Environment, "nodeEnv" | "corsOrigins">,
+  adminOptions?: { database: Db; jwtSecret: string },
 ): Express {
   const app = express();
 
@@ -23,8 +30,9 @@ export function createApp(
   app.use(
     cors({
       origin: environment.corsOrigins,
-      methods: ["GET", "POST", "OPTIONS"],
+      methods: ["GET", "POST", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
+      exposedHeaders: ["X-Total-Count"],
     }),
   );
   app.use(express.json({ limit: "16kb", strict: true }));
@@ -35,7 +43,7 @@ export function createApp(
 
   const authRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 20,
+    limit: 100,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     message: {
@@ -44,6 +52,16 @@ export function createApp(
     },
   });
   app.use("/api/auth", authRateLimit, createAuthRouter(service));
+  if (adminOptions) app.use("/api/auth", createSessionRouter(adminOptions.database, adminOptions.jwtSecret, service));
+  if (adminOptions) {
+    app.use("/api/admin/users", createAdminUsersRouter(adminOptions.database, adminOptions.jwtSecret, service));
+    app.use("/api/admin", createAdminOperationsRouter(adminOptions.database, adminOptions.jwtSecret));
+    app.use(
+      "/api/admin",
+      createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret),
+    );
+    app.use("/api/student", createStudentDashboardRouter(adminOptions.database, adminOptions.jwtSecret));
+  }
   app.use(notFoundHandler);
   app.use(errorHandler(environment.nodeEnv));
 
@@ -69,7 +87,13 @@ function errorHandler(nodeEnv: Environment["nodeEnv"]): ErrorRequestHandler {
       });
       return;
     }
+    if (error && typeof error === "object" && "code" in error && error.code === 11000) {
+      response.status(409).json({ code: "record_exists", message: "Já existe um registro com esses dados." }); return;
+    }
 
+    if (error && typeof error === "object" && "type" in error && error.type === "entity.too.large") {
+      response.status(413).json({ code: "payload_too_large", message: "Requisi??o excede o limite permitido." }); return;
+    }
     if (error instanceof SyntaxError && "body" in error) {
       response.status(400).json({
         code: "invalid_json",
@@ -78,7 +102,7 @@ function errorHandler(nodeEnv: Environment["nodeEnv"]): ErrorRequestHandler {
       return;
     }
 
-    console.error("[auth-api] Erro inesperado", error);
+    console.error("[auth-api] Erro inesperado; detalhes internos omitidos.");
     response.status(500).json({
       code: "internal_error",
       message:

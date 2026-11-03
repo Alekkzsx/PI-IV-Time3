@@ -13,6 +13,8 @@ export interface AuthUser {
   profile: AuthProfile;
   passwordHash: string;
   active: boolean;
+  sessionVersion?: number;
+  twoFactorRequired?: boolean;
 }
 
 export interface RecoveryCode {
@@ -36,18 +38,22 @@ export interface RecoveryCodeRepository {
   incrementFailedAttempts(
     normalizedIdentity: string,
     maximumAttempts: number,
+    expectedCodeDigest: string,
   ): Promise<number | null>;
   issueResetGrant(
     normalizedIdentity: string,
     tokenDigest: string,
     expiresAt: Date,
+    expectedCodeDigest: string,
+    maximumAttempts: number,
   ): Promise<void>;
   consumeResetGrant(
     normalizedIdentity: string,
     tokenDigest: string,
     now: Date,
   ): Promise<boolean>;
-  delete(normalizedIdentity: string): Promise<void>;
+  delete(normalizedIdentity: string, expectedCodeDigest?: string): Promise<void>;
+  resetPassword(identity: string, userId: string, digest: string, passwordHash: string, now: Date): Promise<boolean>;
 }
 
 export interface PasswordHasher {
@@ -56,14 +62,25 @@ export interface PasswordHasher {
 }
 
 export interface AccessTokenIssuer {
-  issue(user: AuthUser): string;
+  issue(user: AuthUser, sessionId: string): string;
+}
+
+export interface AuthSecurityRepository {
+  assertLoginAllowed(identity: string): Promise<void>;
+  recordLoginFailure(identity: string): Promise<void>;
+  clearLoginFailures(identity: string): Promise<void>;
+  saveSession(user: AuthUser, sessionId: string, expiresAt: Date): Promise<void>;
+  saveChallenge(user: AuthUser, tokenDigest: string, codeDigest: string, expiresAt: Date): Promise<void>;
+  consumeChallenge(tokenDigest: string, codeDigest: string, now: Date): Promise<AuthUser | null>;
 }
 
 export interface RecoveryEmailSender {
+  ensureAvailable?(): void;
   sendRecoveryCode(input: {
     to: string;
     displayName: string;
     code: string;
     expiresInSeconds: number;
+    purpose?: "login" | "recovery";
   }): Promise<void>;
 }

@@ -552,11 +552,26 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: () {
-              _controller.updateFormulaRegime(
-                widget.classModel.code,
-                'Impor pelo Admin',
-              );
+            onPressed: () async {
+              final ok = _controller.usesRemote
+                  ? await _controller.persistClass(widget.classModel.code, {
+                      'formulaRegime': 'admin',
+                    })
+                  : _controller.updateFormulaRegime(
+                      widget.classModel.code,
+                      'Impor pelo Admin',
+                    );
+              if (!mounted) return;
+              if (!ok) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _controller.remoteError ?? 'Falha ao salvar.',
+                    ),
+                  ),
+                );
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Diretriz de cálculo gravada e homologada.'),
@@ -1018,11 +1033,26 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              _controller.reallocateProfessor(
-                widget.classModel.code,
-                profController.text,
-              );
+            onPressed: () async {
+              final ok = _controller.usesRemote
+                  ? await _controller.persistClass(widget.classModel.code, {
+                      'professorIdentity': profController.text.trim(),
+                    })
+                  : _controller.reallocateProfessor(
+                      widget.classModel.code,
+                      profController.text,
+                    );
+              if (!mounted) return;
+              if (!ok) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _controller.remoteError ?? 'Falha ao salvar.',
+                    ),
+                  ),
+                );
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Atribuição docente atualizada com sucesso!'),
@@ -1042,7 +1072,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 4: Discentes & Vagas (Print 52) ---
   Widget _buildStudentsTab() {
-    final enrolledStudents = AdminMockData.users
+    final enrolledStudents = _controller.users
         .where(
           (user) =>
               user.profile == 'aluno' &&
@@ -1185,8 +1215,25 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             ),
           ] else ...[
             ElevatedButton.icon(
-              onPressed: () {
-                _controller.lockAndHomologateClassPauta(widget.classModel.code);
+              onPressed: () async {
+                final ok = _controller.usesRemote
+                    ? await _controller.persistClass(widget.classModel.code, {
+                        'gradeLocked': true,
+                      })
+                    : _controller.lockAndHomologateClassPauta(
+                        widget.classModel.code,
+                      );
+                if (!mounted) return;
+                if (!ok) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _controller.remoteError ?? 'Falha ao salvar.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(

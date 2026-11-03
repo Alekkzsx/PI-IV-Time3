@@ -13,7 +13,6 @@ import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 import 'package:pi_iv_time3/features/auth/verify_code/presentation/pages/verify_code_page.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
@@ -114,15 +113,12 @@ class AppRouter {
 
   static WidgetBuilder _studentRoute(Widget child) => (context) {
     final session = AppUserSession.instance;
+
+    // Verifica se o usuário está autenticado como aluno.
     if (!session.hasRole('aluno')) {
       return _accessDenied(context, 'Esta área é exclusiva do perfil aluno.');
     }
-    if (!StudentMockData.ownsDemoRecords(session.identity ?? '')) {
-      return _accessDenied(
-        context,
-        'Não há dados acadêmicos de demonstração vinculados a esta conta.',
-      );
-    }
+
     return child;
   };
 

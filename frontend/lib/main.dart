@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'core/backend/backend_process_launcher.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/state/app_user_session.dart';
 import 'features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
 import 'features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'features/auth/login/domain/usecases/login_usecase.dart';
@@ -50,6 +51,8 @@ void main() {
 
 /// Widget raiz da aplicação Portal Acadêmico AVA.
 class PortalAvaApp extends StatelessWidget {
+  static final navigatorKey = GlobalKey<NavigatorState>();
+
   /// Controlador de recuperação de senha compartilhado com a rota correspondente.
   final RecoverPasswordController controller;
 
@@ -69,14 +72,23 @@ class PortalAvaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppUserSession.instance.onExpired = () {
+      Future.microtask(
+        () => navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          '/',
+          (route) => false,
+        ),
+      );
+    };
     final authRepository =
         loginController?.loginUseCase.repository ??
-        AuthRepositoryImpl(AuthRemoteDataSourceImpl());
+        controller.recoverPasswordUseCase.repository;
     final effectiveLoginController =
         loginController ??
         LoginController(loginUseCase: LoginUseCase(authRepository));
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'AGMRM - Portal Acadêmico',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

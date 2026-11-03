@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -335,12 +335,30 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                   ),
                   const Spacer(),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      widget.controller.decideProtocol(
-                        protocolId: p.id,
-                        defer: false,
-                        parecerNote: _parecerController.text,
-                      );
+                    onPressed: () async {
+                      final ok = widget.controller.usesRemote
+                          ? await widget.controller.persistProtocol(
+                              p.id,
+                              false,
+                              _parecerController.text,
+                            )
+                          : widget.controller.decideProtocol(
+                              protocolId: p.id,
+                              defer: false,
+                              parecerNote: _parecerController.text,
+                            );
+                      if (!context.mounted) return;
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              widget.controller.remoteError ??
+                                  'Não foi possível decidir.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -378,12 +396,30 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      widget.controller.decideProtocol(
-                        protocolId: p.id,
-                        defer: true,
-                        parecerNote: _parecerController.text,
-                      );
+                    onPressed: () async {
+                      final ok = widget.controller.usesRemote
+                          ? await widget.controller.persistProtocol(
+                              p.id,
+                              true,
+                              _parecerController.text,
+                            )
+                          : widget.controller.decideProtocol(
+                              protocolId: p.id,
+                              defer: true,
+                              parecerNote: _parecerController.text,
+                            );
+                      if (!context.mounted) return;
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              widget.controller.remoteError ??
+                                  'Não foi possível decidir.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

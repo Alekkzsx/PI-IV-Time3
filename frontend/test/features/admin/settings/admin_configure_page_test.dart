@@ -134,8 +134,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('8 disponíveis'), findsOneWidget);
-      expect(find.text('Gerenciar Códigos'), findsOneWidget);
+      expect(find.text('Hash bcrypt'), findsOneWidget);
+      expect(find.text('Ativar'), findsOneWidget);
     });
   });
 }

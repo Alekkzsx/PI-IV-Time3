@@ -14,6 +14,7 @@ class UserListTable extends StatelessWidget {
   final ValueChanged<AdminUserModel>? onManageSessions;
   final ValueChanged<AdminUserModel>? onSuspendWithReason;
   final ValueChanged<AdminUserModel>? onViewDossier;
+  final ValueChanged<AdminUserModel>? onEdit;
 
   const UserListTable({
     super.key,
@@ -24,6 +25,7 @@ class UserListTable extends StatelessWidget {
     this.onManageSessions,
     this.onSuspendWithReason,
     this.onViewDossier,
+    this.onEdit,
   });
 
   @override
@@ -38,7 +40,7 @@ class UserListTable extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SizedBox(
-          width: 1460,
+          width: 1540,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -121,7 +123,7 @@ class UserListTable extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     SizedBox(
-                      width: 440,
+                      width: 520,
                       child: Text(
                         'AÇÕES DE SEGURANÇA & GOVERNANÇA',
                         style: jakarta(
@@ -272,9 +274,15 @@ class UserListTable extends StatelessWidget {
 
           // Ações de Segurança & Governança
           SizedBox(
-            width: 440,
+            width: 520,
             child: Row(
               children: [
+                if (onEdit != null)
+                  IconButton(
+                    tooltip: 'Editar usuário',
+                    onPressed: () => onEdit!(u),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  ),
                 // 1. Reset Senha
                 InkWell(
                   onTap: () => onResetPassword(u),

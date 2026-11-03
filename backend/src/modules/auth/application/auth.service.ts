@@ -1,10 +1,11 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import type { Environment } from "../../../config/environment.js";
 import { AuthError } from "../../../shared/auth-error.js";
 import type {
   AccessTokenIssuer,
   AuthProfile,
+  AuthSecurityRepository,
   AuthUserRepository,
   PasswordHasher,
   RecoveryCodeRepository,
@@ -13,6 +14,7 @@ import type {
 
 export interface AuthServiceDependencies {
   users: AuthUserRepository;
+  security: AuthSecurityRepository;
   recoveryCodes: RecoveryCodeRepository;
   passwords: PasswordHasher;
   accessTokens: AccessTokenIssuer;
@@ -20,7 +22,7 @@ export interface AuthServiceDependencies {
   dummyPasswordHash: string;
   environment: Pick<
     Environment,
-    "jwtSecret" | "otpSecret" | "otpTtlSeconds" | "otpMaxAttempts"
+    "jwtSecret" | "otpSecret" | "otpTtlSeconds" | "otpMaxAttempts" | "jwtTtl"
   >;
 }
 
@@ -28,12 +30,16 @@ export interface AuthServiceDependencies {
 export class AuthService {
   constructor(private readonly dependencies: AuthServiceDependencies) {}
 
+  ensureEmailAvailable(): void { this.dependencies.recoveryEmail.ensureAvailable?.(); }
+
   async login(input: {
     identity: string;
     password: string;
     profile: AuthProfile;
-  }): Promise<{ accessToken: string; tokenType: "Bearer" }> {
+  }): Promise<{ accessToken: string; tokenType: "Bearer" } | { requiresTwoFactor: true; challengeToken: string }> {
     const user = await this.dependencies.users.findByIdentity(input.identity);
+    const identity = user?.normalizedIdentity ?? normalizeIdentity(input.identity);
+    await this.dependencies.security.assertLoginAllowed(identity);
     const passwordMatches = await this.dependencies.passwords.verify(
       input.password,
       user?.passwordHash ?? this.dependencies.dummyPasswordHash,
@@ -45,18 +51,45 @@ export class AuthService {
       user.profile !== input.profile ||
       !passwordMatches
     ) {
+      await this.dependencies.security.recordLoginFailure(identity);
       throw new AuthError(401, "invalid_credentials", "Credenciais inválidas.");
     }
 
+    await this.dependencies.security.clearLoginFailures(identity);
+    if (user.twoFactorRequired) {
+      this.dependencies.recoveryEmail.ensureAvailable?.();
+      const challengeToken = randomBytes(32).toString("base64url");
+      const code = String(randomInt(100_000, 1_000_000));
+      await this.dependencies.security.saveChallenge(user, this.digest(challengeToken), this.digest(code), new Date(Date.now() + 300_000));
+      await this.dependencies.recoveryEmail.sendRecoveryCode({ to: user.email, displayName: user.displayName,
+        code, expiresInSeconds: 300, purpose: "login" });
+      return { requiresTwoFactor: true, challengeToken };
+    }
+    return this.createSession(user);
+  }
+
+  async verifyTwoFactor(challengeToken: string, code: string): Promise<{ accessToken: string; tokenType: "Bearer" }> {
+    const user = await this.dependencies.security.consumeChallenge(this.digest(challengeToken), this.digest(code), new Date());
+    if (!user) throw new AuthError(400, "invalid_two_factor_code", "Código inválido, expirado ou limite de tentativas excedido.");
+    return this.createSession(user);
+  }
+
+  private async createSession(user: import("../domain/auth.types.js").AuthUser): Promise<{ accessToken: string; tokenType: "Bearer" }> {
+    const sessionId = randomUUID();
+    const ttl = this.dependencies.environment.jwtTtl;
+    const seconds = Number(ttl.slice(0, -1)) * ({ s: 1, m: 60, h: 3600, d: 86400 }[ttl.slice(-1)] ?? 0);
+    const accessToken = this.dependencies.accessTokens.issue(user, sessionId);
+    await this.dependencies.security.saveSession(user, sessionId, new Date(Date.now() + seconds * 1000));
     return {
-      accessToken: this.dependencies.accessTokens.issue(user),
+      accessToken,
       tokenType: "Bearer",
     };
   }
 
   async requestRecoveryCode(identity: string): Promise<number> {
-    const normalizedIdentity = normalizeIdentity(identity);
+    this.dependencies.recoveryEmail.ensureAvailable?.();
     const user = await this.dependencies.users.findByIdentity(identity);
+    const normalizedIdentity = user?.normalizedIdentity ?? normalizeIdentity(identity);
 
     // Resposta indistinguível para contas inexistentes evita enumeração de usuários.
     if (!user || !user.active) {
@@ -83,7 +116,7 @@ export class AuthService {
         expiresInSeconds: this.dependencies.environment.otpTtlSeconds,
       });
     } catch (error) {
-      await this.dependencies.recoveryCodes.delete(normalizedIdentity);
+      await this.dependencies.recoveryCodes.delete(normalizedIdentity, this.digest(code));
       throw error;
     }
     return this.dependencies.environment.otpTtlSeconds;
@@ -93,12 +126,14 @@ export class AuthService {
     identity: string;
     code: string;
   }): Promise<{ valid: true; resetToken: string }> {
-    const normalizedIdentity = normalizeIdentity(input.identity);
+    const user = await this.dependencies.users.findByIdentity(input.identity);
+    const normalizedIdentity = user?.normalizedIdentity ?? normalizeIdentity(input.identity);
     const recovery = await this.dependencies.recoveryCodes.find(
       normalizedIdentity,
     );
 
     if (
+      !user?.active ||
       !recovery ||
       !recovery.codeDigest ||
       recovery.expiresAt.getTime() <= Date.now() ||
@@ -115,9 +150,9 @@ export class AuthService {
       const attempts = await this.dependencies.recoveryCodes.incrementFailedAttempts(
         normalizedIdentity,
         this.dependencies.environment.otpMaxAttempts,
+        recovery.codeDigest,
       );
       if (attempts === null || attempts >= this.dependencies.environment.otpMaxAttempts) {
-        await this.dependencies.recoveryCodes.delete(normalizedIdentity);
         throw new AuthError(
           400,
           "recovery_attempts_exceeded",
@@ -138,6 +173,8 @@ export class AuthService {
       normalizedIdentity,
       resetTokenDigest,
       grantExpiresAt,
+      recovery.codeDigest,
+      this.dependencies.environment.otpMaxAttempts,
     );
 
     return { valid: true, resetToken };
@@ -148,8 +185,8 @@ export class AuthService {
     resetToken: string;
     newPassword: string;
   }): Promise<void> {
-    const normalizedIdentity = normalizeIdentity(input.identity);
     const user = await this.dependencies.users.findByIdentity(input.identity);
+    const normalizedIdentity = user?.normalizedIdentity ?? normalizeIdentity(input.identity);
     if (!user || !user.active) {
       throw new AuthError(400, "invalid_reset_grant", "Solicitação inválida ou expirada.");
     }
@@ -169,19 +206,17 @@ export class AuthService {
     const passwordHash = await this.dependencies.passwords.hash(
       input.newPassword,
     );
-    const consumed = await this.dependencies.recoveryCodes.consumeResetGrant(
+    const consumed = await this.dependencies.recoveryCodes.resetPassword(
       normalizedIdentity,
+      user.id,
       this.digest(input.resetToken),
+      passwordHash,
       new Date(),
     );
     if (!consumed) {
       throw new AuthError(400, "invalid_reset_grant", "Solicitação inválida ou expirada.");
     }
 
-    await this.dependencies.users.updatePassword(
-      user.id,
-      passwordHash,
-    );
   }
 
   private digest(value: string): string {

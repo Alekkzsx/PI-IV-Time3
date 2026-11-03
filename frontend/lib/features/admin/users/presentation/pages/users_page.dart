@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import '../../../../../core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
@@ -13,6 +14,7 @@ import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_list_
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_reset_password_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_sessions_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_suspension_dialog.dart';
+import '../widgets/user_edit_dialog.dart';
 
 /// Tela de Gestão de Usuários & Controle de Acessos da Visão do Administrador.
 /// Refatorada e modularizada com componentes desacoplados em `widgets/`.
@@ -49,20 +51,45 @@ class _UsersPageState extends State<UsersPage> {
       context: context,
       onUserCreated:
           ({
+            required String identity,
+            required String password,
             required String name,
             required String email,
             required String profile,
             required String department,
             required bool require2FA,
-          }) {
-            _controller.addUser(
-              name: name,
-              email: email,
-              profile: profile,
-              department: department,
-              require2FA: require2FA,
+          }) async {
+            final ok = await _controller.persist(
+              () => _controller.remote.request('POST', '/users', {
+                'identity': identity,
+                'password': password,
+                'displayName': name,
+                'email': email,
+                'profile': profile,
+                'departmentOrCourse': department,
+                'twoFactorRequired': require2FA,
+              }),
             );
+            if (!ok) {
+              throw ApiException(
+                _controller.remoteError ?? 'Não foi possível cadastrar.',
+              );
+            }
           },
+    );
+  }
+
+  Future<void> _perform(Future<bool> action, String message) async {
+    final ok = await action;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? message
+              : _controller.remoteError ?? 'Não foi possível concluir.',
+        ),
+      ),
     );
   }
 
@@ -70,12 +97,13 @@ class _UsersPageState extends State<UsersPage> {
     UserResetPasswordDialog.show(
       context: context,
       user: u,
-      onConfirm: () => _controller.resetUserPasswordAdvanced(
-        u.id,
-        forceNextLogin: true,
-        sendRecoveryEmail: true,
-        revokeActiveSessions: true,
-      ),
+      onConfirm: () async {
+        if (!await _controller.persistResetPassword(u.id)) {
+          throw ApiException(
+            _controller.remoteError ?? 'Falha ao solicitar recupera??o.',
+          );
+        }
+      },
     );
   }
 
@@ -83,7 +111,14 @@ class _UsersPageState extends State<UsersPage> {
     UserImpersonationDialog.show(
       context: context,
       user: u,
-      onConfirm: () {
+      onConfirm: () async {
+        try {
+          await _controller.remote.request('GET', '/users/${u.id}/dossier');
+        } on ApiException catch (error) {
+          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+          return;
+        }
+        if (!context.mounted) return;
         _controller.impersonateUser(u);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -103,19 +138,10 @@ class _UsersPageState extends State<UsersPage> {
     UserSessionsDialog.show(
       context: context,
       user: u,
-      onTerminateAll: () {
-        _controller.terminateUserSessions(u.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Todas as sessões ativas de ${u.name} foram revogadas com sucesso.',
-              style: jakarta(size: 13, color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFFDC2626),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onTerminateAll: () => _perform(
+        _controller.persistRevokeSessions(u.id),
+        'Sessões revogadas.',
+      ),
     );
   }
 
@@ -123,32 +149,24 @@ class _UsersPageState extends State<UsersPage> {
     UserSuspensionDialog.show(
       context: context,
       user: u,
-      onConfirm: (reason, willSuspend) {
-        _controller.suspendUserWithReason(
-          u.id,
-          reason: reason,
-          suspend: willSuspend,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              willSuspend
-                  ? 'Acesso de ${u.name} bloqueado administrativamente.'
-                  : 'Acesso de ${u.name} reativado com sucesso.',
-              style: jakarta(size: 13, color: Colors.white),
-            ),
-            backgroundColor: willSuspend
-                ? const Color(0xFFDC2626)
-                : const Color(0xFF059669),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onConfirm: (reason, suspend) => _perform(
+        _controller.persistUserStatus(u.id, active: !suspend, reason: reason),
+        suspend ? 'Usuário suspenso.' : 'Usuário reativado.',
+      ),
     );
   }
 
-  void _showDossierModal(BuildContext context, AdminUserModel u) {
-    UserDossierModal.show(context: context, user: u);
+  Future<void> _showDossierModal(BuildContext context, AdminUserModel u) async {
+    try {
+      await _controller.remote.request('GET', '/users/${u.id}/dossier');
+      if (context.mounted) UserDossierModal.show(context: context, user: u);
+    } on ApiException catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
   }
 
   @override
@@ -266,11 +284,22 @@ class _UsersPageState extends State<UsersPage> {
 
                             // Tabela Institucional de Usuários com Ações Expandidas
                             UserListTable(
+                              onEdit: (user) =>
+                                  showUserEditDialog(context, user),
                               users: filteredList,
                               onResetPassword: (u) =>
                                   _showResetSenhaDialog(context, u),
-                              onToggleStatus: (id) =>
-                                  _controller.toggleUserStatus(id),
+                              onToggleStatus: (id) => _perform(
+                                _controller.persistUserStatus(
+                                  id,
+                                  active:
+                                      _controller.users
+                                          .firstWhere((u) => u.id == id)
+                                          .status !=
+                                      'Ativo',
+                                ),
+                                'Status atualizado.',
+                              ),
                               onImpersonate: (u) =>
                                   _showImpersonateDialog(context, u),
                               onManageSessions: (u) =>

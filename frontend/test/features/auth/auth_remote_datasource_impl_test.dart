@@ -8,6 +8,48 @@ import 'package:pi_iv_time3/features/auth/shared/external/auth_remote_datasource
 
 void main() {
   test(
+    '2FA requires a real challenge before obtaining an access token',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login')) {
+            return http.Response(
+              jsonEncode({
+                'requiresTwoFactor': true,
+                'challengeToken': 'opaque-login-challenge',
+              }),
+              202,
+            );
+          }
+          expect(request.url.path, '/api/auth/verify-two-factor');
+          expect(jsonDecode(request.body), {
+            'challengeToken': 'opaque-login-challenge',
+            'code': '456789',
+          });
+          return http.Response(
+            jsonEncode({'accessToken': 'verified-token'}),
+            200,
+          );
+        }),
+      );
+      await expectLater(
+        source.authenticateUser(
+          identity: 'admin.test',
+          password: 'test-password',
+          profile: 'admin',
+        ),
+        throwsA(isA<TwoFactorChallenge>()),
+      );
+      expect(
+        await source.completeTwoFactor(
+          challengeToken: 'opaque-login-challenge',
+          code: '456789',
+        ),
+        'verified-token',
+      );
+    },
+  );
+  test(
     'login envia credenciais ao serviço e devolve o token emitido',
     () async {
       late http.Request capturedRequest;
