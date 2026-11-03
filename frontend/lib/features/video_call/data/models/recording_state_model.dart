@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../../domain/entities/recording_state.dart';
 
@@ -58,9 +58,12 @@ class RecordingStateModel {
     }
 
     final isRecording = json['isRecording'] as bool? ?? false;
-    final status = json['status'] as String? ?? (isRecording ? 'recording' : 'idle');
-    final recordedById = (json['recordedById'] ?? json['startedByPeerId']) as String?;
-    final recordedByName = (json['recordedByName'] ?? json['startedByName']) as String?;
+    final status =
+        json['status'] as String? ?? (isRecording ? 'recording' : 'idle');
+    final recordedById =
+        (json['recordedById'] ?? json['startedByPeerId']) as String?;
+    final recordedByName =
+        (json['recordedByName'] ?? json['startedByName']) as String?;
     final elapsedMs = (json['elapsedDurationMs'] as num?)?.toInt() ?? 0;
 
     return RecordingStateModel(
@@ -99,16 +102,21 @@ class RecordingStateModel {
     try {
       recordingStatus = RecordingStatus.values.firstWhere(
         (s) => s.name.toLowerCase() == status.toLowerCase(),
-        orElse: () => isRecording ? RecordingStatus.recording : RecordingStatus.idle,
+        orElse: () =>
+            isRecording ? RecordingStatus.recording : RecordingStatus.idle,
       );
     } catch (_) {
-      recordingStatus = isRecording ? RecordingStatus.recording : RecordingStatus.idle;
+      recordingStatus = isRecording
+          ? RecordingStatus.recording
+          : RecordingStatus.idle;
     }
 
     return RecordingState(
       status: recordingStatus,
       isRecording: isRecording,
-      startedAt: startedAt != null ? DateTime.fromMillisecondsSinceEpoch(startedAt!) : null,
+      startedAt: startedAt != null
+          ? DateTime.fromMillisecondsSinceEpoch(startedAt!)
+          : null,
       startedByPeerId: recordedById,
       startedByName: recordedByName,
       elapsedDuration: Duration(milliseconds: elapsedDurationMs),
@@ -148,16 +156,16 @@ class RecordingStateModel {
 
   @override
   int get hashCode => Object.hash(
-        isRecording,
-        status,
-        startedAt,
-        recordedById,
-        recordedByName,
-        stoppedAt,
-        elapsedDurationMs,
-        outputPath,
-        errorMessage,
-      );
+    isRecording,
+    status,
+    startedAt,
+    recordedById,
+    recordedByName,
+    stoppedAt,
+    elapsedDurationMs,
+    outputPath,
+    errorMessage,
+  );
 
   @override
   String toString() {

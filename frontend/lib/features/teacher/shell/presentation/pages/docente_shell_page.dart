@@ -134,7 +134,8 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
                     Text(_controller.remoteError!, textAlign: TextAlign.center),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
-                      onPressed: () => unawaited(_controller.loadRemote(force: true)),
+                      onPressed: () =>
+                          unawaited(_controller.loadRemote(force: true)),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Tentar novamente'),
                     ),

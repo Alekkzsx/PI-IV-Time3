@@ -17,7 +17,7 @@ class StudentGrade {
 
   const StudentGrade({
     required this.studentId,
-    this.courseId = 'course-aps2',
+    this.courseId = '',
     required this.ra,
     required this.studentName,
     required this.assignmentsScore,
@@ -52,7 +52,7 @@ class StudentGrade {
     if (attendanceRate < 75.0) {
       return AcademicStatus.reprovadoPorFalta;
     }
-    if (finalAverage >= 7.0) {
+    if (finalAverage >= 6.0) {
       return AcademicStatus.aprovado;
     }
     if (finalAverage >= 4.0) {
