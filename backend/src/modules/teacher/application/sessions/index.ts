@@ -1,0 +1,1 @@
+export { TeacherSessionService, type SessionAttendanceUpdate } from "../teacher-session.service.js";
