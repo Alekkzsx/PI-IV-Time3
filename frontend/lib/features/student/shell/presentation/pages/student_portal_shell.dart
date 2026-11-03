@@ -54,6 +54,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
     super.initState();
     _currentNavItem = widget.activeNavItem;
     StudentPortalController.instance.activeNavItem = _currentNavItem;
+    StudentPortalController.instance.loadRemote();
     _currentHeaderTitle = widget.headerTitle;
     StudentPortalController.instance.addListener(_onPortalControllerChanged);
   }
