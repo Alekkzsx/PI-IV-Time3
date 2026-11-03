@@ -94,40 +94,31 @@ void showEmitirComunicadoModal(BuildContext context) {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (titleController.text.isNotEmpty) {
+              if (titleController.text.trim().isNotEmpty &&
+                  bodyController.text.trim().isNotEmpty) {
                 final controller = AdminPortalController.instance;
-                if (controller.usesRemote) {
-                  final ok = await controller.persist(
-                    () => controller.remote.request('POST', '/announcements', {
-                      'title': titleController.text,
-                      'body': bodyController.text,
-                      'audience': selectedAudience,
-                      'category': selectedCategory,
-                    }),
-                  );
-                  if (!context.mounted || !ctx.mounted) return;
-                  if (!ok) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          controller.remoteError ?? 'Falha ao publicar.',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                }
-                AdminPortalController.instance.broadcastAnnouncement(
+                final ok = await controller.broadcastAnnouncement(
                   title: titleController.text,
                   audience: selectedAudience,
                   category: selectedCategory,
                   body: bodyController.text,
                 );
+                if (!context.mounted || !ctx.mounted) return;
+                if (!ok) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        controller.remoteError ?? 'Falha ao publicar.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'Comunicado institucional transmitido a todos os usuários!',
+                      'Comunicado institucional publicado.',
                     ),
                   ),
                 );

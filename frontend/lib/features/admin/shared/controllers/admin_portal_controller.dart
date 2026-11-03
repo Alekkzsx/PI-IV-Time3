@@ -254,6 +254,7 @@ class AdminPortalController extends ChangeNotifier {
               u.profile == RolePermissionPolicy.admin);
       final matchesSearch =
           u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
+          u.identity.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.id.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.email.toLowerCase().contains(userSearchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
@@ -292,14 +293,19 @@ class AdminPortalController extends ChangeNotifier {
     );
   }
 
-  Future<bool> updateAnnouncement(String id, Map<String, Object?> fields) =>
-      persist(
-        () => remote.request(
-          'PATCH',
-          '/announcements/${Uri.encodeComponent(id)}',
-          fields,
-        ),
-      );
+  Future<bool> updateAnnouncement(String id, Map<String, Object?> fields) {
+    if (!canPerform('publish_announcements') || id.isEmpty || fields.isEmpty) {
+      _denyPermission('publish_announcements');
+      return Future.value(false);
+    }
+    return persist(
+      () => remote.request(
+        'PATCH',
+        '/announcements/${Uri.encodeComponent(id)}',
+        fields,
+      ),
+    );
+  }
 
   // --- MÉTODOS DE GESTÃO DE TURMAS & SUPERVISÃO ---
 

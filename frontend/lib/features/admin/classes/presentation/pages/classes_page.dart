@@ -227,7 +227,6 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassRegimeFormulaModal.show(
       context: context,
       classModel: c,
-      teachers: _teachers,
       onSaveRegime: (regime) async {
         final ok = await _controller.persistClass(c.code, {
           'formulaRegime': regime == 'Impor pelo Admin'
@@ -248,6 +247,7 @@ class _ClassesPageState extends State<ClassesPage> {
     ClassAlocarDocenteModal.show(
       context: context,
       classModel: c,
+      teachers: _teachers,
       onConfirmAllocation: (prof) async {
         final ok = await _controller.persistClass(c.code, {
           'professorIdentity': prof,
@@ -419,7 +419,7 @@ class _CreateClassDialog extends StatefulWidget {
 class _CreateClassDialogState extends State<_CreateClassDialog> {
   final _formKey = GlobalKey<FormState>();
   final _code = TextEditingController();
-  final _semester = TextEditingController(text: '2026/2');
+  final _semester = TextEditingController();
   final _shift = TextEditingController(text: 'Noturno');
   final _location = TextEditingController();
   final _capacity = TextEditingController(text: '40');

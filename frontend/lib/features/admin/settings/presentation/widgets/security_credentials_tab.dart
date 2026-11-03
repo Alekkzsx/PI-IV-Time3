@@ -52,17 +52,28 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: current, obscureText: true,
-                decoration: const InputDecoration(labelText: 'Senha atual')),
-            TextField(controller: next, obscureText: true,
-                decoration: const InputDecoration(labelText: 'Nova senha')),
-            TextField(controller: confirm, obscureText: true,
-                decoration: const InputDecoration(labelText: 'Confirmar senha')),
+            TextField(
+              controller: current,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Senha atual'),
+            ),
+            TextField(
+              controller: next,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Nova senha'),
+            ),
+            TextField(
+              controller: confirm,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confirmar senha'),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
             onPressed: () {
               if (next.text.length < 8 || next.text != confirm.text) return;
@@ -126,42 +137,42 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    }
+  }
 
-      Future<void> _showBackupCodes() async {
-        try {
-          final codes = await _profileRemote.backupCodes();
-          if (!mounted) return;
-          await showDialog<void>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Códigos de recuperação'),
-              content: SizedBox(
-                width: 360,
-                child: codes.isEmpty
-                    ? const Text('Nenhum código disponível.')
-                    : SelectableText(codes.join('\n')),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Fechar'),
-                ),
-              ],
+  Future<void> _showBackupCodes() async {
+    try {
+      final codes = await _profileRemote.backupCodes();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Códigos de recuperação'),
+          content: SizedBox(
+            width: 360,
+            child: codes.isEmpty
+                ? const Text('Nenhum código disponível.')
+                : SelectableText(codes.join('\n')),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fechar'),
             ),
-          );
-        } on ApiException catch (error) {
-          if (mounted) setState(() => _error = error.message);
-        }
-      }
+          ],
+        ),
+      );
+    } on ApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    }
+  }
 
-      Future<void> _logoutOthers() async {
-        try {
-          await _profileRemote.logoutOthers();
-          if (mounted) setState(() {});
-        } on ApiException catch (error) {
-          if (mounted) setState(() => _error = error.message);
-        }
-      }
+  Future<void> _logoutOthers() async {
+    try {
+      await _profileRemote.logoutOthers();
+      if (mounted) setState(() {});
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     }
@@ -252,7 +263,8 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                               await _profileRemote.revokeSession(id);
                               if (mounted) setState(() {});
                             } on ApiException catch (error) {
-                              if (mounted) setState(() => _error = error.message);
+                              if (mounted)
+                                setState(() => _error = error.message);
                             }
                           },
                           icon: const Icon(Icons.logout),
@@ -286,15 +298,17 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
             if (logs.isEmpty) return const Text('Nenhum registro disponível.');
             return Column(
               children: logs
-                  .map((log) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          '${log['action'] ?? log['event'] ?? 'Atividade de segurança'}',
-                        ),
-                        subtitle: Text(
-                          '${log['createdAt'] ?? log['timestamp'] ?? ''}',
-                        ),
-                      ))
+                  .map(
+                    (log) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        '${log['action'] ?? log['event'] ?? 'Atividade de segurança'}',
+                      ),
+                      subtitle: Text(
+                        '${log['createdAt'] ?? log['timestamp'] ?? ''}',
+                      ),
+                    ),
+                  )
                   .toList(),
             );
           },
