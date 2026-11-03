@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../controllers/video_call_controller.dart';
@@ -57,104 +57,104 @@ class ParticipantsDrawer extends StatelessWidget {
               color: Colors.transparent,
               child: ListView.separated(
                 itemCount: participants.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(color: VideoCallColors.border, height: 1),
-              itemBuilder: (context, index) {
-                final p = participants[index];
-                return ListTile(
-                  onTap: () => controller.togglePinParticipant(p.id),
-                  leading: CircleAvatar(
-                    backgroundColor: VideoCallColors.surfaceElevated,
-                    child: Text(
-                      p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        color: VideoCallColors.accentWhite,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  title: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          p.isLocal ? '${p.name} (Você)' : p.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: VideoCallColors.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                separatorBuilder: (context, index) =>
+                    const Divider(color: VideoCallColors.border, height: 1),
+                itemBuilder: (context, index) {
+                  final p = participants[index];
+                  return ListTile(
+                    onTap: () => controller.togglePinParticipant(p.id),
+                    leading: CircleAvatar(
+                      backgroundColor: VideoCallColors.surfaceElevated,
+                      child: Text(
+                        p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          color: VideoCallColors.accentWhite,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (p.isHost) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1,
-                          ),
-                          decoration: BoxDecoration(
-                            color: VideoCallColors.surfaceHover,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'Host',
-                            style: TextStyle(
-                              color: VideoCallColors.accentWhite,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                    ),
+                    title: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            p.isLocal ? '${p.name} (Você)' : p.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: VideoCallColors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                  subtitle: Text(
-                    'RA: ${p.ra}',
-                    style: const TextStyle(
-                      color: VideoCallColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (p.isHandRaised)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 6.0),
-                          child: Text('✋', style: TextStyle(fontSize: 14)),
-                        ),
-                      if (p.isScreenSharing)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 6.0),
-                          child: Icon(
-                            Icons.screen_share,
-                            color: VideoCallColors.accentWhite,
-                            size: 16,
+                        if (p.isHost) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: VideoCallColors.surfaceHover,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Host',
+                              style: TextStyle(
+                                color: VideoCallColors.accentWhite,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
+                        ],
+                      ],
+                    ),
+                    subtitle: Text(
+                      'RA: ${p.ra}',
+                      style: const TextStyle(
+                        color: VideoCallColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (p.isHandRaised)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 6.0),
+                            child: Text('✋', style: TextStyle(fontSize: 14)),
+                          ),
+                        if (p.isScreenSharing)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 6.0),
+                            child: Icon(
+                              Icons.screen_share,
+                              color: VideoCallColors.accentWhite,
+                              size: 16,
+                            ),
+                          ),
+                        Icon(
+                          p.isVideoOff ? Icons.videocam_off : Icons.videocam,
+                          color: p.isVideoOff
+                              ? VideoCallColors.textMuted
+                              : VideoCallColors.textSecondary,
+                          size: 16,
                         ),
-                      Icon(
-                        p.isVideoOff ? Icons.videocam_off : Icons.videocam,
-                        color: p.isVideoOff
-                            ? VideoCallColors.textMuted
-                            : VideoCallColors.textSecondary,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        p.isAudioMuted ? Icons.mic_off : Icons.mic,
-                        color: p.isAudioMuted
-                            ? VideoCallColors.textMuted
-                            : (p.isSpeaking
-                                ? VideoCallColors.accentWhite
-                                : VideoCallColors.textSecondary),
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          p.isAudioMuted ? Icons.mic_off : Icons.mic,
+                          color: p.isAudioMuted
+                              ? VideoCallColors.textMuted
+                              : (p.isSpeaking
+                                    ? VideoCallColors.accentWhite
+                                    : VideoCallColors.textSecondary),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],

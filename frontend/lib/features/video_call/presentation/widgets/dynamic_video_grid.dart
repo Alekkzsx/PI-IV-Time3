@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
@@ -54,8 +54,9 @@ class DynamicVideoGrid extends StatelessWidget {
       participant: participant,
       videoViewType: videoViewTypeBuilder?.call(participant),
       isPinned: pinnedParticipantId == participant.id,
-      onTap:
-          onParticipantTap != null ? () => onParticipantTap!(participant) : null,
+      onTap: onParticipantTap != null
+          ? () => onParticipantTap!(participant)
+          : null,
     );
   }
 
@@ -78,10 +79,7 @@ class DynamicVideoGrid extends StatelessWidget {
               itemCount: participants.length,
               itemBuilder: (context, index) {
                 final participant = participants[index];
-                return SizedBox(
-                  width: 180,
-                  child: _buildTile(participant),
-                );
+                return SizedBox(width: 180, child: _buildTile(participant));
               },
             ),
           ),
@@ -104,11 +102,7 @@ class DynamicVideoGrid extends StatelessWidget {
 
     if (participants.length == 1) {
       final soleParticipant = participants.first;
-      return Center(
-        child: SizedBox.expand(
-          child: _buildTile(soleParticipant),
-        ),
-      );
+      return Center(child: SizedBox.expand(child: _buildTile(soleParticipant)));
     }
 
     if (participants.length == 2) {

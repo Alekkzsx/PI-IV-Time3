@@ -53,13 +53,13 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   @override
   void initState() {
     super.initState();
-    _roomDataSource =
-        widget.roomDataSource ?? VideoCallRoomRemoteDataSource();
+    _roomDataSource = widget.roomDataSource ?? VideoCallRoomRemoteDataSource();
     if (widget.controller != null) {
       _lobbyController = widget.controller!;
     } else {
       _lobbyController = VideoCallLobbyController(
         repository: widget.repository,
+        roomDataSource: _roomDataSource,
       );
       _ownsController = true;
     }
@@ -68,7 +68,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
     _userRole = userSession.role;
     final identity = userSession.identity ?? '';
     _nameController = TextEditingController(
-      text: identity.isNotEmpty ? identity : _lobbyController.name,
+      text: identity.isNotEmpty
+          ? userSession.effectiveName
+          : _lobbyController.name,
     );
     _raController = TextEditingController(
       text: identity.isNotEmpty ? identity : _lobbyController.ra,
@@ -84,7 +86,11 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   }
 
   void _onControllerUpdate() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (_roomCodeController.text != _lobbyController.roomCode) {
+      _roomCodeController.text = _lobbyController.roomCode;
+    }
+    setState(() {});
   }
 
   void _showAccessDenied(String message) {
@@ -115,10 +121,16 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         return;
       }
 
-      final name = identity;
+      final name = session.effectiveName;
       final ra = identity;
-      final requestedRoomCode = _roomCodeController.text.trim().toUpperCase();
+      final requestedRoomCode = _lobbyController.normalizeRoomCode(
+        _roomCodeController.text,
+      );
       final roomCode = requestedRoomCode;
+      if (!_lobbyController.rooms.any((room) => room.roomCode == roomCode)) {
+        _showAccessDenied('Selecione uma sala vinculada à sua conta.');
+        return;
+      }
 
       await _lobbyController.mediaEngine.unlockAudioPlayback();
       final mediaReady = await _lobbyController.ensureMediaReady();
@@ -163,8 +175,10 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         });
         await Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) =>
-                VideoCallRoomPage(controller: videoCallController),
+            builder: (context) => VideoCallRoomPage(
+              controller: videoCallController,
+              roomDataSource: _roomDataSource,
+            ),
           ),
         );
         if (roomAccess.opened) {
@@ -428,18 +442,74 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     validator: _lobbyController.validateRa,
                   ),
                   const SizedBox(height: 16),
-                  // Campo Código da Sala
-                  TextFormField(
+                  // Salas disponíveis para o perfil autenticado
+                  DropdownButtonFormField<String>(
                     key: const Key('lobby_room_code_field'),
-                    controller: _roomCodeController,
-                    readOnly: _userRole != null,
-                    style: const TextStyle(color: VideoCallColors.textPrimary),
+                    value:
+                        _lobbyController.rooms.any(
+                          (room) => room.roomCode == _lobbyController.roomCode,
+                        )
+                        ? _lobbyController.roomCode
+                        : null,
                     decoration: _buildMonochromeInputDecoration(
-                      'Código da Sala (ex: SALA-101)',
+                      _lobbyController.isLoadingRooms
+                          ? 'Carregando salas...'
+                          : 'Selecione uma sala',
                     ),
-                    onChanged: _lobbyController.setRoomCode,
-                    validator: _lobbyController.validateRoomCode,
+                    items: _lobbyController.rooms
+                        .map(
+                          (room) => DropdownMenuItem(
+                            value: room.roomCode,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${room.title} (${room.classCode})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (room.isOpen)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Text(
+                                      'Ao vivo',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _lobbyController.rooms.isEmpty
+                        ? null
+                        : (value) {
+                            final selected = _lobbyController.rooms
+                                .where((room) => room.roomCode == value)
+                                .firstOrNull;
+                            if (selected == null) return;
+                            _lobbyController.selectRoom(selected);
+                            _roomCodeController.text = selected.roomCode;
+                          },
                   ),
+                  if (_lobbyController.roomError case final error?) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      error,
+                      style: const TextStyle(
+                        color: VideoCallColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _lobbyController.loadRooms,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Tentar novamente'),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   // Botão de entrada na reunião (Alto Contraste Branco sobre Preto)
                   SizedBox(

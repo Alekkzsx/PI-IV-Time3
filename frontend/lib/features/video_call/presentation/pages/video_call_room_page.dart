@@ -1,6 +1,9 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../data/datasources/video_call_room_remote_data_source.dart';
 import '../controllers/video_call_controller.dart';
 import '../theme/video_call_theme.dart';
 import '../widgets/dynamic_video_grid.dart';
@@ -15,10 +18,59 @@ import '../widgets/raised_hands_banner.dart';
 /// Compõe a grade de vídeo adaptativa (DynamicVideoGrid) com streams reais WebRTC,
 /// banner de gravação institucional, fila de mãos levantadas, barra de ferramentas
 /// flutuante, overlay de reações e gavetas deslizantes de chat e participantes.
-class VideoCallRoomPage extends StatelessWidget {
+class VideoCallRoomPage extends StatefulWidget {
   final VideoCallController controller;
+  final VideoCallRoomRemoteDataSource? roomDataSource;
 
-  const VideoCallRoomPage({super.key, required this.controller});
+  const VideoCallRoomPage({
+    super.key,
+    required this.controller,
+    VideoCallRoomRemoteDataSource? roomDataSource,
+  }) : roomDataSource = roomDataSource;
+
+  @override
+  State<VideoCallRoomPage> createState() => _VideoCallRoomPageState();
+}
+
+class _VideoCallRoomPageState extends State<VideoCallRoomPage> {
+  late final Stopwatch _connectedDuration;
+  late final VideoCallRoomRemoteDataSource _roomDataSource;
+  bool _attendanceJoinSent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _roomDataSource = widget.roomDataSource ?? VideoCallRoomRemoteDataSource();
+    _connectedDuration = Stopwatch()..start();
+    unawaited(_recordJoin());
+  }
+
+  Future<void> _recordJoin() async {
+    try {
+      await _roomDataSource.recordAttendance(
+        roomCode: widget.controller.room.code,
+        event: 'join',
+      );
+      _attendanceJoinSent = true;
+    } on VideoCallRoomApiException {
+      // The meeting continues; attendance errors are reported by server logs.
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectedDuration.stop();
+    if (_attendanceJoinSent) {
+      unawaited(
+        _roomDataSource.recordAttendance(
+          roomCode: widget.controller.room.code,
+          event: 'leave',
+          connectedSeconds: _connectedDuration.elapsed.inSeconds,
+        ),
+      );
+    }
+    super.dispose();
+  }
 
   static String _formatDuration(Duration d) {
     final h = d.inHours.toString().padLeft(2, '0');
@@ -33,11 +85,11 @@ class VideoCallRoomPage extends StatelessWidget {
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) {
-          controller.leaveCall();
+          widget.controller.leaveCall();
         }
       },
       child: AnimatedBuilder(
-        animation: controller,
+        animation: widget.controller,
         builder: (context, _) {
           return Scaffold(
             backgroundColor: VideoCallColors.background,
@@ -48,7 +100,7 @@ class VideoCallRoomPage extends StatelessWidget {
                   child: Column(
                     children: [
                       // Banner de conformidade de gravação institucional
-                      if (controller.recordingState.isRecording)
+                      if (widget.controller.recordingState.isRecording)
                         Container(
                           key: const Key('institutional_recording_banner'),
                           width: double.infinity,
@@ -77,7 +129,7 @@ class VideoCallRoomPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                      if (controller.mediaStatus case final status?)
+                      if (widget.controller.mediaStatus case final status?)
                         Container(
                           key: const Key('call_media_status'),
                           width: double.infinity,
@@ -96,7 +148,9 @@ class VideoCallRoomPage extends StatelessWidget {
                           ),
                         ),
                       // Banner superior da fila de mãos levantadas (nunca sobreposto pelo chat)
-                      RaisedHandsBanner(queue: controller.raisedHandsQueue),
+                      RaisedHandsBanner(
+                        queue: widget.controller.raisedHandsQueue,
+                      ),
                       // Área de vídeo + overlays do palco
                       Expanded(
                         child: Stack(
@@ -104,24 +158,26 @@ class VideoCallRoomPage extends StatelessWidget {
                             // Grade dinâmica responsiva de vídeos reais (Strictly Zero Bots)
                             Positioned.fill(
                               child: DynamicVideoGrid(
-                                participants: controller.allParticipants,
-                                isScreenSharing: controller.isScreenSharing,
-                                videoViewTypeBuilder:
-                                    controller.getParticipantVideoViewType,
+                                participants: widget.controller.allParticipants,
+                                isScreenSharing:
+                                    widget.controller.isScreenSharing,
+                                videoViewTypeBuilder: widget
+                                    .controller
+                                    .getParticipantVideoViewType,
                                 screenShareViewType:
-                                    controller.screenShareVideoViewType,
+                                    widget.controller.screenShareVideoViewType,
                                 activePresenterName:
-                                    controller.activePresenterName,
+                                    widget.controller.activePresenterName,
                                 pinnedParticipantId:
-                                    controller.pinnedParticipantId,
-                                onParticipantTap: (p) =>
-                                    controller.togglePinParticipant(p.id),
+                                    widget.controller.pinnedParticipantId,
+                                onParticipantTap: (p) => widget.controller
+                                    .togglePinParticipant(p.id),
                               ),
                             ),
                             // Overlay de partículas de reações de emojis flutuantes (canto inferior esquerdo do palco)
                             Positioned.fill(
                               child: FloatingReactionsOverlay(
-                                reactions: controller.activeReactions,
+                                reactions: widget.controller.activeReactions,
                               ),
                             ),
                             // Cabeçalho superior com título, código da sala e botão de cópia
@@ -147,7 +203,7 @@ class VideoCallRoomPage extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      '${controller.room.title} (${controller.room.code})',
+                                      '${widget.controller.room.title} (${widget.controller.room.code})',
                                       style: const TextStyle(
                                         color: VideoCallColors.textPrimary,
                                         fontSize: 13,
@@ -158,7 +214,7 @@ class VideoCallRoomPage extends StatelessWidget {
                                     InkWell(
                                       key: const Key('copy_room_info_button'),
                                       onTap: () async {
-                                        await controller.copyRoomInfo();
+                                        await widget.controller.copyRoomInfo();
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(
                                             context,
@@ -167,7 +223,7 @@ class VideoCallRoomPage extends StatelessWidget {
                                               backgroundColor: VideoCallColors
                                                   .surfaceElevated,
                                               content: Text(
-                                                'Código da sala (${controller.room.code}) copiado para a área de transferência.',
+                                                'Código da sala (${widget.controller.room.code}) copiado para a área de transferência.',
                                                 style: const TextStyle(
                                                   color: VideoCallColors
                                                       .textPrimary,
@@ -191,7 +247,7 @@ class VideoCallRoomPage extends StatelessWidget {
                               ),
                             ),
                             // Badge de temporizador de gravação ativa com animação pulsante
-                            if (controller.recordingState.isRecording)
+                            if (widget.controller.recordingState.isRecording)
                               Positioned(
                                 top: 16,
                                 right: 16,
@@ -199,7 +255,7 @@ class VideoCallRoomPage extends StatelessWidget {
                                   key: const Key('recording_timer_badge'),
                                   child: _PulsatingRecBadge(
                                     text:
-                                        '● REC ${_formatDuration(controller.recordingState.elapsedDuration)}',
+                                        '● REC ${_formatDuration(widget.controller.recordingState.elapsedDuration)}',
                                   ),
                                 ),
                               ),
@@ -210,9 +266,9 @@ class VideoCallRoomPage extends StatelessWidget {
                               right: 0,
                               child: Center(
                                 child: MeetingControlsToolbar(
-                                  controller: controller,
+                                  controller: widget.controller,
                                   onLeaveCall: () {
-                                    controller.leaveCall();
+                                    widget.controller.leaveCall();
                                     if (context.mounted) {
                                       Navigator.of(context).maybePop();
                                     }
@@ -227,11 +283,11 @@ class VideoCallRoomPage extends StatelessWidget {
                   ),
                 ),
                 // Gaveta lateral de chat (lado a lado com o palco, sem cobrir reações ou vídeos)
-                if (controller.isChatDrawerOpen)
-                  InCallChatDrawer(controller: controller),
+                if (widget.controller.isChatDrawerOpen)
+                  InCallChatDrawer(controller: widget.controller),
                 // Gaveta lateral de participantes (lado a lado com o palco, sem cobrir reações ou vídeos)
-                if (controller.isParticipantsDrawerOpen)
-                  ParticipantsDrawer(controller: controller),
+                if (widget.controller.isParticipantsDrawerOpen)
+                  ParticipantsDrawer(controller: widget.controller),
               ],
             ),
           );

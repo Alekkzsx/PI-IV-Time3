@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
@@ -126,10 +126,7 @@ class ParticipantVideoTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: VideoCallColors.background.withValues(alpha: 0.80),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: VideoCallColors.border,
-                    width: 0.8,
-                  ),
+                  border: Border.all(color: VideoCallColors.border, width: 0.8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -159,8 +156,8 @@ class ParticipantVideoTile extends StatelessWidget {
                           participant.role.toLowerCase() == 'host'
                               ? 'Anfitrião'
                               : participant.role.toLowerCase() == 'presenter'
-                                  ? 'Apresentador'
-                                  : participant.role.toUpperCase(),
+                              ? 'Apresentador'
+                              : participant.role.toUpperCase(),
                           style: const TextStyle(
                             color: VideoCallColors.accentWhite,
                             fontSize: 9,
@@ -199,8 +196,10 @@ class ParticipantVideoTile extends StatelessWidget {
                 top: 12,
                 left: 12,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: VideoCallColors.background.withValues(alpha: 0.80),
                     borderRadius: BorderRadius.circular(6),
