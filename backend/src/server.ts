@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { loadEnvironment } from "./config/environment.js";
 import { MongoAuthSecurityRepository } from "./modules/auth/infrastructure/mongo-auth-security.repository.js";
-import { AuthService } from "./modules/auth/application/auth.service.js";
+import { AuthService } from "./modules/auth/application/index.js";
 import { MongoAuthDatabase } from "./modules/auth/infrastructure/mongo-auth.repository.js";
 import { SmtpRecoveryEmailSender } from "./modules/auth/infrastructure/smtp-recovery-email.sender.js";
 import {
