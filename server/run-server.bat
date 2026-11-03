@@ -9,10 +9,21 @@ if not exist "src\Main.java" (
   exit /b 1
 )
 
+set "JAVAC_CMD=javac"
+where javac >nul 2>nul
+if not "%ERRORLEVEL%"=="0" (
+  for /d %%D in ("%APPDATA%\Antigravity IDE\User\globalStorage\pleiades.java-extension-pack-jdk\java\17\bin" "%APPDATA%\Code\User\globalStorage\pleiades.java-extension-pack-jdk\java\17\bin") do (
+    if exist "%%~D\javac.exe" set "JAVAC_CMD=%%~D\javac.exe"
+  )
+)
+
 if not exist "bin" mkdir "bin"
 set "LISTA=%TEMP%\agmr_fontes_%RANDOM%.txt"
 dir /s /b "src\*.java" > "%LISTA%"
-javac -encoding UTF-8 -d "bin" @"%LISTA%"
+"%JAVAC_CMD%" --release 8 -encoding UTF-8 -d "bin" @"%LISTA%" 2>nul
+if not "%ERRORLEVEL%"=="0" (
+  "%JAVAC_CMD%" -encoding UTF-8 -d "bin" @"%LISTA%"
+)
 set "ERRO=%ERRORLEVEL%"
 del "%LISTA%" >nul 2>nul
 
@@ -22,9 +33,6 @@ if not "%ERRO%"=="0" (
   exit /b %ERRO%
 )
 
-set "ENTRYPOINT=Main"
-if exist "bin\main\Main.class" if not exist "bin\Main.class" set "ENTRYPOINT=main.Main"
-
-echo Iniciando servidor nativo AGMRM (Modulos Academicos, Videochamada e Autenticacao)...
-java -cp "bin" %ENTRYPOINT%
+echo Iniciando servidor nativo AGMRM (Modulos Academicos, Videochamada e Sessao JWT)...
+java -Dfile.encoding=UTF-8 -cp "bin" Main
 pause
