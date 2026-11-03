@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
@@ -424,9 +424,7 @@ class _RubricEvaluationModalState extends State<RubricEvaluationModal> {
                     value: currentScore.clamp(0.0, criterion.maxScore),
                     min: 0.0,
                     max: criterion.maxScore,
-                    divisions: (criterion.maxScore * 10)
-                        .round()
-                        .clamp(1, 1000),
+                    divisions: (criterion.maxScore * 10).round().clamp(1, 1000),
                     onChanged: (val) {
                       setState(() {
                         _criterionScores[criterion.id] = double.parse(

@@ -29,8 +29,7 @@ class StudentMaterialItem {
       id: id,
       courseCode: json['courseCode']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
-      fileName:
-          json['fileName']?.toString() ?? json['title']?.toString() ?? '',
+      fileName: json['fileName']?.toString() ?? json['title']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
       size: json['size']?.toString() ?? '',
       fileType:
@@ -109,7 +108,10 @@ class StudentForumTopic {
       replies: rawReplies is List
           ? rawReplies
                 .whereType<Map>()
-                .map((e) => StudentForumReply.fromJson(Map<String, dynamic>.from(e)))
+                .map(
+                  (e) =>
+                      StudentForumReply.fromJson(Map<String, dynamic>.from(e)),
+                )
                 .toList()
           : const [],
     );
@@ -181,8 +183,10 @@ class StudentDisciplineModel {
        schedule = schedule ?? time;
 
   factory StudentDisciplineModel.fromJson(Map<String, dynamic> json) {
-    double numOrZero(Object? v) => v is num ? v.toDouble() : (double.tryParse('$v') ?? 0.0);
-    int intOrZero(Object? v) => v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
+    double numOrZero(Object? v) =>
+        v is num ? v.toDouble() : (double.tryParse('$v') ?? 0.0);
+    int intOrZero(Object? v) =>
+        v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
 
     final code = json['code']?.toString() ?? '';
     final rawMats = json['materials'];
@@ -198,7 +202,9 @@ class StudentDisciplineModel {
       schedule: json['schedule']?.toString() ?? json['time']?.toString() ?? '',
       time: json['time']?.toString() ?? json['schedule']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
-      roomStatus: json['roomStatus']?.toString() ?? (json['isLive'] == true ? 'Ao Vivo' : 'Sala Fechada'),
+      roomStatus:
+          json['roomStatus']?.toString() ??
+          (json['isLive'] == true ? 'Ao Vivo' : 'Sala Fechada'),
       isLive: json['isLive'] == true,
       progress: numOrZero(json['progress']),
       n1: numOrZero(json['n1']),
@@ -234,7 +240,11 @@ class StudentDisciplineModel {
       materials: rawMats is List
           ? rawMats
                 .whereType<Map>()
-                .map((m) => StudentMaterialItem.fromJson(Map<String, dynamic>.from(m)))
+                .map(
+                  (m) => StudentMaterialItem.fromJson(
+                    Map<String, dynamic>.from(m),
+                  ),
+                )
                 .toList()
           : const [],
     );
@@ -405,7 +415,10 @@ class StudentDeliveryItem {
       doubts: rawDoubts is List
           ? rawDoubts
                 .whereType<Map>()
-                .map((d) => StudentDoubtItem.fromJson(Map<String, dynamic>.from(d)))
+                .map(
+                  (d) =>
+                      StudentDoubtItem.fromJson(Map<String, dynamic>.from(d)),
+                )
                 .toList()
           : const [],
       activityCode: json['activityCode']?.toString(),
