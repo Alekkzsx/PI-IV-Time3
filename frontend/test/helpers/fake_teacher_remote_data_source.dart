@@ -213,12 +213,6 @@ class FakeTeacherProfileRemoteDataSource extends AuthProfileRemoteDataSource {
   final FakeTeacherRemoteDataSource teacher;
 
   @override
-  Future<void> toggleTwoFactor({
-    required String password,
-    required bool enabled,
-  }) async {}
-
-  @override
   Future<void> revokeSession(String sessionId) async {
     teacher.profile = teacher.profile.copyWith(
       activeSessions: teacher.profile.activeSessions
@@ -227,7 +221,6 @@ class FakeTeacherProfileRemoteDataSource extends AuthProfileRemoteDataSource {
     );
   }
 
-
   @override
   Future<void> logoutOthers() async {
     teacher.profile = teacher.profile.copyWith(
@@ -235,5 +228,13 @@ class FakeTeacherProfileRemoteDataSource extends AuthProfileRemoteDataSource {
           .where((session) => session.isCurrent)
           .toList(),
     );
+  }
+
+  @override
+  Future<void> toggleTwoFactor({
+    required String password,
+    required bool enabled,
+  }) async {
+    teacher.profile = teacher.profile.copyWith(twoFactorEnabled: enabled);
   }
 }

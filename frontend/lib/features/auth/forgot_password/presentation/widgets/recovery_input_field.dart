@@ -21,7 +21,7 @@ class RecoveryInputField extends StatelessWidget {
   /// Título contextual do campo (ex: R.A. do Aluno, Matrícula do Docente).
   final String inputTitle;
 
-  /// Exemplo textual da sintaxe esperada (ex: `ex: 2024.1.00892`).
+  /// Exemplo textual da sintaxe esperada (ex: `ex: 202610401`).
   final String example;
 
   /// Texto temporário exibido no interior do campo antes da digitação (placeholder).

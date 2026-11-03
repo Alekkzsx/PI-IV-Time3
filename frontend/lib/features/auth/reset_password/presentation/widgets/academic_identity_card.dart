@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -16,7 +16,7 @@ class AcademicIdentityCard extends StatelessWidget {
   /// Nome completo verificado.
   final String studentName;
 
-  /// Registro formatado (ex: `R.A. 2024.1.00892`).
+  /// Registro formatado (ex: `R.A. 202610401`).
   final String academicRegistration;
 
   /// E-mail institucional do usuário.
@@ -41,8 +41,7 @@ class AcademicIdentityCard extends StatelessWidget {
     final effectiveRegistration =
         session?.formattedIdentityLabel ?? academicRegistration;
     final effectiveEmail = session?.institutionalEmail ?? studentEmail;
-    final effectiveDepartment =
-        session?.departmentOrCourse ?? department ?? '';
+    final effectiveDepartment = session?.departmentOrCourse ?? department ?? '';
     final effectiveIcon = session?.profileIcon ?? Icons.school_outlined;
     final effectiveBadge = session?.roleBadge ?? 'Identidade Confirmada';
 

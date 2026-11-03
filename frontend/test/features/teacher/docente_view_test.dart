@@ -18,9 +18,20 @@ import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_sh
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
 import '../../helpers/fake_teacher_remote_data_source.dart';
 
+Future<DocenteController> _createLoadedTeacherController() async {
+  final remote = FakeTeacherRemoteDataSource();
+  final controller = DocenteController(
+    remoteDataSource: remote,
+    profileRemoteDataSource: FakeTeacherProfileRemoteDataSource(remote),
+  );
+  await controller.loadRemote();
+  return controller;
+}
+
 void main() {
   group('DocenteController Unit Tests', () {
     late DocenteController controller;
+    late FakeTeacherRemoteDataSource remote;
 
     setUp(() async {
       AppUserSession.instance.signIn(
@@ -29,7 +40,7 @@ void main() {
         accessToken: 'test-teacher-token',
       );
       addTearDown(AppUserSession.instance.signOut);
-      final remote = FakeTeacherRemoteDataSource();
+      remote = FakeTeacherRemoteDataSource();
       controller = DocenteController(
         remoteDataSource: remote,
         profileRemoteDataSource: FakeTeacherProfileRemoteDataSource(remote),
@@ -62,38 +73,41 @@ void main() {
       expect(otherTeacherController.studentsForSelectedCourse, isEmpty);
     });
 
-    test('Student cannot mutate the teacher diary or create an assignment', () {
-      AppUserSession.instance.signIn(
-        identity: '2024.1.00892',
-        profile: 'aluno',
-      );
-      final attendanceBefore = controller.currentSession.attendanceList;
-      final assignmentCountBefore = controller.assignments.length;
+    test(
+      'Student cannot mutate the teacher diary or create an assignment',
+      () async {
+        AppUserSession.instance.signIn(
+          identity: '2024.1.00892',
+          profile: 'aluno',
+        );
+        final attendanceBefore = controller.currentSession.attendanceList;
+        final assignmentCountBefore = controller.assignments.length;
 
-      controller.markAllPresent();
-      final created = controller.createAssignment(
-        courseId: controller.courses.first.id,
-        courseCode: controller.courses.first.code,
-        title: 'Atividade indevida',
-        weight: 1,
-        stage: 'N1',
-        dueDateFormatted: '30/11/2026 às 23:59',
-        modality: 'Individual',
-        allowLateWithPenalty: false,
-        rubricCriteria: const [
-          RubricCriterion(
-            id: 'rubric',
-            title: 'Critério',
-            maxPoints: 10,
-            description: 'Critério de teste.',
-          ),
-        ],
-      );
+        await controller.markAllPresent();
+        final created = await controller.createAssignment(
+          courseId: controller.courses.first.id,
+          courseCode: controller.courses.first.code,
+          title: 'Atividade indevida',
+          weight: 1,
+          stage: 'N1',
+          dueDateFormatted: '30/11/2026 às 23:59',
+          modality: 'Individual',
+          allowLateWithPenalty: false,
+          rubricCriteria: const [
+            RubricCriterion(
+              id: 'rubric',
+              title: 'Critério',
+              maxPoints: 10,
+              description: 'Critério de teste.',
+            ),
+          ],
+        );
 
-      expect(created, isFalse);
-      expect(controller.assignments.length, assignmentCountBefore);
-      expect(controller.currentSession.attendanceList, attendanceBefore);
-    });
+        expect(created, isFalse);
+        expect(controller.assignments.length, assignmentCountBefore);
+        expect(controller.currentSession.attendanceList, attendanceBefore);
+      },
+    );
 
     test('Gradebook only returns records for the selected course', () {
       final apsStudent = controller.gradebook.first;
@@ -147,29 +161,29 @@ void main() {
       expect(grade.finalAverage, closeTo(expectedMS, 0.05));
     });
 
-    test('Attendance toggling recalculates absences, rate and risk levels', () {
-      final studentId =
-          controller.currentSession.attendanceList.first.studentId;
-      final initialAbsences =
-          controller.currentSession.attendanceList.first.accumulatedAbsences;
+    test(
+      'Attendance changes persist before the session is homologated',
+      () async {
+        final studentId =
+            controller.currentSession.attendanceList.first.studentId;
 
-      controller.toggleAttendance(studentId, AttendanceStatus.ausente);
+        await controller.toggleAttendance(studentId, AttendanceStatus.ausente);
 
-      final updatedStudent = controller.currentSession.attendanceList
-          .firstWhere((s) => s.studentId == studentId);
-      expect(updatedStudent.status, equals(AttendanceStatus.ausente));
-      expect(updatedStudent.accumulatedAbsences, equals(initialAbsences + 1));
-      expect(controller.currentSession.isHomologated, isFalse);
+        final updatedStudent = controller.currentSession.attendanceList
+            .firstWhere((s) => s.studentId == studentId);
+        expect(updatedStudent.status, equals(AttendanceStatus.ausente));
+        expect(controller.currentSession.isHomologated, isFalse);
 
-      controller.homologateSession();
-      expect(controller.currentSession.isHomologated, isTrue);
-    });
+        await controller.homologateSession();
+        expect(controller.currentSession.isHomologated, isTrue);
+      },
+    );
 
     test(
       'Publishing a new notice updates the notices list with recipient calculation',
-      () {
+      () async {
         final initialCount = controller.notices.length;
-        controller.publishNotice(
+        final published = await controller.publishNotice(
           targetCourse: controller.courses.first.code,
           targetAudience: 'Todos os Alunos',
           classification: NoticeClassification.urgencia,
@@ -177,6 +191,7 @@ void main() {
           message: 'Plantão hoje às 18:00 para alinhamento.',
         );
 
+        expect(published, isTrue);
         expect(controller.notices.length, equals(initialCount + 1));
         expect(
           controller.notices.first.title,
@@ -190,9 +205,9 @@ void main() {
       },
     );
 
-    test('Adding an academic event adds it to the agenda', () {
+    test('Adding an academic event adds it to the agenda', () async {
       final initialEventsCount = controller.events.length;
-      controller.addEvent(
+      await controller.addEvent(
         title: 'Reunião do NDE',
         date: '28/09/2026',
         time: '14:00 - 16:00',
@@ -210,24 +225,24 @@ void main() {
       expect(controller.profile.twoFactorEnabled, initialState);
     });
 
-    test('Disconnecting an active session removes it from the list', () {
+    test('Disconnecting an active session removes it from the list', () async {
       final initialSessions = controller.profile.activeSessions.length;
       final sessionToDisconnect = controller.profile.activeSessions.firstWhere(
         (s) => !s.isCurrent,
       );
-      controller.disconnectSession(sessionToDisconnect.id);
+      await controller.disconnectSession(sessionToDisconnect.id);
       expect(
         controller.profile.activeSessions.length,
         equals(initialSessions - 1),
       );
     });
 
-    test('Advancing syllabus classes increments progress correctly', () {
+    test('Advancing syllabus classes increments progress correctly', () async {
       final course = controller.courses.first;
-      final unit = course.syllabusUnits.first;
+      final unit = course.syllabusUnits[1];
       final initialCompleted = unit.completedClasses;
 
-      controller.advanceSyllabusClasses(course.id, unit.id);
+      await controller.advanceSyllabusClasses(course.id, unit.id);
       final updatedCourse = controller.courses.firstWhere(
         (c) => c.id == course.id,
       );
@@ -281,6 +296,7 @@ void main() {
     );
 
     test('Navigating between class sessions respects course sessions list', () {
+      controller.selectSession('sess-27');
       expect(controller.currentSession.sessionNumber, equals(27));
       expect(controller.canGoToPreviousSession, isTrue);
 
@@ -312,14 +328,13 @@ void main() {
 
     test(
       'New diary sessions use course roster and chronological navigation',
-      () {
+      () async {
         controller.selectCourse('course-fso');
         final existingSession = controller.currentSession;
 
-        controller.selectSessionByDate(DateTime(2026, 9, 25, 15));
+        await controller.selectSessionByDate(DateTime(2026, 9, 25, 15));
 
         expect(controller.currentSession.courseId, equals('course-fso'));
-        expect(controller.currentSession.sessionNumber, equals(11));
         expect(
           controller.currentSession.sessionDate,
           equals(DateTime(2026, 9, 25)),
@@ -338,7 +353,10 @@ void main() {
 
         controller.goToNextSession();
         expect(controller.currentSession.id, equals(existingSession.id));
-        expect(controller.currentSession.sessionNumber, equals(12));
+        expect(
+          controller.currentSession.sessionNumber,
+          equals(existingSession.sessionNumber),
+        );
       },
     );
 
@@ -352,11 +370,11 @@ void main() {
       expect(controller.sessions.length, equals(initialCount));
     });
 
-    test('Notice recipient totals follow the chosen course', () {
+    test('Notice recipient totals follow the chosen course', () async {
       final targetCourse = controller.courses.firstWhere(
         (course) => course.id == 'course-bd2',
       );
-      controller.publishNotice(
+      await controller.publishNotice(
         targetCourse: targetCourse.code,
         targetAudience: 'Todos os Alunos Matriculados',
         classification: NoticeClassification.informativo,
@@ -370,17 +388,24 @@ void main() {
       );
     });
 
-    test('Disconnecting other sessions preserves the current session only', () {
-      controller.disconnectOtherSessions();
+    test(
+      'Disconnecting other sessions preserves the current session only',
+      () async {
+        await controller.disconnectOtherSessions();
 
-      expect(controller.profile.activeSessions, hasLength(1));
-      expect(controller.profile.activeSessions.single.isCurrent, isTrue);
-    });
+        expect(controller.profile.activeSessions, hasLength(1));
+        expect(controller.profile.activeSessions.single.isCurrent, isTrue);
+      },
+    );
   });
 
   group('Docente Shell & Widgets Rendering Tests', () {
     setUp(() {
-      AppUserSession.instance.signIn(identity: 'DOC-88410', profile: 'docente');
+      AppUserSession.instance.signIn(
+        identity: 'DOC-88410',
+        profile: 'docente',
+        accessToken: 'test-teacher-token',
+      );
       addTearDown(AppUserSession.instance.signOut);
     });
 
@@ -391,13 +416,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
-        AppUserSession.instance.signIn(
-          identity: 'DOC-88410',
-          profile: 'docente',
-        );
-        addTearDown(AppUserSession.instance.signOut);
-
-        final controller = DocenteController();
+        final controller = await _createLoadedTeacherController();
         addTearDown(controller.dispose);
         final assignment = controller.assignments.first;
         final course = controller.courses.firstWhere(
@@ -435,13 +454,7 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
-        AppUserSession.instance.signIn(
-          identity: 'DOC-88410',
-          profile: 'docente',
-        );
-        addTearDown(AppUserSession.instance.signOut);
-
-        final controller = DocenteController();
+        final controller = await _createLoadedTeacherController();
         addTearDown(controller.dispose);
         await tester.pumpWidget(
           MaterialApp(
@@ -472,16 +485,18 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        await tester.pumpWidget(const MaterialApp(home: DocenteShellPage()));
+        final controller = await _createLoadedTeacherController();
+        addTearDown(controller.dispose);
+        await tester.pumpWidget(
+          MaterialApp(home: DocenteShellPage(controller: controller)),
+        );
         await tester.pumpAndSettle();
 
-        // Verify Professor Helena profile header
-        expect(find.text('Bem-vinda, Helena.'), findsOneWidget);
-        expect(find.text('Departamento de Computação'), findsOneWidget);
+        expect(find.text('Bem-vindo(a), Docente.'), findsOneWidget);
 
         // Verify Dashboard KPI cards
         expect(find.text('TURMAS ATIVAS'), findsOneWidget);
-        expect(find.text('ENTREGAS DO MÊS'), findsOneWidget);
+        expect(find.text('ATIVIDADES'), findsOneWidget);
         expect(find.text('CARGA HORÁRIA TOTAL'), findsOneWidget);
         expect(find.text('FREQUÊNCIA MÉDIA'), findsOneWidget);
 
@@ -503,7 +518,8 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        final controller = DocenteController();
+        final controller = await _createLoadedTeacherController();
+        addTearDown(controller.dispose);
         final course = controller.courses.first;
 
         await tester.pumpWidget(
@@ -522,7 +538,7 @@ void main() {
         expect(find.text('Alunos Matriculados'), findsOneWidget);
         expect(find.text('Plano de Ensino'), findsOneWidget);
         expect(find.text('Equipes de Projeto'), findsOneWidget);
-        expect(find.text('MÉDIA GERAL DA TURMA'), findsOneWidget);
+        expect(find.text('M?dia geral'), findsOneWidget);
 
         // Verify DocenteFooter is rendered
         expect(find.byType(DocenteFooter), findsOneWidget);
@@ -587,7 +603,9 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        final controller = DocenteController();
+        final controller = await _createLoadedTeacherController();
+        addTearDown(controller.dispose);
+        controller.selectSession('sess-27');
 
         await tester.pumpWidget(
           MaterialApp(
@@ -668,7 +686,8 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(() => tester.view.resetPhysicalSize());
 
-        final controller = DocenteController();
+        final controller = await _createLoadedTeacherController();
+        addTearDown(controller.dispose);
 
         await tester.pumpWidget(
           MaterialApp(

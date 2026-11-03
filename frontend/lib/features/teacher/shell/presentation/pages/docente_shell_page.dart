@@ -22,8 +22,13 @@ import '../widgets/docente_sidebar.dart';
 class DocenteShellPage extends StatefulWidget {
   /// Optional initial tab.
   final DocenteNavTab initialTab;
+  final DocenteController? controller;
 
-  const DocenteShellPage({super.key, this.initialTab = DocenteNavTab.painel});
+  const DocenteShellPage({
+    super.key,
+    this.initialTab = DocenteNavTab.painel,
+    this.controller,
+  });
 
   @override
   State<DocenteShellPage> createState() => _DocenteShellPageState();
@@ -36,8 +41,8 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   @override
   void initState() {
     super.initState();
-    _controller = DocenteController();
-    unawaited(_controller.loadRemote());
+    _controller = widget.controller ?? DocenteController();
+    if (widget.controller == null) unawaited(_controller.loadRemote());
     if (widget.initialTab != DocenteNavTab.painel) {
       _controller.navigateToTab(widget.initialTab);
     }
@@ -45,7 +50,7 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (widget.controller == null) _controller.dispose();
     super.dispose();
   }
 

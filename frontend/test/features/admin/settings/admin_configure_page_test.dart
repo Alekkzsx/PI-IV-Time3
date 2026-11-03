@@ -13,19 +13,20 @@ import 'package:pi_iv_time3/features/admin/settings/presentation/widgets/system_
 
 void main() {
   group('AdminConfigurePage Widget Tests', () {
-    testWidgets('renders initial header and default AcademicGuidelinesTab', (tester) async {
+    testWidgets('renders initial header and default AcademicGuidelinesTab', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: AdminConfigurePage(),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: AdminConfigurePage()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Configurações da Conta de Administração'), findsOneWidget);
+      expect(
+        find.text('Configurações da Conta de Administração'),
+        findsOneWidget,
+      );
       expect(find.byType(AcademicGuidelinesTab), findsOneWidget);
       expect(find.text('Diretrizes Acadêmicas Regimentais'), findsOneWidget);
       expect(find.text('MÉDIA DE APROVAÇÃO'), findsOneWidget);
@@ -33,41 +34,43 @@ void main() {
       expect(find.text('EXAME ESPECIAL'), findsOneWidget);
     });
 
-    testWidgets('uses the reusable footer and opens its help and privacy links', (tester) async {
+    testWidgets(
+      'uses the reusable footer and opens its help and privacy links',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        await tester.pumpWidget(const MaterialApp(home: AdminConfigurePage()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AdminFooter), findsOneWidget);
+
+        await tester.tap(find.text('Ajuda'));
+        await tester.pumpAndSettle();
+        expect(find.text('Central de ajuda'), findsOneWidget);
+        expect(
+          find.textContaining('entre em contato com a DTI'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Entendi'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Privacidade'));
+        await tester.pumpAndSettle();
+        expect(find.text('Privacidade'), findsNWidgets(2));
+        expect(find.textContaining('Governança e LGPD'), findsOneWidget);
+      },
+    );
+
+    testWidgets('switches between all 6 configuration tabs cleanly', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(
-        const MaterialApp(home: AdminConfigurePage()),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AdminFooter), findsOneWidget);
-
-      await tester.tap(find.text('Ajuda'));
-      await tester.pumpAndSettle();
-      expect(find.text('Central de ajuda'), findsOneWidget);
-      expect(find.textContaining('entre em contato com a DTI'), findsOneWidget);
-
-      await tester.tap(find.text('Entendi'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Privacidade'));
-      await tester.pumpAndSettle();
-      expect(find.text('Privacidade'), findsNWidgets(2));
-      expect(find.textContaining('Governança e LGPD'), findsOneWidget);
-    });
-
-    testWidgets('switches between all 6 configuration tabs cleanly', (tester) async {
-      tester.view.physicalSize = const Size(1280, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: AdminConfigurePage(),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: AdminConfigurePage()));
       await tester.pumpAndSettle();
 
       // 1. Administrative Profile Tab
@@ -75,7 +78,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AdminProfileTab), findsOneWidget);
       expect(find.text('Identidade Visual & Foto'), findsOneWidget);
-      expect(find.text('Carlos Eduardo Mendes'), findsOneWidget);
+      expect(find.text('Não informado'), findsWidgets);
 
       // 2. Security & Credentials Tab
       await tester.tap(find.text('Segurança & Credenciais').first);
@@ -102,12 +105,20 @@ void main() {
       await tester.tap(find.text('Governança & LGPD').first);
       await tester.pumpAndSettle();
       expect(find.byType(GovernanceLgpdTab), findsOneWidget);
-      expect(find.text('Visibilidade de Perfil & Dados entre Colegas'), findsOneWidget);
-      expect(find.text('Privacidade & Direitos do Titular (LGPD)'), findsOneWidget);
+      expect(
+        find.text('Visibilidade de Perfil & Dados entre Colegas'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Privacidade & Direitos do Titular (LGPD)'),
+        findsOneWidget,
+      );
       expect(find.text('Salvar Preferências de Privacidade'), findsOneWidget);
     });
 
-    testWidgets('renders individual tabs directly in isolation', (tester) async {
+    testWidgets('renders individual tabs directly in isolation', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -121,7 +132,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Exportar Relatório de Dados Cadastrais & Histórico'), findsOneWidget);
+      expect(
+        find.text('Exportar Relatório de Dados Cadastrais & Histórico'),
+        findsOneWidget,
+      );
       expect(find.text('Arquivo JSON'), findsOneWidget);
       expect(find.text('Relatório (.txt)'), findsOneWidget);
 
