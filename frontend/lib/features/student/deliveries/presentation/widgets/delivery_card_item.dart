@@ -1,7 +1,7 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 
 /// Cartão individual de atividade e entrega da Visão do Aluno.
 /// Reproduz fielmente o layout com código, título, descrição didática,
