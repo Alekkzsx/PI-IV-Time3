@@ -1,7 +1,7 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 
 /// Modal para exibição detalhada da Devolutiva Pedagógica e Nota por Rubricas do Docente.
 class DeliveryFeedbackModal extends StatelessWidget {
