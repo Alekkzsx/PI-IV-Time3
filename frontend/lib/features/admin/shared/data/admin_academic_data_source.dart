@@ -126,8 +126,10 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     }
     return response
         .whereType<Map>()
-        .map((item) =>
-            AdminGradeAuditRow.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (item) =>
+              AdminGradeAuditRow.fromJson(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
@@ -142,8 +144,10 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     }
     return response
         .whereType<Map>()
-        .map((item) =>
-            AdminEnrolledStudent.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+          (item) =>
+              AdminEnrolledStudent.fromJson(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
@@ -276,10 +280,12 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
       gradeLocked: value['gradeLocked'] == true,
       pautaHomologated: value['pautaHomologated'] == true,
       chancelaCode: value['chancelaCode'] as String?,
-      subjectName: value['subjectName'] as String? ??
+      subjectName:
+          value['subjectName'] as String? ??
           value['courseName'] as String? ??
           '',
-      courseName: value['courseName'] as String? ??
+      courseName:
+          value['courseName'] as String? ??
           value['subjectName'] as String? ??
           '',
       semester: value['semester'] as String,
@@ -288,27 +294,31 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
       location: value['location'] as String,
       enrolled: value['enrolled'] as int? ?? 0,
       maxCapacity: value['maxCapacity'] as int,
-      enrolledStudentRas: (value['enrolledStudentRas'] as List?)
+      enrolledStudentRas:
+          (value['enrolledStudentRas'] as List?)
               ?.map((item) => item.toString())
               .toList() ??
           const [],
       enrolledStudents: enrolledStudents is List
           ? enrolledStudents
                 .whereType<Map>()
-                .map((item) => AdminEnrolledStudent.fromJson(
-                      Map<String, dynamic>.from(item),
-                    ))
+                .map(
+                  (item) => AdminEnrolledStudent.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
                 .toList()
           : const [],
-      professor: value['professorName'] as String? ??
+      professor:
+          value['professorName'] as String? ??
           value['professorIdentity'] as String? ??
           'Não alocado',
       professorIdentity: value['professorIdentity'] as String?,
       formulaRegime: formulaRegime == 'admin'
           ? 'Impor pelo Admin'
           : 'Autonomia Docente',
-      evaluationFormula: value['evaluationFormula'] as String? ??
-          '(N1 × 0.4) + (N2 × 0.6)',
+      evaluationFormula:
+          value['evaluationFormula'] as String? ?? '(N1 × 0.4) + (N2 × 0.6)',
       isLive: value['isLive'] == true,
     );
   }

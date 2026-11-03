@@ -132,11 +132,13 @@ class AdminPortalController extends ChangeNotifier {
   Future<bool> persistResetPassword(String id) =>
       persist(() => remote.request('POST', '/users/$id/reset-password', {}));
   Future<bool> persistClass(String code, Map<String, Object?> fields) =>
-      persist(() => remote.request(
-            'PATCH',
-            '/classes/${Uri.encodeComponent(code)}',
-            fields,
-          ));
+      persist(
+        () => remote.request(
+          'PATCH',
+          '/classes/${Uri.encodeComponent(code)}',
+          fields,
+        ),
+      );
   Future<bool> persistProtocol(String id, bool approved, String note) =>
       persist(
         () => remote.request('PATCH', '/protocols/$id/decision', {
@@ -153,10 +155,8 @@ class AdminPortalController extends ChangeNotifier {
   Future<bool> createCalendarEvent(Map<String, Object?> values) =>
       persist(() => remote.createCalendarEvent(values));
 
-  Future<bool> updateCalendarEvent(
-    String id,
-    Map<String, Object?> values,
-  ) => persist(() => remote.updateCalendarEvent(id, values));
+  Future<bool> updateCalendarEvent(String id, Map<String, Object?> values) =>
+      persist(() => remote.updateCalendarEvent(id, values));
 
   Future<bool> deleteCalendarEvent(String id) =>
       persist(() => remote.deleteCalendarEvent(id));
@@ -169,7 +169,6 @@ class AdminPortalController extends ChangeNotifier {
   List<AdminUserModel> users = [];
   String userFilter = 'Todos';
   String userSearchQuery = '';
-
 
   // Turmas e Supervisão
   List<AdminClassModel> classes = [];
@@ -247,10 +246,7 @@ class AdminPortalController extends ChangeNotifier {
     }
     final user = users.where((item) => item.id == id).firstOrNull;
     if (user == null) return Future.value(false);
-    return persistUserStatus(
-      id,
-      active: user.status != 'Ativo',
-    );
+    return persistUserStatus(id, active: user.status != 'Ativo');
   }
 
   // --- MÉTODOS DE COMUNICADOS ---
@@ -275,16 +271,14 @@ class AdminPortalController extends ChangeNotifier {
     );
   }
 
-  Future<bool> updateAnnouncement(
-    String id,
-    Map<String, Object?> fields,
-  ) => persist(
-    () => remote.request(
-      'PATCH',
-      '/announcements/${Uri.encodeComponent(id)}',
-      fields,
-    ),
-  );
+  Future<bool> updateAnnouncement(String id, Map<String, Object?> fields) =>
+      persist(
+        () => remote.request(
+          'PATCH',
+          '/announcements/${Uri.encodeComponent(id)}',
+          fields,
+        ),
+      );
 
   // --- MÉTODOS DE GESTÃO DE TURMAS & SUPERVISÃO ---
 

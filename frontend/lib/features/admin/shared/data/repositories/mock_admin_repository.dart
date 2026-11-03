@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import '../../domain/repositories/admin_repository.dart';
 import '../admin_mock_data.dart';
@@ -9,23 +9,31 @@ class MockAdminRepository implements IAdminRepository {
   final List<AdminUserModel> _users = List.from(AdminMockData.users);
   final List<AdminCourseModel> _courses = List.from(AdminMockData.courses);
   final List<AdminClassModel> _classes = List.from(AdminMockData.classes);
-  final List<AdminProtocolModel> _protocols = List.from(AdminMockData.protocols);
-  final List<AdminAuditLogModel> _auditLogs = List.from(AdminMockData.auditLogs);
+  final List<AdminProtocolModel> _protocols = List.from(
+    AdminMockData.protocols,
+  );
+  final List<AdminAuditLogModel> _auditLogs = List.from(
+    AdminMockData.auditLogs,
+  );
 
   @override
   Future<List<AdminUserModel>> getUsers() async => List.unmodifiable(_users);
 
   @override
-  Future<List<AdminCourseModel>> getCourses() async => List.unmodifiable(_courses);
+  Future<List<AdminCourseModel>> getCourses() async =>
+      List.unmodifiable(_courses);
 
   @override
-  Future<List<AdminClassModel>> getClasses() async => List.unmodifiable(_classes);
+  Future<List<AdminClassModel>> getClasses() async =>
+      List.unmodifiable(_classes);
 
   @override
-  Future<List<AdminProtocolModel>> getProtocols() async => List.unmodifiable(_protocols);
+  Future<List<AdminProtocolModel>> getProtocols() async =>
+      List.unmodifiable(_protocols);
 
   @override
-  Future<List<AdminAuditLogModel>> getAuditLogs() async => List.unmodifiable(_auditLogs);
+  Future<List<AdminAuditLogModel>> getAuditLogs() async =>
+      List.unmodifiable(_auditLogs);
 
   @override
   Future<void> addUser(AdminUserModel user) async {
@@ -42,7 +50,11 @@ class MockAdminRepository implements IAdminRepository {
   }
 
   @override
-  Future<void> decideProtocol(String protocolId, String decision, String notes) async {
+  Future<void> decideProtocol(
+    String protocolId,
+    String decision,
+    String notes,
+  ) async {
     final idx = _protocols.indexWhere((p) => p.id == protocolId);
     if (idx != -1) {
       final p = _protocols[idx];
@@ -51,4 +63,3 @@ class MockAdminRepository implements IAdminRepository {
     }
   }
 }
-

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 
@@ -31,27 +31,64 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         // 1. Appearance & Theme
         _buildSectionCard(
           title: 'Aparência & Tema',
-          subtitle: 'Personalize a experiência visual do Portal e Ambiente Virtual de Aprendizagem.',
+          subtitle:
+              'Personalize a experiência visual do Portal e Ambiente Virtual de Aprendizagem.',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 650;
               return isNarrow
                   ? Column(
                       children: [
-                        _buildThemeCard(0, Icons.wb_sunny_outlined, 'Claro (Padrão)', 'Ideal para ambientes luminosos'),
+                        _buildThemeCard(
+                          0,
+                          Icons.wb_sunny_outlined,
+                          'Claro (Padrão)',
+                          'Ideal para ambientes luminosos',
+                        ),
                         const SizedBox(height: 12),
-                        _buildThemeCard(1, Icons.dark_mode_outlined, 'Modo Escuro', 'Menos fadiga visual noturna'),
+                        _buildThemeCard(
+                          1,
+                          Icons.dark_mode_outlined,
+                          'Modo Escuro',
+                          'Menos fadiga visual noturna',
+                        ),
                         const SizedBox(height: 12),
-                        _buildThemeCard(2, Icons.desktop_windows_outlined, 'Sincronizar com SO', 'Ajusta conforme seu dispositivo'),
+                        _buildThemeCard(
+                          2,
+                          Icons.desktop_windows_outlined,
+                          'Sincronizar com SO',
+                          'Ajusta conforme seu dispositivo',
+                        ),
                       ],
                     )
                   : Row(
                       children: [
-                        Expanded(child: _buildThemeCard(0, Icons.wb_sunny_outlined, 'Claro (Padrão)', 'Ideal para ambientes luminosos')),
+                        Expanded(
+                          child: _buildThemeCard(
+                            0,
+                            Icons.wb_sunny_outlined,
+                            'Claro (Padrão)',
+                            'Ideal para ambientes luminosos',
+                          ),
+                        ),
                         const SizedBox(width: 14),
-                        Expanded(child: _buildThemeCard(1, Icons.dark_mode_outlined, 'Modo Escuro', 'Menos fadiga visual noturna')),
+                        Expanded(
+                          child: _buildThemeCard(
+                            1,
+                            Icons.dark_mode_outlined,
+                            'Modo Escuro',
+                            'Menos fadiga visual noturna',
+                          ),
+                        ),
                         const SizedBox(width: 14),
-                        Expanded(child: _buildThemeCard(2, Icons.desktop_windows_outlined, 'Sincronizar com SO', 'Ajusta conforme seu dispositivo')),
+                        Expanded(
+                          child: _buildThemeCard(
+                            2,
+                            Icons.desktop_windows_outlined,
+                            'Sincronizar com SO',
+                            'Ajusta conforme seu dispositivo',
+                          ),
+                        ),
                       ],
                     );
             },
@@ -63,7 +100,8 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         // 2. Accessibility & Reading
         _buildSectionCard(
           title: 'Acessibilidade & Leitura',
-          subtitle: 'Ajustes para facilitar a visualização de textos, notas e materiais acadêmicos.',
+          subtitle:
+              'Ajustes para facilitar a visualização de textos, notas e materiais acadêmicos.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -97,14 +135,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
               // Accessibility Toggles
               _buildToggleRow(
                 title: 'Modo de Alto Contraste',
-                subtitle: 'Realça as bordas e aumenta o contraste entre textos e planos de fundo.',
+                subtitle:
+                    'Realça as bordas e aumenta o contraste entre textos e planos de fundo.',
                 value: _highContrast,
                 onChanged: (val) => setState(() => _highContrast = val),
               ),
               const SizedBox(height: 14),
               _buildToggleRow(
                 title: 'Reduzir Movimento & Animações',
-                subtitle: 'Desativa transições rápidas e efeitos visuais animados.',
+                subtitle:
+                    'Desativa transições rápidas e efeitos visuais animados.',
                 value: _reduceMotion,
                 onChanged: (val) => setState(() => _reduceMotion = val),
               ),
@@ -117,34 +157,59 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         // 3. Academic Calendar Preferences
         _buildSectionCard(
           title: 'Preferências do Calendário Acadêmico',
-          subtitle: 'Defina o comportamento inicial da sua agenda de aulas e entregas.',
+          subtitle:
+              'Defina o comportamento inicial da sua agenda de aulas e entregas.',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 650;
               return isNarrow
                   ? Column(
                       children: [
-                        _buildDropdownCard('Primeiro Dia da Semana', _firstDayOfWeek, ['Segunda-feira', 'Domingo'], (val) {
-                          if (val != null) setState(() => _firstDayOfWeek = val);
-                        }),
+                        _buildDropdownCard(
+                          'Primeiro Dia da Semana',
+                          _firstDayOfWeek,
+                          ['Segunda-feira', 'Domingo'],
+                          (val) {
+                            if (val != null)
+                              setState(() => _firstDayOfWeek = val);
+                          },
+                        ),
                         const SizedBox(height: 12),
-                        _buildDropdownCard('Visualização Padrão ao Abrir', _defaultCalendarView, ['Mês Atual', 'Semana Atual', 'Agenda Diária'], (val) {
-                          if (val != null) setState(() => _defaultCalendarView = val);
-                        }),
+                        _buildDropdownCard(
+                          'Visualização Padrão ao Abrir',
+                          _defaultCalendarView,
+                          ['Mês Atual', 'Semana Atual', 'Agenda Diária'],
+                          (val) {
+                            if (val != null)
+                              setState(() => _defaultCalendarView = val);
+                          },
+                        ),
                       ],
                     )
                   : Row(
                       children: [
                         Expanded(
-                          child: _buildDropdownCard('Primeiro Dia da Semana', _firstDayOfWeek, ['Segunda-feira', 'Domingo'], (val) {
-                            if (val != null) setState(() => _firstDayOfWeek = val);
-                          }),
+                          child: _buildDropdownCard(
+                            'Primeiro Dia da Semana',
+                            _firstDayOfWeek,
+                            ['Segunda-feira', 'Domingo'],
+                            (val) {
+                              if (val != null)
+                                setState(() => _firstDayOfWeek = val);
+                            },
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _buildDropdownCard('Visualização Padrão ao Abrir', _defaultCalendarView, ['Mês Atual', 'Semana Atual', 'Agenda Diária'], (val) {
-                            if (val != null) setState(() => _defaultCalendarView = val);
-                          }),
+                          child: _buildDropdownCard(
+                            'Visualização Padrão ao Abrir',
+                            _defaultCalendarView,
+                            ['Mês Atual', 'Semana Atual', 'Agenda Diária'],
+                            (val) {
+                              if (val != null)
+                                setState(() => _defaultCalendarView = val);
+                            },
+                          ),
                         ),
                       ],
                     );
@@ -190,7 +255,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     );
   }
 
-  Widget _buildThemeCard(int index, IconData icon, String title, String subtitle) {
+  Widget _buildThemeCard(
+    int index,
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
     final isSelected = _selectedThemeIndex == index;
     return InkWell(
       onTap: () => setState(() => _selectedThemeIndex = index),
@@ -201,7 +271,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+            color: isSelected
+                ? const Color(0xFF0F172A)
+                : const Color(0xFFE2E8F0),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -218,7 +290,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                      color: isSelected
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFCBD5E1),
                       width: 2,
                     ),
                   ),
@@ -268,7 +342,11 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             Expanded(
               child: Text(
                 'Escala de Tipografia',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF334155),
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -283,9 +361,24 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           ),
           child: Row(
             children: [
-              _buildSegmentItem('Normal', 0, _typographyIndex, (idx) => setState(() => _typographyIndex = idx)),
-              _buildSegmentItem('Média (+10%)', 1, _typographyIndex, (idx) => setState(() => _typographyIndex = idx)),
-              _buildSegmentItem('Grande (+20%)', 2, _typographyIndex, (idx) => setState(() => _typographyIndex = idx)),
+              _buildSegmentItem(
+                'Normal',
+                0,
+                _typographyIndex,
+                (idx) => setState(() => _typographyIndex = idx),
+              ),
+              _buildSegmentItem(
+                'Média (+10%)',
+                1,
+                _typographyIndex,
+                (idx) => setState(() => _typographyIndex = idx),
+              ),
+              _buildSegmentItem(
+                'Grande (+20%)',
+                2,
+                _typographyIndex,
+                (idx) => setState(() => _typographyIndex = idx),
+              ),
             ],
           ),
         ),
@@ -304,7 +397,11 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             Expanded(
               child: Text(
                 'Densidade das Tabelas & Listas',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF334155),
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -319,8 +416,18 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           ),
           child: Row(
             children: [
-              _buildSegmentItem('Confortável', 0, _densityIndex, (idx) => setState(() => _densityIndex = idx)),
-              _buildSegmentItem('Compacto', 1, _densityIndex, (idx) => setState(() => _densityIndex = idx)),
+              _buildSegmentItem(
+                'Confortável',
+                0,
+                _densityIndex,
+                (idx) => setState(() => _densityIndex = idx),
+              ),
+              _buildSegmentItem(
+                'Compacto',
+                1,
+                _densityIndex,
+                (idx) => setState(() => _densityIndex = idx),
+              ),
             ],
           ),
         ),
@@ -328,7 +435,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     );
   }
 
-  Widget _buildSegmentItem(String text, int index, int selectedIndex, ValueChanged<int> onSelect) {
+  Widget _buildSegmentItem(
+    String text,
+    int index,
+    int selectedIndex,
+    ValueChanged<int> onSelect,
+  ) {
     final isSelected = selectedIndex == index;
     return Expanded(
       child: InkWell(
@@ -370,12 +482,19 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: Color(0xFF64748B),
+                ),
               ),
             ],
           ),
@@ -391,7 +510,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     );
   }
 
-  Widget _buildDropdownCard(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownCard(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -402,15 +526,30 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF64748B),
+            ),
+          ),
           const SizedBox(height: 4),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
               isDense: true,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-              items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF0F172A),
+              ),
+              items: items
+                  .map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  )
+                  .toList(),
               onChanged: onChanged,
             ),
           ),

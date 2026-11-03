@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 
@@ -6,10 +6,7 @@ import 'package:flutter/material.dart';
 class GuidelinesFormulaCard extends StatelessWidget {
   final TextEditingController formulaController;
 
-  const GuidelinesFormulaCard({
-    super.key,
-    required this.formulaController,
-  });
+  const GuidelinesFormulaCard({super.key, required this.formulaController});
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +37,10 @@ class GuidelinesFormulaCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
@@ -77,8 +76,11 @@ class GuidelinesFormulaCard extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.menu_book_outlined,
-                        size: 20, color: Color(0xFF64748B)),
+                    Icon(
+                      Icons.menu_book_outlined,
+                      size: 20,
+                      color: Color(0xFF64748B),
+                    ),
                     SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -87,7 +89,9 @@ class GuidelinesFormulaCard extends StatelessWidget {
                           Text(
                             'Resolução / Órgão Deliberador',
                             style: TextStyle(
-                                fontSize: 11, color: Color(0xFF64748B)),
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                           SizedBox(height: 2),
                           Text(
@@ -116,8 +120,11 @@ class GuidelinesFormulaCard extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.calendar_today_outlined,
-                        size: 20, color: Color(0xFF64748B)),
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 20,
+                      color: Color(0xFF64748B),
+                    ),
                     SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -126,7 +133,9 @@ class GuidelinesFormulaCard extends StatelessWidget {
                           Text(
                             'Última Homologação Registrada',
                             style: TextStyle(
-                                fontSize: 11, color: Color(0xFF64748B)),
+                              fontSize: 11,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                           SizedBox(height: 2),
                           Text(
@@ -150,4 +159,3 @@ class GuidelinesFormulaCard extends StatelessWidget {
     );
   }
 }
-
