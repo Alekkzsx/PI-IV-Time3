@@ -262,11 +262,40 @@ export class VideoCallRoomService {
     event: "join" | "leave",
     connectedSeconds?: number,
   ) {
-    const user = await this.users.findOne({ _id: new ObjectId(claims.id), active: true });
+    const user = await this.users.findOne({
+      _id: new ObjectId(claims.id),
+      profile: claims.profile,
+      active: true,
+    });
     if (!user) throw new AuthError(401, "invalid_token", "Conta inválida.");
     const classRecord = await this.findClassByRoomCode(rawRoomCode);
-    const roomCode = classRecord ? sanitizeRoomCode(String(classRecord.code)) : sanitizeRoomCode(rawRoomCode);
-    const classCode = classRecord ? String(classRecord.code) : roomCode;
+    if (!classRecord) throw new AuthError(404, "class_not_found", "Turma não encontrada.");
+    const roomCode = sanitizeRoomCode(String(classRecord.code));
+    const classCode = String(classRecord.code);
+
+    if (claims.profile === "aluno") {
+      const [enrollment, activeSession] = await Promise.all([
+        this.enrollments.findOne({
+          classCode,
+          studentId: String(user._id),
+          status: "active",
+        }),
+        this.liveSessions.findOne({ roomCode, expiresAt: { $gt: new Date() } }),
+      ]);
+      if (!enrollment || !activeSession) {
+        throw new AuthError(403, "room_access_denied", "Acesso à sala ativa não autorizado.");
+      }
+    } else if (claims.profile === "docente") {
+      const identity = String(user.normalizedIdentity ?? user.identity).trim().toLowerCase();
+      if (
+        classRecord.professorId !== String(user._id) &&
+        String(classRecord.professorIdentity ?? "").trim().toLowerCase() !== identity
+      ) {
+        throw new AuthError(403, "class_access_denied", "Você não é o docente responsável por esta turma.");
+      }
+    } else if (claims.profile !== "admin") {
+      throw new AuthError(403, "forbidden", "Perfil sem acesso à videochamada.");
+    }
 
     await this.attendanceLogs.insertOne({
       roomCode,
@@ -291,7 +320,6 @@ export class VideoCallRoomService {
             return {
               ...entry,
               isConnected: event === "join",
-              ...(event === "join" || (connectedSeconds ?? 0) >= 60 ? { status: "presente" } : {}),
             };
           }
           return entry;

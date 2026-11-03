@@ -1,9 +1,11 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/foundation.dart';
+import '../../../../../core/network/authenticated_api_client.dart';
 import '../../../../../core/state/academic_bridge_service.dart';
 import '../../../../../core/state/app_user_session.dart';
-import '../../../shared/data/student_mock_data.dart';
+import '../../../shared/controllers/student_portal_controller.dart';
+import '../../../shared/data/student_remote_data_source.dart';
 import '../../domain/entities/academic_record_summary.dart';
 import '../../domain/entities/protocol_request.dart';
 
@@ -12,17 +14,20 @@ import '../../domain/entities/protocol_request.dart';
 /// Gerencia os dados do Prontuário Acadêmico Regular e o histórico de
 /// protocolos formais submetidos à Secretaria Acadêmica.
 class StudentSecretariatController extends ChangeNotifier {
-  final AcademicRecordSummary _recordSummary;
+  AcademicRecordSummary _recordSummary;
   final List<ProtocolRequest> _protocols;
+  final StudentRemoteDataSource _remote;
 
   /// Cria uma instância de [StudentSecretariatController] com dados institucionais padrão.
   StudentSecretariatController({
     AcademicRecordSummary? recordSummary,
     List<ProtocolRequest>? initialProtocols,
-  }) : _recordSummary = recordSummary ?? defaultRecordSummary,
+    StudentRemoteDataSource? remoteDataSource,
+  }) : _recordSummary = recordSummary ?? emptyRecordSummary,
        _protocols = List<ProtocolRequest>.from(
-         initialProtocols ?? defaultProtocols,
-       ) {
+         initialProtocols ?? const [],
+       ),
+       _remote = remoteDataSource ?? StudentRemoteDataSource() {
     // Escuta despachos e pareceres oficiais emitidos pela Secretaria Geral (Admin)
     AcademicBridgeService.instance.onStudentProtocolUpdated =
         (protocolCode, isApproved, officialNote, approverName) {
@@ -57,6 +62,46 @@ class StudentSecretariatController extends ChangeNotifier {
   /// Lista imutável de protocolos de requerimento registrados.
   List<ProtocolRequest> get protocols => List.unmodifiable(_protocols);
 
+  Future<void> loadFromServer() async {
+    final portal = StudentPortalController.instance;
+    await portal.loadRemote();
+    final snapshot = portal.remoteDashboard;
+    if (snapshot == null) return;
+
+    final summary = snapshot.recordSummary;
+    _recordSummary = AcademicRecordSummary(
+      ra: summary['ra']?.toString() ?? snapshot.studentInfo['ra']?.toString() ?? '',
+      course: summary['course']?.toString() ?? snapshot.studentInfo['courseName']?.toString() ?? '',
+      academicIndex: summary['academicIndex']?.toString() ?? '—',
+      completedWorkload: summary['completedWorkload']?.toString() ?? '—',
+      activeEnrollmentBadge: summary['activeEnrollmentBadge']?.toString() ?? '',
+    );
+    _protocols
+      ..clear()
+      ..addAll(snapshot.protocols.map(_protocolFromJson));
+    notifyListeners();
+  }
+
+  static ProtocolRequest _protocolFromJson(Map<String, dynamic> json) {
+    final status = switch (json['status']?.toString().toLowerCase()) {
+      'approved' || 'deferido' => ProtocolStatus.approved,
+      'rejected' || 'indeferido' => ProtocolStatus.rejected,
+      _ => ProtocolStatus.pending,
+    };
+    return ProtocolRequest(
+      protocolCode: (json['protocolCode'] ?? json['code'] ?? json['id']).toString(),
+      submittedAt: (json['submittedAt'] ?? json['createdAt'] ?? '').toString(),
+      subjectType: (json['subjectType'] ?? json['requestType'] ?? '').toString(),
+      componentObject: (json['componentObject'] ?? json['targetComponent'] ?? '').toString(),
+      status: status,
+      officialOpinion: (json['officialOpinion'] ?? json['decisionNote'] ?? 'Aguardando análise da Secretaria Acadêmica.').toString(),
+      justification: json['justification']?.toString() ?? '',
+      attachmentName: json['attachmentName']?.toString(),
+      approverName: (json['approverName'] ?? json['signedBy'])?.toString(),
+      responseDate: (json['responseDate'] ?? json['decidedAt'])?.toString(),
+    );
+  }
+
   /// Rótulo formatado com a contagem total de requerimentos.
   String get protocolCountLabel {
     final count = _protocols.length;
@@ -86,78 +131,50 @@ class StudentSecretariatController extends ChangeNotifier {
   ];
 
   /// Registra um novo protocolo de requerimento submetido pelo aluno.
-  void addProtocolRequest({
+  Future<void> addProtocolRequest({
     required String subjectType,
     required String componentObject,
     String justification = '',
     String? attachmentName,
-  }) {
-    if (!AppUserSession.instance.hasPermission('submit_protocols') ||
-        !StudentMockData.ownsDemoRecords(
-          AppUserSession.instance.identity ?? '',
-        )) {
-      debugPrint(
-        '[StudentSecretariat] Abertura de protocolo negada para o perfil atual.',
-      );
-      return;
+    String? attachmentBase64,
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem abrir requerimentos.');
     }
-    final nextNumber = 8835 + _protocols.length;
-    final newProtocol = ProtocolRequest(
-      protocolCode: 'PROT-2026/$nextNumber',
-      submittedAt: 'Hoje, agora há pouco',
-      subjectType: subjectType.trim(),
-      componentObject: componentObject.trim(),
-      justification: justification.trim().isEmpty
-          ? 'Requerimento acadêmico formal cadastrado pelo portal do aluno.'
-          : justification.trim(),
+    final response = await _remote.submitProtocol(
+      requestType: subjectType.trim(),
+      targetComponent: componentObject.trim(),
+      justification: justification.trim(),
       attachmentName: attachmentName,
-      status: ProtocolStatus.pending,
-      officialOpinion:
-          'Requerimento protocolado com sucesso. Sua solicitação encontra-se na fila de análise técnica e documental da Secretaria Geral Acadêmica (prazo estimado de resolução: até 3 dias úteis).',
-      approverName: 'Fila de Análise — Secretaria Acadêmica Central',
-      responseDate: 'Aguardando Despacho',
+      attachmentBase64: attachmentBase64,
     );
-    _protocols.insert(0, newProtocol);
-
-    // Encaminha imediatamente para a Mesa da Secretaria Central do Administrador
+    _protocols.insert(0, _protocolFromJson(response));
+    final session = AppUserSession.instance;
     AcademicBridgeService.instance.submitProtocolFromStudent(
-      protocolCode: newProtocol.protocolCode,
-      studentName: 'Gabriel Soares de Oliveira',
-      studentRa: '2024.1.00892',
-      studentCourse: 'Engenharia de Software (5º Semestre)',
+      protocolCode: response['protocolCode']?.toString() ?? '',
+      studentName: session.effectiveName,
+      studentRa: session.identity ?? '',
+      studentCourse: StudentPortalController
+              .instance
+              .remoteDashboard
+              ?.studentInfo['courseName']
+              ?.toString() ??
+          '',
       subjectType: subjectType.trim(),
-      justification: newProtocol.justification,
+      justification: justification.trim(),
       attachmentName: attachmentName,
     );
-
     notifyListeners();
+    await loadFromServer();
   }
 
   /// Prontuário padrão exibido na tela de Secretaria Virtual.
-  static const AcademicRecordSummary defaultRecordSummary =
+  static const AcademicRecordSummary emptyRecordSummary =
       AcademicRecordSummary(
-        ra: '2024.1.00892',
-        course: 'Engenharia de Software',
-        academicIndex: '8.80 / 10.0',
-        completedWorkload: '1480h de 3200h (46.3%)',
-        activeEnrollmentBadge: 'Matrícula Vigente: 2026/2',
+        ra: '',
+        course: '',
+        academicIndex: '—',
+        completedWorkload: '—',
+        activeEnrollmentBadge: '',
       );
-
-  /// Protocolos padrão exibidos na tabela inicial da Secretaria Virtual.
-  static const List<ProtocolRequest> defaultProtocols = [
-    ProtocolRequest(
-      protocolCode: 'PROT-2026/8835',
-      submittedAt: 'Ontem, 16:20',
-      subjectType: 'Horas Complementares',
-      componentObject: 'Validação de Curso Extracurricular (40h)',
-      status: ProtocolStatus.approved,
-      justification:
-          'Submissão do certificado do curso avançado de Arquitetura em Nuvem e Microsserviços (40 horas), concluído na plataforma Alura com aprovação no exame de certificação.',
-      attachmentName: 'Certificado_Cloud_Microsservicos_40h.pdf',
-      officialOpinion:
-          'Parecer Favorável (Deferido): O certificado anexado foi verificado e validado com autenticidade eletrônica comprovada. Foram homologadas 40 horas na categoria de Aperfeiçoamento Técnico e Extensão Universitária, integrando a carga horária complementar do curso.',
-      approverName: 'Coordenação de Curso — Engenharia de Software',
-      responseDate: '22/10/2026 às 18:30',
-    ),
-  ];
 }
