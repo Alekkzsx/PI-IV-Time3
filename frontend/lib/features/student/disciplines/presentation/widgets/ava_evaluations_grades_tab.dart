@@ -124,7 +124,7 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final result = Text(
-                  '${discipline.partialAverage.toStringAsFixed(2)} / 10.0 (Situação: Regular)',
+                  '${discipline.partialAverage.toStringAsFixed(2)} / 10.0 (resultado parcial)',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,

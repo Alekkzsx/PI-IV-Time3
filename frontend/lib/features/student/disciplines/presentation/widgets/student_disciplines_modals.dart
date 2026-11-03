@@ -1,204 +1,265 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Utilitários para exibição de modais acadêmicos (Boletim e Plano de Ensino).
 class StudentDisciplinesModals {
   StudentDisciplinesModals._();
 
   /// Exibe o modal com o Boletim & Histórico Escolar Oficial.
-  static void showBoletimModal(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Boletim & Histórico Escolar Oficial',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Gabriel Soares de Oliveira • R.A.: 2024.1.00892',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-              ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.pop(ctx),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 720,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ...StudentMockData.historicalBoletim.map((period) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          period.period,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Color(0xFF18181B),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Table(
-                          border:
-                              TableBorder.all(color: const Color(0xFFE5E7EB)),
-                          children: [
-                            const TableRow(
-                              decoration:
-                                  BoxDecoration(color: Color(0xFFF8FAFC)),
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('CÓDIGO',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('DISCIPLINA',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('N1',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('N2',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('MÉDIA',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('FALTAS',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text('RESULTADO',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11)),
-                                ),
-                              ],
+  static Future<void> showBoletimModal(
+    BuildContext context, {
+    required StudentPortalController controller,
+  }) async {
+    try {
+      final periods = await controller.loadBoletim();
+      if (!context.mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Boletim & Histórico Escolar Oficial',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${AppUserSession.instance.effectiveName} • R.A.: ${AppUserSession.instance.identity ?? ''}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 720,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (periods.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('Não há histórico escolar disponível.'),
+                    ),
+                  ...periods.map((period) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            period.period,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF18181B),
                             ),
-                            ...period.items.map((item) {
-                              return TableRow(
+                          ),
+                          const SizedBox(height: 8),
+                          Table(
+                            border: TableBorder.all(
+                              color: const Color(0xFFE5E7EB),
+                            ),
+                            children: [
+                              const TableRow(
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF8FAFC),
+                                ),
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(item['codigo'] as String,
-                                        style: const TextStyle(fontSize: 11)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(item['disciplina'] as String,
-                                        style: const TextStyle(fontSize: 11)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(item['n1'].toString(),
-                                        style: const TextStyle(fontSize: 11)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(item['n2'].toString(),
-                                        style: const TextStyle(fontSize: 11)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(item['media'].toString(),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(item['faltas'].toString(),
-                                        style: const TextStyle(fontSize: 11)),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
+                                    padding: EdgeInsets.all(8),
                                     child: Text(
-                                      item['situacao'] as String,
-                                      style: const TextStyle(
-                                        color: Color(0xFF16A34A),
+                                      'CÓDIGO',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      'DISCIPLINA',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      'N1',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      'N2',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      'MÉDIA',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      'FALTAS',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      'RESULTADO',
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 11,
                                       ),
                                     ),
                                   ),
                                 ],
-                              );
-                            }),
-                          ],
-                        ),
-                      ],
+                              ),
+                              ...period.items.map((item) {
+                                return TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['codigo'] as String,
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['disciplina'] as String,
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['n1'].toString(),
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['n2'].toString(),
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['media'].toString(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['faltas'].toString(),
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Text(
+                                        item['situacao'] as String,
+                                        style: const TextStyle(
+                                          color: Color(0xFF16A34A),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Download do Boletim Oficial iniciado (PDF).',
                     ),
-                  );
-                }),
-              ],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.download, size: 16),
+              label: const Text('Exportar PDF Assinado'),
             ),
-          ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF18181B),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Fechar'),
+            ),
+          ],
         ),
-        actions: [
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content:
-                        Text('Download do Boletim Oficial iniciado (PDF).')),
-              );
-            },
-            icon: const Icon(Icons.download, size: 16),
-            label: const Text('Exportar PDF Assinado'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF18181B),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
-    );
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   /// Exibe o modal com o Plano de Ensino & Ementa Homologada.
@@ -271,4 +332,3 @@ class StudentDisciplinesModals {
     );
   }
 }
-

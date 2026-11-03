@@ -1,6 +1,8 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 
 /// Configuration tab for Administrative Profile.
 ///
@@ -14,10 +16,59 @@ class AdminProfileTab extends StatefulWidget {
 }
 
 class _AdminProfileTabState extends State<AdminProfileTab> {
-  final _socialNameController = TextEditingController(text: 'Carlos Mendes');
-  final _civilNameController = TextEditingController(
-    text: 'Carlos Eduardo Mendes',
-  );
+  final _profileRemote = AuthProfileRemoteDataSource();
+  final _socialNameController = TextEditingController();
+  final _civilNameController = TextEditingController();
+  Map<String, dynamic> _profile = {};
+  String? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await _profileRemote.me();
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _civilNameController.text =
+            profile['displayName']?.toString() ??
+            AppUserSession.instance.effectiveName;
+        _socialNameController.text =
+            profile['socialName']?.toString() ?? '';
+        _loading = false;
+      });
+    } catch (error) {
+      if (mounted) setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    try {
+      await _profileRemote.updateProfile({
+        'socialName': _socialNameController.text.trim(),
+      });
+      await _loadProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil atualizado.')),
+      );
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    }
+  }
+
+  String _field(String key, [String fallback = 'Não informado']) =>
+      _profile[key]?.toString().trim().isNotEmpty == true
+      ? _profile[key].toString()
+      : fallback;
 
   @override
   void dispose() {
@@ -28,8 +79,14 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
     return Column(
       children: [
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          ),
         // 1. Visual Identity & Photo Card
         _buildSectionCard(
           title: 'Identidade Visual & Foto',
@@ -56,46 +113,11 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                 ),
               ),
               const SizedBox(width: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Seletor de imagem acionado com sucesso.',
-                          ),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F172A),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Carregar Nova Imagem',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Formatos recomendados: JPG, PNG ou WebP. Tamanho máximo: 5 MB.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                  ),
-                ],
+              Expanded(
+                child: Text(
+                  _field('displayName', AppUserSession.instance.effectiveName),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           ),
@@ -169,16 +191,16 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                   return isNarrow
                       ? Column(
                           children: [
-                            _buildInfoField('MATRÍCULA / RA', '23432432'),
+                            _buildInfoField('MATRÍCULA / RA', _field('identity')),
                             const SizedBox(height: 12),
                             _buildInfoField(
                               'CURSO VINCULADO',
-                              'Secretaria Geral Acadêmica & Contr...',
+                              _field('departmentOrCourse'),
                             ),
                             const SizedBox(height: 12),
                             _buildInfoField(
                               'PERÍODO LETIVO',
-                              'Administrador Titular (2026/2)',
+                              _field('profile', 'Administrador'),
                             ),
                           ],
                         )
@@ -187,7 +209,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                             Expanded(
                               child: _buildInfoField(
                                 'MATRÍCULA / RA',
-                                '23432432',
+                                _field('identity'),
                               ),
                             ),
                             const SizedBox(width: 14),
@@ -195,7 +217,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                               flex: 2,
                               child: _buildInfoField(
                                 'CURSO VINCULADO',
-                                'Secretaria Geral Acadêmica & Contr...',
+                                _field('departmentOrCourse'),
                                 icon: Icons.school_outlined,
                               ),
                             ),
@@ -204,7 +226,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                               flex: 2,
                               child: _buildInfoField(
                                 'PERÍODO LETIVO',
-                                'Administrador Titular (2026/2)',
+                                _field('profile', 'Administrador'),
                               ),
                             ),
                           ],
@@ -214,7 +236,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
               const SizedBox(height: 14),
               _buildInfoField(
                 'POLO / UNIDADE',
-                'Campus Central - Polo Tecnológico Asa Norte',
+                _field('campus'),
                 icon: Icons.business_outlined,
               ),
             ],
@@ -400,6 +422,14 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
         const Text(
           'Nome utilizado em chamadas, listas públicas e fóruns de disciplina.',
           style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            onPressed: _saveProfile,
+            child: const Text('Salvar perfil'),
+          ),
         ),
       ],
     );

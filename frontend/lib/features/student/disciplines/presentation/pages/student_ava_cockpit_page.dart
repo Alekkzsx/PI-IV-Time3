@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 import '../widgets/student_ava_left_sidebar.dart';
 import '../widgets/student_ava_right_sidebar.dart';
 import '../widgets/student_ava_home_tab.dart';
@@ -198,7 +199,7 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
 
           // Subtítulo da disciplina
           Text(
-            'Docente Responsável: ${_currentDiscipline.professor} • Turno Noturno • Semestre 2026/2',
+            'Docente: ${_currentDiscipline.professor} • ${_currentDiscipline.time} • Semestre ${_currentDiscipline.semester}',
             style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
           ),
         ],

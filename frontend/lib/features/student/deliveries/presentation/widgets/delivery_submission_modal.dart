@@ -104,8 +104,9 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   Future<void> _handleProtocolarEnvio() async {
     if (!_agreedToIntegrity ||
         _attachedFileName == null ||
-        _attachedBytes == null)
+        _attachedBytes == null) {
       return;
+    }
 
     setState(() => _isSubmitting = true);
     try {

@@ -19,9 +19,8 @@ class AvaLiveClassroomTab extends StatelessWidget {
       animation: AcademicBridgeService.instance,
       builder: (context, _) {
         final disciplineCode = controller.selectedDiscipline?.code ?? '';
-        final isOpen = AcademicBridgeService.instance.isSessionOpen(
-          disciplineCode,
-        ) ||
+        final isOpen =
+            AcademicBridgeService.instance.isSessionOpen(disciplineCode) ||
             controller.selectedDiscipline?.isLive == true;
         final session = AcademicBridgeService.instance.getSession(
           disciplineCode,
@@ -49,11 +48,11 @@ class AvaLiveClassroomTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           isOpen
-                              ? 'AULA AO VIVO: Padrões de Projeto (Aberta por ${session.openedByName ?? "Docente"})'
+                              ? 'AULA AO VIVO: ${controller.selectedDiscipline?.name ?? disciplineCode} (Aberta por ${session.openedByName ?? "Docente"})'
                               : 'AULA AO VIVO: Aguardando abertura pelo Docente',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: InstColors.ink,
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -160,17 +159,16 @@ class AvaLiveClassroomTab extends StatelessWidget {
                             color: Colors.white54,
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            'Slide ${controller.currentSlideIndex} de ${controller.totalSlides}: Padrão Adapter em Arquitetura Limpa',
+                          const Text(
+                            'A transmissão e os materiais da aula serão exibidos aqui quando disponibilizados.',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Profa. Dra. Helena Bittencourt compartilhando tela',
+                          Text(
+                            controller.selectedDiscipline?.professor ?? '',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -193,7 +191,7 @@ class AvaLiveClassroomTab extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
-                          'CC (Legenda Automática): "...o padrão adapter permite que interfaces incompatíveis colaborem sem refatorar o código existente..."',
+                          'A legenda da transmissão será exibida quando disponível.',
                           style: TextStyle(
                             color: Colors.amberAccent,
                             fontSize: 12,
