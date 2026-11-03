@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 // ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
@@ -6,10 +6,7 @@ import 'dart:html' as html;
 import 'signaling_channel.dart';
 
 /// Conecta a sinalizacao WebRTC ao servidor Java por WebSocket.
-ISignalingChannel createSignalingChannel(
-  String channelName, {
-  String? ticket,
-}) {
+ISignalingChannel createSignalingChannel(String channelName, {String? ticket}) {
   return WebSocketSignalingChannel(channelName, ticket: ticket);
 }
 
@@ -21,7 +18,8 @@ class WebSocketSignalingChannel implements ISignalingChannel {
 
   final String channelName;
   late final html.WebSocket _channel;
-  final StreamController<String> _controller = StreamController<String>.broadcast();
+  final StreamController<String> _controller =
+      StreamController<String>.broadcast();
   final Completer<void> _connected = Completer<void>();
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   bool _isClosed = false;
@@ -38,38 +36,51 @@ class WebSocketSignalingChannel implements ISignalingChannel {
         .replace(queryParameters: ticket == null ? null : {'ticket': ticket});
     _channel = html.WebSocket(socketUri.toString());
 
-    _subscriptions.add(_channel.onOpen.listen((_) {
-      if (!_connected.isCompleted) _connected.complete();
-    }));
-    _subscriptions.add(_channel.onMessage.listen(
-      (html.MessageEvent event) {
-        if (!_isClosed && !_controller.isClosed) {
-          final dynamic data = event.data;
-          if (data is String) {
-            _controller.add(data);
-          } else if (data != null) {
-            _controller.add(data.toString());
+    _subscriptions.add(
+      _channel.onOpen.listen((_) {
+        if (!_connected.isCompleted) _connected.complete();
+      }),
+    );
+    _subscriptions.add(
+      _channel.onMessage.listen(
+        (html.MessageEvent event) {
+          if (!_isClosed && !_controller.isClosed) {
+            final dynamic data = event.data;
+            if (data is String) {
+              _controller.add(data);
+            } else if (data != null) {
+              _controller.add(data.toString());
+            }
           }
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          if (!_connected.isCompleted)
+            _connected.completeError(error, stackTrace);
+          if (!_isClosed && !_controller.isClosed) {
+            _controller.addError(error, stackTrace);
+          }
+        },
+      ),
+    );
+    _subscriptions.add(
+      _channel.onClose.listen((_) {
+        if (!_connected.isCompleted) {
+          _connected.completeError(
+            StateError('WebSocket fechado antes da conexão.'),
+          );
         }
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        if (!_connected.isCompleted) _connected.completeError(error, stackTrace);
-        if (!_isClosed && !_controller.isClosed) {
-          _controller.addError(error, stackTrace);
+        if (!_controller.isClosed) unawaited(_controller.close());
+      }),
+    );
+    _subscriptions.add(
+      _channel.onError.listen((_) {
+        if (!_connected.isCompleted) {
+          _connected.completeError(
+            StateError('Não foi possível conectar à sala.'),
+          );
         }
-      },
-    ));
-    _subscriptions.add(_channel.onClose.listen((_) {
-      if (!_connected.isCompleted) {
-        _connected.completeError(StateError('WebSocket fechado antes da conexão.'));
-      }
-      if (!_controller.isClosed) unawaited(_controller.close());
-    }));
-    _subscriptions.add(_channel.onError.listen((_) {
-      if (!_connected.isCompleted) {
-        _connected.completeError(StateError('Não foi possível conectar à sala.'));
-      }
-    }));
+      }),
+    );
   }
 
   @override
@@ -78,7 +89,9 @@ class WebSocketSignalingChannel implements ISignalingChannel {
   @override
   Future<void> send(String data) async {
     if (_isClosed) {
-      throw StateError('Cannot send message on a closed WebSocketSignalingChannel.');
+      throw StateError(
+        'Cannot send message on a closed WebSocketSignalingChannel.',
+      );
     }
     await _connected.future.timeout(const Duration(seconds: 8));
     if (_channel.readyState != html.WebSocket.OPEN) {

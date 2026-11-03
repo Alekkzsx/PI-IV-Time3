@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../../domain/entities/participant.dart';
 
@@ -46,7 +46,9 @@ class ParticipantModel {
       isHandRaised: json['isHandRaised'] as bool? ?? false,
       audioLevel: audioLevel,
       isSpeaking: explicitSpeaking ?? (!isAudioMuted && audioLevel > 0.15),
-      lastHeartbeat: json['lastHeartbeat'] as int? ?? DateTime.now().millisecondsSinceEpoch,
+      lastHeartbeat:
+          json['lastHeartbeat'] as int? ??
+          DateTime.now().millisecondsSinceEpoch,
       role: json['role'] as String? ?? 'participant',
     );
   }
@@ -150,17 +152,17 @@ class ParticipantModel {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        ra,
-        isAudioMuted,
-        isVideoOff,
-        isScreenSharing,
-        isHandRaised,
-        audioLevel,
-        isSpeaking,
-        role,
-      );
+    id,
+    name,
+    ra,
+    isAudioMuted,
+    isVideoOff,
+    isScreenSharing,
+    isHandRaised,
+    audioLevel,
+    isSpeaking,
+    role,
+  );
 
   @override
   String toString() {

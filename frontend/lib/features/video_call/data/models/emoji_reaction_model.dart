@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../../domain/entities/emoji_reaction.dart';
 
@@ -31,14 +31,16 @@ class EmojiReactionModel {
     if (rawTimestamp is int) {
       parsedTimestamp = rawTimestamp;
     } else if (rawTimestamp is String) {
-      parsedTimestamp = DateTime.tryParse(rawTimestamp)?.millisecondsSinceEpoch ??
+      parsedTimestamp =
+          DateTime.tryParse(rawTimestamp)?.millisecondsSinceEpoch ??
           DateTime.now().millisecondsSinceEpoch;
     } else {
       parsedTimestamp = DateTime.now().millisecondsSinceEpoch;
     }
 
     final senderId = (json['senderId'] ?? json['peerId']) as String? ?? '';
-    final senderName = (json['senderName'] ?? json['peerName']) as String? ?? '';
+    final senderName =
+        (json['senderName'] ?? json['peerName']) as String? ?? '';
 
     return EmojiReactionModel(
       id: json['id'] as String? ?? '',
@@ -101,14 +103,8 @@ class EmojiReactionModel {
           (other.startX - startX).abs() < 0.001;
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        senderId,
-        senderName,
-        emoji,
-        timestamp,
-        startX,
-      );
+  int get hashCode =>
+      Object.hash(id, senderId, senderName, emoji, timestamp, startX);
 
   @override
   String toString() {

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'dart:convert';
 
@@ -138,7 +138,9 @@ class SignalingEnvelopeModel {
   factory SignalingEnvelopeModel.fromRawJson(String str) {
     final dynamic decoded = jsonDecode(str);
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Expected JSON object for SignalingEnvelopeModel');
+      throw const FormatException(
+        'Expected JSON object for SignalingEnvelopeModel',
+      );
     }
     return SignalingEnvelopeModel.fromJson(decoded);
   }
