@@ -1,0 +1,1 @@
+export { StudentCalendarService } from "./service.js";
