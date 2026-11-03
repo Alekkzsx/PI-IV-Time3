@@ -41,6 +41,11 @@ export function createStudentDashboardRouter(database: Db, jwtSecret: string): R
     response.json(data);
   });
 
+  router.get("/boletim", async (_request, response) => {
+    const data = await service.getStudentBoletim(response.locals.userId, response.locals.user);
+    response.json(data);
+  });
+
   router.get("/deliveries", async (_request, response) => {
     const data = await service.getStudentDeliveries(response.locals.userId, response.locals.user);
     response.json(data);
@@ -120,6 +125,15 @@ export function createStudentDashboardRouter(database: Db, jwtSecret: string): R
       body,
     );
     response.status(201).json(created);
+  });
+
+  router.post("/enrollment-declaration", async (_request, response) => {
+    parse(z.object({}).strict(), _request.body);
+    const declaration = await service.issueEnrollmentDeclaration(
+      response.locals.userId,
+      response.locals.user,
+    );
+    response.status(201).json(declaration);
   });
 
   router.put("/disciplines/:classCode/notes", async (request, response) => {

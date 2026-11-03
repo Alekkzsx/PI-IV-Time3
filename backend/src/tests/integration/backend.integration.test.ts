@@ -232,7 +232,13 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     const path = "/protocols/" + protocol.body.id + "/decision";
     assert.equal((await admin("PATCH", path, { approved: true, decisionNote: "Deferido após análise." })).status, 200);
     assert.equal((await admin("PATCH", path, { approved: false, decisionNote: "Segunda decisão." })).status, 409);
-    assert.equal((await admin("POST", "/announcements", { title: "Aviso de teste", body: "Conteúdo do comunicado", audience: "Todos", category: "Acadêmico" })).status, 201);
+    const announcement = await admin("POST", "/announcements", { title: "Aviso de teste", body: "Conteúdo do comunicado", audience: "Todos", category: "Acadêmico" });
+    assert.equal(announcement.status, 201);
+    const updatedAnnouncement = await admin("PATCH", "/announcements/" + announcement.body.id, { title: "Aviso atualizado" });
+    assert.equal(updatedAnnouncement.status, 200);
+    assert.equal(updatedAnnouncement.body.title, "Aviso atualizado");
+    assert.equal((await admin("PATCH", "/announcements/invalid", { title: "Aviso atualizado" })).status, 400);
+    assert.equal((await admin("PATCH", "/announcements/" + announcement.body.id, {})).status, 400);
     assert.equal((await admin("PATCH", "/settings", { minimumAttendance: 80, regimentalLockActive: false })).status, 200);
     assert.equal((await admin("GET", "/settings")).body.minimumAttendance, 80);
     assert.equal((await admin("PATCH", "/settings", { minimumAttendance: 101 })).status, 400);
@@ -326,6 +332,20 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     assert.equal(createdAssign.status, 201);
     const assignmentId = createdAssign.body.id;
 
+    const teacherNotice = await request(
+      "POST",
+      "/api/teacher/notices",
+      {
+        targetCourse: "ES-DEMO-4N",
+        targetAudience: "Turma",
+        classification: "informativo",
+        title: "Comunicado de integração",
+        message: "Mensagem para validar a leitura.",
+      },
+      teacherToken,
+    );
+    assert.equal(teacherNotice.status, 201);
+
     const openedRoom = await request("POST", "/api/video-call/rooms/enter", { roomCode: "ES-DEMO-4N" }, teacherToken);
     assert.equal(openedRoom.status, 200);
     const roomsList = await request("GET", "/api/video-call/rooms", undefined, studentToken);
@@ -336,6 +356,38 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     assert.equal(studentBoot.status, 200);
     assert.ok(studentBoot.body.disciplines.some((d: any) => d.code === "ES-DEMO-4N" && d.isLive === true));
     assert.ok(studentBoot.body.deliveries.some((d: any) => d.id === assignmentId));
+    const boletim = await request("GET", "/api/student/boletim", undefined, studentToken);
+    assert.equal(boletim.status, 200);
+    assert.ok(Array.isArray(boletim.body));
+    const declaration = await request("POST", "/api/student/enrollment-declaration", {}, studentToken);
+    assert.equal(declaration.status, 201);
+    assert.match(declaration.body.verificationKey, /^AGMRM-[A-F0-9]{8}$/);
+    assert.ok(await database.collection("academic_enrollment_declarations").findOne({
+      verificationKey: declaration.body.verificationKey,
+      studentId: String((await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo1" }))!._id),
+    }));
+    const noticeMessage = studentBoot.body.messages.find((message: any) => message.id === teacherNotice.body.id);
+    assert.ok(noticeMessage);
+    const noticeRead = await request(
+      "PATCH",
+      `/api/student/messages/${teacherNotice.body.id}/read`,
+      {},
+      studentToken,
+    );
+    assert.equal(noticeRead.status, 200);
+    const noticeReads = await request(
+      "GET",
+      `/api/teacher/notices/${teacherNotice.body.id}/reads`,
+      undefined,
+      teacherToken,
+    );
+    assert.equal(noticeReads.status, 200);
+    assert.equal(noticeReads.body.readCount, 1);
+    assert.equal(noticeReads.body.reads[0].identity, "aluno.demo1");
+    assert.equal(
+      (await request("GET", `/api/teacher/notices/${teacherNotice.body.id}/reads`, undefined, studentToken)).status,
+      403,
+    );
 
     const fileDownload = await request("GET", `/api/files/materials/${createdMat.body.id}`, undefined, studentToken);
     assert.equal(fileDownload.status, 200);
@@ -402,4 +454,3 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     assert.equal(auditedStudent.n2, 9.2);
   });
 });
-
