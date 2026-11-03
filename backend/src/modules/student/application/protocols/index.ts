@@ -1,0 +1,1 @@
+export { StudentProtocolService } from "./service.js";
