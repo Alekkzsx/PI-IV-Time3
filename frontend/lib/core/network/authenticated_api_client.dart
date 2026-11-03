@@ -7,7 +7,8 @@ import '../state/app_user_session.dart';
 class ApiException implements Exception {
   final String message;
   final int? status;
-  const ApiException(this.message, {this.status});
+  final String? code;
+  const ApiException(this.message, {this.status, this.code});
   @override
   String toString() => message;
 }
@@ -39,7 +40,7 @@ class AuthenticatedApiClient {
     try {
       final response = await http.Response.fromStream(
         await _client.send(request),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 20));
       dynamic data;
       if (response.body.isNotEmpty) {
         try {
@@ -59,6 +60,9 @@ class AuthenticatedApiClient {
               ? data['message'] as String
               : 'Não foi possível concluir a operação.',
           status: response.statusCode,
+          code: data is Map && data['code'] is String
+              ? data['code'] as String
+              : null,
         );
       }
       return data;
@@ -69,5 +73,117 @@ class AuthenticatedApiClient {
     } on http.ClientException {
       throw const ApiException('Não foi possível conectar à API.');
     }
+  }
+
+  Future<Map<String, dynamic>> getMap(String path) async {
+    final res = await request('GET', path);
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return <String, dynamic>{};
+  }
+
+  Future<List<Map<String, dynamic>>> getList(String path) async {
+    final res = await request('GET', path);
+    if (res is List) {
+      return res
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    return const <Map<String, dynamic>>[];
+  }
+
+  Future<Map<String, dynamic>> postMap(
+    String path, [
+    Map<String, Object?>? body,
+  ]) async {
+    final res = await request('POST', path, body: body);
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> patchMap(
+    String path,
+    Map<String, Object?> body,
+  ) async {
+    final res = await request('PATCH', path, body: body);
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return <String, dynamic>{};
+  }
+
+  Future<Map<String, dynamic>> putMap(
+    String path,
+    Map<String, Object?> body,
+  ) async {
+    final res = await request('PUT', path, body: body);
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return <String, dynamic>{};
+  }
+
+  Future<void> delete(String path) async {
+    await request('DELETE', path);
+  }
+}
+
+/// Cliente HTTP dedicado ao servidor nativo Java (`server/` na porta 8080)
+/// para cálculo regimental de notas, frequência de telemetria e estado de salas.
+class JavaServerApiClient {
+  static const baseUrl = String.fromEnvironment(
+    'JAVA_SERVER_BASE_URL',
+    defaultValue: 'http://127.0.0.1:8080',
+  );
+  final http.Client _client;
+  JavaServerApiClient({http.Client? client}) : _client = client ?? http.Client();
+
+  Future<Map<String, dynamic>?> getJson(String path) async {
+    try {
+      final token = AppUserSession.instance.accessToken;
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl$path'),
+            headers: {
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          response.body.isNotEmpty) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> postJson(
+    String path,
+    Map<String, Object?> body,
+  ) async {
+    try {
+      final token = AppUserSession.instance.accessToken;
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null && token.isNotEmpty)
+                'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          response.body.isNotEmpty) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {}
+    return null;
   }
 }
