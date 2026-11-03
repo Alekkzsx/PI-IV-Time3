@@ -1,5 +1,5 @@
 {
-  "_description": "Configuração dos serviços Java e da API de autenticação TypeScript.",
+  "_description": "Configuração dos serviços Java nativos (server/) e da API modular TypeScript (backend/).",
   "environment": {
     "profile": "development",
     "orchestrator": "java_frontend_launcher_and_manual_typescript_auth"
@@ -13,7 +13,9 @@
       "auto_start": true,
       "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
       "features": [
+        "jwt_hs256_session_validation",
         "videocall_webrtc_signaling",
+        "videocall_chat_hub_sync",
         "academic_boletim_calculation",
         "academic_attendance_tracking",
         "academic_task_grading"
@@ -28,8 +30,12 @@
       "healthcheck": "http://127.0.0.1:3001/health",
       "features": [
         "institutional_login",
+        "two_factor_totp",
         "jwt_access_tokens",
         "password_recovery_otp",
+        "admin_management",
+        "student_dashboard",
+        "videocall_room_tickets",
         "mongodb_user_persistence"
       ]
     },
@@ -52,6 +58,6 @@
   "flutter_run_hook": {
     "enabled": true,
     "strategy": "dual_trigger_cmake_and_dart_vm",
-    "description": "O servidor Java acadêmico é iniciado pelo launcher do frontend. O serviço TypeScript de autenticação é iniciado separadamente com 'cd backend; npm run dev'."
+    "description": "O servidor Java acadêmico e de sinalização é iniciado pelo launcher do frontend. O serviço TypeScript em backend/ é iniciado separadamente com 'cd backend; npm run dev'."
   }
 }
