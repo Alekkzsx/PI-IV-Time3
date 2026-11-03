@@ -2,7 +2,6 @@
 
 import 'package:flutter/foundation.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
-import '../../../../../core/state/academic_bridge_service.dart';
 import '../../../../../core/state/app_user_session.dart';
 import '../../../shared/controllers/student_portal_controller.dart';
 import '../../../shared/data/student_remote_data_source.dart';
@@ -64,7 +63,7 @@ class StudentSecretariatController extends ChangeNotifier {
 
   Future<void> loadFromServer() async {
     final portal = StudentPortalController.instance;
-    await portal.loadRemote();
+    await portal.loadRemote(force: true);
     final snapshot = portal.remoteDashboard;
     if (snapshot == null) return;
 
@@ -89,6 +88,7 @@ class StudentSecretariatController extends ChangeNotifier {
       _ => ProtocolStatus.pending,
     };
     return ProtocolRequest(
+      id: json['id']?.toString() ?? json['_id']?.toString(),
       protocolCode: (json['protocolCode'] ?? json['code'] ?? json['id']).toString(),
       submittedAt: (json['submittedAt'] ?? json['createdAt'] ?? '').toString(),
       subjectType: (json['subjectType'] ?? json['requestType'] ?? '').toString(),
@@ -141,31 +141,24 @@ class StudentSecretariatController extends ChangeNotifier {
     if (!AppUserSession.instance.hasRole('aluno')) {
       throw const ApiException('Apenas alunos podem abrir requerimentos.');
     }
-    final response = await _remote.submitProtocol(
+    await _remote.submitProtocol(
       requestType: subjectType.trim(),
       targetComponent: componentObject.trim(),
       justification: justification.trim(),
       attachmentName: attachmentName,
       attachmentBase64: attachmentBase64,
     );
-    _protocols.insert(0, _protocolFromJson(response));
-    final session = AppUserSession.instance;
-    AcademicBridgeService.instance.submitProtocolFromStudent(
-      protocolCode: response['protocolCode']?.toString() ?? '',
-      studentName: session.effectiveName,
-      studentRa: session.identity ?? '',
-      studentCourse: StudentPortalController
-              .instance
-              .remoteDashboard
-              ?.studentInfo['courseName']
-              ?.toString() ??
-          '',
-      subjectType: subjectType.trim(),
-      justification: justification.trim(),
-      attachmentName: attachmentName,
-    );
-    notifyListeners();
     await loadFromServer();
+  }
+
+  Future<Map<String, dynamic>> issueEnrollmentDeclaration() async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem emitir declarações.');
+    }
+
+    Future<String?> downloadProtocol(String id) =>
+        StudentPortalController.instance.downloadProtocol(id);
+    return _remote.createEnrollmentDeclaration();
   }
 
   /// Prontuário padrão exibido na tela de Secretaria Virtual.

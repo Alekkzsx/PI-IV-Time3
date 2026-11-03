@@ -1,6 +1,7 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:pi_iv_time3/features/student/shell/presentation/widgets/student_sidebar.dart';
 import '../../domain/entities/academic_message.dart';
 import '../controllers/student_messages_controller.dart';
@@ -59,7 +60,7 @@ class _StudentMessagesPageState extends State<StudentMessagesPage> {
   }
 
   void _showMessageDetailModal(AcademicMessage message) {
-    _controller.markAsRead(message.id);
+    unawaited(_controller.markAsRead(message.id));
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -124,14 +125,26 @@ class _StudentMessagesPageState extends State<StudentMessagesPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Cabeçalho da Seção
-        const Text(
-          'Central de Mensagens & Comunicados',
-          style: TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF18181B),
-            letterSpacing: -0.3,
-          ),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Central de Mensagens & Comunicados',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF18181B),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: messages.any((message) => message.isNew)
+                  ? () => _controller.markAllRead()
+                  : null,
+              child: const Text('Marcar todas como lidas'),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         const Text(
