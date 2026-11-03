@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
+import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 import 'student_disciplines_modals.dart';
 
 /// Barra lateral direita do AVA da disciplina contendo metadados institucionais:
