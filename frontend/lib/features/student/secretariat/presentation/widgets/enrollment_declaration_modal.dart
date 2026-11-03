@@ -1,43 +1,86 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import '../../domain/entities/academic_record_summary.dart';
 
 /// Modal para exibição e emissão da Declaração de Matrícula Digital com autenticação.
 class EnrollmentDeclarationModal extends StatelessWidget {
   /// Dados consolidados do prontuário acadêmico do discente.
   final AcademicRecordSummary record;
+  final Map<String, dynamic> declaration;
 
   /// Cria uma instância de [EnrollmentDeclarationModal].
   const EnrollmentDeclarationModal({
     super.key,
     required this.record,
+    required this.declaration,
   });
 
   /// Método estático utilitário para exibir a declaração na tela.
   static Future<void> show(
     BuildContext context, {
     required AcademicRecordSummary record,
+    required Map<String, dynamic> declaration,
   }) {
     return showDialog<void>(
       context: context,
-      builder: (ctx) => EnrollmentDeclarationModal(record: record),
+      builder: (ctx) =>
+          EnrollmentDeclarationModal(record: record, declaration: declaration),
     );
   }
 
-  void _handlePrintOrDownload(BuildContext context) {
+  Future<void> _handlePrintOrDownload(BuildContext context) async {
+    final name = declaration['studentName']?.toString() ?? 'Estudante';
+    final identity = declaration['studentIdentity']?.toString() ?? record.ra;
+    final course = declaration['course']?.toString() ?? record.course;
+    final key = declaration['verificationKey']?.toString() ?? '';
+    final issuedAt = declaration['issuedAt']?.toString() ?? '';
+    final classes = declaration['classes'] is List
+        ? (declaration['classes'] as List)
+              .map((item) => item is Map ? item['name'] ?? item['code'] : item)
+              .join(', ')
+        : '';
+    final content = [
+      'DECLARAÇÃO DE MATRÍCULA E REGULARIDADE ACADÊMICA',
+      'Nome: $name',
+      'Identidade: $identity',
+      'Curso: $course',
+      'Turmas: $classes',
+      'Emitida em: $issuedAt',
+      'Chave de verificação: $key',
+    ].join('\n');
+    final savedPath = await PlatformFileHelper.saveOrDownloadFile(
+      fileName:
+          'declaracao_matricula_${identity.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_')}.txt',
+      bytes: utf8.encode(content),
+      mimeType: 'text/plain',
+    );
+    if (!context.mounted) return;
+    if (savedPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível salvar a declaração.')),
+      );
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF18181B),
         content: Row(
-          children: const [
-            Icon(Icons.download_done_rounded, color: Color(0xFF16A34A), size: 20),
-            SizedBox(width: 10),
+          children: [
+            const Icon(
+              Icons.download_done_rounded,
+              color: Color(0xFF16A34A),
+              size: 20,
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Declaração de Matrícula gerada com sucesso! Download do PDF iniciado.',
+                'Declaração emitida e salva em $savedPath.',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -58,9 +101,7 @@ class EnrollmentDeclarationModal extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
         child: SingleChildScrollView(
@@ -175,7 +216,7 @@ class EnrollmentDeclarationModal extends StatelessWidget {
                   border: Border.all(color: const Color(0xFFE4E4E7)),
                 ),
                 child: Text(
-                  'Declaramos para os devidos fins de direito que o(a) discente ALEX GABRIEL SOARES SOUSA, inscrito(a) sob o Registro Acadêmico (R.A.) ${record.ra}, encontra-se regularmente matriculado(a) e com vínculo acadêmico ativo no curso de ${record.course}, no período letivo regular vigente (2026/2), cumprindo as exigências do Regimento Geral da Instituição.',
+                  'Declaramos para os devidos fins de direito que o(a) discente ${declaration['studentName'] ?? '—'}, inscrito(a) sob o Registro Acadêmico (R.A.) ${declaration['studentIdentity'] ?? record.ra}, encontra-se regularmente matriculado(a) e com vínculo acadêmico ativo no curso de ${declaration['course'] ?? record.course}.',
                   style: jakarta(
                     size: 13,
                     color: const Color(0xFF27272A),
@@ -247,7 +288,7 @@ class EnrollmentDeclarationModal extends StatelessWidget {
                           ),
                           const SizedBox(height: 3),
                           SelectableText(
-                            'AGMRM-2026-BR-9941-8A7F-E21B',
+                            declaration['verificationKey']?.toString() ?? '—',
                             style: jakarta(
                               size: 12,
                               weight: FontWeight.w800,
@@ -256,7 +297,7 @@ class EnrollmentDeclarationModal extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Autenticidade passível de validação pública no portal agmrm.edu.br/autenticacao com validade de 90 dias a contar da emissão.',
+                            'Emitida em ${declaration['issuedAt'] ?? '—'} • ${declaration['enrollmentCount'] ?? 0} matrícula(s) ativa(s).',
                             style: jakarta(
                               size: 10.5,
                               color: const Color(0xFF64748B),
@@ -279,7 +320,10 @@ class EnrollmentDeclarationModal extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      side: const BorderSide(color: Color(0xFFE4E4E7), width: 1),
+                      side: const BorderSide(
+                        color: Color(0xFFE4E4E7),
+                        width: 1,
+                      ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
                         vertical: 13,
@@ -307,7 +351,7 @@ class EnrollmentDeclarationModal extends StatelessWidget {
                       color: Colors.white,
                     ),
                     label: Text(
-                      'Imprimir / Salvar PDF',
+                      'Baixar declaração',
                       style: jakarta(
                         size: 12.5,
                         weight: FontWeight.w600,
@@ -335,10 +379,7 @@ class EnrollmentDeclarationModal extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem({
-    required String label,
-    required String value,
-  }) {
+  Widget _buildInfoItem({required String label, required String value}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

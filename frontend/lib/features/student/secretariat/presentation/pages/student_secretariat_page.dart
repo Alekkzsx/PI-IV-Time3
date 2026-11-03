@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'dart:async';
 
@@ -63,25 +63,52 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
     }
   }
 
-  void _showEnrollmentDeclarationModal() {
-    EnrollmentDeclarationModal.show(
-      context,
-      record: _controller.recordSummary,
-    );
+  Future<void> _showEnrollmentDeclarationModal() async {
+    try {
+      final declaration = await _controller.issueEnrollmentDeclaration();
+      if (!mounted) return;
+      await EnrollmentDeclarationModal.show(
+        context,
+        record: _controller.recordSummary,
+        declaration: declaration,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   void _showNewRequestModal() {
-    NewProtocolModal.show(
-      context,
-      controller: _controller,
-    );
+    NewProtocolModal.show(context, controller: _controller);
   }
 
   void _showOpinionModal(ProtocolRequest protocol) {
-    ProtocolOpinionModal.show(
-      context,
-      protocol: protocol,
-    );
+    ProtocolOpinionModal.show(context, protocol: protocol);
+  }
+
+  Future<void> _downloadProtocolAttachment(ProtocolRequest protocol) async {
+    final id = protocol.id;
+    if (id == null) return;
+    try {
+      final path = await _controller.downloadProtocol(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path == null
+                ? 'Não foi possível salvar o anexo.'
+                : 'Anexo salvo em $path',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   @override
@@ -113,10 +140,7 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
                   const SizedBox(height: 4),
                   Text(
                     'Emissão de declarações com autenticação digital, solicitação de segundas chamadas e acompanhamento de protocolos.',
-                    style: jakarta(
-                      size: 13,
-                      color: const Color(0xFF71717A),
-                    ),
+                    style: jakarta(size: 13, color: const Color(0xFF71717A)),
                   ),
                 ],
               ),
@@ -194,6 +218,7 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
           protocols: _controller.protocols,
           countLabel: _controller.protocolCountLabel,
           onViewOpinion: _showOpinionModal,
+          onDownloadAttachment: _downloadProtocolAttachment,
         ),
       ],
     );

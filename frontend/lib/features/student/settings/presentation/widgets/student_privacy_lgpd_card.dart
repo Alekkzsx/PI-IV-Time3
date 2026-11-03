@@ -1,7 +1,11 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 
 /// Card para gerenciamento de privacidade discente, visibilidade entre colegas e direitos LGPD.
 class StudentPrivacyLgpdCard extends StatefulWidget {
@@ -12,20 +16,81 @@ class StudentPrivacyLgpdCard extends StatefulWidget {
 }
 
 class _StudentPrivacyLgpdCardState extends State<StudentPrivacyLgpdCard> {
-  bool _exibirEmailColegas = true;
-  bool _exibirTelefoneGrupos = true;
-  bool _mostrarStatusPresenca = true;
+  final AuthProfileRemoteDataSource _remote = AuthProfileRemoteDataSource();
+  bool _exibirEmailColegas = false;
+  bool _exibirTelefoneGrupos = false;
+  bool _mostrarStatusPresenca = false;
 
-  void _exportLgpdDossier() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Dossiê do Titular LGPD exportado com sucesso (JSON + Relatório PDF).',
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF16A34A),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    final saved = AppUserSession.instance.preferences['privacy'];
+    if (saved is Map) {
+      _exibirEmailColegas = saved['showEmailToClassmates'] == true;
+      _exibirTelefoneGrupos = saved['showPhoneToGroups'] == true;
+      _mostrarStatusPresenca = saved['showAttendanceStatus'] == true;
+    }
+  }
+
+  Future<void> _savePreference(String key, bool value) async {
+    final preferences = Map<String, dynamic>.from(
+      AppUserSession.instance.preferences,
     );
+    final privacy = Map<String, dynamic>.from(
+      preferences['privacy'] is Map
+          ? preferences['privacy'] as Map
+          : const <String, dynamic>{},
+    )..[key] = value;
+    preferences['privacy'] = privacy;
+    try {
+      await _remote.updateProfile({'preferences': preferences});
+      if (!mounted) return;
+      setState(() {
+        switch (key) {
+          case 'showEmailToClassmates':
+            _exibirEmailColegas = value;
+            break;
+          case 'showPhoneToGroups':
+            _exibirTelefoneGrupos = value;
+            break;
+          case 'showAttendanceStatus':
+            _mostrarStatusPresenca = value;
+            break;
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _exportLgpdDossier() async {
+    try {
+      final export = await _remote.lgpdExport();
+      final path = await PlatformFileHelper.saveOrDownloadFile(
+        fileName: 'exportacao_lgpd.json',
+        bytes: utf8.encode(const JsonEncoder.withIndent('  ').convert(export)),
+        mimeType: 'application/json',
+      );
+      if (!mounted) return;
+      if (path == null) {
+        throw Exception('Não foi possível salvar a exportação.');
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exportação LGPD salva em $path'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF16A34A),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   @override
@@ -76,7 +141,7 @@ class _StudentPrivacyLgpdCardState extends State<StudentPrivacyLgpdCard> {
                     child: Checkbox(
                       value: _exibirEmailColegas,
                       onChanged: (v) =>
-                          setState(() => _exibirEmailColegas = v ?? false),
+                          _savePreference('showEmailToClassmates', v ?? false),
                       activeColor: const Color(0xFF18181B),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -121,7 +186,7 @@ class _StudentPrivacyLgpdCardState extends State<StudentPrivacyLgpdCard> {
                     child: Checkbox(
                       value: _exibirTelefoneGrupos,
                       onChanged: (v) =>
-                          setState(() => _exibirTelefoneGrupos = v ?? false),
+                          _savePreference('showPhoneToGroups', v ?? false),
                       activeColor: const Color(0xFF18181B),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),
@@ -166,7 +231,7 @@ class _StudentPrivacyLgpdCardState extends State<StudentPrivacyLgpdCard> {
                     child: Checkbox(
                       value: _mostrarStatusPresenca,
                       onChanged: (v) =>
-                          setState(() => _mostrarStatusPresenca = v ?? false),
+                          _savePreference('showAttendanceStatus', v ?? false),
                       activeColor: const Color(0xFF18181B),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4),

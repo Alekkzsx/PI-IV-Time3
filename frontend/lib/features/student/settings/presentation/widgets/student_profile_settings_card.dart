@@ -1,9 +1,10 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
 
 /// Card de configurações de perfil discente, dados acadêmicos e identificação oficial.
 class StudentProfileSettingsCard extends StatefulWidget {
@@ -23,21 +24,24 @@ class _StudentProfileSettingsCardState
   late TextEditingController _institutionalEmailController;
   late TextEditingController _recoveryEmailController;
   late TextEditingController _phoneController;
+  final AuthProfileRemoteDataSource _remote = AuthProfileRemoteDataSource();
 
   @override
   void initState() {
     super.initState();
+    final session = AppUserSession.instance;
     _civilNameController = TextEditingController(
-      text: StudentMockData.studentName,
+      text: session.displayName ?? '',
     );
-    _socialNameController = TextEditingController(text: 'Gabriel Soares');
+    _socialNameController = TextEditingController(
+      text: session.socialName ?? '',
+    );
     _institutionalEmailController = TextEditingController(
-      text: 'gabriel.oliveira@aluno.universidade.edu.br',
+      text: session.email ?? '',
     );
-    _recoveryEmailController = TextEditingController(
-      text: 'gabriel.soares.dev@gmail.com',
-    );
-    _phoneController = TextEditingController(text: '(41) 99876-5432');
+    _recoveryEmailController = TextEditingController();
+    _phoneController = TextEditingController(text: session.phone ?? '');
+    _loadProfile();
   }
 
   @override
@@ -50,16 +54,34 @@ class _StudentProfileSettingsCardState
     super.dispose();
   }
 
-  void _handleSave() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Dados de perfil e preferências de contato atualizados com sucesso!',
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF16A34A),
-      ),
-    );
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await _remote.me();
+      if (!mounted) return;
+      _recoveryEmailController.text =
+          profile['personalEmail']?.toString() ?? '';
+    } catch (_) {
+      // Keep the profile editor usable with the authenticated session data.
+    }
+  }
+
+  Future<void> _handleSave() async {
+    try {
+      await _remote.updateProfile({
+        'socialName': _socialNameController.text.trim(),
+        'personalEmail': _recoveryEmailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Perfil atualizado com sucesso.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   InputDecoration _inputDecoration({
@@ -150,6 +172,20 @@ class _StudentProfileSettingsCardState
 
   @override
   Widget build(BuildContext context) {
+    final session = AppUserSession.instance;
+    final studentInfo = widget.controller.studentInfo;
+    final recordSummary = widget.controller.recordSummary;
+    final studentName =
+        studentInfo['name']?.toString() ?? session.effectiveName;
+    final studentRa = studentInfo['ra']?.toString() ?? session.identity ?? '';
+    final studentCourse =
+        studentInfo['courseName']?.toString() ??
+        session.departmentOrCourse ??
+        '';
+    final semester =
+        studentInfo['semester']?.toString() ?? session.semester ?? '';
+    final shift = studentInfo['shift']?.toString() ?? session.shift ?? '';
+    final academicIndex = recordSummary['academicIndex']?.toString() ?? '—';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -190,7 +226,7 @@ class _StudentProfileSettingsCardState
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          'GO',
+                          session.initials,
                           style: jakarta(
                             size: 24,
                             weight: FontWeight.w700,
@@ -227,7 +263,7 @@ class _StudentProfileSettingsCardState
                           children: [
                             Flexible(
                               child: Text(
-                                StudentMockData.studentName,
+                                studentName,
                                 style: jakarta(
                                   size: 16.5,
                                   weight: FontWeight.w700,
@@ -262,7 +298,7 @@ class _StudentProfileSettingsCardState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'R.A.: ${StudentMockData.studentRa} • Registro Homologado DTI / MEC',
+                          'R.A.: $studentRa',
                           style: jakarta(
                             size: 12,
                             weight: FontWeight.w400,
@@ -279,7 +315,7 @@ class _StudentProfileSettingsCardState
                             ),
                             const SizedBox(width: 5),
                             Text(
-                              StudentMockData.studentCourse,
+                              studentCourse,
                               style: jakarta(
                                 size: 12,
                                 weight: FontWeight.w500,
@@ -349,25 +385,25 @@ class _StudentProfileSettingsCardState
                           children: [
                             _buildAcademicKpi(
                               'REGISTRO ACADÊMICO (R.A.)',
-                              StudentMockData.studentRa,
+                              studentRa,
                               Icons.numbers_rounded,
                             ),
                             const SizedBox(height: 12),
                             _buildAcademicKpi(
                               'CURSO DE GRADUAÇÃO',
-                              'Engenharia de Software (Bacharelado)',
+                              studentCourse,
                               Icons.menu_book_rounded,
                             ),
                             const SizedBox(height: 12),
                             _buildAcademicKpi(
                               'SEMESTRE / PERÍODO',
-                              '2026/2 • Noturno (7º Semestre)',
+                              '$semester • $shift',
                               Icons.calendar_month_rounded,
                             ),
                             const SizedBox(height: 12),
                             _buildAcademicKpi(
                               'COEFICIENTE DE RENDIMENTO (CR)',
-                              '8.80 / 10.0',
+                              '$academicIndex / 10.0',
                               Icons.analytics_outlined,
                               highlight: true,
                             ),
@@ -380,7 +416,7 @@ class _StudentProfileSettingsCardState
                                 Expanded(
                                   child: _buildAcademicKpi(
                                     'REGISTRO ACADÊMICO (R.A.)',
-                                    StudentMockData.studentRa,
+                                    studentRa,
                                     Icons.numbers_rounded,
                                   ),
                                 ),
@@ -388,7 +424,7 @@ class _StudentProfileSettingsCardState
                                 Expanded(
                                   child: _buildAcademicKpi(
                                     'CURSO DE GRADUAÇÃO',
-                                    'Engenharia de Software (Bacharelado)',
+                                    studentCourse,
                                     Icons.menu_book_rounded,
                                   ),
                                 ),
@@ -400,7 +436,7 @@ class _StudentProfileSettingsCardState
                                 Expanded(
                                   child: _buildAcademicKpi(
                                     'SEMESTRE / PERÍODO',
-                                    '2026/2 • Noturno (7º Semestre)',
+                                    '$semester • $shift',
                                     Icons.calendar_month_rounded,
                                   ),
                                 ),
@@ -408,7 +444,7 @@ class _StudentProfileSettingsCardState
                                 Expanded(
                                   child: _buildAcademicKpi(
                                     'COEFICIENTE DE RENDIMENTO (CR)',
-                                    '8.80 / 10.0',
+                                    '$academicIndex / 10.0',
                                     Icons.analytics_outlined,
                                     highlight: true,
                                   ),

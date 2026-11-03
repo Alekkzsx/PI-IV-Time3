@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -14,6 +14,7 @@ class ProtocolRequestsTable extends StatelessWidget {
 
   /// Callback acionado ao clicar em 'Ver Parecer' de um protocolo específico.
   final ValueChanged<ProtocolRequest> onViewOpinion;
+  final ValueChanged<ProtocolRequest> onDownloadAttachment;
 
   /// Cria uma instância de [ProtocolRequestsTable].
   const ProtocolRequestsTable({
@@ -21,6 +22,7 @@ class ProtocolRequestsTable extends StatelessWidget {
     required this.protocols,
     required this.countLabel,
     required this.onViewOpinion,
+    required this.onDownloadAttachment,
   });
 
   @override
@@ -49,10 +51,7 @@ class ProtocolRequestsTable extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   'Histórico de solicitações formais submetidas à Secretaria Acadêmica e pareceres emitidos.',
-                  style: jakarta(
-                    size: 12.5,
-                    color: const Color(0xFF71717A),
-                  ),
+                  style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
                 ),
               ],
             ),
@@ -73,10 +72,7 @@ class ProtocolRequestsTable extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFE5E7EB),
-              width: 1,
-            ),
+            border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -147,7 +143,9 @@ class ProtocolRequestsTable extends StatelessWidget {
           Expanded(flex: 15, child: Text('DATA DE ENVIO', style: headerStyle)),
           Expanded(flex: 20, child: Text('TIPO / ASSUNTO', style: headerStyle)),
           Expanded(
-              flex: 27, child: Text('OBJETO / COMPONENTE', style: headerStyle)),
+            flex: 27,
+            child: Text('OBJETO / COMPONENTE', style: headerStyle),
+          ),
           Expanded(flex: 12, child: Text('SITUAÇÃO', style: headerStyle)),
           Expanded(
             flex: 10,
@@ -181,10 +179,7 @@ class ProtocolRequestsTable extends StatelessWidget {
             flex: 15,
             child: Text(
               item.submittedAt,
-              style: jakarta(
-                size: 12.5,
-                color: const Color(0xFF52525B),
-              ),
+              style: jakarta(size: 12.5, color: const Color(0xFF52525B)),
             ),
           ),
           Expanded(
@@ -198,10 +193,7 @@ class ProtocolRequestsTable extends StatelessWidget {
             flex: 27,
             child: Text(
               item.componentObject,
-              style: jakarta(
-                size: 12.5,
-                color: const Color(0xFF3F3F46),
-              ),
+              style: jakarta(size: 12.5, color: const Color(0xFF3F3F46)),
             ),
           ),
           Expanded(
@@ -215,22 +207,36 @@ class ProtocolRequestsTable extends StatelessWidget {
             flex: 10,
             child: Align(
               alignment: Alignment.centerRight,
-              child: InkWell(
-                key: Key('view_opinion_${item.protocolCode}'),
-                onTap: () => onViewOpinion(item),
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Text(
-                    'Ver Parecer',
-                    style: jakarta(
-                      size: 12,
-                      weight: FontWeight.w700,
-                      color: const Color(0xFF18181B),
-                      decoration: TextDecoration.underline,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  InkWell(
+                    key: Key('view_opinion_${item.protocolCode}'),
+                    onTap: () => onViewOpinion(item),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Text(
+                        'Ver Parecer',
+                        style: jakarta(
+                          size: 12,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF18181B),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  if (item.id != null && item.attachmentName != null)
+                    IconButton(
+                      tooltip: 'Baixar anexo',
+                      onPressed: () => onDownloadAttachment(item),
+                      icon: const Icon(Icons.download_outlined, size: 16),
+                    ),
+                ],
               ),
             ),
           ),
@@ -264,10 +270,7 @@ class ProtocolRequestsTable extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             item.componentObject,
-            style: jakarta(
-              size: 13,
-              color: const Color(0xFF3F3F46),
-            ),
+            style: jakarta(size: 13, color: const Color(0xFF3F3F46)),
           ),
           const SizedBox(height: 10),
           Row(
@@ -275,23 +278,30 @@ class ProtocolRequestsTable extends StatelessWidget {
             children: [
               Text(
                 item.submittedAt,
-                style: jakarta(
-                  size: 12,
-                  color: const Color(0xFF71717A),
-                ),
+                style: jakarta(size: 12, color: const Color(0xFF71717A)),
               ),
-              InkWell(
-                key: Key('view_opinion_compact_${item.protocolCode}'),
-                onTap: () => onViewOpinion(item),
-                child: Text(
-                  'Ver Parecer',
-                  style: jakarta(
-                    size: 12,
-                    weight: FontWeight.w700,
-                    color: const Color(0xFF18181B),
-                    decoration: TextDecoration.underline,
+              Row(
+                children: [
+                  InkWell(
+                    key: Key('view_opinion_compact_${item.protocolCode}'),
+                    onTap: () => onViewOpinion(item),
+                    child: Text(
+                      'Ver Parecer',
+                      style: jakarta(
+                        size: 12,
+                        weight: FontWeight.w700,
+                        color: const Color(0xFF18181B),
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
-                ),
+                  if (item.id != null && item.attachmentName != null)
+                    IconButton(
+                      tooltip: 'Baixar anexo',
+                      onPressed: () => onDownloadAttachment(item),
+                      icon: const Icon(Icons.download_outlined, size: 16),
+                    ),
+                ],
               ),
             ],
           ),
@@ -306,10 +316,7 @@ class ProtocolRequestsTable extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: const Color(0xFFE4E4E7),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE4E4E7), width: 1),
       ),
       child: Text(
         label,
@@ -325,17 +332,17 @@ class ProtocolRequestsTable extends StatelessWidget {
   Widget _buildStatusBadge(ProtocolRequest item) {
     final (Color bg, Color text) = switch (item.status) {
       ProtocolStatus.approved => (
-          const Color(0xFFECFDF5),
-          const Color(0xFF059669),
-        ),
+        const Color(0xFFECFDF5),
+        const Color(0xFF059669),
+      ),
       ProtocolStatus.pending => (
-          const Color(0xFFFFFBEB),
-          const Color(0xFFD97706),
-        ),
+        const Color(0xFFFFFBEB),
+        const Color(0xFFD97706),
+      ),
       ProtocolStatus.rejected => (
-          const Color(0xFFFEF2F2),
-          const Color(0xFFDC2626),
-        ),
+        const Color(0xFFFEF2F2),
+        const Color(0xFFDC2626),
+      ),
     };
 
     return Container(
@@ -346,11 +353,7 @@ class ProtocolRequestsTable extends StatelessWidget {
       ),
       child: Text(
         item.statusLabel,
-        style: jakarta(
-          size: 10.5,
-          weight: FontWeight.w700,
-          color: text,
-        ),
+        style: jakarta(size: 10.5, weight: FontWeight.w700, color: text),
       ),
     );
   }

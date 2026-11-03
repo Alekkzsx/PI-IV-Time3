@@ -1,12 +1,9 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import '../controllers/student_secretariat_controller.dart';
 
 /// Modal para submissão formal de novos requerimentos acadêmicos pelo aluno.
@@ -53,7 +50,7 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
     super.initState();
     _selectedType = StudentSecretariatController.availableRequestTypes.first;
     _selectedCurricularObject =
-        StudentSecretariatController.availableCurricularObjects.first;
+        widget.controller.availableCurricularObjects.first;
   }
 
   @override
@@ -63,31 +60,18 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
   }
 
   Future<void> _pickAttachment() async {
-    final file = await FilePicker.pickFile(type: FileType.any);
+    final file = await PlatformFileHelper.pickFile();
     if (file == null || !mounted) return;
     const maxFileBytes = 7 * 1024 * 1024;
-    final size = await file.length();
-    if (!mounted) return;
-    if (size == null || size == 0 || size > maxFileBytes) {
-      setState(() => _errorMessage = 'Selecione um arquivo válido de até 7 MB.');
+    if (file.sizeBytes == 0 || file.sizeBytes > maxFileBytes) {
+      setState(
+        () => _errorMessage = 'Selecione um arquivo válido de até 7 MB.',
+      );
       return;
     }
-    final builder = BytesBuilder(copy: false);
-    var totalBytes = 0;
-    await for (final chunk in file.readAsByteStream()) {
-      totalBytes += chunk.length;
-      if (totalBytes > maxFileBytes) {
-        if (!mounted) return;
-        setState(() => _errorMessage = 'O arquivo deve ter no máximo 7 MB.');
-        return;
-      }
-      builder.add(chunk);
-    }
-    final bytes = builder.takeBytes();
-    if (!mounted || bytes.isEmpty) return;
     setState(() {
       _attachedFileName = file.name;
-      _attachedFileBase64 = base64Encode(bytes);
+      _attachedFileBase64 = file.base64Content;
       _errorMessage = null;
     });
   }
@@ -281,7 +265,7 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
                     size: 20,
                   ),
                   decoration: _buildInputDecoration(),
-                  items: StudentSecretariatController.availableCurricularObjects
+                  items: widget.controller.availableCurricularObjects
                       .map(
                         (obj) => DropdownMenuItem(
                           value: obj,
@@ -459,14 +443,16 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
                       key: const Key('confirm_new_request_button'),
-                          onPressed: _isSubmitting ? null : _handleSubmit,
+                      onPressed: _isSubmitting ? null : _handleSubmit,
                       icon: const Icon(
                         Icons.send_rounded,
                         size: 15,
                         color: Colors.white,
                       ),
                       label: Text(
-                        _isSubmitting ? 'Enviando...' : 'Protocolar Requerimento',
+                        _isSubmitting
+                            ? 'Enviando...'
+                            : 'Protocolar Requerimento',
                         style: jakarta(
                           size: 12.5,
                           weight: FontWeight.w600,

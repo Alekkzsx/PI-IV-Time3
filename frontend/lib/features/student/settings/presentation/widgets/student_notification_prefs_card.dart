@@ -1,6 +1,8 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
@@ -32,6 +34,69 @@ class _StudentNotificationPrefsCardState
   bool _secretariaEmail = true;
 
   bool _avisosUrgentes = true;
+  final AuthProfileRemoteDataSource _remote = AuthProfileRemoteDataSource();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final saved = AppUserSession.instance.preferences['notifications'];
+    if (saved is Map) {
+      _notasPortal = saved['notasPortal'] == true;
+      _notasEmail = saved['notasEmail'] == true;
+      _prazosPortal = saved['prazosPortal'] == true;
+      _prazosEmail = saved['prazosEmail'] == true;
+      _antecedenciaPrazos =
+          saved['antecedenciaPrazos']?.toString() ?? _antecedenciaPrazos;
+      _forumPortal = saved['forumPortal'] == true;
+      _forumEmail = saved['forumEmail'] == true;
+      _secretariaPortal = saved['secretariaPortal'] == true;
+      _secretariaEmail = saved['secretariaEmail'] == true;
+      _avisosUrgentes = saved['avisosUrgentes'] == true;
+    } else {
+      _notasPortal = false;
+      _notasEmail = false;
+      _prazosPortal = false;
+      _prazosEmail = false;
+      _forumPortal = false;
+      _forumEmail = false;
+      _secretariaPortal = false;
+      _secretariaEmail = false;
+      _avisosUrgentes = false;
+    }
+  }
+
+  Future<void> _savePreferences() async {
+    setState(() => _isSaving = true);
+    final preferences =
+        Map<String, dynamic>.from(AppUserSession.instance.preferences)
+          ..['notifications'] = {
+            'notasPortal': _notasPortal,
+            'notasEmail': _notasEmail,
+            'prazosPortal': _prazosPortal,
+            'prazosEmail': _prazosEmail,
+            'antecedenciaPrazos': _antecedenciaPrazos,
+            'forumPortal': _forumPortal,
+            'forumEmail': _forumEmail,
+            'secretariaPortal': _secretariaPortal,
+            'secretariaEmail': _secretariaEmail,
+            'avisosUrgentes': _avisosUrgentes,
+          };
+    try {
+      await _remote.updateProfile({'preferences': preferences});
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preferências de notificação salvas.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -441,17 +506,7 @@ class _StudentNotificationPrefsCardState
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Preferências de notificação salvas com sucesso!',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Color(0xFF16A34A),
-                        ),
-                      );
-                    },
+                    onPressed: _isSaving ? null : _savePreferences,
                     icon: const Icon(
                       Icons.check,
                       size: 14,
