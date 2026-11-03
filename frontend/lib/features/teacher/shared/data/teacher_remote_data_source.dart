@@ -71,12 +71,14 @@ class TeacherRemoteDataSource {
     required String sessionId,
     required String contentProgram,
     required String methodology,
+    required String location,
     required bool isHomologated,
     required List<Map<String, Object?>> attendanceList,
   }) async {
     await _api.patchMap('/api/teacher/sessions/${Uri.encodeComponent(sessionId)}', {
       'contentProgram': contentProgram,
       'methodology': methodology,
+      'location': location,
       'isHomologated': isHomologated,
       'attendanceList': attendanceList,
     });

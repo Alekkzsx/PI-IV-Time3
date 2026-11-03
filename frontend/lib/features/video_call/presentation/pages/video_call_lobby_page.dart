@@ -15,6 +15,7 @@ import 'video_call_room_page.dart';
 class VideoCallLobbyPage extends StatefulWidget {
   final VideoCallLobbyController? controller;
   final VideoCallRepository? repository;
+  final VideoCallRoomRemoteDataSource? roomDataSource;
   final String? initialRoomCode;
   final Function(
     String name,
@@ -29,6 +30,7 @@ class VideoCallLobbyPage extends StatefulWidget {
     super.key,
     this.controller,
     this.repository,
+    this.roomDataSource,
     this.initialRoomCode,
     this.onJoin,
   });
@@ -46,12 +48,13 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
   bool _ownsController = false;
   bool _isInRoom = false;
   String? _userRole;
-  final VideoCallRoomRemoteDataSource _roomDataSource =
-      VideoCallRoomRemoteDataSource();
+  late final VideoCallRoomRemoteDataSource _roomDataSource;
 
   @override
   void initState() {
     super.initState();
+    _roomDataSource =
+        widget.roomDataSource ?? VideoCallRoomRemoteDataSource();
     if (widget.controller != null) {
       _lobbyController = widget.controller!;
     } else {
@@ -132,9 +135,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
         return;
       }
 
-      late final bool openedByCurrentUser;
+      late final VideoCallRoomAccess roomAccess;
       try {
-        openedByCurrentUser = await _roomDataSource.enterRoom(roomCode);
+        roomAccess = await _roomDataSource.enterRoom(roomCode);
       } on VideoCallRoomApiException catch (error) {
         if (mounted) _showAccessDenied(error.message);
         return;
@@ -153,6 +156,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
           ra: ra,
           roomCode: roomCode,
           role: resolvedRole,
+          webSocketTicket: roomAccess.webSocketTicket,
         );
         setState(() {
           _isInRoom = true;
@@ -163,7 +167,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                 VideoCallRoomPage(controller: videoCallController),
           ),
         );
-        if (openedByCurrentUser) {
+        if (roomAccess.opened) {
           try {
             await _roomDataSource.closeRoom(roomCode);
           } on VideoCallRoomApiException catch (error) {
