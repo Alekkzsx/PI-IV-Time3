@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Card com o Quadro Semanal de Horários & Laboratórios (Ensalamento Físico)
 class StudentScheduleCard extends StatelessWidget {
@@ -11,48 +12,18 @@ class StudentScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheduleItems = [
-      {
-        'dia': 'Segunda-feira',
-        'hora': '19:00 - 22:30',
-        'disciplina': 'Análise e Projeto de Sistemas II',
-        'codigo': 'APS-II',
-        'local': 'Lab 04 - Bloco C • Profa. Helena Bittencourt',
-        'tipo': 'Laboratório Prático',
-      },
-      {
-        'dia': 'Terça-feira',
-        'hora': '19:00 - 22:30',
-        'disciplina': 'Estudos de Banco de Dados II',
-        'codigo': 'BD-II',
-        'local': 'Lab 02 - Bloco B • Profa. Helena Bittencourt',
-        'tipo': 'Laboratório Prático',
-      },
-      {
-        'dia': 'Quarta-feira',
-        'hora': '19:00 - 21:00',
-        'disciplina': 'Filosofia, Informação e Sociedade',
-        'codigo': 'FIS',
-        'local': 'Sala 204 - Bloco A • Prof. Marcos Vinícius',
-        'tipo': 'Teórica & Debates',
-      },
-      {
-        'dia': 'Quinta-feira',
-        'hora': '19:00 - 22:30',
-        'disciplina': 'Fundamentos de Sistemas Operacionais',
-        'codigo': 'FSO',
-        'local': 'Anfiteatro 101 - Bloco Central • Prof. André Luiz Silveira',
-        'tipo': 'Teórica & Demonstração',
-      },
-      {
-        'dia': 'Sexta-feira',
-        'hora': '18:30 - 20:30',
-        'disciplina': 'Plantão Orientado de Dúvidas & Monitoria',
-        'codigo': 'MONITORIA',
-        'local': 'Lab 04 & Microsoft Teams • Monitores Discentes',
-        'tipo': 'Atendimento Orientado',
-      },
-    ];
+    final scheduleItems = StudentPortalController.instance.disciplines
+        .map(
+          (discipline) => {
+            'dia': discipline.schedule,
+            'hora': discipline.time,
+            'disciplina': discipline.name,
+            'codigo': discipline.code,
+            'local': '${discipline.location} • ${discipline.professor}',
+            'tipo': discipline.isLab ? 'Laboratório' : 'Aula',
+          },
+        )
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -89,7 +60,7 @@ class StudentScheduleCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Grade de encontros presenciais das 4 disciplinas no Bloco Central e Labs.',
+                      'Horários e locais das disciplinas matriculadas.',
                       style: jakarta(
                         size: 11.5,
                         color: const Color(0xFF71717A),
@@ -106,7 +77,7 @@ class StudentScheduleCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'Semestre 2026/2',
+                  '${StudentPortalController.instance.studentInfo['semester'] ?? 'Semestre não informado'}',
                   style: jakarta(
                     size: 11,
                     weight: FontWeight.w600,
