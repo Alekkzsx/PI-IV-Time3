@@ -1,6 +1,7 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
 /// Modal para criação e edição de eventos e tarefas acadêmicas.
@@ -135,7 +136,7 @@ class _CalendarEventDialogState extends State<_CalendarEventDialog> {
     );
   }
 
-  void _submit({required bool isTask}) {
+  Future<void> _submit({required bool isTask}) async {
     final title = (isTask ? _taskTitleController : _eventTitleController).text
         .trim();
     final dateText = (isTask ? _taskDateController : _eventDateController).text
@@ -163,16 +164,25 @@ class _CalendarEventDialogState extends State<_CalendarEventDialog> {
     final discipline = calendarIndex >= 0
         ? _calendarDisciplineCodes[calendarIndex]
         : 'Pessoal';
-    widget.controller.addCalendarEvent(
-      title: title,
-      date: isoDate,
-      time: isTask ? time : '$_startTime - $_endTime',
-      type: isTask ? 'Entrega' : 'Aula',
-      discipline: discipline,
-      location: isTask
-          ? 'Agenda pessoal'
-          : _eventLocationController.text.trim(),
-    );
+    try {
+      await widget.controller.addCalendarEvent(
+        title: title,
+        date: isoDate,
+        time: isTask ? time : '$_startTime - $_endTime',
+        type: isTask ? 'Entrega' : 'Aula',
+        discipline: discipline,
+        location: isTask
+            ? 'Agenda pessoal'
+            : _eventLocationController.text.trim(),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error is ApiException ? error.message : 'Não foi possível salvar o evento.')),
+      );
+      return;
+    }
+    if (!mounted) return;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

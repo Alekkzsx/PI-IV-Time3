@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import '../../../shared/data/student_remote_data_source.dart';
 
 enum StudentListItemType {
   document,
@@ -12,6 +13,7 @@ class StudentListItemData {
   final String id;
   final StudentListItemType type;
   final String title;
+  final String dateHeader;
   final String subtitle;
   final String status;
   final bool hasClockIcon;
@@ -21,6 +23,7 @@ class StudentListItemData {
     required this.id,
     required this.type,
     required this.title,
+    required this.dateHeader,
     required this.subtitle,
     required this.status,
     this.hasClockIcon = false,
@@ -33,187 +36,61 @@ class StudentListItemData {
 /// Exibe o histórico de entregas, fóruns e materiais por data, prazos imediatos,
 /// o estado vazio com o mascote oficial Sir Nicolau e os marcos semestrais até 2027.
 class StudentDashboardListView extends StatefulWidget {
-  const StudentDashboardListView({super.key});
+  final StudentDashboardSnapshot dashboard;
+
+  const StudentDashboardListView({super.key, required this.dashboard});
 
   @override
   State<StudentDashboardListView> createState() => _StudentDashboardListViewState();
 }
 
 class _StudentDashboardListViewState extends State<StudentDashboardListView> {
-  late final Map<String, bool> _completedState = {
-    'item_17_sep': true,
-    'item_18_sep': false,
-    'item_19_sep': true,
-    'item_20_sep_1': false,
-    'item_20_sep_2': false,
-    'item_21_sep': false,
-  };
-
   @override
   Widget build(BuildContext context) {
+    final items = <StudentListItemData>[
+      for (final delivery in widget.dashboard.deliveries)
+        StudentListItemData(
+          id: delivery.id,
+          type: StudentListItemType.document,
+          dateHeader: delivery.dueDate,
+          title: delivery.title,
+          subtitle: '${delivery.disciplineName} • ${delivery.professor ?? ""}',
+          status: delivery.status,
+          hasClockIcon: delivery.status == 'Pendente',
+          initialCompleted: delivery.status == 'Avaliada',
+        ),
+      for (final event in widget.dashboard.events)
+        StudentListItemData(
+          id: event.id,
+          type: event.type.toLowerCase().contains('fórum')
+              ? StudentListItemType.forum
+              : StudentListItemType.document,
+          dateHeader: _formatDate(event.date),
+          title: event.title,
+          subtitle: '${event.discipline} • ${event.location}',
+          status: event.time,
+          hasClockIcon: true,
+        ),
+    ]..sort((first, second) => first.dateHeader.compareTo(second.dateHeader));
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ==========================================
-          // 1. Quinta-feira, 17 de setembro
-          // ==========================================
-          _buildDateHeader('Quinta-feira, 17 de setembro'),
-          const SizedBox(height: 14),
-          _buildTaskItem(
-            const StudentListItemData(
-              id: 'item_17_sep',
-              type: StudentListItemType.document,
-              title: 'Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional',
-              subtitle: 'Banco de Dados II • Profª. Dra. Eliane Ramos',
-              status: 'Concluído',
-              initialCompleted: true,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // ==========================================
-          // 2. Sexta-feira, 18 de setembro
-          // ==========================================
-          _buildDateHeader('Sexta-feira, 18 de setembro'),
-          const SizedBox(height: 14),
-          _buildTaskItem(
-            const StudentListItemData(
-              id: 'item_18_sep',
-              type: StudentListItemType.forum,
-              title: 'Fórum Avaliativo: Impactos éticos da IA em Sistemas Críticos',
-              subtitle: 'Ética e Legislação • Prof. Marcos Vinícius',
-              status: '3 participações',
-              initialCompleted: false,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // ==========================================
-          // 3. Ontem, 19 de setembro
-          // ==========================================
-          _buildDateHeader('Ontem, 19 de setembro'),
-          const SizedBox(height: 14),
-          _buildTaskItem(
-            const StudentListItemData(
-              id: 'item_19_sep',
-              type: StudentListItemType.document,
-              title: 'Material Complementar: Estudo de Caso de Microsserviços',
-              subtitle: 'Arquitetura de Software • Prof. Carlos Eduardo',
-              status: 'Concluído',
-              initialCompleted: true,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // ==========================================
-          // 4. Hoje, 20 de setembro
-          // ==========================================
-          _buildDateHeader('Hoje, 20 de setembro'),
-          const SizedBox(height: 14),
-          _buildTaskItem(
-            const StudentListItemData(
-              id: 'item_20_sep_1',
-              type: StudentListItemType.document,
-              title: 'Atividade Prática 03: Implementação de API REST',
-              subtitle: 'Engenharia de Software • Envio pelo AVA até 23:59',
-              status: 'até 23:59',
-              hasClockIcon: true,
-              initialCompleted: false,
-            ),
-          ),
-          const SizedBox(height: 14),
-          _buildTaskItem(
-            const StudentListItemData(
-              id: 'item_20_sep_2',
-              type: StudentListItemType.forum,
-              title: 'Fórum Temático: Desafios da Concorrência em Sistemas Distribuídos',
-              subtitle: 'Sistemas Distribuídos • 12 novas respostas no tópico',
-              status: 'Tópico aberto',
-              initialCompleted: false,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // ==========================================
-          // 5. Amanhã, 21 de setembro
-          // ==========================================
-          _buildDateHeader('Amanhã, 21 de setembro'),
-          const SizedBox(height: 14),
-          _buildTaskItem(
-            const StudentListItemData(
-              id: 'item_21_sep',
-              type: StudentListItemType.forum,
-              title: 'Fórum de Dúvidas: Preparação para a Avaliação A1',
-              subtitle: 'Cálculo Diferencial e Integral • Profª. Sandra Helena',
-              status: 'até 18:00',
-              hasClockIcon: true,
-              initialCompleted: false,
-            ),
-          ),
-          const SizedBox(height: 36),
-
-          // ==========================================
-          // 6. setembro 22 a dezembro 12 (Empty State)
-          // ==========================================
-          _buildDateHeader('setembro 22 a dezembro 12'),
-          const SizedBox(height: 28),
-          Center(
-            child: Image.asset(
-              'images/SirNicolau.png',
-              height: 160,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.golf_course_rounded,
-                      size: 48,
-                      color: Color(0xFFA1A1AA),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Nada planejado ainda',
-                      style: jakarta(
-                        size: 14,
-                        weight: FontWeight.w500,
-                        color: const Color(0xFF18181B),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 36),
-
-          // ==========================================
-          // 7. domingo, 13 de dezembro
-          // ==========================================
-          _buildMilestoneSection(
-            dateHeader: 'domingo, 13 de dezembro',
-            description: 'Término das avaliações semestrais',
-          ),
-          const SizedBox(height: 36),
-
-          // ==========================================
-          // 8. segunda-feira, 14 de dezembro a janeiro 10
-          // ==========================================
-          _buildMilestoneSection(
-            dateHeader: 'segunda-feira, 14 de dezembro a janeiro 10',
-            description: 'Férias e encerramento de notas',
-          ),
-          const SizedBox(height: 36),
-
-          // ==========================================
-          // 9. fevereiro 2027
-          // ==========================================
-          _buildMilestoneSection(
-            dateHeader: 'fevereiro 2027',
-            description: 'Início das aulas do próximo período letivo',
-          ),
-          const SizedBox(height: 48),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: Text('Nenhuma atividade ou aula cadastrada.')),
+            )
+          else
+            for (var index = 0; index < items.length; index++) ...[
+              if (index == 0 || items[index].dateHeader != items[index - 1].dateHeader) ...[
+                _buildDateHeader(items[index].dateHeader),
+                const SizedBox(height: 14),
+              ],
+              _buildTaskItem(items[index]),
+              const SizedBox(height: 20),
+            ],
         ],
       ),
     );
@@ -238,7 +115,7 @@ class _StudentDashboardListViewState extends State<StudentDashboardListView> {
   }
 
   Widget _buildTaskItem(StudentListItemData item) {
-    final isCompleted = _completedState[item.id] ?? item.initialCompleted;
+    final isCompleted = item.initialCompleted;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -246,15 +123,7 @@ class _StudentDashboardListViewState extends State<StudentDashboardListView> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Checkbox quadrado (preenchido com check quando concluído, contorno quando pendente)
-          InkWell(
-            key: Key('btn_toggle_${item.id}'),
-            onTap: () {
-              setState(() {
-                _completedState[item.id] = !isCompleted;
-              });
-            },
-            borderRadius: BorderRadius.circular(4),
-            child: Container(
+          Container(
               width: 17,
               height: 17,
               decoration: BoxDecoration(
@@ -268,7 +137,6 @@ class _StudentDashboardListViewState extends State<StudentDashboardListView> {
               child: isCompleted
                   ? const Icon(Icons.check, size: 12, color: Colors.white)
                   : null,
-            ),
           ),
           const SizedBox(width: 12),
 
@@ -344,26 +212,10 @@ class _StudentDashboardListViewState extends State<StudentDashboardListView> {
     );
   }
 
-  Widget _buildMilestoneSection({
-    required String dateHeader,
-    required String description,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildDateHeader(dateHeader),
-        const SizedBox(height: 18),
-        Center(
-          child: Text(
-            description,
-            style: jakarta(
-              size: 12,
-              weight: FontWeight.w400,
-              color: const Color(0xFF71717A),
-            ),
-          ),
-        ),
-      ],
-    );
+  String _formatDate(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
+    return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
   }
+
 }
