@@ -156,6 +156,11 @@ export class StudentDashboardService {
     };
   }
 
+  async getStudentBoletim(studentId: string, user: Document) {
+    const boot = await this.getBootstrap(studentId, user);
+    return boot.historicalBoletim;
+  }
+
   async getStudentDeliveries(studentId: string, user: Document) {
     const boot = await this.getBootstrap(studentId, user);
     const pending = boot.deliveries.filter((d) => d.status === "Pendente").length;
