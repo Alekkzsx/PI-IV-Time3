@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -13,10 +13,7 @@ import 'student_disciplines_modals.dart';
 class StudentAvaRightSidebar extends StatelessWidget {
   final StudentDisciplineModel discipline;
 
-  const StudentAvaRightSidebar({
-    super.key,
-    required this.discipline,
-  });
+  const StudentAvaRightSidebar({super.key, required this.discipline});
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +38,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
   // CARD 1: DADOS DA MATRÍCULA DISCENTE
   // ==========================================
   Widget _buildMatriculaCard() {
-    final credits = (discipline.totalHours / 10).toInt();
-    final cleanLocation = discipline.location.replaceAll(' (Noturno)', '');
+    final turma = discipline.fullCode?.isNotEmpty == true
+        ? discipline.fullCode!
+        : discipline.roomCode;
+    final location = discipline.location.isEmpty ? '—' : discipline.location;
+    final schedule = discipline.time.isEmpty ? '—' : discipline.time;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -63,7 +63,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.school_outlined, size: 16, color: Color(0xFF18181B)),
+              const Icon(
+                Icons.school_outlined,
+                size: 16,
+                color: Color(0xFF18181B),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -80,13 +84,16 @@ class StudentAvaRightSidebar extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _buildInfoRow('Turma/Oferta:', discipline.fullCode ?? '218131 - ${discipline.code}'),
+          _buildInfoRow('Turma/Oferta:', turma),
           const SizedBox(height: 8),
-          _buildInfoRow('Carga Horária:', '${discipline.totalHours}h ($credits créditos)'),
+          _buildInfoRow(
+            'Carga Horária:',
+            discipline.totalHours == 0 ? '—' : '${discipline.totalHours}h',
+          ),
           const SizedBox(height: 8),
           _buildInfoRow('Docente Titular:', discipline.professor),
           const SizedBox(height: 8),
-          _buildInfoRow('Turno / Sala:', 'Noturno (19:10 - 22:40) • $cleanLocation'),
+          _buildInfoRow('Turno / Sala:', '$schedule • $location'),
         ],
       ),
     );
@@ -100,10 +107,7 @@ class StudentAvaRightSidebar extends StatelessWidget {
           width: 95,
           child: Text(
             label,
-            style: jakarta(
-              size: 11.5,
-              color: const Color(0xFF71717A),
-            ),
+            style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
           ),
         ),
         const SizedBox(width: 6),
@@ -148,7 +152,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF18181B)),
+                    const Icon(
+                      Icons.person_outline_rounded,
+                      size: 16,
+                      color: Color(0xFF18181B),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -191,10 +199,7 @@ class StudentAvaRightSidebar extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Assiduidade Presencial',
-                  style: jakarta(
-                    size: 11.5,
-                    color: const Color(0xFF71717A),
-                  ),
+                  style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -215,7 +220,9 @@ class StudentAvaRightSidebar extends StatelessWidget {
               value: (discipline.attendancePercentage / 100).clamp(0.0, 1.0),
               minHeight: 4,
               backgroundColor: const Color(0xFFF4F4F5),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF16A34A)),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF16A34A),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -231,7 +238,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${discipline.absences} de ${discipline.maxAbsenceHours} max',
-                style: jakarta(size: 11.5, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                style: jakarta(
+                  size: 11.5,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
               ),
             ],
           ),
@@ -248,7 +259,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${discipline.completedHours}h de ${discipline.totalHours}h',
-                style: jakarta(size: 11.5, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                style: jakarta(
+                  size: 11.5,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
               ),
             ],
           ),
@@ -280,7 +295,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF18181B)),
+              const Icon(
+                Icons.schedule_rounded,
+                size: 16,
+                color: Color(0xFF18181B),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -318,11 +337,15 @@ class StudentAvaRightSidebar extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 13, color: Color(0xFF18181B)),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 13,
+                      color: Color(0xFF18181B),
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Terças-feiras • 18:00 às 19:00',
+                        'Horários não informados',
                         overflow: TextOverflow.ellipsis,
                         style: jakarta(
                           size: 11.5,
@@ -336,10 +359,7 @@ class StudentAvaRightSidebar extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Local: Sala dos Professores (Bloco C) ou Sala Virtual Teams',
-                  style: jakarta(
-                    size: 11,
-                    color: const Color(0xFF71717A),
-                  ),
+                  style: jakarta(size: 11, color: const Color(0xFF71717A)),
                 ),
               ],
             ),
@@ -350,11 +370,17 @@ class StudentAvaRightSidebar extends StatelessWidget {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Abrindo canal direto com ${discipline.professor}...'),
+                  content: Text(
+                    'Abrindo canal direto com ${discipline.professor}...',
+                  ),
                 ),
               );
             },
-            icon: const Icon(Icons.mail_outline_rounded, size: 14, color: Color(0xFF18181B)),
+            icon: const Icon(
+              Icons.mail_outline_rounded,
+              size: 14,
+              color: Color(0xFF18181B),
+            ),
             label: Text(
               'Contatar Docente via E-mail',
               style: jakarta(
@@ -367,7 +393,9 @@ class StudentAvaRightSidebar extends StatelessWidget {
               minimumSize: const Size.fromHeight(38),
               backgroundColor: Colors.white,
               side: const BorderSide(color: Color(0xFFE5E7EB)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
           ),
         ],
@@ -402,7 +430,11 @@ class StudentAvaRightSidebar extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.menu_book_outlined, size: 16, color: Color(0xFF18181B)),
+                    const Icon(
+                      Icons.menu_book_outlined,
+                      size: 16,
+                      color: Color(0xFF18181B),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -434,8 +466,13 @@ class StudentAvaRightSidebar extends StatelessWidget {
           const SizedBox(height: 14),
           ElevatedButton.icon(
             key: const Key('btn_ver_ementa_metodologia'),
-            onPressed: () => StudentDisciplinesModals.showPlanoEnsinoModal(context),
-            icon: const Icon(Icons.menu_book_outlined, size: 14, color: Colors.white),
+            onPressed: () =>
+                StudentDisciplinesModals.showPlanoEnsinoModal(context),
+            icon: const Icon(
+              Icons.menu_book_outlined,
+              size: 14,
+              color: Colors.white,
+            ),
             label: Text(
               'Ver Ementa e Metodologia',
               style: jakarta(
@@ -448,7 +485,9 @@ class StudentAvaRightSidebar extends StatelessWidget {
               minimumSize: const Size.fromHeight(38),
               backgroundColor: const Color(0xFF18181B),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
           ),
         ],

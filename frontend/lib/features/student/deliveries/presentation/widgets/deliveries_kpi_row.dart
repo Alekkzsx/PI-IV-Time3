@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
@@ -30,20 +30,19 @@ class DeliveriesKpiRow extends StatelessWidget {
         .toList();
     final evaluatedCount = evaluatedItems.length;
 
-    double weightedAverage = 0.0;
+    double? weightedAverage;
     if (evaluatedItems.isNotEmpty) {
       double totalWeightedScore = 0.0;
       double totalWeight = 0.0;
       for (final item in evaluatedItems) {
-        final weight = item.weight > 0 ? item.weight : 1.0;
+        final weight = item.weight;
+        if (weight <= 0) continue;
         totalWeightedScore += (item.score ?? 0.0) * weight;
         totalWeight += weight;
       }
       weightedAverage = totalWeight > 0
           ? totalWeightedScore / totalWeight
-          : 0.0;
-    } else {
-      weightedAverage = 9.7; // Padrão de referência do semestre
+          : null;
     }
 
     return LayoutBuilder(
@@ -189,8 +188,10 @@ class DeliveriesKpiRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Há entregas com prazo fatal nos próximos 2 dias.',
+          Text(
+            urgentCount > 0
+                ? 'Prazos sinalizados como urgentes pela disciplina.'
+                : 'Nenhum prazo urgente informado.',
             style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
           ),
         ],
@@ -296,7 +297,7 @@ class DeliveriesKpiRow extends StatelessWidget {
     );
   }
 
-  Widget _buildAverageCard(double average) {
+  Widget _buildAverageCard(double? average) {
     return _buildCardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,21 +314,27 @@ class DeliveriesKpiRow extends StatelessWidget {
                   color: Color(0xFF64748B),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Excelente',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF059669),
+              if (average != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    average >= 6 ? 'Média parcial ≥ 6' : 'Média parcial < 6',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: average >= 6
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFB91C1C),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -336,7 +343,7 @@ class DeliveriesKpiRow extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                average.toStringAsFixed(1),
+                average?.toStringAsFixed(1) ?? '—',
                 style: const TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
@@ -344,15 +351,16 @@ class DeliveriesKpiRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
-                '/ 10.0',
-                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-              ),
+              if (average != null)
+                const Text(
+                  '/ 10.0',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
             ],
           ),
           const SizedBox(height: 8),
           const Text(
-            'Média das notas de trabalhos entregues até o momento.',
+            'Média das atividades avaliadas.',
             style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
           ),
         ],

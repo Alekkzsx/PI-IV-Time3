@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 /// Status possíveis de um protocolo formal submetido à Secretaria Acadêmica.
 enum ProtocolStatus {
@@ -14,6 +14,8 @@ enum ProtocolStatus {
 
 /// Entidade de domínio que representa um protocolo de requerimento acadêmico.
 class ProtocolRequest {
+  final String? id;
+
   /// Código oficial do protocolo (ex: 'PROT-2026/8835').
   final String protocolCode;
 
@@ -46,6 +48,7 @@ class ProtocolRequest {
 
   /// Cria uma instância imutável de [ProtocolRequest].
   const ProtocolRequest({
+    this.id,
     required this.protocolCode,
     required this.submittedAt,
     required this.subjectType,
@@ -73,6 +76,7 @@ class ProtocolRequest {
 
   /// Retorna uma cópia atualizada do protocolo.
   ProtocolRequest copyWith({
+    String? id,
     String? protocolCode,
     String? submittedAt,
     String? subjectType,
@@ -85,6 +89,7 @@ class ProtocolRequest {
     String? responseDate,
   }) {
     return ProtocolRequest(
+      id: id ?? this.id,
       protocolCode: protocolCode ?? this.protocolCode,
       submittedAt: submittedAt ?? this.submittedAt,
       subjectType: subjectType ?? this.subjectType,

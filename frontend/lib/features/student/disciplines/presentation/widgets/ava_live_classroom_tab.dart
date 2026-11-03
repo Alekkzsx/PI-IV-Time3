@@ -7,7 +7,7 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'ava_section_card.dart';
 
-/// Aba do AVA com transmissão ao vivo da aula, exibição de slides e controles multimídia.
+/// Aba do AVA que direciona à sala ao vivo quando o docente inicia a sessão.
 class AvaLiveClassroomTab extends StatelessWidget {
   final StudentPortalController controller;
 
@@ -161,7 +161,7 @@ class AvaLiveClassroomTab extends StatelessWidget {
                           const SizedBox(height: 12),
                           const Text(
                             'A transmissão e os materiais da aula serão exibidos aqui quando disponibilizados.',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
                             ),
@@ -203,70 +203,6 @@ class AvaLiveClassroomTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      controller.isMicMuted ? Icons.mic_off : Icons.mic,
-                      color: controller.isMicMuted
-                          ? InstColors.danger
-                          : InstColors.ink,
-                    ),
-                    onPressed: controller.toggleMic,
-                    tooltip: 'Microfone',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      controller.isCameraOff
-                          ? Icons.videocam_off
-                          : Icons.videocam,
-                      color: controller.isCameraOff
-                          ? InstColors.danger
-                          : InstColors.ink,
-                    ),
-                    onPressed: controller.toggleCamera,
-                    tooltip: 'Câmera',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.pan_tool,
-                      color: controller.isHandRaised
-                          ? InstColors.warning
-                          : InstColors.ink,
-                    ),
-                    onPressed: controller.toggleHandRaise,
-                    tooltip: 'Levantar a Mão',
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: controller.prevSlide,
-                    icon: const Icon(Icons.chevron_left, color: InstColors.ink),
-                    label: const Text(
-                      'Anterior',
-                      style: TextStyle(color: InstColors.ink),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: InstColors.borderStrong),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: controller.nextSlide,
-                    icon: const Icon(
-                      Icons.chevron_right,
-                      color: InstColors.ink,
-                    ),
-                    label: const Text(
-                      'Próximo',
-                      style: TextStyle(color: InstColors.ink),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: InstColors.borderStrong),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         );

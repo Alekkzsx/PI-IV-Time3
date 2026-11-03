@@ -1,6 +1,10 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 
 /// Configuration tab for Governance and Privacy (LGPD).
 ///
@@ -15,8 +19,72 @@ class GovernanceLgpdTab extends StatefulWidget {
 }
 
 class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
+  final _profileRemote = AuthProfileRemoteDataSource();
   bool _showEmailInLists = false;
   bool _showOnlineStatus = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final profile = await _profileRemote.me();
+      final preferences = profile['preferences'];
+      if (!mounted || preferences is! Map) return;
+      setState(() {
+        _showEmailInLists = preferences['showInstitutionalEmail'] == true;
+        _showOnlineStatus = preferences['showPresenceStatus'] != false;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _savePreferences() async {
+    try {
+      await _profileRemote.updateProfile({
+        'preferences': {
+          'showInstitutionalEmail': _showEmailInLists,
+          'showPresenceStatus': _showOnlineStatus,
+        },
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preferências atualizadas.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportData({required bool asJson}) async {
+    try {
+      final data = await _profileRemote.lgpdExport();
+      final content = asJson
+          ? const JsonEncoder.withIndent('  ').convert(data)
+          : data.entries.map((entry) => '${entry.key}: ${entry.value}').join('\n');
+      final saved = await PlatformFileHelper.saveOrDownloadFile(
+        fileName: asJson ? 'exportacao-lgpd.json' : 'exportacao-lgpd.txt',
+        bytes: utf8.encode(content),
+        mimeType: asJson ? 'application/json' : 'text/plain',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(saved == null ? 'Falha ao salvar exportação.' : 'Exportação salva: $saved')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,17 +234,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Preferências de privacidade atualizadas com sucesso.',
-                    ),
-                    backgroundColor: Color(0xFF059669),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
+              onPressed: _savePreferences,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0F172A),
                 foregroundColor: Colors.white,
@@ -281,13 +339,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
       mainAxisSize: MainAxisSize.min,
       children: [
         OutlinedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Download do arquivo JSON iniciado.'),
-              ),
-            );
-          },
+          onPressed: () => _exportData(asJson: true),
           icon: const Icon(Icons.download_rounded, size: 15),
           label: const Text(
             'Arquivo JSON',
@@ -304,13 +356,7 @@ class _GovernanceLgpdTabState extends State<GovernanceLgpdTab> {
         ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Download do relatório .txt iniciado.'),
-              ),
-            );
-          },
+          onPressed: () => _exportData(asJson: false),
           icon: const Icon(Icons.download_rounded, size: 15),
           label: const Text(
             'Relatório (.txt)',
