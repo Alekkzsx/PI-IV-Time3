@@ -1,0 +1,1 @@
+export { createTeacherRouter } from "./teacher.controller.js";
