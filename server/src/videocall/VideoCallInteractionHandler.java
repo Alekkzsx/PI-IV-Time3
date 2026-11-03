@@ -1,13 +1,15 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package videocall;
 
+import auth.JwtAuthValidator;
+import auth.UsuarioAutenticado;
 import core.HttpUtils;
 import core.ManipuladorHttp;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
+import utils.JsonSimples;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,12 +23,20 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         HttpUtils.aplicarHeadersCors(resposta);
-        String caminho = requisicao.getCaminho();
 
+        UsuarioAutenticado usuario;
+        try {
+            usuario = JwtAuthValidator.autenticarOpcional(requisicao);
+        } catch (SecurityException e) {
+            resposta.enviarJson(401, "{\"status\":401,\"erro\":" + JsonSimples.escapar(e.getMessage()) + "}");
+            return;
+        }
+
+        String caminho = requisicao.getCaminho();
         if ("/api/videocall/hand-raise".equalsIgnoreCase(caminho)) {
             tratarMaoLevantada(requisicao, resposta);
         } else if ("/api/videocall/chat".equalsIgnoreCase(caminho)) {
-            tratarChat(requisicao, resposta);
+            tratarChat(requisicao, resposta, usuario);
         } else {
             resposta.enviarJson(404, "{\"status\":404,\"erro\":\"Endpoint de interacao desconhecido.\"}");
         }
@@ -34,10 +44,10 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
 
     private void tratarMaoLevantada(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
-            Map<String, String> params = HttpUtils.parseFormUrlEncoded(requisicao.getCorpo());
+            Map<String, String> params = HttpUtils.extrairParametros(requisicao);
             String roomCode = params.get("roomCode");
             String ra = params.get("ra");
-            String action = params.getOrDefault("action", "toggle"); // 'raise', 'lower' ou 'toggle'
+            String action = params.containsKey("action") ? params.get("action") : "toggle";
 
             if (roomCode == null || ra == null) {
                 resposta.enviarJson(400, "{\"status\":400,\"erro\":\"roomCode e ra sao obrigatorios.\"}");
@@ -51,8 +61,8 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
                 return;
             }
 
-            boolean novoEstado = "raise".equalsIgnoreCase(action) ? true : 
-                                 "lower".equalsIgnoreCase(action) ? false : !p.isHandRaised;
+            boolean novoEstado = "raise".equalsIgnoreCase(action) ? true
+                    : ("lower".equalsIgnoreCase(action) ? false : !p.isHandRaised);
 
             service.alternarMaoLevantada(roomCode, ra, novoEstado);
 
@@ -69,7 +79,7 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
             }
 
             VideoCallService.Room r = service.obterOuCriarSala(roomCode);
-            StringBuilder json = new StringBuilder("{\"status\":200,\"roomCode\":\"" + roomCode + "\",\"queue\":[");
+            StringBuilder json = new StringBuilder("{\"status\":200,\"roomCode\":" + JsonSimples.escapar(roomCode) + ",\"queue\":[");
             boolean primeiro = true;
 
             for (String ra : r.handRaiseQueue) {
@@ -78,8 +88,8 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
                     if (!primeiro) json.append(",");
                     primeiro = false;
                     json.append("{")
-                        .append("\"ra\":\"").append(p.ra).append("\",")
-                        .append("\"name\":\"").append(p.name).append("\",")
+                        .append("\"ra\":").append(JsonSimples.escapar(p.ra)).append(",")
+                        .append("\"name\":").append(JsonSimples.escapar(p.name)).append(",")
                         .append("\"handRaisedAt\":").append(p.handRaisedAt)
                         .append("}");
                 }
@@ -92,13 +102,16 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
         }
     }
 
-    private void tratarChat(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+    private void tratarChat(RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
-            Map<String, String> params = HttpUtils.parseFormUrlEncoded(requisicao.getCorpo());
+            Map<String, String> params = HttpUtils.extrairParametros(requisicao);
             String roomCode = params.get("roomCode");
             String senderRa = params.get("senderRa");
+            if ((senderRa == null || senderRa.trim().isEmpty()) && usuario != null) {
+                senderRa = !usuario.getIdentity().isEmpty() ? usuario.getIdentity() : usuario.getUserId();
+            }
             String senderName = params.get("senderName");
-            String senderRole = params.get("senderRole");
+            String senderRole = usuario != null ? usuario.getProfile() : params.get("senderRole");
             String message = params.get("message");
 
             if (roomCode == null || senderRa == null || message == null || message.trim().isEmpty()) {
@@ -106,7 +119,12 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
                 return;
             }
 
-            service.adicionarMensagemChat(roomCode, senderRa, senderName != null ? senderName : senderRa, senderRole != null ? senderRole : "aluno", message.trim());
+            service.adicionarMensagemChat(
+                    roomCode,
+                    senderRa,
+                    senderName != null ? senderName : senderRa,
+                    senderRole != null ? senderRole : "aluno",
+                    message.trim());
             resposta.enviarJson(201, "{\"status\":201,\"mensagem\":\"Mensagem enviada com sucesso.\"}");
 
         } else if ("GET".equalsIgnoreCase(requisicao.getMetodo())) {
@@ -127,12 +145,12 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
                 primeiro = false;
 
                 json.append("{")
-                    .append("\"id\":\"").append(msg.id).append("\",")
-                    .append("\"senderRa\":\"").append(msg.senderRa).append("\",")
-                    .append("\"senderName\":\"").append(msg.senderName).append("\",")
-                    .append("\"senderRole\":\"").append(msg.senderRole).append("\",")
-                    .append("\"message\":\"").append(msg.message.replace("\"", "'")).append("\",")
-                    .append("\"timeFormatted\":\"").append(msg.timeFormatted).append("\"")
+                    .append("\"id\":").append(JsonSimples.escapar(msg.id)).append(",")
+                    .append("\"senderRa\":").append(JsonSimples.escapar(msg.senderRa)).append(",")
+                    .append("\"senderName\":").append(JsonSimples.escapar(msg.senderName)).append(",")
+                    .append("\"senderRole\":").append(JsonSimples.escapar(msg.senderRole)).append(",")
+                    .append("\"message\":").append(JsonSimples.escapar(msg.message)).append(",")
+                    .append("\"timeFormatted\":").append(JsonSimples.escapar(msg.timeFormatted))
                     .append("}");
             }
             json.append("]}");
@@ -143,4 +161,3 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
         }
     }
 }
-

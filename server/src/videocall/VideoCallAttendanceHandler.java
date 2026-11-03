@@ -1,10 +1,12 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package videocall;
 
+import auth.JwtAuthValidator;
 import core.HttpUtils;
 import core.ManipuladorHttp;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
+import utils.JsonSimples;
 
 import java.io.IOException;
 import java.util.Map;
@@ -21,9 +23,16 @@ public class VideoCallAttendanceHandler implements ManipuladorHttp {
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         HttpUtils.aplicarHeadersCors(resposta);
 
-        Map<String, String> query = HttpUtils.parseFormUrlEncoded(
-            "GET".equalsIgnoreCase(requisicao.getMetodo()) ? requisicao.getQueryParams() : requisicao.getCorpo()
-        );
+        try {
+            JwtAuthValidator.autenticarOpcional(requisicao);
+        } catch (SecurityException e) {
+            resposta.enviarJson(401, "{\"status\":401,\"erro\":" + JsonSimples.escapar(e.getMessage()) + "}");
+            return;
+        }
+
+        Map<String, String> query = "GET".equalsIgnoreCase(requisicao.getMetodo())
+                ? HttpUtils.parseFormUrlEncoded(requisicao.getQueryParams())
+                : HttpUtils.extrairParametros(requisicao);
         String roomCode = query.get("roomCode");
 
         if (roomCode == null || roomCode.trim().isEmpty()) {
@@ -36,7 +45,7 @@ public class VideoCallAttendanceHandler implements ManipuladorHttp {
 
         StringBuilder json = new StringBuilder("{");
         json.append("\"status\":200,")
-            .append("\"roomCode\":\"").append(r.roomCode).append("\",")
+            .append("\"roomCode\":").append(JsonSimples.escapar(r.roomCode)).append(",")
             .append("\"isOpen\":").append(r.isOpen).append(",")
             .append("\"totalClassDurationMinutes\":").append(duracaoTotalMinutos).append(",")
             .append("\"attendanceList\":[");
@@ -65,12 +74,12 @@ public class VideoCallAttendanceHandler implements ManipuladorHttp {
             }
 
             json.append("{")
-                .append("\"ra\":\"").append(p.ra).append("\",")
-                .append("\"name\":\"").append(p.name).append("\",")
-                .append("\"role\":\"").append(p.role).append("\",")
+                .append("\"ra\":").append(JsonSimples.escapar(p.ra)).append(",")
+                .append("\"name\":").append(JsonSimples.escapar(p.name)).append(",")
+                .append("\"role\":").append(JsonSimples.escapar(p.role)).append(",")
                 .append("\"minutesConnected\":").append(minutosConectado).append(",")
                 .append("\"attendancePercentage\":").append(percentual).append(",")
-                .append("\"status\":\"").append(statusPresenca).append("\"")
+                .append("\"status\":").append(JsonSimples.escapar(statusPresenca))
                 .append("}");
         }
 
@@ -78,4 +87,3 @@ public class VideoCallAttendanceHandler implements ManipuladorHttp {
         resposta.enviarJson(200, json.toString());
     }
 }
-

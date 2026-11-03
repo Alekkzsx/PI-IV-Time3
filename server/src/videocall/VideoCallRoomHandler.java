@@ -1,10 +1,13 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package videocall;
 
+import auth.JwtAuthValidator;
+import auth.UsuarioAutenticado;
 import core.HttpUtils;
 import core.ManipuladorHttp;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
+import utils.JsonSimples;
 
 import java.io.IOException;
 import java.util.Map;
@@ -20,12 +23,20 @@ public class VideoCallRoomHandler implements ManipuladorHttp {
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         HttpUtils.aplicarHeadersCors(resposta);
-        String caminho = requisicao.getCaminho();
 
+        UsuarioAutenticado usuario;
+        try {
+            usuario = JwtAuthValidator.autenticarOpcional(requisicao);
+        } catch (SecurityException e) {
+            resposta.enviarJson(401, "{\"status\":401,\"erro\":" + JsonSimples.escapar(e.getMessage()) + "}");
+            return;
+        }
+
+        String caminho = requisicao.getCaminho();
         if ("/api/videocall/open".equalsIgnoreCase(caminho)) {
-            tratarAberturaSala(requisicao, resposta);
+            tratarAberturaSala(requisicao, resposta, usuario);
         } else if ("/api/videocall/close".equalsIgnoreCase(caminho)) {
-            tratarFechamentoSala(requisicao, resposta);
+            tratarFechamentoSala(requisicao, resposta, usuario);
         } else {
             tratarListagemSalas(requisicao, resposta);
         }
@@ -41,10 +52,10 @@ public class VideoCallRoomHandler implements ManipuladorHttp {
             primeiro = false;
 
             json.append("{")
-                .append("\"roomCode\":\"").append(r.roomCode).append("\",")
+                .append("\"roomCode\":").append(JsonSimples.escapar(r.roomCode)).append(",")
                 .append("\"isOpen\":").append(r.isOpen).append(",")
-                .append("\"openedByRole\":\"").append(r.openedByRole != null ? r.openedByRole : "").append("\",")
-                .append("\"openedByName\":\"").append(r.openedByName != null ? r.openedByName : "").append("\",")
+                .append("\"openedByRole\":").append(JsonSimples.escapar(r.openedByRole != null ? r.openedByRole : "")).append(",")
+                .append("\"openedByName\":").append(JsonSimples.escapar(r.openedByName != null ? r.openedByName : "")).append(",")
                 .append("\"activeParticipantsCount\":").append(r.activeParticipants.size()).append(",")
                 .append("\"totalDurationMinutes\":").append(r.getTotalDurationMinutes())
                 .append("}");
@@ -53,16 +64,19 @@ public class VideoCallRoomHandler implements ManipuladorHttp {
         resposta.enviarJson(200, json.toString());
     }
 
-    private void tratarAberturaSala(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+    private void tratarAberturaSala(RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if (!"POST".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviarJson(405, "{\"status\":405,\"erro\":\"Utilize POST para abrir sala.\"}");
             return;
         }
 
-        Map<String, String> params = HttpUtils.parseFormUrlEncoded(requisicao.getCorpo());
+        Map<String, String> params = HttpUtils.extrairParametros(requisicao);
         String roomCode = params.get("roomCode");
-        String role = params.get("role");
+        String role = usuario != null ? usuario.getProfile() : params.get("role");
         String name = params.get("name");
+        if ((name == null || name.trim().isEmpty()) && usuario != null && !usuario.getDisplayName().isEmpty()) {
+            name = usuario.getDisplayName();
+        }
 
         if (roomCode == null || roomCode.trim().isEmpty()) {
             resposta.enviarJson(400, "{\"status\":400,\"erro\":\"Parametro 'roomCode' e obrigatorio.\"}");
@@ -77,21 +91,26 @@ public class VideoCallRoomHandler implements ManipuladorHttp {
         }
 
         System.out.println("[VIDEOCALL] Sala " + roomCode + " ABERTA com sucesso por " + name + " (" + role + ")");
-        resposta.enviarJson(200, "{\"status\":200,\"mensagem\":\"Sala aberta com sucesso.\",\"roomCode\":\"" + roomCode + "\",\"isOpen\":true}");
+        resposta.enviarJson(200, "{\"status\":200,\"mensagem\":\"Sala aberta com sucesso.\",\"roomCode\":" + JsonSimples.escapar(roomCode) + ",\"isOpen\":true}");
     }
 
-    private void tratarFechamentoSala(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
+    private void tratarFechamentoSala(RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if (!"POST".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviarJson(405, "{\"status\":405,\"erro\":\"Utilize POST para fechar sala.\"}");
             return;
         }
 
-        Map<String, String> params = HttpUtils.parseFormUrlEncoded(requisicao.getCorpo());
+        Map<String, String> params = HttpUtils.extrairParametros(requisicao);
         String roomCode = params.get("roomCode");
-        String role = params.get("role");
+        String role = usuario != null ? usuario.getProfile() : params.get("role");
 
-        if (roomCode == null) {
+        if (roomCode == null || roomCode.trim().isEmpty()) {
             resposta.enviarJson(400, "{\"status\":400,\"erro\":\"Parametro 'roomCode' e obrigatorio.\"}");
+            return;
+        }
+
+        if (usuario != null && !usuario.isDocenteOuAdmin()) {
+            resposta.enviarJson(403, "{\"status\":403,\"erro\":\"Acesso negado: Somente docentes ou administradores podem encerrar a sala.\"}");
             return;
         }
 
@@ -102,7 +121,6 @@ public class VideoCallRoomHandler implements ManipuladorHttp {
         }
 
         System.out.println("[VIDEOCALL] Sala " + roomCode + " ENCERRADA.");
-        resposta.enviarJson(200, "{\"status\":200,\"mensagem\":\"Sala encerrada com sucesso.\",\"roomCode\":\"" + roomCode + "\",\"isOpen\":false}");
+        resposta.enviarJson(200, "{\"status\":200,\"mensagem\":\"Sala encerrada com sucesso.\",\"roomCode\":" + JsonSimples.escapar(roomCode) + ",\"isOpen\":false}");
     }
 }
-
