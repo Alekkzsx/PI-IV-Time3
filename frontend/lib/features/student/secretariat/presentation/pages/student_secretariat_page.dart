@@ -1,5 +1,7 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shell/presentation/widgets/student_sidebar.dart';
@@ -43,6 +45,7 @@ class _StudentSecretariatPageState extends State<StudentSecretariatPage> {
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? StudentSecretariatController();
     _controller.addListener(_onControllerUpdated);
+    if (_ownsController) unawaited(_controller.loadFromServer());
   }
 
   @override
