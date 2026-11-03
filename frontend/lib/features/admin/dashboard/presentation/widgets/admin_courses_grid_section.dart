@@ -26,54 +26,20 @@ class AdminCoursesGridSection extends StatelessWidget {
 
   const AdminCoursesGridSection({super.key, this.onSeeAll});
 
-  static const List<AdminCourseCardData> defaultCourses = [
-    AdminCourseCardData(
-      code: 'ENG-SOFT-2024',
-      modality: 'Graduação',
-      name: 'Bacharelado em Engenharia de Software',
-      enrolledText: '420 discentes matriculados',
-      workload: '3200h',
-    ),
-    AdminCourseCardData(
-      code: 'SIS-INFO-2023',
-      modality: 'Graduação',
-      name: 'Bacharelado em Sistemas de Informação',
-      enrolledText: '380 discentes matriculados',
-      workload: '3000h',
-    ),
-    AdminCourseCardData(
-      code: 'CIEN-COMP-2022',
-      modality: 'Graduação',
-      name: 'Bacharelado em Ciência da Computação',
-      enrolledText: '310 discentes matriculados',
-      workload: '3400h',
-    ),
-    AdminCourseCardData(
-      code: 'TEC-ADS-2025',
-      modality: 'Tecnólogo',
-      name: 'Tecnologia em Análise e Desenvolvimento de Sistemas',
-      enrolledText: '130 discentes matriculados',
-      workload: '2400h',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final portal = AdminPortalController.instance;
-    final courses = portal.usesRemote
-        ? portal.courses
-              .map(
-                (course) => AdminCourseCardData(
-                  code: course.code,
-                  modality: course.modality,
-                  name: course.name,
-                  enrolledText:
-                      '${course.studentsCount} discentes matriculados',
-                  workload: course.workload,
-                ),
-              )
-              .toList()
-        : defaultCourses;
+    final courses = portal.courses
+        .map(
+          (course) => AdminCourseCardData(
+            code: course.code,
+            modality: course.modality,
+            name: course.name,
+            enrolledText: '${course.studentsCount} discentes matriculados',
+            workload: course.workload,
+          ),
+        )
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

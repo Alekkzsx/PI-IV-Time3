@@ -1,26 +1,35 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/widgets/audit_diff_dialog.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 
 /// Modal completo do Dossiê do Titular (LGPD) e Trilha de Auditoria Individual do Usuário.
 class UserDossierModal extends StatefulWidget {
   final AdminUserModel user;
+  final Map<String, dynamic> dossier;
 
-  const UserDossierModal({super.key, required this.user});
+  const UserDossierModal({
+    super.key,
+    required this.user,
+    required this.dossier,
+  });
 
   static Future<void> show({
     required BuildContext context,
     required AdminUserModel user,
+    required Map<String, dynamic> dossier,
   }) {
     return showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) => UserDossierModal(user: user),
+      builder: (ctx) => UserDossierModal(user: user, dossier: dossier),
     );
   }
 
@@ -92,7 +101,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'ID / R.A.: ${widget.user.id} • ${widget.user.profile} • ${widget.user.email}',
+                        'Identidade: ${widget.user.identity} • ${widget.user.profile} • ${widget.user.email}',
                         style: jakarta(
                           size: 13,
                           weight: FontWeight.w400,
@@ -172,18 +181,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Dossiê digital de ${widget.user.name} exportado com sucesso.',
-                          style: jakarta(size: 13, color: Colors.white),
-                        ),
-                        backgroundColor: const Color(0xFF0F172A),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: _exportDossier,
                   icon: const Icon(Icons.download_rounded, size: 16),
                   label: Text(
                     'Exportar Dossiê JSON/PDF',
@@ -208,6 +206,23 @@ class _UserDossierModalState extends State<UserDossierModal> {
         ),
       ),
     );
+  }
+
+  Future<void> _exportDossier() async {
+    final path = await PlatformFileHelper.saveOrDownloadFile(
+      fileName: 'dossie-${widget.user.identity}.json',
+      bytes: utf8.encode(const JsonEncoder.withIndent('  ').convert(widget.dossier)),
+      mimeType: 'application/json',
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path == null ? 'Não foi possível exportar o dossiê.' : 'Dossiê exportado: $path',
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildTabButton({

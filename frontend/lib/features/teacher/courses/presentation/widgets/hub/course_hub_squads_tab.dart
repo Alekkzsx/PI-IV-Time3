@@ -1,12 +1,18 @@
 ﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 
 /// Aba de Equipes de Projeto & Squads Integradores do curso no Portal Docente.
 class CourseHubSquadsTab extends StatelessWidget {
+  final DocenteController controller;
   final VoidCallback? onNewSquad;
 
-  const CourseHubSquadsTab({super.key, this.onNewSquad});
+  const CourseHubSquadsTab({
+    super.key,
+    required this.controller,
+    this.onNewSquad,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,19 +44,7 @@ class CourseHubSquadsTab extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             ElevatedButton.icon(
-              onPressed: () {
-                if (onNewSquad != null) {
-                  onNewSquad!();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Abrindo assistente de criação de squad...',
-                      ),
-                    ),
-                  );
-                }
-              },
+              onPressed: onNewSquad,
               icon: const Icon(Icons.group_add, size: 14, color: Colors.white),
               label: const Text(
                 'Nova Equipe',
@@ -72,32 +66,26 @@ class CourseHubSquadsTab extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        _buildSquadCard(
-          'Squad Alpha: Sistema de Gestão Hospitalar',
-          'Mariana Rios Costa (Líder), Gabriel Soares, Lucas Mendes, Camila Duarte',
-          'Sprint 1 Entregue (Nota 9.5)',
-        ),
-        const SizedBox(height: 12),
-        _buildSquadCard(
-          'Squad Beta: Plataforma de E-commerce Sustentável',
-          'Rodrigo Antunes (Líder), Vinicius Ferraz, Ana Paula Silva, Felipe Ramos',
-          'Sprint 1 em Correção',
-        ),
-        const SizedBox(height: 12),
-        _buildSquadCard(
-          'Squad Gamma: App de Logística e Rastreamento IoT',
-          'Beatriz Lima (Líder), Carlos Eduardo, Thiago Rocha, Larissa Santos',
-          'Sprint 1 Entregue (Nota 8.8)',
-        ),
+        if (controller.selectedCourse.squads.isEmpty)
+          const Text('Ainda não há equipes cadastradas.')
+        else
+          for (final squad in controller.selectedCourse.squads) ...[
+            _buildSquadCard(squad),
+            const SizedBox(height: 12),
+          ],
       ],
     );
   }
 
-  static Widget _buildSquadCard(
-    String squadName,
-    String members,
-    String status,
-  ) {
+  static Widget _buildSquadCard(Map<String, dynamic> squad) {
+    final squadName = squad['name']?.toString() ??
+        squad['title']?.toString() ??
+        'Equipe';
+    final rawMembers = squad['members'];
+    final members = rawMembers is List
+        ? rawMembers.map((member) => member.toString()).join(', ')
+        : rawMembers?.toString() ?? '';
+    final status = squad['status']?.toString() ?? '';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),

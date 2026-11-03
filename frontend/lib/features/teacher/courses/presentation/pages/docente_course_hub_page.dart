@@ -146,6 +146,120 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 );
                 return;
               }
+
+              Future<void> _showForumTopicDialog() async {
+                final title = TextEditingController();
+                final body = TextEditingController();
+                final values = await showDialog<List<String>>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Novo tópico do fórum'),
+                    content: SizedBox(
+                      width: 420,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: title,
+                            decoration: const InputDecoration(labelText: 'Título'),
+                          ),
+                          TextField(
+                            controller: body,
+                            maxLines: 4,
+                            decoration: const InputDecoration(labelText: 'Mensagem'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          if (title.text.trim().isEmpty || body.text.trim().isEmpty) return;
+                          Navigator.pop(context, [title.text.trim(), body.text.trim()]);
+                        },
+                        child: const Text('Publicar'),
+                      ),
+                    ],
+                  ),
+                );
+                title.dispose();
+                body.dispose();
+                if (values == null) return;
+                final created = await widget.controller.createForumTopic(
+                  title: values[0],
+                  body: values[1],
+                );
+                if (mounted && !created) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        widget.controller.remoteError ?? 'Não foi possível criar o tópico.',
+                      ),
+                    ),
+                  );
+                }
+
+                Future<void> _createSquadDialog() async {
+                  final name = TextEditingController();
+                  final members = TextEditingController();
+                  final values = await showDialog<List<String>>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Criar equipe'),
+                      content: SizedBox(
+                        width: 420,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextField(
+                              controller: name,
+                              decoration: const InputDecoration(labelText: 'Nome da equipe'),
+                            ),
+                            TextField(
+                              controller: members,
+                              decoration: const InputDecoration(
+                                labelText: 'Identidades dos membros (separadas por vírgula)',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancelar'),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            if (name.text.trim().isEmpty) return;
+                            Navigator.pop(context, [name.text.trim(), members.text.trim()]);
+                          },
+                          child: const Text('Salvar'),
+                        ),
+                      ],
+                    ),
+                  );
+                  name.dispose();
+                  members.dispose();
+                  if (values == null) return;
+                  await widget.controller.saveSquads([
+                    ...widget.controller.selectedCourse.squads,
+                    {
+                      'name': values[0],
+                      'members': values[1]
+                          .split(',')
+                          .map((member) => member.trim())
+                          .where((member) => member.isNotEmpty)
+                          .toList(),
+                      'status': 'Ativa',
+                    },
+                  ]);
+                }
+              }
               final published = await widget.controller.publishNotice(
                 targetCourse: widget.course.title,
                 targetAudience: 'Todos os discentes da turma',
@@ -189,7 +303,12 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
   Widget _buildActiveTabContent() {
     switch (_activeTabIndex) {
       case 0:
-        return const CourseHubGradebookTab();
+        return AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, _) => CourseHubGradebookTab(
+            controller: widget.controller,
+          ),
+        );
       case 1:
         return AnimatedBuilder(
           animation: widget.controller,
@@ -212,7 +331,13 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
       case 3:
         return const CourseHubAssignmentsTab();
       case 4:
-        return const CourseHubForumTab();
+        return AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, _) => CourseHubForumTab(
+            controller: widget.controller,
+            onNewTopic: _showForumTopicDialog,
+          ),
+        );
       case 5:
         return AnimatedBuilder(
           animation: widget.controller,
@@ -225,9 +350,15 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
       case 6:
         return CourseHubSyllabusTab(onEditSyllabus: _openSyllabusModal);
       case 7:
-        return const CourseHubSquadsTab();
+        return AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, _) => CourseHubSquadsTab(
+            controller: widget.controller,
+            onNewSquad: _createSquadDialog,
+          ),
+        );
       default:
-        return const CourseHubGradebookTab();
+        return CourseHubGradebookTab(controller: widget.controller);
     }
   }
 

@@ -7,8 +7,7 @@ import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
 
 /// Card de destaque "Continuar de Onde Parou" (Fast-Resume do AVA).
-/// Permite ao discente retomar imediatamente o último módulo acessado,
-/// visualizar a pendência iminente e acessar a sala virtual síncrona.
+/// Resume o acesso à disciplina selecionada com base em seus dados do portal.
 class StudentDisciplinesFastResumeCard extends StatelessWidget {
   final StudentDisciplineModel discipline;
   final void Function(StudentDisciplineModel discipline, [int targetTab])

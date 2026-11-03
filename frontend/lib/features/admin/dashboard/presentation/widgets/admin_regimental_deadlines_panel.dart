@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
 /// Painel lateral que lista os prazos regimentais e marcos acadêmicos do campus.
 class AdminRegimentalDeadlinesPanel extends StatelessWidget {
@@ -11,6 +12,7 @@ class AdminRegimentalDeadlinesPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final events = AdminPortalController.instance.calendarEvents;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -40,7 +42,7 @@ class AdminRegimentalDeadlinesPanel extends StatelessWidget {
                   border: Border.all(color: const Color(0xFFE4E4E7)),
                 ),
                 child: Text(
-                  '03',
+                  events.length.toString().padLeft(2, '0'),
                   style: jakarta(
                     size: 12,
                     weight: FontWeight.w700,
@@ -51,32 +53,28 @@ class AdminRegimentalDeadlinesPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          _buildPrazoItem(
-            title: 'Fechamento de Prazos N1',
-            subtitle: 'Prazo final para digitação de notas e frequências',
-            dateInfo: '30/10 às 23:59',
-            barColor: const Color(0xFF1A1A1A),
-            onTap: () => onNavigateTarget?.call('calendario'),
-          ),
-          const SizedBox(height: 24),
-          _buildPrazoItem(
-            title: 'Validação de Horas Complementares',
-            subtitle: 'Período para submissão de certificados externos',
-            dateInfo: 'Até 15/11/2026',
-            barColor: const Color(0xFF1A1A1A),
-            onTap: () => onNavigateTarget?.call('secretaria'),
-          ),
-          const SizedBox(height: 24),
-          _buildPrazoItem(
-            title: 'Renovação de Matrículas 2027/1',
-            subtitle: 'Abertura da grade horária e pré-matrícula',
-            dateInfo: 'Início em 01/12/2026',
-            barColor: const Color(0xFFE5E5E5),
-            onTap: () => onNavigateTarget?.call('turmas'),
-          ),
+          if (events.isEmpty)
+            const Text('Nenhum prazo cadastrado.')
+          else
+            for (final event in events.take(3)) ...[
+              _buildPrazoItem(
+                title: event.title,
+                subtitle: event.description,
+                dateInfo: _formatDate(event.startsAt),
+                barColor: const Color(0xFF1A1A1A),
+                onTap: () => onNavigateTarget?.call('calendario'),
+              ),
+              const SizedBox(height: 24),
+            ],
         ],
       ),
     );
+  }
+
+  String _formatDate(String value) {
+    final date = DateTime.tryParse(value)?.toLocal();
+    if (date == null) return value;
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _buildPrazoItem({

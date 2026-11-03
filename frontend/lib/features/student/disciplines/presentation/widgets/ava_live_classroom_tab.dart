@@ -161,10 +161,7 @@ class AvaLiveClassroomTab extends StatelessWidget {
                           const SizedBox(height: 12),
                           const Text(
                             'A transmissão e os materiais da aula serão exibidos aqui quando disponibilizados.',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                           const SizedBox(height: 8),
                           Text(

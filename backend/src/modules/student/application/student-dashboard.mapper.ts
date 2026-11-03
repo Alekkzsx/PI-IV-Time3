@@ -161,6 +161,7 @@ export function mapStudentDeliveries(
       modality: String(assignment.modality ?? "Individual"),
       allowLate: assignment.allowLateWithPenalty !== false,
       protocol: submission?.protocolCode ?? null,
+      submissionId: submission?._id ? String(submission._id) : null,
       submittedAt: submission?.submittedAt ? formatShortDate(new Date(submission.submittedAt)) : null,
       fileName: submission?.fileName ?? null,
       fileSize: submission?.fileSize ?? null,

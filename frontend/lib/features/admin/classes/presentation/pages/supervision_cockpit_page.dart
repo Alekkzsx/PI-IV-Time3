@@ -1,5 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -8,6 +10,7 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 
 /// Console Avançado de Supervisão Institucional da Turma na Visão Administrativa.
 /// Permite auditar notas em tempo real, configurar regimes de avaliação, reatribuir
@@ -60,6 +63,39 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   void _onUpdate() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _exportGrades() async {
+    final rows = [
+      ['RA', 'Discente', 'N1', 'N2', 'Média', 'Faltas'],
+      ..._controller.supervisedGrades.map(
+        (grade) => [
+          grade.ra,
+          grade.studentName,
+          grade.n1.toStringAsFixed(2),
+          grade.n2.toStringAsFixed(2),
+          grade.finalAverage.toStringAsFixed(2),
+          grade.absences.toString(),
+        ],
+      ),
+    ];
+    final csv = rows
+        .map((row) => row.map((field) => '"${field.replaceAll('"', '""')}"').join(';'))
+        .join('\n');
+    final saved = await PlatformFileHelper.saveOrDownloadFile(
+      fileName: 'pauta-${widget.classModel.code}.csv',
+      bytes: utf8.encode(csv),
+      mimeType: 'text/csv',
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            saved == null ? 'Não foi possível exportar a pauta.' : 'Pauta exportada: $saved',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -773,13 +809,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Ata consolidada exportada com carimbo digital.',
-                    ),
-                  ),
-                ),
+                onPressed: _exportGrades,
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Exportar Ata de Notas'),
               ),
@@ -945,14 +975,14 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          const ListTile(
+          ListTile(
             leading: Icon(Icons.history, color: InstColors.ink),
             title: Text(
-              'Última alteração de nota registrada por Profa. Dra. Helena Bittencourt',
+              '${_controller.supervisedGrades.length} registros de pauta carregados do servidor.',
             ),
-            subtitle: Text(
-              '20/10/2026 às 14:22 • IP: 177.136.24.10 • Chancela Digital: #AGR-CHANC-9981',
-            ),
+            subtitle: _controller.remoteError == null
+                ? null
+                : Text(_controller.remoteError!),
           ),
         ],
       ),
@@ -1084,7 +1114,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           const Divider(height: 1),
           const SizedBox(height: 8),
           Text(
-            'Cadastros de demonstração vinculados: ${enrolledStudents.length}',
+            'Estudantes matriculados: ${enrolledStudents.length}',
             style: TextStyle(fontSize: 12, color: InstColors.muted),
           ),
           const SizedBox(height: 8),

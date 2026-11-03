@@ -47,7 +47,7 @@ export class StudentDeliveryService {
       throw new AuthError(409, "deadline_closed", "O prazo desta atividade está encerrado e não aceita atrasos.");
     }
 
-    await this.database.collection("academic_submissions").updateOne(
+    const submissionWrite = await this.database.collection("academic_submissions").updateOne(
       { assignmentId, studentId: String(studentId) },
       {
         $set: {
@@ -71,6 +71,16 @@ export class StudentDeliveryService {
       },
       { upsert: true },
     );
+    const submissionId = submissionWrite.upsertedId
+      ? String(submissionWrite.upsertedId)
+      : String(
+          (
+            await this.database.collection("academic_submissions").findOne(
+              { assignmentId, studentId: String(studentId) },
+              { projection: { _id: 1 } },
+            )
+          )?._id ?? "",
+        );
     await this.database.collection("admin_audit_logs").insertOne({
       actorId: String(studentId),
       actorName: user.displayName,
@@ -81,6 +91,7 @@ export class StudentDeliveryService {
       createdAt: now,
     });
     return {
+      submissionId,
       protocolCode,
       sha256,
       submittedAt: formatShortDate(now),

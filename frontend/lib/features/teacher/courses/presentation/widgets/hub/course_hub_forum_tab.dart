@@ -1,12 +1,18 @@
 ﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 
 /// Aba de Fórum de Discussões & Dúvidas Técnicas do curso no Portal Docente.
 class CourseHubForumTab extends StatelessWidget {
+  final DocenteController controller;
   final VoidCallback? onNewTopic;
 
-  const CourseHubForumTab({super.key, this.onNewTopic});
+  const CourseHubForumTab({
+    super.key,
+    required this.controller,
+    this.onNewTopic,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,17 +41,7 @@ class CourseHubForumTab extends StatelessWidget {
               ],
             ),
             ElevatedButton.icon(
-              onPressed: () {
-                if (onNewTopic != null) {
-                  onNewTopic!();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Abrindo formulário de novo tópico...'),
-                    ),
-                  );
-                }
-              },
+              onPressed: onNewTopic,
               icon: const Icon(
                 Icons.add_comment_outlined,
                 size: 14,
@@ -71,26 +67,21 @@ class CourseHubForumTab extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        _buildForumThreadCard(
-          context: context,
-          title: 'Dúvidas sobre o Diagrama de Sequência (Sprint 1)',
-          author: 'Mariana Rios Costa',
-          details: '14 respostas • Última atividade há 2h',
-        ),
-        const SizedBox(height: 12),
-        _buildForumThreadCard(
-          context: context,
-          title: 'Sugestões de ferramentas CASE open-source',
-          author: 'Profa. Dra. Helena Bittencourt',
-          details: '8 respostas • Fixado pelo professor',
-        ),
-        const SizedBox(height: 12),
-        _buildForumThreadCard(
-          context: context,
-          title: 'Orientações para a Avaliação Substitutiva N1',
-          author: 'Carlos Eduardo Mendes (Secretaria)',
-          details: '3 respostas • Comunicado Oficial',
-        ),
+        if (controller.currentForumTopics.isEmpty)
+          const Text('Ainda não há tópicos neste fórum.')
+        else
+          for (final topic in controller.currentForumTopics) ...[
+            _buildForumThreadCard(
+              context: context,
+              title: topic['title']?.toString() ?? 'Tópico',
+              author: topic['authorName']?.toString() ??
+                  topic['createdByName']?.toString() ??
+                  'Participante',
+              details:
+                  '${topic['replyCount'] ?? (topic['replies'] is List ? (topic['replies'] as List).length : 0)} respostas',
+            ),
+            const SizedBox(height: 12),
+          ],
       ],
     );
   }
@@ -139,11 +130,7 @@ class CourseHubForumTab extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           OutlinedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Acessando tópico: $title')),
-              );
-            },
+            onPressed: null,
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFFE4E4E7)),
               shape: RoundedRectangleBorder(

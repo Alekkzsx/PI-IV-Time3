@@ -73,19 +73,10 @@ class _DocenteRetificacaoDialogState extends State<DocenteRetificacaoDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedStudent = widget.gradebook.isNotEmpty
-        ? widget.gradebook.first
-        : const StudentGrade(
-            studentId: 'st-1',
-            ra: '2024.1.00892',
-            studentName: 'Gabriel Soares de Oliveira',
-            assignmentsScore: 9.0,
-            p1Score: 8.5,
-            projectsScore: 9.5,
-            p2Score: 9.0,
-            attendanceRate: 96.0,
-          );
-    _novaNotaController.text = _getCurrentScore().toStringAsFixed(1);
+    if (widget.gradebook.isNotEmpty) {
+      _selectedStudent = widget.gradebook.first;
+      _novaNotaController.text = _getCurrentScore().toStringAsFixed(1);
+    }
   }
 
   @override
@@ -112,6 +103,18 @@ class _DocenteRetificacaoDialogState extends State<DocenteRetificacaoDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.gradebook.isEmpty) {
+      return AlertDialog(
+        title: const Text('Solicitar retificação'),
+        content: const Text('Não há notas disponíveis para retificação.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      );
+    }
     final currentScore = _getCurrentScore();
 
     return Dialog(

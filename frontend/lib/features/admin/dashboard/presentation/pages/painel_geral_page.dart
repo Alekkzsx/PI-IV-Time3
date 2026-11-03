@@ -187,7 +187,7 @@ class PainelGeralPage extends StatelessWidget {
               ),
             ),
             Text(
-              'Gestão Integrada do Campus 2026/2',
+              'Gestão acadêmica integrada',
               style: jakarta(
                 size: 16.5,
                 weight: FontWeight.w600,
@@ -242,43 +242,35 @@ class PainelGeralPage extends StatelessWidget {
     final cards = [
       InstitutionalKpiCard(
         title: 'DISCENTES ATIVOS',
-        value: portal.usesRemote
-            ? (portal.dashboard['students'] ?? 0).toString()
-            : '1.240',
+        value: (portal.dashboard['students'] ?? 0).toString(),
         subtitle: 'Matriculados',
-        footerLabel: 'Índice de Retenção',
-        footerValue: '96.4%',
-        progress: 0.964,
+        footerLabel: 'Indicador institucional',
+        footerValue: '—',
+        progress: 0,
       ),
       InstitutionalKpiCard(
         title: 'CORPO DOCENTE',
-        value: portal.usesRemote
-            ? (portal.dashboard['professors'] ?? 0).toString()
-            : '86',
+        value: (portal.dashboard['professors'] ?? 0).toString(),
         subtitle: 'Professores',
-        footerLabel: 'Titulação Doutor/Mestre',
-        footerValue: '92.0%',
-        progress: 0.920,
+        footerLabel: 'Indicador institucional',
+        footerValue: '—',
+        progress: 0,
       ),
       InstitutionalKpiCard(
         title: 'TURMAS EM ANDAMENTO',
-        value: portal.usesRemote
-            ? (portal.dashboard['classes'] ?? 0).toString()
-            : '48',
-        subtitle: 'no Semestre 2026/2',
-        footerLabel: 'Alocação de Salas',
-        footerValue: '100% Homologado',
-        progress: 1.0,
+        value: (portal.dashboard['classes'] ?? 0).toString(),
+        subtitle: 'Turmas registradas',
+        footerLabel: 'Indicador institucional',
+        footerValue: '—',
+        progress: 0,
       ),
       InstitutionalKpiCard(
         title: 'PROTOCOLOS DE SECRETARIA',
-        value: portal.usesRemote
-            ? (portal.dashboard['pendingProtocols'] ?? 0).toString()
-            : '07',
+        value: (portal.dashboard['pendingProtocols'] ?? 0).toString(),
         subtitle: 'Aguardando Parecer',
-        footerLabel: 'Tempo Médio de Resposta',
-        footerValue: '24 horas',
-        progress: 0.70,
+        footerLabel: 'Acompanhamento',
+        footerValue: 'Secretaria',
+        progress: 0,
       ),
     ];
 
