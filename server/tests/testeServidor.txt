@@ -1,18 +1,22 @@
 ====================================================================
-TESTES DA API NATIVA JAVA (MODULO ACADEMICO & VIDEOCHAMADA)
+TESTES DA API NATIVA JAVA (MODULO ACADEMICO, SESSAO JWT & VIDEOCHAMADA)
 ====================================================================
 
-Como compilar e executar o servidor:
+Como executar a suite automatizada de testes nativos (sem bibliotecas):
+  1. No Windows:
+     server\run-tests.bat
+
+Como compilar e executar o servidor HTTP/WebSocket:
   1. No Windows, basta executar:
      server\run-server.bat
 
   2. Ou manualmente no terminal:
      cd server
-     javac -encoding UTF-8 -d bin src\Main.java src\core\*.java src\academic\*.java src\auth\*.java src\videocall\*.java
-     java -cp bin Main
+     javac --release 8 -encoding UTF-8 -d bin src\Main.java src\core\*.java src\academic\*.java src\auth\*.java src\utils\*.java src\websocket\*.java src\videocall\*.java src\videocall\hub\*.java
+     java -Dfile.encoding=UTF-8 -cp bin Main
 
 --------------------------------------------------------------------
-A. MODULO ACADEMICO (ENDPOINTS EXISTENTES)
+A. MODULO ACADEMICO
 --------------------------------------------------------------------
 
 1. Teste de Extracao de Tipos Primitivos:
@@ -28,41 +32,51 @@ curl.exe -X POST http://localhost:8080/api/tarefas/calcular-nota -d "diasAtraso=
 curl.exe -X POST http://localhost:8080/api/notas/boletim -d "p1=8.0&peso1=0.4&p2=6.0&peso2=0.4&trabalho=10.0&pesoTrabalho=0.2"
 
 --------------------------------------------------------------------
-B. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
+B. MODULO DE SESSAO JWT NATIVA (INTEGRADO AO LOGIN DO BACKEND)
 --------------------------------------------------------------------
 
-5. Listagem de Salas de Videochamada:
+5. Verificacao sem token Bearer (Bloqueio 401):
+curl.exe http://localhost:8080/api/auth/session
+
+6. Verificacao com token Bearer emitido no login (POST http://localhost:3001/api/auth/login):
+curl.exe -H "Authorization: Bearer SEU_TOKEN_JWT" http://localhost:8080/api/auth/session
+
+--------------------------------------------------------------------
+C. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
+--------------------------------------------------------------------
+
+7. Listagem de Salas de Videochamada:
 curl.exe http://localhost:8080/api/videocall/rooms
 
-6. Tentativa de Discente Abrir Sala de Turma Fechada (Bloqueio de Seguranca 403):
+8. Tentativa de Discente Abrir Sala de Turma Fechada (Bloqueio de Seguranca 403):
 curl.exe -X POST http://localhost:8080/api/videocall/open -d "roomCode=APS-II&role=aluno&name=Alex+Gabriel"
 
-7. Docente Abrindo a Sala de Aula Oficial da Turma (Sucesso 200):
-curl.exe -X POST http://localhost:8080/api/videocall/open -d "roomCode=APS-II&role=docente&name=Profa.+Helena+Bittencourt"
+9. Docente Abrindo a Sala de Aula Oficial da Turma (Sucesso 200 - aceita form-urlencoded ou JSON):
+curl.exe -X POST http://localhost:8080/api/videocall/open -H "Content-Type: application/json" -d "{\"roomCode\":\"APS-II\",\"role\":\"docente\",\"name\":\"Profa. Helena Bittencourt\"}"
 
-8. Discente Ingressando na Videochamada Apos Abertura:
+10. Discente Ingressando na Videochamada Apos Abertura:
 curl.exe -X POST http://localhost:8080/api/videocall/join -d "roomCode=APS-II&ra=24802449&name=Alex+Gabriel+Soares+Sousa&role=aluno"
 
-9. Levantando a Mao na Fila de Duvidas da Aula:
+11. Levantando a Mao na Fila de Duvidas da Aula:
 curl.exe -X POST http://localhost:8080/api/videocall/hand-raise -d "roomCode=APS-II&ra=24802449&action=raise"
 
-10. Consultando Fila Ordenada de Duvidas da Turma:
+12. Consultando Fila Ordenada de Duvidas da Turma:
 curl.exe "http://localhost:8080/api/videocall/hand-raise?roomCode=APS-II"
 
-11. Enviando Mensagem no Chat Oficial da Aula:
+13. Enviando Mensagem no Chat Oficial da Aula:
 curl.exe -X POST http://localhost:8080/api/videocall/chat -d "roomCode=APS-II&senderRa=24802449&senderName=Alex+Gabriel&senderRole=aluno&message=Professora,+o+diagrama+de+classes+foi+atualizado+com+sucesso!"
 
-12. Consultando Historico de Mensagens do Chat da Aula:
+14. Consultando Historico de Mensagens do Chat da Aula:
 curl.exe "http://localhost:8080/api/videocall/chat?roomCode=APS-II"
 
-13. Despachando Mensagem de Sinalizacao WebRTC (Offer / Answer / ICE Candidate):
+15. Despachando Mensagem de Sinalizacao WebRTC (Offer / Answer / ICE Candidate):
 curl.exe -X POST http://localhost:8080/api/videocall/signal -d "roomCode=APS-II&fromRa=24802449&toRa=DOCENTE-01&type=offer&data=sdp_payload_exemplo"
 
-14. Consultando Sinalizacoes Pendentes para o Discente:
+16. Consultando Sinalizacoes Pendentes para o Discente:
 curl.exe "http://localhost:8080/api/videocall/signal?roomCode=APS-II&ra=24802449"
 
-15. Relatorio de Frequencia e Assiduidade da Videochamada (Integrado ao Calculo de Presenca):
+17. Relatorio de Frequencia e Assiduidade da Videochamada (Integrado ao Calculo de Presenca):
 curl.exe "http://localhost:8080/api/videocall/attendance?roomCode=APS-II"
 
-16. Docente Encerrando a Chamada da Turma:
+18. Docente Encerrando a Chamada da Turma:
 curl.exe -X POST http://localhost:8080/api/videocall/close -d "roomCode=APS-II&role=docente"
