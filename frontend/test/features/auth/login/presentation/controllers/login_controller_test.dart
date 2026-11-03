@@ -69,7 +69,10 @@ void main() {
     AppUserSession.instance.signOut();
     repository = FakeAuthRepository();
     useCase = LoginUseCase(repository);
-    controller = LoginController(loginUseCase: useCase);
+    controller = LoginController(
+      loginUseCase: useCase,
+      refreshProfile: () async => false,
+    );
   });
 
   test('Estado inicial deve ser sem erros e sem loading', () {

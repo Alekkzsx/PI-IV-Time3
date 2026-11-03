@@ -55,6 +55,8 @@ class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
   List<AcademicEvent> events = DocenteFixtures.initialEvents;
   List<AcademicNotice> notices = DocenteFixtures.initialNotices;
   DocenteProfile profile = DocenteFixtures.initialProfile;
+  Map<String, Object?>? lastCreatedAssignment;
+  String? lastEvaluatedSubmissionId;
 
   TeacherDashboardSnapshot _snapshot() => TeacherDashboardSnapshot(
     profile: profile,
@@ -167,6 +169,27 @@ class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
       ),
       ...events,
     ];
+    return {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> createAssignment({
+    required String classCode,
+    required Map<String, Object?> assignment,
+  }) async {
+    lastCreatedAssignment = assignment;
+    return {'id': 'fixture-assignment-${assignments.length + 1}'};
+  }
+
+  @override
+  Future<Map<String, dynamic>> evaluateSubmission({
+    required String assignmentId,
+    required String studentId,
+    required double calculatedGrade,
+    required String feedback,
+    required List<Map<String, Object?>> evaluatedCriteria,
+  }) async {
+    lastEvaluatedSubmissionId = assignmentId;
     return {};
   }
 

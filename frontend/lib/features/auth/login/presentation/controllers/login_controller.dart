@@ -14,6 +14,7 @@ import '../../domain/usecases/login_usecase.dart';
 class LoginController extends ChangeNotifier {
   /// Caso de uso que encapsula as regras de validação e autenticação do login.
   final LoginUseCase loginUseCase;
+  final Future<bool> Function() _refreshProfile;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -27,7 +28,11 @@ class LoginController extends ChangeNotifier {
   String? _pendingAccessToken;
 
   /// Cria uma nova instância de [LoginController] injetando [loginUseCase].
-  LoginController({required this.loginUseCase});
+  LoginController({
+    required this.loginUseCase,
+    Future<bool> Function()? refreshProfile,
+  }) : _refreshProfile =
+           refreshProfile ?? AppUserSession.instance.refreshProfileFromServer;
 
   /// Indica se uma operação de autenticação está em andamento.
   bool get isLoading => _isLoading;
@@ -103,7 +108,7 @@ class LoginController extends ChangeNotifier {
         profile: profile,
         accessToken: accessToken,
       );
-      await AppUserSession.instance.refreshProfileFromServer();
+      await _refreshProfile();
       _isSuccess = true;
       _isLoading = false;
       notifyListeners();
@@ -158,7 +163,7 @@ class LoginController extends ChangeNotifier {
           profile: _pendingProfile!,
           accessToken: token,
         );
-        await AppUserSession.instance.refreshProfileFromServer();
+        await _refreshProfile();
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;
@@ -188,7 +193,7 @@ class LoginController extends ChangeNotifier {
           profile: profile,
           accessToken: accessToken,
         );
-        await AppUserSession.instance.refreshProfileFromServer();
+        await _refreshProfile();
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;

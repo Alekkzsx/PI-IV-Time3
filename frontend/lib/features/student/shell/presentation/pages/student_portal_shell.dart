@@ -189,7 +189,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                   horizontalPadding: isDesktop ? 40 : 20,
                   actions: [
                     if (_currentNavItem == StudentNavItem.painelGeral &&
-                        isDesktop) ...[
+                        screenWidth >= 1024) ...[
                       OutlinedButton.icon(
                         key: const Key('btn_toggle_dashboard_view'),
                         onPressed: () {

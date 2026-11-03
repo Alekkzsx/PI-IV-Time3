@@ -46,13 +46,20 @@ class StudentPortalController extends ChangeNotifier {
   Future<void> loadRemote({bool force = false}) async {
     final token = AppUserSession.instance.accessToken;
     if (token == null || token.isEmpty) {
+      final hadRemoteState =
+          remoteDashboard != null ||
+          _loadedForToken != null ||
+          disciplines.isNotEmpty ||
+          deliveries.isNotEmpty ||
+          events.isNotEmpty ||
+          remoteError != 'Entre novamente para carregar seus dados acadêmicos.';
       remoteDashboard = null;
       _loadedForToken = null;
       remoteError = 'Entre novamente para carregar seus dados acadêmicos.';
       disciplines = [];
       deliveries = [];
       events = [];
-      notifyListeners();
+      if (hadRemoteState) notifyListeners();
       return;
     }
     if (isLoadingRemote || (!force && _loadedForToken == token)) return;

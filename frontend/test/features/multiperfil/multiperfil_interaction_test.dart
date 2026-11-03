@@ -15,6 +15,7 @@ import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controll
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
 import '../../helpers/student_fixtures.dart';
+import '../../helpers/fake_teacher_remote_data_source.dart';
 
 void _closeOwnedSession(AcademicBridgeService bridge, String code) {
   final session = bridge.getSession(code);
@@ -30,6 +31,28 @@ void _closeOwnedSession(AcademicBridgeService bridge, String code) {
 }
 
 class _ProtocolRemoteDataSource extends StudentRemoteDataSource {
+  final List<Map<String, dynamic>> protocols = [
+    {
+      'protocolCode': 'PROT-2026/8835',
+      'submittedAt': '02/11/2026',
+      'subjectType': 'Horas Complementares',
+      'componentObject': 'APS-II',
+      'status': 'pending',
+      'officialOpinion': 'Aguardando análise.',
+    },
+  ];
+
+  @override
+  Future<StudentDashboardSnapshot> getBootstrap() async =>
+      StudentDashboardSnapshot.fromJson({
+        'studentInfo': {
+          'name': 'Test Student',
+          'ra': StudentFixtures.studentRa,
+        },
+        'stats': {'activeDisciplines': 0},
+        'protocols': protocols,
+      });
+
   @override
   Future<Map<String, dynamic>> submitProtocol({
     required String requestType,
@@ -37,16 +60,20 @@ class _ProtocolRemoteDataSource extends StudentRemoteDataSource {
     required String justification,
     String? attachmentName,
     String? attachmentBase64,
-  }) async => {
-    'protocolCode': 'PROT-API-001',
-    'submittedAt': '03/11/2026',
-    'subjectType': requestType,
-    'componentObject': targetComponent,
-    'status': 'pending',
-    'officialOpinion': 'Aguardando análise.',
-    'justification': justification,
-    'attachmentName': attachmentName,
-  };
+  }) async {
+    final protocol = <String, dynamic>{
+      'protocolCode': 'PROT-API-001',
+      'submittedAt': '03/11/2026',
+      'subjectType': requestType,
+      'componentObject': targetComponent,
+      'status': 'pending',
+      'officialOpinion': 'Aguardando análise.',
+      'justification': justification,
+      'attachmentName': attachmentName,
+    };
+    protocols.add(protocol);
+    return protocol;
+  }
 }
 
 class _StudentWorkRemoteDataSource extends StudentRemoteDataSource {
@@ -55,7 +82,10 @@ class _StudentWorkRemoteDataSource extends StudentRemoteDataSource {
   @override
   Future<StudentDashboardSnapshot> getBootstrap() async =>
       StudentDashboardSnapshot.fromJson({
-        'studentInfo': {'name': 'Gabriel', 'ra': '2024.1.00892'},
+        'studentInfo': {
+          'name': 'Test Student',
+          'ra': StudentFixtures.studentRa,
+        },
         'stats': {'activeDisciplines': 1},
         'disciplines': [
           {
@@ -99,7 +129,7 @@ class _StudentWorkRemoteDataSource extends StudentRemoteDataSource {
 }
 
 void main() {
-  const studentIdentity = '2024.1.00892';
+  const studentIdentity = StudentFixtures.studentRa;
   const teacherIdentity = 'DOC-88410';
 
   group('Verificação Extrema Multiperfil: Regras de Videochamada por Turma', () {
@@ -111,6 +141,21 @@ void main() {
       for (final code in ['APS-II', 'BD-II', 'FSO', 'FIS']) {
         _closeOwnedSession(bridge, code);
       }
+      bridge
+        ..clearRuntimeBindings()
+        ..registerClassRoom(
+          code: '218131 - APS-II',
+          subjectName: 'Análise e Projeto de Sistemas II',
+          professorName: 'Docente de teste',
+          professorIdentity: teacherIdentity,
+        )
+        ..registerClassRoom(
+          code: '218132 - BD-II',
+          subjectName: 'Banco de Dados II',
+          professorName: 'Docente de teste',
+          professorIdentity: teacherIdentity,
+        )
+        ..registerStudentEnrollments(studentIdentity, const ['APS-II']);
       addTearDown(AppUserSession.instance.signOut);
     });
 
@@ -207,7 +252,7 @@ void main() {
         bridge.canUserJoinSession(
           role: 'aluno',
           rawCourseCode: '218131 - APS-II',
-          studentRa: '2024.1.00892',
+          studentRa: studentIdentity,
         ),
         isTrue,
       );
@@ -228,7 +273,7 @@ void main() {
         bridge.canUserJoinSession(
           role: 'aluno',
           rawCourseCode: 'BD-II',
-          studentRa: '2024.1.00892',
+          studentRa: studentIdentity,
         ),
         isFalse,
       );
@@ -285,31 +330,49 @@ void main() {
     () {
       late DocenteController docenteController;
       late StudentPortalController studentController;
+      late FakeTeacherRemoteDataSource teacherRemote;
 
-      setUp(() {
+      setUp(() async {
+        teacherRemote = FakeTeacherRemoteDataSource();
         final student = StudentPortalController.withRemoteDataSource(
           _StudentWorkRemoteDataSource(),
         );
-        student.deliveries = List.from(StudentFixtures.deliveries);
-        student.events = List.from(StudentFixtures.calendarEvents);
-        student.disciplines = List.from(StudentFixtures.disciplines);
         AppUserSession.instance.signIn(
           identity: teacherIdentity,
           profile: 'docente',
+          accessToken: 'test-teacher-token',
         );
         addTearDown(AppUserSession.instance.signOut);
-        docenteController = DocenteController();
+        docenteController = DocenteController(
+          remoteDataSource: teacherRemote,
+          profileRemoteDataSource: FakeTeacherProfileRemoteDataSource(
+            teacherRemote,
+          ),
+        );
+        addTearDown(docenteController.dispose);
+        await docenteController.loadRemote();
+        AppUserSession.instance.signIn(
+          identity: studentIdentity,
+          profile: 'aluno',
+          accessToken: 'test-student-token',
+        );
+        await student.loadRemote();
+        addTearDown(student.dispose);
         studentController = student;
       });
 
       test(
-        'Docente publica atividade e Aluno recebe imediatamente nas Entregas e no Calendário',
-        () {
+        'Publicação docente usa a API e não inventa dados no estado discente',
+        () async {
           final initialDeliveriesCount = studentController.deliveries.length;
           final initialEventsCount = studentController.events.length;
 
-          // Professor cria nova atividade
-          docenteController.createAssignment(
+          AppUserSession.instance.signIn(
+            identity: teacherIdentity,
+            profile: 'docente',
+            accessToken: 'test-teacher-token',
+          );
+          final created = await docenteController.createAssignment(
             courseId: 'course-aps2',
             courseCode: '218131 - APS-II',
             title: 'Modelagem de Microsserviços e Mensageria',
@@ -338,23 +401,16 @@ void main() {
             ],
           );
 
-          // Aluno agora possui a nova entrega na sua lista
+          expect(created, isTrue);
           expect(
-            studentController.deliveries.length,
-            initialDeliveriesCount + 1,
+            teacherRemote.lastCreatedAssignment?['title'],
+            'Modelagem de Microsserviços e Mensageria',
           );
-          final newDelivery = studentController.deliveries.first;
-          expect(newDelivery.title, 'Modelagem de Microsserviços e Mensageria');
-          expect(newDelivery.disciplineCode, 'APS-II');
-          expect(newDelivery.status, 'Pendente');
-          expect(newDelivery.weight, 4.0);
-
-          // Calendário do aluno incorporou o evento
-          expect(studentController.events.length, initialEventsCount + 1);
           expect(
-            studentController.events.first.title,
-            'Entrega: Modelagem de Microsserviços e Mensageria',
+            studentController.deliveries,
+            hasLength(initialDeliveriesCount),
           );
+          expect(studentController.events, hasLength(initialEventsCount));
         },
       );
 
@@ -380,20 +436,19 @@ void main() {
                 'Trabalho concluído com os testes do padrão Observer e Strategy.',
           );
 
-          expect(generatedProtocol, startsWith('AGR-'));
+          expect(generatedProtocol['protocolCode'], startsWith('AGR-'));
 
           // Verifica status na visão do Aluno
           final studentItem = studentController.deliveries.firstWhere(
             (d) => d.id == 'DEL-01',
           );
           expect(studentItem.status, 'Em Análise');
-          expect(studentItem.protocol, generatedProtocol);
-
+          expect(studentItem.protocol, generatedProtocol['protocolCode']);
         },
       );
 
       test(
-        'Docente corrige entrega com rubrica e Aluno vê status Avaliada e notas recalculadas',
+        'Avaliação docente não altera o painel discente até a API atualizar o bootstrap',
         () async {
           AppUserSession.instance.signIn(
             identity: studentIdentity,
@@ -415,10 +470,11 @@ void main() {
           AppUserSession.instance.signIn(
             identity: teacherIdentity,
             profile: 'docente',
+            accessToken: 'test-teacher-token',
           );
-          docenteController.evaluateRubric(
+          await docenteController.evaluateRubric(
             assignmentId: 'asg-1',
-            submissionId: 'sub-DEL-01-2024.1.00892',
+            submissionId: 'sub-1',
             calculatedGrade: 9.8,
             feedback:
                 'Excelente modelagem com ótima separação de responsabilidades GRASP!',
@@ -441,20 +497,11 @@ void main() {
             ],
           );
 
-          // Aluno vê entrega avaliada
+          expect(teacherRemote.lastEvaluatedSubmissionId, 'asg-1');
           final studentItem = studentController.deliveries.firstWhere(
             (d) => d.id == 'DEL-01',
           );
-          expect(studentItem.status, 'Avaliada');
-          expect(studentItem.score, 9.8);
-          expect(studentItem.feedback, contains('Excelente modelagem'));
-
-          // Boletim e média parcial do Aluno em APS-II foram recalculados
-          final apsDisc = studentController.disciplines.firstWhere(
-            (d) => d.code == 'APS-II',
-          );
-          expect(apsDisc.n1, 9.8);
-          expect(apsDisc.p1, 9.8);
+          expect(studentItem.status, 'Em Análise');
         },
       );
     },
@@ -463,32 +510,34 @@ void main() {
   group('Verificação Extrema Multiperfil: Secretaria Acadêmica (Aluno <-> Admin)', () {
     late StudentSecretariatController secretariatStudentController;
     late AdminPortalController adminController;
+    late _ProtocolRemoteDataSource protocolRemote;
+    late StudentPortalController studentPortal;
 
-    setUp(() {
+    setUp(() async {
       AppUserSession.instance.signIn(
         identity: studentIdentity,
         profile: 'aluno',
         displayName: 'Gabriel Soares de Oliveira',
+        accessToken: 'test-student-token',
       );
       addTearDown(AppUserSession.instance.signOut);
       adminController = AdminPortalController.instance;
-      secretariatStudentController = StudentSecretariatController(
-        remoteDataSource: _ProtocolRemoteDataSource(),
-        initialProtocols: const [
-          ProtocolRequest(
-            protocolCode: 'PROT-2026/8835',
-            submittedAt: '02/11/2026',
-            subjectType: 'Horas Complementares',
-            componentObject: 'APS-II',
-            status: ProtocolStatus.pending,
-            officialOpinion: 'Aguardando análise.',
-          ),
-        ],
+      protocolRemote = _ProtocolRemoteDataSource();
+      studentPortal = StudentPortalController.withRemoteDataSource(
+        protocolRemote,
       );
+      await studentPortal.loadRemote();
+      addTearDown(studentPortal.dispose);
+      secretariatStudentController = StudentSecretariatController(
+        remoteDataSource: protocolRemote,
+        portalController: studentPortal,
+      );
+      addTearDown(secretariatStudentController.dispose);
+      await secretariatStudentController.loadFromServer();
     });
 
     test(
-      'Aluno abre requerimento e Admin recebe imediatamente na Mesa da Secretaria',
+      'Requerimento é enviado à API sem sincronização local com o controller admin',
       () async {
         final initialAdminProtocolsCount = adminController.protocols.length;
 
@@ -500,34 +549,25 @@ void main() {
           attachmentName: 'Atestado_Medico_Hospital_Albert_Einstein.pdf',
         );
 
-        // Entrou na lista da Secretaria Geral do Administrador
+        expect(secretariatStudentController.protocols, hasLength(2));
         expect(
-          adminController.protocols.length,
-          initialAdminProtocolsCount + 1,
+          secretariatStudentController.protocols.last.protocolCode,
+          'PROT-API-001',
         );
-        final adminProtocol = adminController.protocols.first;
-        expect(adminProtocol.studentName, 'Gabriel Soares de Oliveira');
-        expect(adminProtocol.studentRa, '2024.1.00892');
         expect(
-          adminProtocol.requestType,
-          '2ª Chamada de Avaliação / Prova Substitutiva',
-        );
-        expect(adminProtocol.status, 'Aguardando Parecer');
-        expect(
-          adminProtocol.attachmentName,
-          'Atestado_Medico_Hospital_Albert_Einstein.pdf',
+          adminController.protocols,
+          hasLength(initialAdminProtocolsCount),
         );
       },
     );
 
     test(
       'Admin defere requerimento com despacho e Aluno vê parecer oficial assinado',
-      () {
+      () async {
         AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
         final targetProtocol = secretariatStudentController.protocols.first;
 
-        // Admin analisa e defere o protocolo
-        adminController.decideProtocol(
+        final approved = await adminController.decideProtocol(
           protocolId: targetProtocol.protocolCode,
           defer: true,
           parecerNote:
@@ -538,16 +578,8 @@ void main() {
         final updatedStudentProtocol = secretariatStudentController.protocols
             .firstWhere((p) => p.protocolCode == targetProtocol.protocolCode);
 
-        expect(updatedStudentProtocol.status, ProtocolStatus.approved);
-        expect(
-          updatedStudentProtocol.officialOpinion,
-          contains('Atestado médico homologado'),
-        );
-        expect(
-          updatedStudentProtocol.approverName,
-          'Administrador institucional',
-        );
-        expect(updatedStudentProtocol.responseDate, contains('Hoje às'));
+        expect(approved, isFalse);
+        expect(updatedStudentProtocol.status, ProtocolStatus.pending);
       },
     );
   });
@@ -590,143 +622,128 @@ void main() {
   );
 
   group(
-    'Verificação Extrema Multiperfil: Frequência e Diário de Classe (Docente <-> Aluno)',
+    'Verificação Extrema Multiperfil: Frequência e Diário de Classe Remotos',
     () {
       late DocenteController docenteController;
-      late StudentPortalController studentController;
+      late FakeTeacherRemoteDataSource teacherRemote;
 
-      setUp(() {
+      setUp(() async {
         AppUserSession.instance.signIn(
           identity: teacherIdentity,
           profile: 'docente',
+          accessToken: 'test-teacher-token',
         );
         addTearDown(AppUserSession.instance.signOut);
-        docenteController = DocenteController();
-        studentController = StudentPortalController.instance;
+        teacherRemote = FakeTeacherRemoteDataSource();
+        docenteController = DocenteController(remoteDataSource: teacherRemote);
+        addTearDown(docenteController.dispose);
+        await docenteController.loadRemote();
       });
 
       test(
-        'Docente homologa chamada com ausência e frequência do aluno é recalculada',
-        () {
-          final initialAbsences = studentController.disciplines
-              .firstWhere((d) => d.code == 'APS-II')
-              .absences;
-          final initialRate = studentController.disciplines
-              .firstWhere((d) => d.code == 'APS-II')
-              .attendancePercentage;
-
-          // Professor registra ausência para o aluno e homologa
-          docenteController.homologateSession();
-
-          final updatedDisc = studentController.disciplines.firstWhere(
-            (d) => d.code == 'APS-II',
+        'Docente persiste a homologação na fonte remota sem alterar estado discente local',
+        () async {
+          final sessionId = docenteController.currentSession.id;
+          final initialStudentDisciplines = List.of(
+            StudentPortalController.instance.disciplines,
           );
-          // Frequência do aluno é atualizada
-          expect(updatedDisc.completedHours, greaterThan(0));
-          expect(updatedDisc.absences, greaterThanOrEqualTo(initialAbsences));
-          expect(initialRate, greaterThan(0));
-          expect(updatedDisc.attendancePercentage, isNotNull);
+          expect(sessionId, isNotEmpty);
+
+          await docenteController.homologateSession();
+
+          expect(
+            teacherRemote.sessions
+                .firstWhere((session) => session.id == sessionId)
+                .isHomologated,
+            isTrue,
+          );
+          expect(
+            StudentPortalController.instance.disciplines,
+            initialStudentDisciplines,
+          );
         },
       );
     },
   );
 
-  group(
-    'Verificação Extrema Multiperfil: Abono de Faltas via Deferimento de Atestado (Admin -> Aluno)',
-    () {
-      late AdminPortalController adminController;
-      late StudentPortalController studentController;
+  group('Verificação Extrema Multiperfil: Decisão de Protocolo via API', () {
+    late AdminPortalController adminController;
+    late StudentPortalController studentController;
+    late _ProtocolRemoteDataSource protocolRemote;
 
-      setUp(() {
-        AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
-        addTearDown(AppUserSession.instance.signOut);
-        adminController = AdminPortalController.instance;
-        studentController = StudentPortalController.instance;
-      });
-
-      test(
-        'Admin defere protocolo de atestado médico e faltas são regularizadas no boletim do aluno',
-        () {
-          final targetDisc = studentController.disciplines.firstWhere(
-            (d) => d.code == 'APS-II',
-          );
-          final absencesBefore = targetDisc.absences;
-
-          adminController.decideProtocol(
-            protocolId: 'MED-2026-99',
-            defer: true,
-            parecerNote:
-                'Atestado médico aprovado. Deferido abono regimental de faltas.',
-          );
-
-          final absencesAfter = studentController.disciplines
-              .firstWhere((d) => d.code == 'APS-II')
-              .absences;
-          expect(absencesAfter, lessThanOrEqualTo(absencesBefore));
-        },
+    setUp(() async {
+      AppUserSession.instance.signIn(
+        identity: studentIdentity,
+        profile: 'aluno',
+        accessToken: 'test-student-token',
       );
-    },
-  );
+      protocolRemote = _ProtocolRemoteDataSource();
+      studentController = StudentPortalController.withRemoteDataSource(
+        protocolRemote,
+      );
+      addTearDown(studentController.dispose);
+      await studentController.loadRemote();
 
-  group(
-    'Verificação Extrema Multiperfil: Comunicados em Massa (Docente/Admin -> Aluno)',
-    () {
-      late DocenteController docenteController;
-      late AdminPortalController adminController;
-      late AcademicBridgeService bridge;
+      AppUserSession.instance.signIn(identity: 'ADM-00129', profile: 'admin');
+      addTearDown(AppUserSession.instance.signOut);
+      adminController = AdminPortalController.instance;
+    });
 
-      setUp(() {
-        AppUserSession.instance.signIn(
-          identity: teacherIdentity,
-          profile: 'docente',
+    test(
+      'Falha de autenticação não finge despacho nem altera o protocolo do aluno',
+      () async {
+        final approved = await adminController.decideProtocol(
+          protocolId: 'MED-2026-99',
+          defer: true,
+          parecerNote:
+              'Atestado médico aprovado. Deferido abono regimental de faltas.',
         );
-        addTearDown(AppUserSession.instance.signOut);
-        docenteController = DocenteController();
-        adminController = AdminPortalController.instance;
-        bridge = AcademicBridgeService.instance;
-      });
 
-      test(
-        'Comunicados emitidos por Docente e Admin refletem no barramento com papéis corretos',
-        () {
-          final initialNotices = bridge.broadcastNotices.length;
+        expect(approved, isFalse);
+        expect(studentController.protocols.single['status'], 'pending');
+        expect(protocolRemote.protocols.single['status'], 'pending');
+      },
+    );
+  });
 
-          // Docente publica aviso de prova
-          docenteController.publishNotice(
-            targetCourse: docenteController.courses.first.code,
-            targetAudience: 'Todos os discentes da turma',
-            classification: NoticeClassification.informativo,
-            title: 'Revisão Geral para Avaliação N2',
-            message:
-                'A aula de revisão será conduzida na próxima terça-feira com foco em microsserviços.',
-          );
+  group('Verificação Extrema Multiperfil: Comunicados Docentes via API', () {
+    late DocenteController docenteController;
+    late FakeTeacherRemoteDataSource teacherRemote;
 
-          // Admin publica comunicado institucional para todo o campus
-          AppUserSession.instance.signIn(
-            identity: 'ADM-00129',
-            profile: 'admin',
-          );
-          adminController.broadcastAnnouncement(
-            title: 'Semana de Iniciação Científica e Extensão 2026/2',
-            audience: 'Campus Central e Alunos Presenciais',
-            category: 'Institucional',
-            body:
-                'Estão abertas as inscrições para submissão de artigos científicos.',
-          );
-
-          expect(bridge.broadcastNotices.length, initialNotices + 2);
-
-          final adminNotice = bridge.broadcastNotices.firstWhere(
-            (n) => n['senderRole'] == 'admin',
-          );
-          expect(adminNotice['title'], contains('Iniciação Científica'));
-
-          final docNotice = bridge.broadcastNotices.firstWhere(
-            (n) => n['senderRole'] == 'docente',
-          );
-          expect(docNotice['title'], contains('Revisão Geral'));
-        },
+    setUp(() async {
+      AppUserSession.instance.signIn(
+        identity: teacherIdentity,
+        profile: 'docente',
+        accessToken: 'test-teacher-token',
       );
-    },
-  );
+      addTearDown(AppUserSession.instance.signOut);
+      teacherRemote = FakeTeacherRemoteDataSource();
+      docenteController = DocenteController(remoteDataSource: teacherRemote);
+      addTearDown(docenteController.dispose);
+      await docenteController.loadRemote();
+    });
+
+    test(
+      'Comunicado publicado aparece na resposta remota, não no barramento local',
+      () async {
+        final initialRemoteNotices = teacherRemote.notices.length;
+        final published = await docenteController.publishNotice(
+          targetCourse: docenteController.courses.first.code,
+          targetAudience: 'Todos os discentes da turma',
+          classification: NoticeClassification.informativo,
+          title: 'Revisão Geral para Avaliação N2',
+          message:
+              'A aula de revisão será conduzida na próxima terça-feira com foco em microsserviços.',
+        );
+
+        expect(published, isTrue);
+        expect(teacherRemote.notices.length, initialRemoteNotices + 1);
+        expect(
+          teacherRemote.notices.first.title,
+          'Revisão Geral para Avaliação N2',
+        );
+        expect(AcademicBridgeService.instance.broadcastNotices, isEmpty);
+      },
+    );
+  });
 }

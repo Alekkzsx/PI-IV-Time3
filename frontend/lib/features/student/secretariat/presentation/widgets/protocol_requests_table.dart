@@ -207,8 +207,11 @@ class ProtocolRequestsTable extends StatelessWidget {
             flex: 10,
             child: Align(
               alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 0,
+                runSpacing: 0,
                 children: [
                   InkWell(
                     key: Key('view_opinion_${item.protocolCode}'),
