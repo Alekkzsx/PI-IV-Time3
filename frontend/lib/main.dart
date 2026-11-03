@@ -13,22 +13,26 @@ import 'features/auth/login/presentation/controllers/login_controller.dart';
 import 'features/auth/shared/data/auth_repository_impl.dart';
 import 'features/auth/shared/external/auth_remote_datasource_impl.dart';
 
-/// Ponto de entrada da aplicação Flutter.
-///
-/// Inicializa e injeta as dependências de Clean Architecture (DataSources, Repositories,
-/// UseCases e Controllers) e inicia a execução do [PortalAvaApp].
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicia automaticamente o backend nativo em Java se ainda não estiver em execução
+  // Garante inicialização automática dos serviços locais em execução Desktop
   unawaited(BackendProcessLauncher.ensureBackendRunning());
 
-  const initialRoute = String.fromEnvironment(
-    'INITIAL_ROUTE',
-    defaultValue: AppRoutes.login,
-  );
+  // Restaura sessão autenticada persistida e valida contra GET /api/auth/me
+  final restored = AppUserSession.instance.restoreFromStorage();
+  if (restored) {
+    unawaited(AppUserSession.instance.refreshProfileFromServer());
+  }
 
-  // Inicialização da injeção de dependências (Clean Architecture)
+  const configuredRoute = String.fromEnvironment(
+    'INITIAL_ROUTE',
+    defaultValue: '',
+  );
+  final initialRoute = configuredRoute.isNotEmpty
+      ? configuredRoute
+      : (restored ? AppUserSession.instance.defaultHomeRoute : AppRoutes.login);
+
   final remoteDataSource = AuthRemoteDataSourceImpl();
   final repository = AuthRepositoryImpl(remoteDataSource);
 
@@ -49,20 +53,13 @@ void main() {
   );
 }
 
-/// Widget raiz da aplicação Portal Acadêmico AVA.
 class PortalAvaApp extends StatelessWidget {
   static final navigatorKey = GlobalKey<NavigatorState>();
 
-  /// Controlador de recuperação de senha compartilhado com a rota correspondente.
   final RecoverPasswordController controller;
-
-  /// Controlador de autenticação compartilhado com a página de login.
   final LoginController? loginController;
-
-  /// Rota inicial da aplicação (padrão: '/').
   final String initialRoute;
 
-  /// Cria uma instância da aplicação configurando seus controladores e rota inicial.
   const PortalAvaApp({
     super.key,
     required this.controller,
