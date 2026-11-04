@@ -1,17 +1,9 @@
 // Desenvolvido por Time 3 - PI IV (Integração Ecossistema Real MongoDB)
-import { config } from "dotenv";
+import "../config/local-environment.js";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import { MongoClient, ObjectId, type Db, type Document } from "mongodb";
 import { loadEnvironment } from "../config/environment.js";
-
-config({
-  path: [
-    fileURLToPath(new URL("../../.env.local", import.meta.url)),
-    fileURLToPath(new URL("../../.env", import.meta.url)),
-  ],
-  quiet: true,
-});
 
 const SEED_TAG = "ecosystem-v1";
 

@@ -1,7 +1,6 @@
 //Desenvolvido por Rafael Henrique dos Santos Inácio - RA: 25009719
 
-import { config } from "dotenv";
-import { fileURLToPath } from "node:url";
+import "../config/local-environment.js";
 import { MongoClient } from "mongodb";
 
 import { loadEnvironment } from "../config/environment.js";
@@ -12,15 +11,6 @@ import {
   StudentSeedError,
   validateStudentPassword,
 } from "./student-demo.seed.js";
-
-// Carrega as variáveis locais do backend.
-config({
-  path: [
-    fileURLToPath(new URL("../../.env.local", import.meta.url)),
-    fileURLToPath(new URL("../../.env", import.meta.url)),
-  ],
-  quiet: true,
-});
 
 async function main(): Promise<void> {
   // Impede execução em produção.

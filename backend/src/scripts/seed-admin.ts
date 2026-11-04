@@ -1,21 +1,11 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
-import { config } from "dotenv";
+import "../config/local-environment.js";
 import { setServers } from "node:dns";
 import { isIP } from "node:net";
-import { fileURLToPath } from "node:url";
 import { MongoClient } from "mongodb";
 import { loadEnvironment } from "../config/environment.js";
 import { demoUsers, seedAdminDemo, SeedValidationError, validateSeedPassword } from "./admin-demo.seed.js";
-
-// Variáveis do terminal têm prioridade sobre os arquivos locais.
-config({
-  path: [
-    fileURLToPath(new URL("../../.env.local", import.meta.url)),
-    fileURLToPath(new URL("../../.env", import.meta.url)),
-  ],
-  quiet: true,
-});
 
 async function main(): Promise<void> {
   if (process.env.NODE_ENV === "production") {

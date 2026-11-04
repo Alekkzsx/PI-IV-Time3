@@ -18,10 +18,11 @@ const environmentSchema = z
     SMTP_SECURE: z.stringbool().default(true),
     SMTP_USER: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
-    SMTP_FROM: z.preprocess(
-      (value) => (value === "" ? undefined : value),
-      z.email().optional(),
-    ),
+    SMTP_FROM: z.preprocess((value) => {
+      if (typeof value !== "string" || value.trim() === "") return undefined;
+      const match = value.match(/<([^>]+)>/);
+      return match && match[1] ? match[1].trim() : value.trim();
+    }, z.string().email().optional()),
   })
   .superRefine((env, context) => {
     if (env.AUTH_JWT_SECRET === env.AUTH_OTP_SECRET) {
@@ -75,7 +76,17 @@ export type Environment = {
 export function loadEnvironment(
   source: NodeJS.ProcessEnv = process.env,
 ): Environment {
-  const parsed = environmentSchema.safeParse(source);
+  const normalizedSource: NodeJS.ProcessEnv = { ...source };
+
+  // Fallback interoperável com chaves equivalentes da raiz (.env)
+  if (!normalizedSource.AUTH_JWT_SECRET && normalizedSource.JWT_SECRET) {
+    normalizedSource.AUTH_JWT_SECRET = normalizedSource.JWT_SECRET;
+  }
+  if (!normalizedSource.SMTP_SECURE && normalizedSource.SMTP_SSL) {
+    normalizedSource.SMTP_SECURE = normalizedSource.SMTP_SSL;
+  }
+
+  const parsed = environmentSchema.safeParse(normalizedSource);
   if (!parsed.success) {
     const details = parsed.error.issues
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
