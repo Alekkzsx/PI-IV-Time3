@@ -221,6 +221,11 @@ if [[ -z "$JAVAC_CMD" ]]; then
     JDK_CANDIDATES=(
         "${JAVA_HOME:-}/bin/javac"
         "${JAVA_HOME:-}/bin/javac.exe"
+        "/c/Users/${USER:-24802449}/AppData/Roaming/Antigravity IDE/User/globalStorage/pleiades.java-extension-pack-jdk/java/17/bin/javac.exe"
+        "/c/Users/${USER:-24802449}/AppData/Roaming/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17/bin/javac.exe"
+        "/c/Program Files/Java/jdk-17*/bin/javac.exe"
+        "/c/Program Files/Java/jdk-21*/bin/javac.exe"
+        "/c/Program Files/Eclipse Adoptium/jdk-17*/bin/javac.exe"
         "/usr/lib/jvm/java-17-openjdk*/bin/javac"
         "/usr/lib/jvm/java-21-openjdk*/bin/javac"
         "/usr/lib/jvm/default-java/bin/javac"
@@ -228,25 +233,19 @@ if [[ -z "$JAVAC_CMD" ]]; then
         "/opt/jdk-17*/bin/javac"
         "/opt/jdk-21*/bin/javac"
         "$HOME/.sdkman/candidates/java/current/bin/javac"
-        "/c/Users/${USER:-24802449}/AppData/Roaming/Antigravity IDE/User/globalStorage/pleiades.java-extension-pack-jdk/java/17/bin/javac.exe"
-        "/c/Program Files/Java/jdk-17*/bin/javac.exe"
-        "/c/Program Files/Java/jdk-21*/bin/javac.exe"
-        "/c/Program Files/Eclipse Adoptium/jdk-17*/bin/javac.exe"
     )
     for cand in "${JDK_CANDIDATES[@]}"; do
-        for match in $cand; do
-            if [[ -x "$match" ]]; then
-                JAVAC_CMD="$match"
-                cand_dir="$(dirname "$match")"
-                export PATH="${cand_dir}:$PATH"
-                if [[ -x "${cand_dir}/java" ]]; then
-                    JAVA_CMD="${cand_dir}/java"
-                elif [[ -x "${cand_dir}/java.exe" ]]; then
-                    JAVA_CMD="${cand_dir}/java.exe"
-                fi
-                break 2
+        if [[ -f "$cand" || -x "$cand" ]]; then
+            JAVAC_CMD="$cand"
+            cand_dir="$(dirname "$cand")"
+            export PATH="${cand_dir}:$PATH"
+            if [[ -f "${cand_dir}/java" || -x "${cand_dir}/java" ]]; then
+                JAVA_CMD="${cand_dir}/java"
+            elif [[ -f "${cand_dir}/java.exe" || -x "${cand_dir}/java.exe" ]]; then
+                JAVA_CMD="${cand_dir}/java.exe"
             fi
-        done
+            break
+        fi
     done
 fi
 
@@ -276,9 +275,8 @@ if command -v flutter >/dev/null 2>&1; then
 elif command -v flutter.bat >/dev/null 2>&1; then
     FLUTTER_CMD="$(command -v flutter.bat)"
 else
-    # Procura em locais comuns de instalacao de Flutter no Linux e Windows/WSL
     for cand in "$HOME/flutter/bin/flutter" "$HOME/src/flutter/bin/flutter" "$HOME/development/flutter/bin/flutter" "/opt/flutter/bin/flutter" "/snap/bin/flutter" "/c/src/flutter/bin/flutter.bat" "/c/flutter/bin/flutter.bat"; do
-        if [[ -x "$cand" ]]; then
+        if [[ -f "$cand" || -x "$cand" ]]; then
             export PATH="$(dirname "$cand"):$PATH"
             FLUTTER_CMD="$cand"
             echo -e "  ${CLR_CYAN}[AUTO-CONFIG] Flutter localizado em '${cand}' e adicionado ao PATH.${CLR_RESET}"
@@ -387,18 +385,31 @@ if [[ "$SKIP_INSTALL" == "false" ]]; then
 
     # C. Server Java (Compilacao)
     echo -e "\n  ${CLR_YELLOW}-> [server/] Compilando classes Java nativas para bin/...${CLR_RESET}"
-    mkdir -p "${SERVER_DIR}/bin"
-    tmp_list="$(mktemp /tmp/agmrm_setup_src_XXXXXX.txt)"
-    find "${SERVER_DIR}/src" -type f -name "*.java" > "$tmp_list"
+    (
+        cd "$SERVER_DIR"
+        mkdir -p bin
+        tmp_list="$(mktemp /tmp/agmrm_setup_src_XXXXXX.txt 2>/dev/null || echo "bin/src_list.txt")"
+        : > "$tmp_list"
 
-    javac_bin="${JAVAC_CMD:-javac}"
-    if "$javac_bin" --release 8 -encoding UTF-8 -d "${SERVER_DIR}/bin" @"$tmp_list" 2>/dev/null || \
-       "$javac_bin" -encoding UTF-8 -d "${SERVER_DIR}/bin" @"$tmp_list"; then
-        echo -e "  ${CLR_GREEN}[OK] Modulo server/ compilado com sucesso.${CLR_RESET}"
-    else
-        echo -e "  ${CLR_YELLOW}[AVISO] Nao foi possivel compilar server/ nesta etapa. O console interativo tentara novamente.${CLR_RESET}"
-    fi
-    rm -f "$tmp_list"
+        shopt -s globstar nullglob 2>/dev/null || true
+        for jf in src/**/*.java; do
+            if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
+                cygpath -w "$jf" >> "$tmp_list"
+            else
+                echo "$jf" >> "$tmp_list"
+            fi
+        done
+        shopt -u globstar nullglob 2>/dev/null || true
+
+        javac_bin="${JAVAC_CMD:-javac}"
+        if "$javac_bin" --release 8 -encoding UTF-8 -d bin @"$tmp_list" 2>/dev/null || \
+           "$javac_bin" -encoding UTF-8 -d bin @"$tmp_list"; then
+            echo -e "  ${CLR_GREEN}[OK] Modulo server/ compilado com sucesso.${CLR_RESET}"
+        else
+            echo -e "  ${CLR_YELLOW}[AVISO] Nao foi possivel compilar server/ nesta etapa. O console interativo tentara novamente.${CLR_RESET}"
+        fi
+        rm -f "$tmp_list"
+    )
 else
     echo -e "\n${CLR_GRAY}[ETAPA 2/4] Instalacao de dependencias ignorada conforme parametro --skip-install.${CLR_RESET}"
 fi

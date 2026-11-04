@@ -13,3 +13,4 @@ chmod +x "${SCRIPT_DIR}/modules"/*.sh 2>/dev/null || true
 
 # Executa o orquestrador principal em modules/
 exec "${SCRIPT_DIR}/modules/setup.sh" "$@"
+

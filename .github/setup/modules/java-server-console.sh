@@ -143,36 +143,49 @@ stop_port_8080() {
 # -----------------------------------------------------------------------------
 invoke_compilation() {
     echo -e "${CLR_CYAN}[BUILD] Compilando fontes Java em '${SERVER_DIR}/src'...${CLR_RESET}"
-    mkdir -p "$BIN_DIR"
+    (
+        cd "$SERVER_DIR"
+        mkdir -p bin
 
-    local tmp_list="$(mktemp /tmp/agmrm_src_XXXXXX.txt)"
-    find "${SERVER_DIR}/src" -type f -name "*.java" > "$tmp_list"
+        local tmp_list="$(mktemp /tmp/agmrm_src_XXXXXX.txt 2>/dev/null || echo "bin/src_list.txt")"
+        : > "$tmp_list"
 
-    if [[ ! -s "$tmp_list" ]]; then
-        echo -e "${CLR_RED}[ERRO] Nenhum arquivo .java encontrado em ${SERVER_DIR}/src${CLR_RESET}"
-        rm -f "$tmp_list"
-        return 1
-    fi
+        shopt -s globstar nullglob 2>/dev/null || true
+        for jf in src/**/*.java; do
+            if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
+                cygpath -w "$jf" >> "$tmp_list"
+            else
+                echo "$jf" >> "$tmp_list"
+            fi
+        done
+        shopt -u globstar nullglob 2>/dev/null || true
 
-    local build_ok=0
-    "$JAVAC_CMD" --release 8 -encoding UTF-8 -d "$BIN_DIR" @"$tmp_list" 2>/dev/null || build_ok=$?
+        if [[ ! -s "$tmp_list" ]]; then
+            echo -e "${CLR_RED}[ERRO] Nenhum arquivo .java encontrado em ${SERVER_DIR}/src${CLR_RESET}"
+            rm -f "$tmp_list"
+            return 1
+        fi
 
-    if [[ $build_ok -eq 0 ]]; then
-        echo -e "${CLR_GREEN}[BUILD] Compilacao concluida com sucesso em '${BIN_DIR}'.${CLR_RESET}"
-        rm -f "$tmp_list"
-        return 0
-    else
-        echo -e "${CLR_YELLOW}[BUILD] Tentando compilacao direta com codificacao UTF-8...${CLR_RESET}"
-        if "$JAVAC_CMD" -encoding UTF-8 -d "$BIN_DIR" @"$tmp_list"; then
+        local build_ok=0
+        "$JAVAC_CMD" --release 8 -encoding UTF-8 -d bin @"$tmp_list" 2>/dev/null || build_ok=$?
+
+        if [[ $build_ok -eq 0 ]]; then
             echo -e "${CLR_GREEN}[BUILD] Compilacao concluida com sucesso em '${BIN_DIR}'.${CLR_RESET}"
             rm -f "$tmp_list"
             return 0
         else
-            echo -e "${CLR_RED}[ERRO] Falha ao compilar fontes Java.${CLR_RESET}"
-            rm -f "$tmp_list"
-            return 1
+            echo -e "${CLR_YELLOW}[BUILD] Tentando compilacao direta com codificacao UTF-8...${CLR_RESET}"
+            if "$JAVAC_CMD" -encoding UTF-8 -d bin @"$tmp_list"; then
+                echo -e "${CLR_GREEN}[BUILD] Compilacao concluida com sucesso em '${BIN_DIR}'.${CLR_RESET}"
+                rm -f "$tmp_list"
+                return 0
+            else
+                echo -e "${CLR_RED}[ERRO] Falha ao compilar fontes Java.${CLR_RESET}"
+                rm -f "$tmp_list"
+                return 1
+            fi
         fi
-    fi
+    )
 }
 
 # -----------------------------------------------------------------------------
@@ -264,18 +277,32 @@ get_server_status() {
 run_native_tests() {
     echo ""
     echo -e "${CLR_CYAN}>>> Compilando e Executando Suite de Testes Nativos do Servidor...${CLR_RESET}"
-    local tmp_tests="$(mktemp /tmp/agmrm_tests_XXXXXX.txt)"
-    find "${SERVER_DIR}/src" "${SERVER_DIR}/tests" -type f -name "*.java" > "$tmp_tests"
+    (
+        cd "$SERVER_DIR"
+        mkdir -p bin
+        local tmp_tests="$(mktemp /tmp/agmrm_tests_XXXXXX.txt 2>/dev/null || echo "bin/tests_list.txt")"
+        : > "$tmp_tests"
 
-    if "$JAVAC_CMD" --release 8 -encoding UTF-8 -d "$BIN_DIR" @"$tmp_tests" 2>/dev/null || \
-       "$JAVAC_CMD" -encoding UTF-8 -d "$BIN_DIR" @"$tmp_tests"; then
-        rm -f "$tmp_tests"
-        echo -e "${CLR_YELLOW}[EXEC] Executando SuiteTestesServidor...${CLR_RESET}"
-        "$JAVA_CMD" -Dfile.encoding=UTF-8 -cp "$BIN_DIR" SuiteTestesServidor
-    else
-        rm -f "$tmp_tests"
-        echo -e "${CLR_RED}[ERRO] Falha na compilacao dos testes.${CLR_RESET}"
-    fi
+        shopt -s globstar nullglob 2>/dev/null || true
+        for jf in src/**/*.java tests/**/*.java; do
+            if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
+                cygpath -w "$jf" >> "$tmp_tests"
+            else
+                echo "$jf" >> "$tmp_tests"
+            fi
+        done
+        shopt -u globstar nullglob 2>/dev/null || true
+
+        if "$JAVAC_CMD" --release 8 -encoding UTF-8 -d bin @"$tmp_tests" 2>/dev/null || \
+           "$JAVAC_CMD" -encoding UTF-8 -d bin @"$tmp_tests"; then
+            rm -f "$tmp_tests"
+            echo -e "${CLR_YELLOW}[EXEC] Executando SuiteTestesServidor...${CLR_RESET}"
+            "$JAVA_CMD" -Dfile.encoding=UTF-8 -cp bin SuiteTestesServidor
+        else
+            rm -f "$tmp_tests"
+            echo -e "${CLR_RED}[ERRO] Falha na compilacao dos testes.${CLR_RESET}"
+        fi
+    )
 }
 
 # -----------------------------------------------------------------------------
