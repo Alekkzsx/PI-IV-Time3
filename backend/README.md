@@ -4,7 +4,7 @@
 
 Serviço modular em TypeScript para autenticação institucional (login, 2FA/TOTP, sessões persistentes e recuperação de senha por OTP), gestão administrativa (`admin`), portal do aluno (`student`) e autorização/emissão de tickets de salas de videochamada (`video-call`).
 
-Roda na porta `3001` por padrão e opera em conjunto com o servidor Java SE nativo em `../server` (porta `8080`), que atende os cálculos acadêmicos, sinalização WebRTC via WebSocket e validação nativa de tokens JWT HS256. O arquivo `.env.example` lista as variáveis esperadas; o serviço também carrega `.env.local`.
+Roda na porta `3001` por padrão e opera em conjunto com o servidor Java SE nativo em `../server` (porta `8080`), que atende os cálculos acadêmicos, sinalização WebRTC via WebSocket e validação nativa de tokens JWT HS256. A configuração de variáveis de ambiente é carregada exclusivamente a partir do arquivo mestre `.env` na raiz do projeto (`../.env`).
 
 ## Organização
 
@@ -103,19 +103,19 @@ Cada documento contém:
 
 `normalizedIdentity` é único. A inicialização cria esse índice e os índices TTL das coleções `auth_recovery`, `auth_sessions`, `academic_live_sessions` e `video_call_ws_tickets`. Senhas são armazenadas exclusivamente como hashes bcrypt.
 
-Para provisionar uma conta autorizada localmente, com o backend configurado em `.env`, execute `npm run create-user` na pasta `backend`.
+Para provisionar uma conta autorizada localmente, com o ambiente configurado no `.env` da raiz, execute `npm run create-user` na pasta `backend`.
 
 ## Configuração, execução e testes
 
-Requer Node.js 20 ou superior e MongoDB acessível. Na pasta `backend`:
+Requer Node.js 20 ou superior e MongoDB acessível. A configuração é unificada no `.env` da raiz do projeto (`../.env`):
 
 ```powershell
-Copy-Item .env.example .env
+# Na pasta backend:
 npm install
 npm run dev
 ```
 
-Preencha `.env` com URI e nome do banco, `AUTH_JWT_SECRET` aleatório de pelo menos 32 caracteres (compartilhado com `server/` caso deseje validação JWT local no servidor Java), `AUTH_OTP_SECRET` diferente com pelo menos 32 caracteres e as credenciais SMTP para recuperação por e-mail.
+O arquivo mestre `.env` na raiz já contém as variáveis compartilhadas (`MONGODB_URI`, `AUTH_JWT_SECRET`, `AUTH_OTP_SECRET`, `SMTP_*`, etc.), lidas automaticamente por todos os serviços.
 
 Comandos de verificação e build:
 

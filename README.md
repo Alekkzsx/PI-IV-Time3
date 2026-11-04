@@ -107,12 +107,13 @@ cd .../PI-IV-Time3
 
 ### 2. Configure Environment Credentials
 
-Create your environment configuration files from the templates:
+Create your environment configuration file from the template at the project root:
 
 ```bash
 cp .env-example .env
-cp backend/.env.example backend/.env
 ```
+
+All project modules (`backend/`, `server/`, `frontend/`, `security/`) pull configuration **exclusively** from this single master `.env` file at the root.
 
 | Variable | Description | Default Value |
 |---|---|---|
