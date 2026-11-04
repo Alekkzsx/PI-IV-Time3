@@ -74,10 +74,16 @@ echo -e "${CLR_GRAY} Data/Hora       : $(date '+%Y-%m-%d %H:%M:%S')${CLR_RESET}"
 echo -e "${CLR_GRAY}--------------------------------------------------------------------------------${CLR_RESET}"
 
 # -----------------------------------------------------------------------------
-# DETECCAO DE GERENCIADOR DE PACOTES LINUX
+# DETECCAO DE GERENCIADOR DE PACOTES LINUX / MACOS
 # -----------------------------------------------------------------------------
 PKG_MANAGER=""
-if command -v apt-get >/dev/null 2>&1; then
+IS_DARWIN=false
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    IS_DARWIN=true
+    if command -v brew >/dev/null 2>&1; then
+        PKG_MANAGER="brew"
+    fi
+elif command -v apt-get >/dev/null 2>&1; then
     PKG_MANAGER="apt"
 elif command -v dnf >/dev/null 2>&1; then
     PKG_MANAGER="dnf"
@@ -111,17 +117,21 @@ install_package() {
     local arch_pkg="${3:-$1}"
 
     case "$PKG_MANAGER" in
+        brew)
+            echo -e "${CLR_CYAN}  Executando: brew install $deb_pkg${CLR_RESET}"
+            brew install "$deb_pkg"
+            ;;
         apt)
             echo -e "${CLR_CYAN}  Executando: sudo apt-get update && sudo apt-get install -y $deb_pkg${CLR_RESET}"
-            sudo apt-get update -qq && sudo apt-get install -y "$deb_pkg"
+            sudo apt-get update -qq && sudo apt-get install -y $deb_pkg
             ;;
         dnf)
             echo -e "${CLR_CYAN}  Executando: sudo dnf install -y $rpm_pkg${CLR_RESET}"
-            sudo dnf install -y "$rpm_pkg"
+            sudo dnf install -y $rpm_pkg
             ;;
         pacman)
             echo -e "${CLR_CYAN}  Executando: sudo pacman -S --noconfirm $arch_pkg${CLR_RESET}"
-            sudo pacman -S --noconfirm "$arch_pkg"
+            sudo pacman -S --noconfirm $arch_pkg
             ;;
         *)
             echo -e "${CLR_RED}  Gerenciador de pacotes automatico nao suportado. Instale manualmente: $deb_pkg${CLR_RESET}"
@@ -135,6 +145,14 @@ install_package() {
 # -----------------------------------------------------------------------------
 echo -e "\n${CLR_CYAN}[ETAPA 1/4] Verificando dependencias essenciais do ambiente...${CLR_RESET}"
 DEPS_OK=true
+
+# 0. Curl
+if ! command -v curl >/dev/null 2>&1; then
+    echo -e "  ${CLR_YELLOW}[AVISO] curl nao encontrado.${CLR_RESET}"
+    if [[ -n "$PKG_MANAGER" ]] && ask_user "  Deseja instalar curl via $PKG_MANAGER?"; then
+        install_package curl curl curl
+    fi
+fi
 
 # A. Git
 if command -v git >/dev/null 2>&1; then
@@ -297,6 +315,12 @@ else
         echo -e "${CLR_CYAN}  Clonando Flutter SDK...${CLR_RESET}"
         git clone https://github.com/flutter/flutter.git -b stable "$HOME/flutter"
         export PATH="$HOME/flutter/bin:$PATH"
+        # Persiste no shell profile
+        for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
+            if [[ -f "$rc" ]] && ! grep -q "flutter/bin" "$rc"; then
+                echo 'export PATH="$HOME/flutter/bin:$PATH"' >> "$rc"
+            fi
+        done
         if command -v flutter >/dev/null 2>&1; then
             FLUTTER_CMD="$(command -v flutter)"
             echo -e "  ${CLR_GREEN}[OK] Flutter instalado com sucesso!${CLR_RESET}"
@@ -310,22 +334,32 @@ fi
 
 # F. Deteccao de Dispositivo de Execucao Flutter
 if [[ -z "$TARGET_DEVICE" ]]; then
-    if [[ -n "$FLUTTER_CMD" ]]; then
+    if [[ "$IS_DARWIN" == "true" ]]; then
+        TARGET_DEVICE="macos"
+    elif [[ -n "$FLUTTER_CMD" ]]; then
         devs="$(flutter devices 2>/dev/null || true)"
         if echo "$devs" | grep -q "linux • linux"; then
             TARGET_DEVICE="linux"
-            echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: Linux Desktop nativo.${CLR_RESET}"
-        elif echo "$devs" | grep -q "windows • windows"; then
-            TARGET_DEVICE="windows"
-            echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: Windows Desktop nativo.${CLR_RESET}"
+            # Verifica se o toolchain C++ para Linux Desktop esta presente
+            if ! command -v clang >/dev/null 2>&1 || ! command -v cmake >/dev/null 2>&1 || ! command -v pkg-config >/dev/null 2>&1; then
+                if echo "$devs" | grep -q "chrome • chrome"; then
+                    TARGET_DEVICE="chrome"
+                    echo -e "  ${CLR_YELLOW}[AVISO] Compilador C++ Linux ausente. Alternando para Google Chrome (Web).${CLR_RESET}"
+                fi
+            else
+                echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: Linux Desktop nativo.${CLR_RESET}"
+            fi
         elif echo "$devs" | grep -q "chrome • chrome"; then
             TARGET_DEVICE="chrome"
-            echo -e "  ${CLR_YELLOW}[AVISO] Alternando para Google Chrome (Web).${CLR_RESET}"
+            echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: Google Chrome (Web).${CLR_RESET}"
+        elif echo "$devs" | grep -q "windows • windows"; then
+            TARGET_DEVICE="chrome"
+            echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: Google Chrome (Web).${CLR_RESET}"
         else
-            TARGET_DEVICE="linux"
+            TARGET_DEVICE="chrome"
         fi
     else
-        TARGET_DEVICE="linux"
+        TARGET_DEVICE="chrome"
     fi
 fi
 
@@ -424,9 +458,11 @@ fi
 # -----------------------------------------------------------------------------
 if command -v fuser >/dev/null 2>&1; then
     fuser -k -9 8080/tcp >/dev/null 2>&1 || true
+    fuser -k -9 3001/tcp >/dev/null 2>&1 || true
 fi
 if command -v lsof >/dev/null 2>&1; then
     lsof -ti:8080 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+    lsof -ti:3001 2>/dev/null | xargs -r kill -9 2>/dev/null || true
 fi
 
 # -----------------------------------------------------------------------------
@@ -436,7 +472,9 @@ echo -e "\n${CLR_CYAN}[ETAPA 3/4] Inicializando os servicos em abas/janelas dedi
 
 # Deteccao do emulador de terminal grafico
 TERMINAL_EMU=""
-if [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+if [[ "$IS_DARWIN" == "true" ]]; then
+    TERMINAL_EMU="darwin"
+elif [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
     for emu in gnome-terminal ptyxis konsole xfce4-terminal tilix alacritty kitty xterm; do
         if command -v "$emu" >/dev/null 2>&1; then
             TERMINAL_EMU="$emu"
@@ -451,6 +489,9 @@ launch_window() {
     local command="$3"
 
     case "$TERMINAL_EMU" in
+        darwin)
+            osascript -e "tell application \"Terminal\" to do script \"cd '$workdir' && $command\"" >/dev/null 2>&1 &
+            ;;
         gnome-terminal)
             gnome-terminal --title="$title" --working-directory="$workdir" -- bash -c "$command; exec bash" 2>/dev/null &
             ;;
@@ -497,8 +538,8 @@ if [[ -n "$TERMINAL_EMU" ]]; then
     sleep 1
 
     # 3. Frontend Flutter
-    echo -e "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TARGET_DEVICE)"
-    launch_window "AGMRM - Frontend Flutter ($TARGET_DEVICE)" "$FRONTEND_DIR" "flutter run -d $TARGET_DEVICE"
+    echo -e "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TARGET_DEVICE com fallback em Chrome)"
+    launch_window "AGMRM - Frontend Flutter ($TARGET_DEVICE)" "$FRONTEND_DIR" "flutter run -d $TARGET_DEVICE || flutter run -d chrome"
 
 # Fallback se estamos em modo headless / SSH / sem interface grafica direta
 elif command -v tmux >/dev/null 2>&1; then

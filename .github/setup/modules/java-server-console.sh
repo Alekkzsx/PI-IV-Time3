@@ -407,6 +407,9 @@ while true; do
             if command -v xdg-open >/dev/null 2>&1; then
                 xdg-open "http://127.0.0.1:8080/api/videocall/rooms" >/dev/null 2>&1 &
                 echo -e "${CLR_GREEN}[OK] Endpoint aberto no navegador padrao.${CLR_RESET}"
+            elif command -v open >/dev/null 2>&1; then
+                open "http://127.0.0.1:8080/api/videocall/rooms" >/dev/null 2>&1 &
+                echo -e "${CLR_GREEN}[OK] Endpoint aberto no navegador padrao.${CLR_RESET}"
             elif command -v sensible-browser >/dev/null 2>&1; then
                 sensible-browser "http://127.0.0.1:8080/api/videocall/rooms" >/dev/null 2>&1 &
             else

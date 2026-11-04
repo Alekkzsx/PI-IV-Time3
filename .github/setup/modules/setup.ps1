@@ -290,30 +290,64 @@ if ($FlutterCmd) {
     Write-Host "  [OK] Flutter SDK detectado: $flutterVer" -ForegroundColor Green
 } else {
     Write-Host "  [FALHA] Flutter SDK nao encontrado no PATH nem nos diretorios usuais!" -ForegroundColor Red
-    Write-Host "  [AJUDA] Para instalar o Flutter: extraia em 'C:\src\flutter' ou clone via Git:" -ForegroundColor Yellow
-    Write-Host "          git clone https://github.com/flutter/flutter.git -b stable C:\src\flutter" -ForegroundColor Gray
-    $DependenciesOk = $false
+    if ($gitCmd) {
+        Write-Host "  [AUTO-INSTALACAO] Deseja clonar o Flutter SDK stable automaticamente via Git? (S/N)" -ForegroundColor Yellow
+        $resp = Read-Host
+        if ($resp.Trim().ToUpper() -eq "S") {
+            New-Item -ItemType Directory -Path "C:\src" -Force -ErrorAction SilentlyContinue | Out-Null
+            $cloneTarget = if (Test-Path "C:\src") { "C:\src\flutter" } else { "$env:LOCALAPPDATA\flutter" }
+            Write-Host "  Clonando Flutter stable em '$cloneTarget'..." -ForegroundColor Cyan
+            & git clone https://github.com/flutter/flutter.git -b stable $cloneTarget
+            if (Test-Path "$cloneTarget\bin\flutter.bat") {
+                $flutterBin = "$cloneTarget\bin"
+                $env:Path = "$flutterBin;$env:Path"
+                try {
+                    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+                    if ($userPath -notmatch [regex]::Escape($flutterBin)) {
+                        [System.Environment]::SetEnvironmentVariable("Path", "$flutterBin;$userPath", "User")
+                    }
+                } catch {}
+                $FlutterCmd = Get-Command flutter.bat -ErrorAction SilentlyContinue
+                Write-Host "  [OK] Flutter SDK instalado e configurado no PATH com sucesso!" -ForegroundColor Green
+            } else {
+                $DependenciesOk = $false
+            }
+        } else {
+            $DependenciesOk = $false
+        }
+    } else {
+        $DependenciesOk = $false
+    }
 }
 
 # F. Deteccao de Dispositivo Flutter (Windows Desktop vs Web Chrome)
-$TargetDevice = "windows"
+$TargetDevice = "chrome"
+$hasDevMode = $false
+try {
+    $regVal = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -Name "AllowDevelopmentWithoutDevLicense" -ErrorAction SilentlyContinue).AllowDevelopmentWithoutDevLicense
+    if ($regVal -eq 1) { $hasDevMode = $true }
+} catch {}
+
 if ($FlutterDevice) {
     $TargetDevice = $FlutterDevice
 } elseif ($FlutterCmd) {
     try {
         $devs = (flutter devices 2>$null | Out-String)
-        if ($devs -match "windows\s+•\s+windows") {
+        # Windows desktop requer Developer Mode (symlinks) e Visual Studio C++
+        if ($hasDevMode -and $devs -match "windows\s+•\s+windows") {
             $TargetDevice = "windows"
             Write-Host "  [OK] Dispositivo de execucao: Windows Desktop nativo habilitado." -ForegroundColor Green
         } elseif ($devs -match "chrome\s+•\s+chrome") {
             $TargetDevice = "chrome"
-            Write-Host "  [AVISO] Windows Desktop C++ build tools ausente. Alternando para Google Chrome (Web)." -ForegroundColor Yellow
+            Write-Host "  [OK] Dispositivo de execucao: Google Chrome (Web - Inicializacao rapida sem necessidade de compilador C++)." -ForegroundColor Green
         } elseif ($devs -match "edge\s+•\s+edge") {
             $TargetDevice = "edge"
-            Write-Host "  [AVISO] Alternando para Microsoft Edge (Web)." -ForegroundColor Yellow
+            Write-Host "  [OK] Dispositivo de execucao: Microsoft Edge (Web)." -ForegroundColor Green
+        } else {
+            $TargetDevice = "chrome"
         }
     } catch {
-        $TargetDevice = "windows"
+        $TargetDevice = "chrome"
     }
 }
 
@@ -440,6 +474,7 @@ function Stop-PortListener([int]$port) {
     } catch {}
 }
 Stop-PortListener 8080
+Stop-PortListener 3001
 
 # -----------------------------------------------------------------------------
 # 4. INICIALIZACAO DOS SERVICOS EM JANELAS DE TERMINAL SEPARADAS
@@ -462,7 +497,7 @@ Start-Sleep -Seconds 1
 
 # 3. ABA/JANELA SEPARADA: Frontend Flutter App
 Write-Host "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TargetDevice)" -ForegroundColor Yellow
-$frontendArgs = @('/k', "title AGMRM - Frontend Flutter ($TargetDevice) & cd /d `"$FrontendDir`" & flutter run -d $TargetDevice")
+$frontendArgs = @('/k', "title AGMRM - Frontend Flutter ($TargetDevice) & cd /d `"$FrontendDir`" & flutter run -d $TargetDevice || flutter run -d chrome")
 Start-Process "cmd.exe" -ArgumentList $frontendArgs
 
 # -----------------------------------------------------------------------------
