@@ -85,6 +85,38 @@ export async function seedEcosystem(
       shift: "Noturno",
       campus: "Unidade Sede",
     },
+    {
+      identity: "aluno.test",
+      normalizedIdentity: "aluno.test",
+      email: "aluno.test@agmrm.edu.br",
+      normalizedEmail: "aluno.test@agmrm.edu.br",
+      displayName: "Aluno Teste AGMRM",
+      profile: "aluno",
+      departmentOrCourse: "Engenharia de Software",
+      semester: "2026/2 - 4º Semestre",
+      shift: "Noturno",
+      campus: "Unidade Sede",
+    },
+    {
+      identity: "docente.test",
+      normalizedIdentity: "docente.test",
+      email: "docente.test@agmrm.edu.br",
+      normalizedEmail: "docente.test@agmrm.edu.br",
+      displayName: "Docente Teste AGMRM",
+      profile: "docente",
+      departmentOrCourse: "Engenharia de Software",
+      campus: "Unidade Sede",
+    },
+    {
+      identity: "admin.test",
+      normalizedIdentity: "admin.test",
+      email: "admin.test@agmrm.edu.br",
+      normalizedEmail: "admin.test@agmrm.edu.br",
+      displayName: "Administrador Teste AGMRM",
+      profile: "admin",
+      departmentOrCourse: "Administração Central",
+      campus: "Unidade Sede",
+    },
   ];
 
   const ensuredUsers = new Map<string, Document>();
