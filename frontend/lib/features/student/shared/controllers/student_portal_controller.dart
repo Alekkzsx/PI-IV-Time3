@@ -38,6 +38,7 @@ class StudentPortalController extends ChangeNotifier {
 
   factory StudentPortalController() => instance;
   StudentDashboardSnapshot? remoteDashboard;
+  StudentTimelineResponse? timeline;
   bool isLoadingRemote = false;
   String? remoteError;
   String? _loadedForToken;
@@ -54,6 +55,7 @@ class StudentPortalController extends ChangeNotifier {
           events.isNotEmpty ||
           remoteError != 'Entre novamente para carregar seus dados acadêmicos.';
       remoteDashboard = null;
+      timeline = null;
       _loadedForToken = null;
       remoteError = 'Entre novamente para carregar seus dados acadêmicos.';
       disciplines = [];
@@ -66,12 +68,20 @@ class StudentPortalController extends ChangeNotifier {
 
     isLoadingRemote = true;
     remoteError = null;
-    if (_loadedForToken != token) remoteDashboard = null;
+    if (_loadedForToken != token) {
+      remoteDashboard = null;
+      timeline = null;
+    }
     notifyListeners();
     try {
       final result = await _remote.getBootstrap();
+      StudentTimelineResponse? timelineResult;
+      try {
+        timelineResult = await _remote.getTimeline();
+      } catch (_) {}
       if (AppUserSession.instance.accessToken == token) {
         remoteDashboard = result;
+        timeline = timelineResult;
         _loadedForToken = token;
         isTwoFactorEnabled = result.studentInfo['twoFactorRequired'] == true;
         AcademicBridgeService.instance.registerStudentEnrollments(
@@ -233,8 +243,19 @@ class StudentPortalController extends ChangeNotifier {
   void toggleDashboardView(bool grid) {
     if (isGridView != grid) {
       isGridView = grid;
+      if (!isGridView && timeline == null) {
+        loadTimeline();
+      }
       notifyListeners();
     }
+  }
+
+  Future<void> loadTimeline() async {
+    try {
+      final res = await _remote.getTimeline();
+      timeline = res;
+      notifyListeners();
+    } catch (_) {}
   }
 
   void selectDiscipline(StudentDisciplineModel discipline) {

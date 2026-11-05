@@ -206,6 +206,11 @@ class StudentRemoteDataSource {
   Future<Map<String, dynamic>> downloadProtocol(String id) =>
       _api.getMap('/api/files/protocols/$id');
 
+  Future<StudentTimelineResponse> getTimeline() async {
+    final response = await _api.getMap('/api/student/timeline');
+    return StudentTimelineResponse.fromJson(response);
+  }
+
   List<int> decodeFileContent(Map<String, dynamic> response) {
     final encoded = response['contentBase64']?.toString();
     if (encoded == null || encoded.isEmpty) {
@@ -216,5 +221,94 @@ class StudentRemoteDataSource {
     } on FormatException {
       throw const ApiException('O conteúdo do arquivo está inválido.');
     }
+  }
+}
+
+class StudentTimelineResponse {
+  final String generatedAt;
+  final List<StudentTimelineBlock> blocks;
+
+  const StudentTimelineResponse({
+    required this.generatedAt,
+    required this.blocks,
+  });
+
+  factory StudentTimelineResponse.fromJson(Map<String, dynamic> json) {
+    final list = json['blocks'] as List? ?? const [];
+    return StudentTimelineResponse(
+      generatedAt: json['generatedAt']?.toString() ?? '',
+      blocks: list
+          .whereType<Map>()
+          .map((m) => StudentTimelineBlock.fromJson(Map<String, dynamic>.from(m)))
+          .toList(),
+    );
+  }
+}
+
+class StudentTimelineItem {
+  final String id;
+  final String kind;
+  final String title;
+  final String subtitle;
+  final bool completed;
+  final String trailingType;
+  final String trailingText;
+
+  const StudentTimelineItem({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.subtitle,
+    required this.completed,
+    required this.trailingType,
+    required this.trailingText,
+  });
+
+  factory StudentTimelineItem.fromJson(Map<String, dynamic> json) {
+    final trailing = json['trailing'] is Map
+        ? Map<String, dynamic>.from(json['trailing'])
+        : const <String, dynamic>{};
+    return StudentTimelineItem(
+      id: json['id']?.toString() ?? '',
+      kind: json['kind']?.toString() ?? 'assignment',
+      title: json['title']?.toString() ?? '',
+      subtitle: json['subtitle']?.toString() ?? '',
+      completed: json['completed'] == true,
+      trailingType: trailing['type']?.toString() ?? 'text',
+      trailingText: trailing['text']?.toString() ?? '',
+    );
+  }
+}
+
+class StudentTimelineBlock {
+  final String type;
+  final String label;
+  final List<StudentTimelineItem> items;
+  final bool mascot;
+  final String message;
+  final String description;
+
+  const StudentTimelineBlock({
+    required this.type,
+    required this.label,
+    this.items = const [],
+    this.mascot = false,
+    this.message = '',
+    this.description = '',
+  });
+
+  factory StudentTimelineBlock.fromJson(Map<String, dynamic> json) {
+    final itemsList = json['items'] as List? ?? const [];
+    return StudentTimelineBlock(
+      type: json['type']?.toString() ?? 'day',
+      label: json['label']?.toString() ?? '',
+      items: itemsList
+          .whereType<Map>()
+          .map((m) => StudentTimelineItem.fromJson(Map<String, dynamic>.from(m)))
+          .toList(),
+      mascot: json['mascot'] == true,
+      message: json['message']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+    );
   }
 }

@@ -6,6 +6,7 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
+import 'package:pi_iv_time3/features/student/dashboard/presentation/widgets/student_dashboard_list_view.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_ava_cockpit_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava_evaluations_grades_tab.dart';
@@ -489,6 +490,105 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: 'Aba $index');
       }
+    });
+
+    testWidgets('Renderiza StudentDashboardListView com blocos da timeline e Sir Nicolau único', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final timeline = StudentTimelineResponse(
+        generatedAt: '2026-09-20T12:00:00.000Z',
+        blocks: [
+          const StudentTimelineBlock(
+            type: 'day',
+            label: 'Quinta-feira, 17 de setembro',
+            items: [
+              StudentTimelineItem(
+                id: 'asg-1',
+                kind: 'assignment',
+                title: 'Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional',
+                subtitle: 'Banco de Dados II • Profª. Dra. Eliane Ramos',
+                completed: true,
+                trailingType: 'text',
+                trailingText: 'Concluído',
+              ),
+            ],
+          ),
+          const StudentTimelineBlock(
+            type: 'day',
+            label: 'Hoje, 20 de setembro',
+            items: [
+              StudentTimelineItem(
+                id: 'asg-2',
+                kind: 'assignment',
+                title: 'Atividade Prática 03: Implementação de API REST',
+                subtitle: 'Engenharia de Software • Envio pelo AVA até 23:59',
+                completed: false,
+                trailingType: 'deadline',
+                trailingText: 'até 23:59',
+              ),
+            ],
+          ),
+          const StudentTimelineBlock(
+            type: 'gap',
+            label: 'setembro 22 a dezembro 12',
+            mascot: true,
+            message: 'Nada planejado ainda',
+          ),
+          const StudentTimelineBlock(
+            type: 'milestone',
+            label: 'domingo, 13 de dezembro',
+            description: 'Término das avaliações semestrais',
+          ),
+          const StudentTimelineBlock(
+            type: 'milestone',
+            label: 'fevereiro 2027',
+            description: 'Início das aulas do próximo período letivo',
+          ),
+        ],
+      );
+
+      final dummyDashboard = StudentDashboardSnapshot(
+        studentInfo: const {'name': 'Aluno Teste'},
+        stats: const {'completedHoursSemester': 20, 'totalHoursSemester': 80},
+        recordSummary: const {},
+        todayClass: null,
+        freeSchedule: null,
+        disciplines: const [],
+        deliveries: const [],
+        events: const [],
+        messages: const [],
+        personalNotes: const {},
+        protocols: const [],
+        forumTopics: const [],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StudentDashboardListView(
+              dashboard: dummyDashboard,
+              timeline: timeline,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Quinta-feira, 17 de setembro'), findsOneWidget);
+      expect(find.text('Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional'), findsOneWidget);
+      expect(find.text('Hoje, 20 de setembro'), findsOneWidget);
+      expect(find.text('Atividade Prática 03: Implementação de API REST'), findsOneWidget);
+      expect(find.text('até 23:59'), findsOneWidget);
+      expect(find.text('setembro 22 a dezembro 12'), findsOneWidget);
+      expect(find.text('Nada planejado ainda'), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.text('domingo, 13 de dezembro'), findsOneWidget);
+      expect(find.text('Término das avaliações semestrais'), findsOneWidget);
+      expect(find.text('fevereiro 2027'), findsOneWidget);
+      expect(find.text('Início das aulas do próximo período letivo'), findsOneWidget);
     });
   });
 }

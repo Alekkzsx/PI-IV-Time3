@@ -73,7 +73,10 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     }
 
     if (!_controller.isGridView) {
-      return StudentDashboardListView(dashboard: dashboard);
+      return StudentDashboardListView(
+        dashboard: dashboard,
+        timeline: _controller.timeline,
+      );
     }
 
     final isDesktop = MediaQuery.of(context).size.width >= 1024;
@@ -171,35 +174,35 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     final cr = (stats['cr'] as num?)?.toDouble() ?? 0;
     final cards = [
       _buildKpiCard(
-        'Disciplinas',
-        '${stats['activeDisciplines'] ?? 0}',
+        'DISCIPLINAS',
+        '${stats['activeDisciplines'] ?? 0}'.padLeft(2, '0'),
         'Ativas no Semestre',
         'Frequência Média',
         '${averageAttendance.toStringAsFixed(1)}%',
         averageAttendance / 100,
       ),
       _buildKpiCard(
-        'Entregas Pendentes',
-        '${pending.length}',
-        'No AVA',
+        'ENTREGAS PENDENTES',
+        '${pending.length}'.padLeft(2, '0'),
+        'Cadastradas',
         'Próximo Vencimento',
         nextDue,
-        pending.isEmpty ? 1 : 0.35,
+        pending.isEmpty ? 1 : 0.45,
       ),
       _buildKpiCard(
-        'Coeficiente de Rendimento (CR)',
+        'COEFICIENTE DE RENDIMENTO (CR)',
         cr.toStringAsFixed(1),
         '/10.0',
         'Situação Acadêmica',
-        stats['academicStatus'] as String? ?? 'Sem situação',
+        stats['academicStatus'] as String? ?? 'Regular',
         cr / 10,
       ),
       _buildKpiCard(
-        'Carga Horária do Semestre',
+        'CARGA HORÁRIA DO SEMESTRE',
         '${completedHours}h',
-        '/ ${totalHours}h',
-        'Progresso',
-        '${(hoursProgress * 100).round()}%',
+        '/ ${totalHours > 0 ? totalHours : 180}h',
+        'Progresso Total',
+        '${(hoursProgress * 100).toStringAsFixed(1)}%',
         hoursProgress,
       ),
     ];

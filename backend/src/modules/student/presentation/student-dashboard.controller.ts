@@ -36,6 +36,12 @@ export function createStudentDashboardRouter(database: Db, jwtSecret: string): R
     response.json(data);
   });
 
+  router.get("/timeline", async (request, response) => {
+    const customNow = typeof request.query.now === "string" ? new Date(request.query.now) : undefined;
+    const data = await service.getTimeline(response.locals.userId, customNow);
+    response.json(data);
+  });
+
   router.get("/disciplines", async (_request, response) => {
     const data = await service.getStudentDisciplines(response.locals.userId, response.locals.user);
     response.json(data);

@@ -155,6 +155,7 @@ export async function seedEcosystem(
   const mainTeacher = ensuredUsers.get("docente.agmrm")!;
   const stMariana = ensuredUsers.get("202610401")!;
   const stLucas = ensuredUsers.get("202610402")!;
+  const stTest = ensuredUsers.get("aluno.test")!;
 
   // 2. Curso principal Engenharia de Software
   const courseMain = await upsertOnInsert(
@@ -259,6 +260,62 @@ export async function seedEcosystem(
         },
       ],
     },
+    {
+      code: "BD2-2026-4N",
+      subjectName: "Estudos de Banco de Dados II",
+      courseCode: courseMain.code,
+      courseName: courseMain.name,
+      professor: mainTeacher,
+      semester: "2026/2 - 4º Semestre",
+      shift: "Noturno",
+      schedule: "Terças-feiras, 19:00 - 22:30",
+      location: "Lab. 201 / Sala Síncrona",
+      totalHours: 80,
+      completedHours: 60,
+      syllabusUnits: [],
+    },
+    {
+      code: "FIS-2026-4N",
+      subjectName: "Filosofia, Informação e Sociedade",
+      courseCode: courseMain.code,
+      courseName: courseMain.name,
+      professor: mainTeacher,
+      semester: "2026/2 - 4º Semestre",
+      shift: "Noturno",
+      schedule: "Quintas-feiras, 19:00 - 22:30",
+      location: "Sala 105",
+      totalHours: 60,
+      completedHours: 50,
+      syllabusUnits: [],
+    },
+    {
+      code: "FSO-2026-4N",
+      subjectName: "Fundamentos de Sistemas Operacionais",
+      courseCode: courseMain.code,
+      courseName: courseMain.name,
+      professor: mainTeacher,
+      semester: "2026/2 - 4º Semestre",
+      shift: "Noturno",
+      schedule: "Sextas-feiras, 19:00 - 22:30",
+      location: "Lab. 102",
+      totalHours: 80,
+      completedHours: 43,
+      syllabusUnits: [],
+    },
+    {
+      code: "MAT-2026-4N",
+      subjectName: "Cálculo Diferencial e Integral",
+      courseCode: courseMain.code,
+      courseName: courseMain.name,
+      professor: mainTeacher,
+      semester: "2026/2 - 4º Semestre",
+      shift: "Noturno",
+      schedule: "Quartas-feiras, 19:00 - 22:30",
+      location: "Sala 204",
+      totalHours: 80,
+      completedHours: 40,
+      syllabusUnits: [],
+    },
   ];
 
   for (const clsSpec of classesToEnsure) {
@@ -303,6 +360,7 @@ export async function seedEcosystem(
     );
 
     const studentsForClass = [stMariana, stLucas];
+    if (stTest) studentsForClass.push(stTest);
     const demoStudent1 = ensuredUsers.get("aluno.demo1");
     if (demoStudent1) studentsForClass.push(demoStudent1);
 
@@ -400,6 +458,7 @@ export async function seedEcosystem(
         contentBase64: Buffer.from(guiaContent, "utf8").toString("base64"),
         uploadedBy: String(clsSpec.professor._id),
         uploadedByName: clsSpec.professor.displayName,
+        isTimelineItem: false,
         createdAt: now,
         seedTag: SEED_TAG,
       },
@@ -413,47 +472,36 @@ export async function seedEcosystem(
         classCode: clsSpec.code,
         title:
           clsSpec.code === "PI4-2026-4N"
-            ? "Entrega Final PI-IV — Integração Full-Stack e Banco Real"
-            : "Estudo Dirigido — Segurança JWT, RBAC e Escalabilidade",
+            ? "Diagrama de Classes e Sequência"
+            : clsSpec.code === "BD2-2026-4N"
+              ? "Modelagem Relacional e Normalização"
+              : clsSpec.code === "FIS-2026-4N"
+                ? "Fórum Temático: Ética na Inteligência Artificial"
+                : "Gerenciamento de Memória Virtual",
         description:
           "Submeta o relatório técnico ou pacote de evidências da entrega. O sistema gerará protocolo institucional e hash SHA-256.",
-        stage: "N2",
-        dueDate: new Date("2026-12-10T23:59:00.000Z"),
-        dueDateFormatted: "10/12/2026 às 23:59",
-        modality: "Em Equipe / Individual",
+        stage: "N1",
+        dueDate: new Date(Date.now() + 86400000 * 2),
+        dueDateFormatted: "20/09 às 23:59",
+        modality: "Individual",
         allowLateWithPenalty: true,
-        weight: 6.0,
+        weight: 4.0,
+        isTimelineItem: false,
         rubricCriteria: [
           {
-            id: "crit-arq",
-            title: "Qualidade Arquitetural e Camadas",
-            maxPoints: 4.0,
-            description: "Organização modular limpa no frontend, backend e servidor.",
+            id: "crit-1",
+            title: "Qualidade Técnica",
+            maxPoints: 5.0,
+            description: "Aderência às especificações do projeto.",
           },
           {
-            id: "crit-bd",
-            title: "Persistência Real em MongoDB",
-            maxPoints: 3.5,
-            description: "Ausência total de mocks e consistência transacional.",
-          },
-          {
-            id: "crit-sec",
-            title: "Autenticação, Sessão e Validação",
-            maxPoints: 2.5,
-            description: "Proteção JWT, RBAC e integridade de protocolo SHA-256.",
+            id: "crit-2",
+            title: "Conformidade e Protocolo",
+            maxPoints: 5.0,
+            description: "Submissão com integridade e pontualidade.",
           },
         ],
-        doubts: [
-          {
-            id: `dbt-${clsSpec.code.toLowerCase()}-1`,
-            studentId: String(stMariana._id),
-            studentName: stMariana.displayName,
-            question: "Professor, podemos anexar o link do repositório junto ao relatório técnico?",
-            askedAt: new Date("2026-11-01T19:30:00.000Z"),
-            reply: "Sim, Mariana! Incluam o link nos comentários ou campo Git da submissão.",
-            repliedAt: new Date("2026-11-01T20:05:00.000Z"),
-          },
-        ],
+        doubts: [],
         createdBy: String(clsSpec.professor._id),
         createdAt: now,
         updatedAt: now,
@@ -471,6 +519,7 @@ export async function seedEcosystem(
         body: "Utilizem este tópico oficial para discutir decisões técnicas do semestre e compartilhar referências.",
         category: "Arquitetura",
         isPinned: true,
+        isTimelineItem: false,
         authorId: String(clsSpec.professor._id),
         authorName: clsSpec.professor.displayName,
         authorRole: "docente",
@@ -620,41 +669,235 @@ export async function seedEcosystem(
   // 5. Marcos do Calendário Institucional
   const calendarMilestones = [
     {
-      seedKey: "cal-eco-1",
-      title: "Prazo Limite — Entrega Final Projeto Integrador IV",
-      description: "Data regimental máxima para envio dos artefatos com protocolo digital.",
-      startsAt: new Date("2026-12-10T23:59:00.000Z"),
-      type: "deadline",
-      scope: "Institucional",
-      classCode: "PI4-2026-4N",
-    },
-    {
-      seedKey: "cal-eco-2",
-      title: "Banca Examinadora de Engenharia de Software (2026/2)",
-      description: "Apresentação síncrona e presencial dos projetos integradores.",
-      startsAt: new Date("2026-12-14T22:00:00.000Z"),
-      type: "exam",
-      scope: "Curso",
-      classCode: "PI4-2026-4N",
-    },
-    {
-      seedKey: "cal-eco-3",
-      title: "Fechamento e Homologação Regimental de Pautas 2026/2",
-      description: "Data limite para chancela eletrônica dos diários e notas pelos docentes.",
-      startsAt: new Date("2026-12-18T23:59:00.000Z"),
+      seedKey: "cal-eco-closing-1",
+      title: "Término das avaliações semestrais",
+      description: "Término das avaliações semestrais",
+      startsAt: new Date("2026-12-13T23:59:00.000Z"),
+      customDateLabel: "domingo, 13 de dezembro",
       type: "closing",
       scope: "Institucional",
+      isMilestone: true,
+    },
+    {
+      seedKey: "cal-eco-vacation-1",
+      title: "Férias e encerramento de notas",
+      description: "Férias e encerramento de notas",
+      startsAt: new Date("2026-12-14T00:00:00.000Z"),
+      endsAt: new Date("2027-01-10T23:59:00.000Z"),
+      customDateLabel: "segunda-feira, 14 de dezembro a janeiro 10",
+      type: "closing",
+      scope: "Institucional",
+      isMilestone: true,
+    },
+    {
+      seedKey: "cal-eco-next-semester-1",
+      title: "Início das aulas do próximo período letivo",
+      description: "Início das aulas do próximo período letivo",
+      startsAt: new Date("2027-02-01T08:00:00.000Z"),
+      customDateLabel: "fevereiro 2027",
+      type: "closing",
+      scope: "Institucional",
+      isMilestone: true,
     },
   ];
 
   for (const ev of calendarMilestones) {
-    await upsertOnInsert("academic_calendar", { seedKey: ev.seedKey }, {
-      ...ev,
-      createdBy: String(adminActor._id),
-      createdAt: now,
-      seedTag: SEED_TAG,
-    });
+    await database.collection("academic_calendar").updateOne(
+      { seedKey: ev.seedKey },
+      {
+        $set: {
+          ...ev,
+          createdBy: String(adminActor._id),
+          createdAt: now,
+          seedTag: SEED_TAG,
+        },
+      },
+      { upsert: true },
+    );
   }
+
+  // -------------------------------------------------------------
+  // SEÇÃO DEDICADA: TIMELINE DO ALUNO (Idêntica ao Mockup Oficial)
+  // -------------------------------------------------------------
+  // Desativa itens genéricos e remove marcos que conflitem com o hiato de 83 dias da linha do tempo
+  await database.collection("academic_assignments").updateMany(
+    { seedKey: { $regex: /^assign-1-/ } },
+    { $set: { isTimelineItem: false } },
+  );
+  await database.collection("academic_assignments").deleteMany({
+    seedKey: { $in: ["assign-eco-pi4-2026-4n", "assign-eco-bd2-2026-4n", "assign-eco-fis-2026-4n", "assign-eco-fso-2026-4n"] },
+  });
+  await database.collection("academic_forum_topics").updateMany(
+    { seedKey: { $regex: /^forum-1-/ } },
+    { $set: { isTimelineItem: false } },
+  );
+  await database.collection("academic_materials").updateMany(
+    { seedKey: { $regex: /^mat-1-/ } },
+    { $set: { isTimelineItem: false } },
+  );
+  await database.collection("academic_calendar").deleteMany({
+    seedKey: { $in: ["cal-eco-1", "cal-eco-2", "cal-eco-3"] },
+  });
+
+  // 1. Quinta-feira, 17/09: Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional (BD2)
+  const asgTimeline1 = await database.collection("academic_assignments").findOneAndUpdate(
+    { seedKey: "asg-timeline-bd2" },
+    {
+      $set: {
+        seedKey: "asg-timeline-bd2",
+        classCode: "BD2-2026-4N",
+        title: "Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional",
+        customSubtitle: "Banco de Dados II • Profª. Dra. Eliane Ramos",
+        description: "Envio da modelagem conceitual e lógica do banco de dados relacional.",
+        dueDate: new Date("2026-09-17T23:59:00.000Z"),
+        stage: "N1",
+        modality: "Individual",
+        weight: 10.0,
+        createdAt: new Date("2026-09-10T10:00:00.000Z"),
+        updatedAt: new Date("2026-09-17T23:59:00.000Z"),
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true, returnDocument: "after" },
+  );
+
+  // Submissão avaliada para aluno.test (gera status "Concluído" com checkbox preenchido)
+  if (stTest && asgTimeline1) {
+    await database.collection("academic_submissions").updateOne(
+      { assignmentId: String(asgTimeline1._id), studentId: String(stTest._id) },
+      {
+        $set: {
+          assignmentId: String(asgTimeline1._id),
+          studentId: String(stTest._id),
+          studentIdentity: stTest.identity,
+          studentName: stTest.displayName,
+          classCode: "BD2-2026-4N",
+          status: "avaliada",
+          grade: 10.0,
+          submittedAt: new Date("2026-09-17T21:40:00.000Z"),
+          updatedAt: new Date("2026-09-17T22:00:00.000Z"),
+          seedTag: SEED_TAG,
+        },
+      },
+      { upsert: true },
+    );
+  }
+
+  // 2. Sexta-feira, 18/09: Fórum Avaliativo: Impactos éticos da IA em Sistemas Críticos (FIS, 3 participações)
+  await database.collection("academic_forum_topics").updateOne(
+    { seedKey: "forum-timeline-fis" },
+    {
+      $set: {
+        seedKey: "forum-timeline-fis",
+        classCode: "FIS-2026-4N",
+        title: "Fórum Avaliativo: Impactos éticos da IA em Sistemas Críticos",
+        customSubtitle: "Ética e Legislação • Prof. Marcos Vinícius",
+        body: "Debatam as implicações éticas e de conformidade legal de agentes autônomos em missões críticas.",
+        createdAt: new Date("2026-09-18T10:00:00.000Z"),
+        updatedAt: new Date("2026-09-18T18:00:00.000Z"),
+        replies: [
+          { id: "rep-1", authorName: "Lucas Henrique", body: "Relevante considerar responsabilidade civil.", createdAt: new Date("2026-09-18T11:00:00Z") },
+          { id: "rep-2", authorName: "Mariana Costa", body: "A governança e rastreabilidade são fundamentais.", createdAt: new Date("2026-09-18T14:30:00Z") },
+          { id: "rep-3", authorName: "Carlos Eduardo", body: "O marco civil e a LGPD estabelecem limites claros.", createdAt: new Date("2026-09-18T16:15:00Z") },
+        ],
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
+
+  // 3. Ontem, 19/09: Material Complementar: Estudo de Caso de Microsserviços (ARQ, Concluído)
+  await database.collection("academic_materials").updateOne(
+    { seedKey: "mat-timeline-arq" },
+    {
+      $set: {
+        seedKey: "mat-timeline-arq",
+        classCode: "ARQ-2026-4N",
+        title: "Material Complementar: Estudo de Caso de Microsserviços",
+        customSubtitle: "Arquitetura de Software • Prof. Carlos Eduardo",
+        unitAssociated: "Unidade 1",
+        fileName: "estudo-de-caso-microsservicos.pdf",
+        mimeType: "application/pdf",
+        type: "PDF",
+        size: "2.4 MB",
+        isTimelineItem: true,
+        timelineDate: new Date("2026-09-19T10:00:00.000Z"),
+        completed: true,
+        customTrailingText: "Concluído",
+        createdAt: new Date("2026-09-19T10:00:00.000Z"),
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
+
+  // 4. Hoje, 20/09: Atividade Prática 03: Implementação de API REST (PI4, até 23:59)
+  await database.collection("academic_assignments").updateOne(
+    { seedKey: "asg-timeline-pi4" },
+    {
+      $set: {
+        seedKey: "asg-timeline-pi4",
+        classCode: "PI4-2026-4N",
+        title: "Atividade Prática 03: Implementação de API REST",
+        customSubtitle: "Engenharia de Software • Envio pelo AVA até 23:59",
+        description: "Envio do repositório Git com os endpoints da API REST implementados e testados.",
+        dueDate: new Date("2026-09-20T10:00:00.000Z"),
+        dueHour: "23:59",
+        stage: "N1",
+        modality: "Individual",
+        weight: 10.0,
+        createdAt: new Date("2026-09-15T08:00:00.000Z"),
+        updatedAt: new Date("2026-09-20T08:00:00.000Z"),
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
+
+  // 5. Hoje, 20/09: Fórum Temático: Desafios da Concorrência em Sistemas Distribuídos (FSO, Tópico aberto)
+  await database.collection("academic_forum_topics").updateOne(
+    { seedKey: "forum-timeline-fso" },
+    {
+      $set: {
+        seedKey: "forum-timeline-fso",
+        classCode: "FSO-2026-4N",
+        title: "Fórum Temático: Desafios da Concorrência em Sistemas Distribuídos",
+        customSubtitle: "Sistemas Distribuídos • 12 novas respostas no tópico",
+        body: "Compartilhem estratégias de resolução de concorrência com locks distribuídos e bancos NoSQL.",
+        createdAt: new Date("2026-09-20T14:00:00.000Z"),
+        updatedAt: new Date("2026-09-20T17:00:00.000Z"),
+        customTrailingText: "Tópico aberto",
+        customTrailingType: "text",
+        replies: new Array(12).fill(null).map((_, idx) => ({
+          id: `rep-fso-${idx + 1}`,
+          authorName: `Aluno ${idx + 1}`,
+          body: `Discussão técnica número ${idx + 1}`,
+          createdAt: new Date("2026-09-20T15:00:00Z"),
+        })),
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
+
+  // 6. Amanhã, 21/09: Fórum de Dúvidas: Preparação para a Avaliação A1 (MAT, até 18:00)
+  await database.collection("academic_forum_topics").updateOne(
+    { seedKey: "forum-timeline-mat" },
+    {
+      $set: {
+        seedKey: "forum-timeline-mat",
+        classCode: "MAT-2026-4N",
+        title: "Fórum de Dúvidas: Preparação para a Avaliação A1",
+        customSubtitle: "Cálculo Diferencial e Integral • Profª. Sandra Helena",
+        body: "Envie suas dúvidas referentes à lista de exercícios preparatória para a prova A1.",
+        createdAt: new Date("2026-09-21T09:00:00.000Z"),
+        dueHour: "18:00",
+        replies: [],
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
 
   // 6. Protocolo acadêmico de exemplo na Secretaria
   await upsertOnInsert(

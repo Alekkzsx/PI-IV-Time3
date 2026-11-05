@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -138,7 +138,7 @@ class StudentDisciplinesGridSection extends StatelessWidget {
               color: const Color(0xFF71717A),
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 24),
           _progressRow(d.progress),
         ],
       ),
@@ -251,7 +251,7 @@ class StudentDisciplinesGridSection extends StatelessWidget {
             value: p.clamp(0.0, 1.0),
             minHeight: 3.5,
             backgroundColor: const Color(0xFFF4F4F5),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD4D4D8)),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF18181B)),
           ),
         ),
       ],

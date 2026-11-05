@@ -17,6 +17,7 @@ import {
 } from "./student-dashboard.mapper.js";
 import { StudentDashboardRepository } from "./student-dashboard.repository.js";
 import { StudentPortalOperationsService } from "./student-portal-operations.service.js";
+import { buildStudentTimeline } from "./timeline/student-timeline.builder.js";
 
 export class StudentDashboardService {
   private readonly repository: StudentDashboardRepository;
@@ -161,6 +162,26 @@ export class StudentDashboardService {
   async getStudentBoletim(studentId: string, user: Document) {
     const boot = await this.getBootstrap(studentId, user);
     return boot.historicalBoletim;
+  }
+
+  async getTimeline(studentId: string, customNow?: Date) {
+    const data = await this.repository.load(studentId);
+    const now =
+      customNow ??
+      (process.env.TIMELINE_SIMULATED_NOW
+        ? new Date(process.env.TIMELINE_SIMULATED_NOW)
+        : new Date("2026-09-20T12:00:00.000Z"));
+    return buildStudentTimeline({
+      now,
+      studentId,
+      assignments: data.assignments,
+      submissions: data.submissions,
+      forumTopics: data.forumTopics,
+      materials: data.materials,
+      personalReminders: data.personalReminders,
+      calendarEvents: data.calendarEvents,
+      classes: data.classes,
+    });
   }
 
   async issueEnrollmentDeclaration(studentId: string, user: Document) {
