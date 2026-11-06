@@ -62,6 +62,16 @@ export async function seedEcosystem(
       campus: "Unidade Sede",
     },
     {
+      identity: "helena.bittencourt",
+      normalizedIdentity: "helena.bittencourt",
+      email: "helena.bittencourt@agmrm.edu.br",
+      normalizedEmail: "helena.bittencourt@agmrm.edu.br",
+      displayName: "Profa. Dra. Helena Bittencourt",
+      profile: "docente",
+      departmentOrCourse: "Engenharia de Software",
+      campus: "Unidade Sede",
+    },
+    {
       identity: "202610401",
       normalizedIdentity: "202610401",
       email: "mariana.ferreira@aluno.agmrm.edu.br",
@@ -153,6 +163,7 @@ export async function seedEcosystem(
 
   const adminActor = ensuredUsers.get("coord.agmrm")!;
   const mainTeacher = ensuredUsers.get("docente.agmrm")!;
+  const profHelena = ensuredUsers.get("helena.bittencourt") ?? mainTeacher;
   const stMariana = ensuredUsers.get("202610401")!;
   const stLucas = ensuredUsers.get("202610402")!;
   const stTest = ensuredUsers.get("aluno.test")!;
@@ -185,6 +196,182 @@ export async function seedEcosystem(
 
   // 3. Turmas reais para o docente principal
   const classesToEnsure = [
+    {
+      code: "218131 - APS-II",
+      subjectName: "Análise e Projeto de Sistemas II",
+      courseCode: courseMain.code,
+      courseName: courseMain.name,
+      professor: profHelena,
+      semester: "2026/2",
+      shift: "Noturno",
+      schedule: "Noturno (19:10 - 22:40)",
+      location: "Laboratório de Informática 04 - Bloco C",
+      totalHours: 80,
+      credits: 4,
+      completedHours: 54,
+      officeHours: "Terças-feiras • 18:00 às 19:00",
+      officeLocation: "Sala dos Professores (Bloco C) ou Sala Virtual Teams",
+      syllabusUnits: [
+        {
+          id: "unit-aps-1",
+          unitNumber: 1,
+          tag: "UNIDADE 1 • SEMANAS 1 A 4 • 20 HORAS LETIVAS",
+          title: "Unidade 1: Engenharia de Requisitos & Processos Ágeis de Software",
+          topics: ["Processo Unificado", "Elicitação de Requisitos", "Casos de Uso"],
+          hours: 20,
+          completedClasses: 10,
+          totalClasses: 10,
+          items: [
+            {
+              id: "item-aps-1-1",
+              type: "pdf",
+              title: "Plano de Ensino & Contrato Pedagógico da Disciplina",
+              subtitle: "Pdf • 420 KB",
+              actionType: "access",
+              fileName: "plano-de-ensino-aps2.pdf",
+              fileSize: "420 KB",
+            },
+            {
+              id: "item-aps-1-2",
+              type: "pdf",
+              title: "Slides da Aula 01: Processo Unificado e Engenharia de Software Moderna",
+              subtitle: "Pdf • 3.8 MB",
+              actionType: "access",
+              fileName: "slides-aula-01-processo-unificado.pdf",
+              fileSize: "3.8 MB",
+            },
+            {
+              id: "item-aps-1-3",
+              type: "video",
+              title: "Gravação da Aula Síncrona: Elicitação de Requisitos e Casos de Uso",
+              subtitle: "Vídeo • 1h 35min",
+              actionType: "access",
+            },
+            {
+              id: "item-aps-1-4",
+              type: "task",
+              title: "Exercício 01: Mapeamento de Requisitos e Especificação de Casos de Uso",
+              subtitle: "Tarefa • Prazo: 05 Set às 23:59",
+              actionType: "delivery",
+              assignmentKey: "assign-aps-ex1",
+            },
+          ],
+        },
+        {
+          id: "unit-aps-2",
+          unitNumber: 2,
+          tag: "UNIDADE 2 • SEMANAS 5 A 9 • 24 HORAS LETIVAS • EM ANDAMENTO",
+          title: "Unidade 2: Modelagem Orientada a Objetos com Notação UML 2.5",
+          topics: ["Diagrama de Classes", "Template Oficial", "Diagrama de Sequência"],
+          hours: 24,
+          completedClasses: 12,
+          totalClasses: 12,
+          status: "EM ANDAMENTO",
+          items: [
+            {
+              id: "item-aps-2-1",
+              type: "pdf",
+              title: "Slides da Aula 03: Diagrama de Classes, Multiplicidades e Visibilidade",
+              subtitle: "Pdf • 4.2 MB",
+              actionType: "access",
+              fileName: "slides-aula-03-classes.pdf",
+              fileSize: "4.2 MB",
+            },
+            {
+              id: "item-aps-2-2",
+              type: "archive",
+              title: "Template Oficial de Diagramação (.drawio e .uml)",
+              subtitle: "Arquivo • 180 KB",
+              actionType: "access",
+              fileName: "template-diagramacao-oficial.drawio",
+              fileSize: "180 KB",
+            },
+            {
+              id: "item-aps-2-3",
+              type: "pdf",
+              title: "Slides da Aula 04: Diagrama de Sequência e Interações Temporais",
+              subtitle: "Pdf • 2.9 MB",
+              actionType: "access",
+              fileName: "slides-aula-04-sequencia.pdf",
+              fileSize: "2.9 MB",
+            },
+            {
+              id: "item-aps-2-4",
+              type: "task",
+              title: "Entrega da Sprint 1: Diagrama de Classes e Sequência do AVA",
+              subtitle: "Tarefa • Prazo: Hoje às 23:59",
+              actionType: "delivery",
+              assignmentKey: "assign-aps-sprint1",
+            },
+          ],
+        },
+        {
+          id: "unit-aps-3",
+          unitNumber: 3,
+          tag: "UNIDADE 3 • SEMANAS 10 A 14 • 24 HORAS LETIVAS • PRÓXIMA ETAPA",
+          title: "Unidade 3: Padrões de Projeto (Design Patterns GRASP & GoF)",
+          topics: ["Padrões GRASP", "Padrões GoF em TypeScript", "Refatoração"],
+          hours: 24,
+          completedClasses: 0,
+          totalClasses: 12,
+          status: "PRÓXIMA ETAPA",
+          items: [
+            {
+              id: "item-aps-3-1",
+              type: "reading",
+              title: "Material Teórico: Padrões de Atribuição de Responsabilidade (GRASP)",
+              subtitle: "Leitura • 15 páginas",
+              actionType: "access",
+            },
+            {
+              id: "item-aps-3-2",
+              type: "code",
+              title: "Repositório de Exemplos: Padrões GoF Criacionais e Estruturais em TypeScript",
+              subtitle: "Código • GitHub Repo",
+              actionType: "access",
+            },
+            {
+              id: "item-aps-3-3",
+              type: "task",
+              title: "Atividade Prática: Refatoração Orientada a Padrões de Projeto",
+              subtitle: "Tarefa • Prazo: 18 Out às 23:59",
+              actionType: "delivery",
+              assignmentKey: "assign-aps-refactor",
+            },
+          ],
+        },
+        {
+          id: "unit-aps-4",
+          unitNumber: 4,
+          tag: "UNIDADE 4 • SEMANAS 15 A 18 • 12 HORAS LETIVAS • FECHAMENTO",
+          title: "Unidade 4: Arquitetura Limpa, Microsserviços e Projeto Integrador",
+          topics: ["Diretrizes da Banca", "Submissão Final"],
+          hours: 12,
+          completedClasses: 0,
+          totalClasses: 6,
+          status: "FECHAMENTO",
+          items: [
+            {
+              id: "item-aps-4-1",
+              type: "pdf",
+              title: "Diretrizes Oficiais da Banca do Projeto Integrador",
+              subtitle: "Pdf • 510 KB",
+              actionType: "access",
+              fileName: "diretrizes-banca-pi.pdf",
+              fileSize: "510 KB",
+            },
+            {
+              id: "item-aps-4-2",
+              type: "task",
+              title: "Submissão Final: Relatório Técnico da Arquitetura e Código-Fonte",
+              subtitle: "Tarefa • Prazo: 25 Nov às 23:59",
+              actionType: "delivery",
+              assignmentKey: "assign-aps-final",
+            },
+          ],
+        },
+      ],
+    },
     {
       code: "PI4-2026-4N",
       subjectName: "Projeto Integrador IV - Sistemas Integrados",
@@ -937,6 +1124,150 @@ export async function seedEcosystem(
       dpoEmail: "dpo@agmrm.edu.br",
       updatedAt: now,
     },
+  );
+
+  // -------------------------------------------------------------
+  // SEÇÃO DEDICADA: TAREFAS E ENTREGAS DO AVA — 218131 - APS-II
+  // -------------------------------------------------------------
+  // Remove atribuições genéricas de 218131 - APS-II para manter exatamente as 4 do AVA oficial
+  await database.collection("academic_assignments").deleteMany({
+    classCode: "218131 - APS-II",
+    seedKey: { $regex: /^assign-1-/ },
+  });
+
+  // 1. MÓDULO 2 • MODELAGEM UML — Pendente
+  await database.collection("academic_assignments").updateOne(
+    { seedKey: "assign-aps-diagrama-uml" },
+    {
+      $set: {
+        seedKey: "assign-aps-diagrama-uml",
+        classCode: "218131 - APS-II",
+        moduleTag: "MÓDULO 2 • MODELAGEM UML",
+        title: "Entrega do Diagrama de Casos de Uso e Especificação Suplementar",
+        description:
+          "Submeter o diagrama consolidado em formato PDF acompanhado da descrição textual dos fluxos principal, alternativos e de exceção.",
+        dueDate: new Date("2026-10-15T23:59:00.000Z"),
+        dueDateFormatted: "15/10/2026",
+        dueHour: "23:59",
+        weight: 2.0,
+        stage: "N1",
+        modality: "Individual",
+        allowLateWithPenalty: true,
+        createdBy: String(profHelena._id),
+        createdAt: now,
+        updatedAt: now,
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
+
+  // 2. MÓDULO 1 • FUNDAMENTOS DE ARQUITETURA — Avaliado (Nota 9.5)
+  const asgAps2 = await database.collection("academic_assignments").findOneAndUpdate(
+    { seedKey: "assign-aps-estudo-caso" },
+    {
+      $set: {
+        seedKey: "assign-aps-estudo-caso",
+        classCode: "218131 - APS-II",
+        moduleTag: "MÓDULO 1 • FUNDAMENTOS DE ARQUITETURA",
+        title: "Estudo de Caso 01: Arquitetura em Camadas vs Hexagonal",
+        description:
+          "Redigir síntese técnica de até 3 laudas demonstrando os trade-offs de acoplamento na arquitetura hexagonal.",
+        dueDate: new Date("2026-09-28T22:00:00.000Z"),
+        dueDateFormatted: "28/09/2026",
+        dueHour: "22:00",
+        weight: 1.5,
+        stage: "N1",
+        modality: "Individual",
+        allowLateWithPenalty: true,
+        createdBy: String(profHelena._id),
+        createdAt: now,
+        updatedAt: now,
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true, returnDocument: "after" },
+  );
+
+  if (asgAps2) {
+    const studentsWithSubmission = [stTest, stMariana].filter(Boolean);
+    for (const student of studentsWithSubmission) {
+      await database.collection("academic_submissions").updateOne(
+        { assignmentId: String(asgAps2._id), studentId: String(student._id) },
+        {
+          $set: {
+            assignmentId: String(asgAps2._id),
+            studentId: String(student._id),
+            studentIdentity: student.identity,
+            studentName: student.displayName,
+            classCode: "218131 - APS-II",
+            status: "avaliada",
+            grade: 9.5,
+            score: 9.5,
+            feedback:
+              "Excelente análise comparativa. Muito bem estruturada a segregação de portas e adaptadores.",
+            submittedAt: new Date("2026-09-28T20:15:00.000Z"),
+            updatedAt: new Date("2026-09-29T10:00:00.000Z"),
+            seedTag: SEED_TAG,
+          },
+        },
+        { upsert: true },
+      );
+    }
+  }
+
+  // 3. MÓDULO 3 • PERSISTÊNCIA E DOMÍNIO — Pendente
+  await database.collection("academic_assignments").updateOne(
+    { seedKey: "assign-aps-prototipo-orm" },
+    {
+      $set: {
+        seedKey: "assign-aps-prototipo-orm",
+        classCode: "218131 - APS-II",
+        moduleTag: "MÓDULO 3 • PERSISTÊNCIA E DOMÍNIO",
+        title: "Protótipo de Mapeamento Objeto-Relacional e Validação de Domínio",
+        description:
+          "Disponibilizar o repositório GitHub contendo as entidades mapeadas com validação de invariantes nos agregados.",
+        dueDate: new Date("2026-10-22T23:59:00.000Z"),
+        dueDateFormatted: "22/10/2026",
+        dueHour: "23:59",
+        weight: 2.5,
+        stage: "N2",
+        modality: "Individual",
+        allowLateWithPenalty: true,
+        createdBy: String(profHelena._id),
+        createdAt: now,
+        updatedAt: now,
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
+  );
+
+  // 4. MÓDULO 4 • ARQUITETURAS DISTRIBUÍDAS — Pendente
+  await database.collection("academic_assignments").updateOne(
+    { seedKey: "assign-aps-artigo-pesquisa" },
+    {
+      $set: {
+        seedKey: "assign-aps-artigo-pesquisa",
+        classCode: "218131 - APS-II",
+        moduleTag: "MÓDULO 4 • ARQUITETURAS DISTRIBUÍDAS",
+        title: "Artigo de Pesquisa: Microsserviços e Event-Driven Design",
+        description:
+          "Artigo em formato IEEE sobre resiliência em mensageria com Apache Kafka e RabbitMQ.",
+        dueDate: new Date("2026-11-05T23:59:00.000Z"),
+        dueDateFormatted: "05/11/2026",
+        dueHour: "23:59",
+        weight: 4.0,
+        stage: "N2",
+        modality: "Individual",
+        allowLateWithPenalty: true,
+        createdBy: String(profHelena._id),
+        createdAt: now,
+        updatedAt: now,
+        seedTag: SEED_TAG,
+      },
+    },
+    { upsert: true },
   );
 
   return summary;

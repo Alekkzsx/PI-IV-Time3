@@ -88,12 +88,13 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
         textTheme: theme.textTheme.apply(fontFamily: 'Plus Jakarta Sans'),
         colorScheme: theme.colorScheme.copyWith(
           primary: InstColors.ink,
-          surface: InstColors.surface,
+          surface: Colors.white,
         ),
       ),
       child: Container(
-        color: InstColors.stone,
+        color: Colors.white,
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -113,155 +114,138 @@ class _StudentAvaCockpitPageState extends State<StudentAvaCockpitPage> {
   Widget _buildBreadcrumbAndHeader() {
     final fullCode =
         _currentDiscipline.fullCode ?? '218131 - ${_currentDiscipline.code}';
+    final shift = _currentDiscipline.time.toLowerCase().contains('noturno') ||
+            _currentDiscipline.schedule.toLowerCase().contains('noturno')
+        ? 'Turno Noturno'
+        : 'Turno Diurno';
+    final semester = _currentDiscipline.semester.isNotEmpty
+        ? _currentDiscipline.semester
+        : '2026/2';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: InstColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: InstColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: InstColors.ink.withValues(alpha: 0.025),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Breadcrumb row
-          Row(
-            children: [
-              InkWell(
-                key: const Key('btn_voltar_minhas_disciplinas'),
-                onTap: widget.onBack,
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.arrow_back,
-                        size: 14,
-                        color: Color(0xFF71717A),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Minhas Disciplinas',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w500,
-                          color: const Color(0xFF71717A),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Breadcrumb row
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                InkWell(
+                  key: const Key('btn_voltar_minhas_disciplinas'),
+                  onTap: widget.onBack,
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.arrow_back,
+                          size: 14,
+                          color: Color(0xFF71717A),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'Minhas Disciplinas',
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w500,
+                            color: const Color(0xFF71717A),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '›',
-                style: jakarta(size: 13, color: const Color(0xFFA1A1AA)),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
+                Text(
+                  '›',
+                  style: jakarta(size: 13, color: const Color(0xFFA1A1AA)),
+                ),
+                Text(
                   fullCode,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: jakarta(
                     size: 13,
                     weight: FontWeight.w700,
                     color: const Color(0xFF18181B),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _buildDisciplineSwitcher(),
-          const SizedBox(height: 12),
-
-          // Título da disciplina
-          Text(
-            _currentDiscipline.name,
-            style: jakarta(
-              size: 24,
-              weight: FontWeight.w700,
-              color: const Color(0xFF18181B),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
+            if (_controller.disciplines.length > 1)
+              _buildDisciplineSwitcher(),
+          ],
+        ),
+        const SizedBox(height: 12),
 
-          // Subtítulo da disciplina
-          Text(
-            'Docente: ${_currentDiscipline.professor} • ${_currentDiscipline.time} • Semestre ${_currentDiscipline.semester}',
-            style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
+        // Título da disciplina
+        Text(
+          _currentDiscipline.name,
+          style: jakarta(
+            size: 26,
+            weight: FontWeight.w700,
+            color: const Color(0xFF18181B),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+
+        // Subtítulo da disciplina
+        Text(
+          'Docente Responsável: ${_currentDiscipline.professor} • $shift • Semestre $semester',
+          style: jakarta(size: 13, color: const Color(0xFF71717A)),
+        ),
+      ],
     );
   }
 
   Widget _buildDisciplineSwitcher() {
-    return SizedBox(
-      width: double.infinity,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Trocar disciplina:',
-              style: jakarta(
-                size: 11,
-                color: const Color(0xFF71717A),
-                weight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 8),
-            for (final d in _controller.disciplines) ...[
-              Padding(
-                padding: const EdgeInsets.only(right: 6.0),
-                child: InkWell(
-                  onTap: () => _switchDiscipline(d),
-                  borderRadius: BorderRadius.circular(4),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final d in _controller.disciplines)
+            Padding(
+              padding: const EdgeInsets.only(left: 6.0),
+              child: InkWell(
+                onTap: () => _switchDiscipline(d),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _currentDiscipline.code == d.code
+                        ? const Color(0xFF18181B)
+                        : const Color(0xFFF4F4F5),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
                       color: _currentDiscipline.code == d.code
                           ? const Color(0xFF18181B)
-                          : const Color(0xFFF4F4F5),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: _currentDiscipline.code == d.code
-                            ? const Color(0xFF18181B)
-                            : const Color(0xFFE5E7EB),
-                      ),
+                          : const Color(0xFFE5E7EB),
                     ),
-                    child: Text(
-                      d.code,
-                      style: jakarta(
-                        size: 10.5,
-                        weight: FontWeight.w600,
-                        color: _currentDiscipline.code == d.code
-                            ? Colors.white
-                            : const Color(0xFF52525B),
-                      ),
+                  ),
+                  child: Text(
+                    d.code,
+                    style: jakarta(
+                      size: 10.5,
+                      weight: FontWeight.w600,
+                      color: _currentDiscipline.code == d.code
+                          ? Colors.white
+                          : const Color(0xFF52525B),
                     ),
                   ),
                 ),
               ),
-            ],
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

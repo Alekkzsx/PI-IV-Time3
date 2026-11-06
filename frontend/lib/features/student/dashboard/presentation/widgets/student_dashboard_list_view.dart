@@ -220,31 +220,20 @@ class _StudentDashboardListViewState extends State<StudentDashboardListView> {
     );
   }
 
-  Widget _buildNicolauMascot(String message) {
+  Widget _buildNicolauMascot([String? message]) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            'images/SirNicolau.png',
-            width: 190,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Icon(
-              Icons.golf_course_rounded,
-              size: 64,
-              color: Color(0xFFA1A1AA),
-            ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1240),
+        child: Image.asset(
+          'images/SirNicolau.png',
+          width: double.infinity,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.golf_course_rounded,
+            size: 140,
+            color: Color(0xFFA1A1AA),
           ),
-          const SizedBox(height: 14),
-          Text(
-            message,
-            style: jakarta(
-              size: 13.5,
-              weight: FontWeight.w700,
-              color: const Color(0xFF18181B),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

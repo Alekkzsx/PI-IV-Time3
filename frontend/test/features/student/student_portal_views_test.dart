@@ -583,7 +583,7 @@ void main() {
       expect(find.text('Atividade Prática 03: Implementação de API REST'), findsOneWidget);
       expect(find.text('até 23:59'), findsOneWidget);
       expect(find.text('setembro 22 a dezembro 12'), findsOneWidget);
-      expect(find.text('Nada planejado ainda'), findsOneWidget);
+      expect(find.text('Nada planejado ainda'), findsNothing);
       expect(find.byType(Image), findsOneWidget);
       expect(find.text('domingo, 13 de dezembro'), findsOneWidget);
       expect(find.text('Término das avaliações semestrais'), findsOneWidget);

@@ -85,7 +85,9 @@ export function mapStudentDisciplines(input: {
     return {
       code,
       roomCode,
-      fullCode: `${code} - ${classroom.subjectName ?? classroom.courseName ?? code}`,
+      fullCode: classroom.fullCode
+        ? String(classroom.fullCode)
+        : (code.includes("-") ? code : `${code} - ${classroom.subjectName ?? classroom.courseName ?? code}`),
       name: String(classroom.subjectName ?? classroom.courseName ?? code),
       professor: professorName,
       schedule: scheduleDays ?? scheduleString,
@@ -96,6 +98,9 @@ export function mapStudentDisciplines(input: {
       progress: totalHours > 0 ? Number(Math.min(1, completedHours / totalHours).toFixed(2)) : 0,
       completedHours,
       totalHours,
+      credits: Number(classroom.credits ?? 4),
+      officeHours: classroom.officeHours ? String(classroom.officeHours) : "Terças-feiras • 18:00 às 19:00",
+      officeLocation: classroom.officeLocation ? String(classroom.officeLocation) : "Sala dos Professores (Bloco C) ou Sala Virtual Teams",
       absences,
       maxAbsenceHours,
       attendancePercentage,
@@ -144,6 +149,8 @@ export function mapStudentDeliveries(
         ? "Avaliada"
         : "Em Análise";
     const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+    const dueHour = assignment.dueHour ? String(assignment.dueHour) : "23:59";
+    const dueDateFormatted = String(assignment.dueDateFormatted ?? (dueDate ? formatShortDate(dueDate) : ""));
 
     return {
       id: assignmentId,
@@ -152,11 +159,12 @@ export function mapStudentDeliveries(
       professor: discipline?.professor ?? String(assignment.authorName ?? "Docente"),
       title: String(assignment.title),
       description: String(assignment.description ?? ""),
-      dueDate: dueDate ? formatShortDate(dueDate) : String(assignment.dueDateFormatted ?? ""),
-      dueHour: "23:59",
-      dueDateFormatted: String(assignment.dueDateFormatted ?? (dueDate ? formatShortDate(dueDate) : "")),
+      dueDate: dueDateFormatted,
+      dueHour,
+      dueDateFormatted,
       weight: Number(assignment.weight ?? 3.0),
       stage: String(assignment.stage ?? "N1"),
+      moduleTag: assignment.moduleTag ? String(assignment.moduleTag) : `MÓDULO ${assignment.stage ?? 1}`,
       status,
       modality: String(assignment.modality ?? "Individual"),
       allowLate: assignment.allowLateWithPenalty !== false,
@@ -168,7 +176,9 @@ export function mapStudentDeliveries(
       gitUrl: submission?.gitUrl ?? null,
       comments: submission?.comments ?? null,
       sha256: submission?.sha256 ?? null,
-      score: submission?.score !== undefined && submission?.score !== null ? Number(submission.score) : null,
+      score: submission?.score !== undefined && submission?.score !== null
+        ? Number(submission.score)
+        : (submission?.grade !== undefined && submission?.grade !== null ? Number(submission.grade) : null),
       feedback: submission?.feedback ?? null,
       evaluatedRubrics: Array.isArray(submission?.evaluatedCriteria)
         ? submission.evaluatedCriteria.map((rubric: Document) => ({

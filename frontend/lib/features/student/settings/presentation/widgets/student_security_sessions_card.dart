@@ -310,35 +310,37 @@ class _StudentSecuritySessionsCardState
     required List<Widget> children,
     Widget? trailing,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE4E4E7)),
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE4E4E7)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: jakarta(
-                    size: 14,
-                    weight: FontWeight.w700,
-                    color: const Color(0xFF18181B),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: jakarta(
+                      size: 14,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFF18181B),
+                    ),
                   ),
                 ),
-              ),
-              if (trailing != null) trailing,
-            ],
-          ),
-          const Divider(),
-          ...children,
-        ],
+                if (trailing != null) trailing,
+              ],
+            ),
+            const Divider(),
+            ...children,
+          ],
+        ),
       ),
     );
   }

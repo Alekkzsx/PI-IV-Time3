@@ -139,6 +139,9 @@ class StudentDisciplineModel {
   final int absences;
   final int totalHours;
   final int completedHours;
+  final int credits;
+  final String officeHours;
+  final String officeLocation;
   final String? fullCode;
   final bool hasPendingTask;
   final int maxAbsenceHours;
@@ -170,6 +173,9 @@ class StudentDisciplineModel {
     required this.absences,
     required this.totalHours,
     required this.completedHours,
+    this.credits = 4,
+    this.officeHours = 'Terças-feiras • 18:00 às 19:00',
+    this.officeLocation = 'Sala dos Professores (Bloco C) ou Sala Virtual Teams',
     this.fullCode,
     this.hasPendingTask = false,
     this.maxAbsenceHours = 20,
@@ -219,6 +225,9 @@ class StudentDisciplineModel {
       absences: intOrZero(json['absences']),
       totalHours: intOrZero(json['totalHours']),
       completedHours: intOrZero(json['completedHours']),
+      credits: intOrZero(json['credits'] ?? 4),
+      officeHours: json['officeHours']?.toString() ?? 'Terças-feiras • 18:00 às 19:00',
+      officeLocation: json['officeLocation']?.toString() ?? 'Sala dos Professores (Bloco C) ou Sala Virtual Teams',
       maxAbsenceHours: intOrZero(json['maxAbsenceHours']),
       hasPendingTask: json['hasPendingTask'] == true,
       evaluationFormula:
@@ -343,6 +352,7 @@ class StudentDeliveryItem {
   final String? description;
   final String? professor;
   final String? deadlineBadge;
+  final String? moduleTag;
   final bool isUrgent;
   final String? allowedFormats;
   final String? submissionDate;
@@ -375,6 +385,7 @@ class StudentDeliveryItem {
     this.description,
     this.professor,
     this.deadlineBadge,
+    this.moduleTag,
     this.isUrgent = false,
     this.allowedFormats,
     this.submissionDate,
@@ -425,6 +436,7 @@ class StudentDeliveryItem {
       description: json['description']?.toString(),
       professor: json['professor']?.toString(),
       deadlineBadge: json['deadlineBadge']?.toString(),
+      moduleTag: json['moduleTag']?.toString(),
       isUrgent: json['isUrgent'] == true,
       allowedFormats: json['allowedFormats']?.toString(),
       submissionDate: json['submissionDate']?.toString(),

@@ -84,11 +84,13 @@ class StudentAvaRightSidebar extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _buildInfoRow('Turma/Oferta:', turma),
+          _buildInfoRow('Turma / Oferta:', turma),
           const SizedBox(height: 8),
           _buildInfoRow(
             'Carga Horária:',
-            discipline.totalHours == 0 ? '—' : '${discipline.totalHours}h',
+            discipline.totalHours == 0
+                ? '—'
+                : '${discipline.totalHours}h (${discipline.credits} créditos)',
           ),
           const SizedBox(height: 8),
           _buildInfoRow('Docente Titular:', discipline.professor),
@@ -345,7 +347,9 @@ class StudentAvaRightSidebar extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Horários não informados',
+                        discipline.officeHours.isNotEmpty
+                            ? discipline.officeHours
+                            : 'Terças-feiras • 18:00 às 19:00',
                         overflow: TextOverflow.ellipsis,
                         style: jakarta(
                           size: 11.5,
@@ -358,7 +362,7 @@ class StudentAvaRightSidebar extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Local: Sala dos Professores (Bloco C) ou Sala Virtual Teams',
+                  'Local: ${discipline.officeLocation.isNotEmpty ? discipline.officeLocation : "Sala dos Professores (Bloco C) ou Sala Virtual Teams"}',
                   style: jakarta(size: 11, color: const Color(0xFF71717A)),
                 ),
               ],
@@ -451,7 +455,7 @@ class StudentAvaRightSidebar extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.tag_rounded, size: 16, color: Color(0xFFA1A1AA)),
+              const Icon(Icons.auto_awesome, size: 16, color: Color(0xFFA1A1AA)),
             ],
           ),
           const SizedBox(height: 8),
