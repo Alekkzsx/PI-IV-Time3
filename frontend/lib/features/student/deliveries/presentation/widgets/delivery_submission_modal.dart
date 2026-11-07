@@ -63,32 +63,35 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   Future<void> _onPickFile() async {
     final file = await PlatformFileHelper.pickFile();
     if (file == null || !mounted) return;
-    const maxFileBytes = 7 * 1024 * 1024;
-    if (file.sizeBytes == 0) {
+
+    // Validação estrutural de segurança discente (agmrm_security)
+    final validation = StudentFileUploadValidator.validateDeliveryFile(
+      fileName: file.name,
+      sizeBytes: file.sizeBytes,
+      fileBytes: file.bytes,
+    );
+
+    if (!validation.isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível ler o arquivo selecionado.'),
+        SnackBar(
+          content: Text(validation.errorMessage ?? 'Arquivo inválido.'),
+          backgroundColor: const Color(0xFFDC2626),
         ),
       );
       return;
     }
-    if (file.sizeBytes > maxFileBytes) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('O arquivo deve ter no máximo 7 MB.')),
-      );
-      return;
-    }
+
     final bytes = file.bytes;
     if (bytes.isEmpty || !mounted) return;
     setState(() {
-      _attachedFileName = file.name;
+      _attachedFileName = validation.sanitizedFileName;
       _attachedFileSize = file.sizeLabel;
       _attachedMimeType = file.mimeType;
       _attachedBytes = bytes;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Arquivo "$_attachedFileName" selecionado e validado.'),
+        content: Text('Arquivo "$_attachedFileName" validado com sucesso.'),
         duration: const Duration(seconds: 2),
       ),
     );
