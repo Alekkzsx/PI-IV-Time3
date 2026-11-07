@@ -23,3 +23,7 @@ export 'auth/token_lifecycle_manager.dart';
 // Presentation Widgets
 export 'widgets/lockout_countdown_banner.dart';
 export 'widgets/token_timer_widget.dart';
+
+// Student View Security Architecture (Semantically Structured Modules)
+export 'student/student_security.dart';
+
