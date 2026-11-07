@@ -1,7 +1,9 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:agmrm_security/student/student_security.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
+
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 import 'ava_section_card.dart';
 
@@ -303,12 +305,42 @@ class AvaForumCollaborationTab extends StatelessWidget {
               () async {
                 final classCode = controller.selectedDiscipline?.code;
                 if (classCode == null || classCode.isEmpty) return;
+
+                // Rate limiting para criação de tópicos
+                if (!StudentActionRateLimiter.instance.canExecute(StudentActionType.createForumTopic)) {
+                  final cooldown = StudentActionRateLimiter.instance.getRemainingCooldownSeconds(
+                    StudentActionType.createForumTopic,
+                  );
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('Aguarde $cooldown s antes de publicar outro tópico.'),
+                      backgroundColor: const Color(0xFFD97706),
+                    ),
+                  );
+                  return;
+                }
+
+                // Sanitização contra Stored XSS e normalização
+                final safeTitle = StudentForumContentSanitizer.sanitizeForumTitle(titleController.text);
+                final safeBody = StudentForumContentSanitizer.sanitizeForumBody(descController.text);
+
+                if (safeTitle.length < StudentSecurityLimits.minForumTitleLength) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('O título deve conter pelo menos ${StudentSecurityLimits.minForumTitleLength} caracteres válidos.'),
+                      backgroundColor: const Color(0xFFDC2626),
+                    ),
+                  );
+                  return;
+                }
+
                 try {
                   await controller.createForumTopic(
                     classCode: classCode,
-                    title: titleController.text,
-                    body: descController.text,
+                    title: safeTitle,
+                    body: safeBody,
                   );
+                  StudentActionRateLimiter.instance.recordAction(StudentActionType.createForumTopic);
                   if (!ctx.mounted) return;
                   Navigator.pop(ctx);
                 } catch (error) {

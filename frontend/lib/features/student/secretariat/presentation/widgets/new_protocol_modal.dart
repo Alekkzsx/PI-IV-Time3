@@ -1,7 +1,9 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:agmrm_security/student/student_security.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
+
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import '../controllers/student_secretariat_controller.dart';
@@ -62,15 +64,21 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
   Future<void> _pickAttachment() async {
     final file = await PlatformFileHelper.pickFile();
     if (file == null || !mounted) return;
-    const maxFileBytes = 7 * 1024 * 1024;
-    if (file.sizeBytes == 0 || file.sizeBytes > maxFileBytes) {
-      setState(
-        () => _errorMessage = 'Selecione um arquivo válido de até 7 MB.',
-      );
+
+    // Validação estrita de anexo probatório para secretaria (agmrm_security)
+    final validation = StudentFileUploadValidator.validateProtocolAttachment(
+      fileName: file.name,
+      sizeBytes: file.sizeBytes,
+      fileBytes: file.bytes,
+    );
+
+    if (!validation.isValid) {
+      setState(() => _errorMessage = validation.errorMessage ?? 'Anexo inválido.');
       return;
     }
+
     setState(() {
-      _attachedFileName = file.name;
+      _attachedFileName = validation.sanitizedFileName;
       _attachedFileBase64 = file.base64Content;
       _errorMessage = null;
     });
@@ -84,10 +92,24 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
   }
 
   Future<void> _handleSubmit() async {
-    final justificationText = _justificationController.text.trim();
-    if (justificationText.length < 5) {
+    // 1. Rate Limiting client-side para abertura de protocolos
+    if (!StudentActionRateLimiter.instance.canExecute(StudentActionType.issueProtocol)) {
+      final cooldown = StudentActionRateLimiter.instance.getRemainingCooldownSeconds(
+        StudentActionType.issueProtocol,
+      );
       setState(() {
-        _errorMessage = 'Descreva a justificativa com pelo menos 5 caracteres.';
+        _errorMessage = 'Limite de protocolos atingido. Aguarde $cooldown s por segurança.';
+      });
+      return;
+    }
+
+    // 2. Sanitização de texto e mitigação de DoS / Stored XSS
+    final justificationText = StudentTextInputSanitizer.sanitizeProtocolJustification(
+      _justificationController.text,
+    );
+    if (justificationText.length < StudentSecurityLimits.minJustificationLength) {
+      setState(() {
+        _errorMessage = 'Descreva a justificativa com pelo menos ${StudentSecurityLimits.minJustificationLength} caracteres válidos.';
       });
       return;
     }
@@ -104,6 +126,8 @@ class _NewProtocolModalState extends State<NewProtocolModal> {
         attachmentName: _attachedFileName,
         attachmentBase64: _attachedFileBase64,
       );
+      // Registra consumo no rate limiter
+      StudentActionRateLimiter.instance.recordAction(StudentActionType.issueProtocol);
     } catch (error) {
       if (!mounted) return;
       setState(() {

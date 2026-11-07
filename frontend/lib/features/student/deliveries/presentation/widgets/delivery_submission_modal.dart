@@ -113,6 +113,42 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
       return;
     }
 
+    // 1. Rate Limiting client-side para entregas acadêmicas
+    if (!StudentActionRateLimiter.instance.canExecute(StudentActionType.submitDelivery)) {
+      final cooldown = StudentActionRateLimiter.instance.getRemainingCooldownSeconds(
+        StudentActionType.submitDelivery,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Limite de submissões atingido. Aguarde $cooldown s por segurança.'),
+          backgroundColor: const Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
+
+    // 2. Validação e mitigação de SSRF na URL do repositório Git
+    final rawGitUrl = _gitController.text.trim();
+    String? normalizedGitUrl;
+    if (rawGitUrl.isNotEmpty) {
+      final urlValidation = StudentGitRepositoryValidator.validateGitRepositoryUrl(rawGitUrl);
+      if (!urlValidation.isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(urlValidation.errorMessage ?? 'Link do repositório Git inválido.'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+        return;
+      }
+      normalizedGitUrl = urlValidation.normalizedUrl;
+    }
+
+    // 3. Sanitização de comentários contra Stored XSS
+    final sanitizedComments = StudentTextInputSanitizer.sanitizeDeliveryComments(
+      _obsController.text,
+    );
+
     setState(() => _isSubmitting = true);
     try {
       final receipt = await StudentPortalController.instance.submitDelivery(
@@ -121,24 +157,30 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
         fileSize: _attachedFileSize!,
         mimeType: _attachedMimeType ?? 'application/octet-stream',
         contentBase64: base64Encode(_attachedBytes!),
-        gitUrl: _gitController.text.trim().isNotEmpty
-            ? _gitController.text.trim()
-            : null,
-        comments: _obsController.text.trim().isNotEmpty
-            ? _obsController.text.trim()
-            : null,
+        gitUrl: normalizedGitUrl,
+        comments: sanitizedComments.isNotEmpty ? sanitizedComments : null,
       );
+
+      // Registra ação no rate limiter após sucesso
+      StudentActionRateLimiter.instance.recordAction(StudentActionType.submitDelivery);
 
       if (!mounted) return;
       final now = DateTime.now();
       final timeFormatted =
           '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} às ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
+      final serverSha = receipt['sha256']?.toString() ?? '';
+      // Verificação criptográfica de não-repúdio (hash local vs hash retornado)
+      final isTamperProof = StudentSubmissionIntegrityVerifier.verifySubmissionReceipt(
+        localFileBytes: _attachedBytes!,
+        serverReceiptSha256: serverSha,
+      );
+
       setState(() {
         _isSubmitting = false;
         _isSuccess = true;
         _generatedProtocol = receipt['protocolCode']?.toString() ?? '';
-        _sha256 = receipt['sha256']?.toString() ?? '';
+        _sha256 = isTamperProof ? serverSha : 'ALERTA: Divergência de Hash';
         _submissionId =
             receipt['submissionId']?.toString() ?? receipt['id']?.toString();
         _timestampStr = timeFormatted;
@@ -766,6 +808,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                     ),
                   ],
                 ),
+                if (_sha256.isNotEmpty && !_sha256.contains('ALERTA')) ...[
+                  const SizedBox(height: 12),
+                  StudentIntegrityBadge(sha256: _sha256, isVerified: true),
+                ],
+
               ],
             ),
           ),

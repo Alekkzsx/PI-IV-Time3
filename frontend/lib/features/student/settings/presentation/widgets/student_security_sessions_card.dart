@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:agmrm_security/security.dart';
 import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+
+
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
 
@@ -63,60 +66,111 @@ class _StudentSecuritySessionsCardState
     final current = TextEditingController();
     final next = TextEditingController();
     final confirm = TextEditingController();
+    String newPasswordText = '';
+
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Alterar senha'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: current,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Senha atual'),
-            ),
-            TextField(
-              controller: next,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Nova senha'),
-            ),
-            TextField(
-              controller: confirm,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirmar nova senha',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isEntropyValid = PasswordEntropyValidator.isEligibleForSubmission(newPasswordText);
+          final passwordsMatch = newPasswordText.isNotEmpty && newPasswordText == confirm.text;
+
+          return AlertDialog(
+            title: const Text('Alterar Senha Institucional'),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: current,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Senha atual'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: next,
+                      obscureText: true,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          newPasswordText = val;
+                        });
+                      },
+                      decoration: const InputDecoration(labelText: 'Nova senha'),
+                    ),
+                    const SizedBox(height: 12),
+                    // Medidor institucional de entropia em tempo real
+                    StudentPasswordEntropyMeter(password: newPasswordText),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirm,
+                      obscureText: true,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Confirmar nova senha',
+                        errorText: confirm.text.isNotEmpty && !passwordsMatch
+                            ? 'As senhas não coincidem'
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(
-              context,
-              next.text.length >= 8 && next.text == confirm.text,
-            ),
-            child: const Text('Alterar'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: isEntropyValid && passwordsMatch
+                    ? () => Navigator.pop(context, true)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF18181B),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Salvar Nova Senha'),
+              ),
+            ],
+          );
+        },
       ),
     );
+
     if (accepted != true) {
       current.dispose();
       next.dispose();
       confirm.dispose();
       return;
     }
-    try {
-      await _remote.changePassword(
-        currentPassword: current.text,
-        newPassword: next.text,
+
+    // Rate limiting para troca de senha
+    if (!StudentActionRateLimiter.instance.canExecute(StudentActionType.changePassword)) {
+      final cooldown = StudentActionRateLimiter.instance.getRemainingCooldownSeconds(
+        StudentActionType.changePassword,
       );
+      _showMessage('Limite de trocas de senha atingido. Aguarde $cooldown s.');
+      current.dispose();
+      next.dispose();
+      confirm.dispose();
+      return;
+    }
+
+    try {
+      final sanitizedCurrent = InputSanitizer.sanitizePassword(current.text);
+      final sanitizedNext = InputSanitizer.sanitizePassword(next.text);
+
+      await _remote.changePassword(
+        currentPassword: sanitizedCurrent,
+        newPassword: sanitizedNext,
+      );
+      StudentActionRateLimiter.instance.recordAction(StudentActionType.changePassword);
+      _showMessage('Senha alterada com sucesso.');
     } catch (error) {
-      _showMessage(error.toString());
+      _showMessage(GenericFeedbackPolicy.sanitizeErrorMessage(error));
     } finally {
       current.dispose();
       next.dispose();
