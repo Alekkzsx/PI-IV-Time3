@@ -1,6 +1,8 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-/// Categorias oficiais de comunicados exibidos na Central de Mensagens do aluno.
+/// [MessageCategory]
+///
+/// Categorias oficiais de comunicados exibidos na Central de Mensagens do discente.
 enum MessageCategory {
   /// Comunicados institucionais emitidos pela Secretaria Acadêmica, Reitoria ou Diretoria.
   institutional,
@@ -9,7 +11,9 @@ enum MessageCategory {
   discipline,
 }
 
-/// Opções de filtragem rápida de comunicados na Central de Mensagens.
+/// [MessageFilter]
+///
+/// Opções de filtragem rápida de comunicados na barra de controle da Central de Mensagens.
 enum MessageFilter {
   /// Exibe todos os comunicados sem restrição de categoria.
   all,
@@ -21,18 +25,20 @@ enum MessageFilter {
   discipline,
 }
 
-/// Entidade de domínio que representa um comunicado ou mensagem acadêmica.
+/// [AcademicMessage]
+///
+/// Entidade imutável de domínio que modela um comunicado ou mensagem acadêmica.
 class AcademicMessage {
-  /// Identificador único do comunicado.
+  /// Identificador único do comunicado no backend.
   final String id;
 
-  /// Nome da unidade emissora ou docente responsável pelo comunicado.
+  /// Nome da unidade emissora ou docente responsável pela publicação.
   final String sender;
 
   /// Categoria do comunicado ([MessageCategory.institutional] ou [MessageCategory.discipline]).
   final MessageCategory category;
 
-  /// Indica se a mensagem é recente/não lida e deve exibir o selo 'Novo'.
+  /// Indica se a mensagem ainda não foi lida pelo aluno e deve exibir o selo de novidade.
   final bool isNew;
 
   /// Rótulo temporal formatado de publicação (ex: '18/09/2026', 'Hoje, 14:10').
@@ -41,10 +47,10 @@ class AcademicMessage {
   /// Título principal em destaque do comunicado.
   final String title;
 
-  /// Corpo descritivo do comunicado.
+  /// Corpo textual do comunicado institucional.
   final String body;
 
-  /// Cria uma instância imutável de [AcademicMessage].
+  /// Cria uma nova instância imutável de [AcademicMessage].
   const AcademicMessage({
     required this.id,
     required this.sender,

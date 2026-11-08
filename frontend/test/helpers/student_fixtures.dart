@@ -1,4 +1,4 @@
-import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
+import 'package:pi_iv_time3/features/student/shared/models/models.dart';
 
 class StudentFixtures {
   static const studentRa = '202610401';

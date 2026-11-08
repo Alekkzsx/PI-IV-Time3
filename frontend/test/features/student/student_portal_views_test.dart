@@ -3,16 +3,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
-import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
-import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
-import 'package:pi_iv_time3/features/student/dashboard/presentation/widgets/student_dashboard_list_view.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_ava_cockpit_page.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava_evaluations_grades_tab.dart';
-import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
-import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/data/portal_remote_data_source.dart';
+import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:pi_iv_time3/features/student/dashboard/presentation/widgets/views/timeline_list_view.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/disciplines_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/ava_cockpit_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava/ava_evaluations_grades_tab.dart';
+import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
+import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/deliveries_page.dart';
+import 'package:pi_iv_time3/features/student/settings/presentation/pages/settings_page.dart';
 import '../../helpers/student_fixtures.dart';
 
 class _StudentDashboardDataSource extends StudentRemoteDataSource {

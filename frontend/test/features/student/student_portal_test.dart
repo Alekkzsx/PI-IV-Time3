@@ -5,14 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/student/messages/domain/entities/academic_message.dart';
-import 'package:pi_iv_time3/features/student/messages/presentation/controllers/student_messages_controller.dart';
-import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
-import 'package:pi_iv_time3/features/student/secretariat/presentation/controllers/student_secretariat_controller.dart';
-import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/student_secretariat_page.dart';
+import 'package:pi_iv_time3/features/student/messages/presentation/controllers/messages_controller.dart';
+import 'package:pi_iv_time3/features/student/messages/presentation/pages/messages_page.dart';
+import 'package:pi_iv_time3/features/student/secretariat/presentation/controllers/secretariat_controller.dart';
+import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/secretariat_page.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/academic_record_summary.dart';
 import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_remote_data_source.dart';
-import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/data/portal_remote_data_source.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 import '../../helpers/student_fixtures.dart';
 
 class _ProtocolDataSource extends StudentRemoteDataSource {

@@ -6,12 +6,17 @@ import { AuthError } from "../../../shared/auth-error.js";
 import { parse } from "../../../shared/validation.js";
 import { authenticated } from "../../auth/infrastructure/session.middleware.js";
 import { StudentDashboardService } from "../application/index.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 
 export { createFilesRouter } from "./student-files.controller.js";
 
-export function createStudentDashboardRouter(database: Db, jwtSecret: string): Router {
+export function createStudentDashboardRouter(
+  database: Db,
+  jwtSecret: string,
+  emailService?: UnifiedEmailService,
+): Router {
   const router = Router();
-  const service = new StudentDashboardService(database);
+  const service = new StudentDashboardService(database, emailService);
 
   router.use(authenticated(database, jwtSecret, false));
   router.use((_request, response, next) => {

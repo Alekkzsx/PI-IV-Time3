@@ -1,23 +1,26 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-/// Entidade de domínio que sintetiza os dados do Prontuário Acadêmico Regular do aluno.
+/// [AcademicRecordSummary]
+///
+/// Entidade de domínio que sintetiza os dados oficiais do Prontuário Acadêmico Regular do discente,
+/// incluindo Registro Acadêmico (RA), curso ativo, coeficiente de rendimento (CR) e horas integralizadas.
 class AcademicRecordSummary {
-  /// Registro Acadêmico (R.A.) formatado.
+  /// Registro Acadêmico (R.A.) institucional do estudante.
   final String ra;
 
-  /// Nome oficial do curso de graduação.
+  /// Nome oficial do curso universitário em andamento.
   final String course;
 
-  /// Coeficiente de Rendimento (CR) acumulado.
+  /// Coeficiente de Rendimento (CR) acumulado no histórico acadêmico.
   final String academicIndex;
 
-  /// Carga horária integralizada e percentual concluído.
+  /// Carga horária integralizada e percentual curricular concluído.
   final String completedWorkload;
 
-  /// Período de matrícula vigente.
+  /// Rótulo representativo do status da matrícula e período letivo vigente.
   final String activeEnrollmentBadge;
 
-  /// Cria uma instância imutável de [AcademicRecordSummary].
+  /// Cria uma nova instância imutável de [AcademicRecordSummary].
   const AcademicRecordSummary({
     required this.ra,
     required this.course,

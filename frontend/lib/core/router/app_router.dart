@@ -12,15 +12,15 @@ import 'package:pi_iv_time3/features/auth/reset_password/presentation/pages/rese
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 import 'package:pi_iv_time3/features/auth/verify_code/presentation/pages/verify_code_page.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
-import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
-import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
-import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
-import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/student_secretariat_page.dart';
-import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/pages/student_portal_shell.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/widgets/student_sidebar.dart';
+import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
+import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/deliveries_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/disciplines_page.dart';
+import 'package:pi_iv_time3/features/student/messages/presentation/pages/messages_page.dart';
+import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/secretariat_page.dart';
+import 'package:pi_iv_time3/features/student/settings/presentation/pages/settings_page.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/pages/portal_shell.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/widgets/navigation/portal_sidebar.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_lobby_page.dart';
 
 /// Nomes padronizados das rotas do Portal Acadêmico.
@@ -50,54 +50,54 @@ class AppRouter {
   static Map<String, WidgetBuilder> buildRoutes() {
     return {
       AppRoutes.studentHome: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Painel Geral',
           activeNavItem: StudentNavItem.painelGeral,
-          child: StudentDashboardPage(),
+          child: DashboardPage(),
         ),
       ),
       // Todas as rotas do aluno usam o mesmo shell. Isso evita que links
       // diretos renderizem uma página sem navegação, cabeçalho e rodapé.
       AppRoutes.studentMessages: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Mensagens',
           activeNavItem: StudentNavItem.mensagens,
-          child: StudentMessagesPage(),
+          child: MessagesPage(),
         ),
       ),
       AppRoutes.studentSecretaria: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Secretaria Virtual',
           activeNavItem: StudentNavItem.secretaria,
-          child: StudentSecretariatPage(),
+          child: SecretariatPage(),
         ),
       ),
       AppRoutes.studentDisciplines: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Disciplinas',
           activeNavItem: StudentNavItem.disciplinas,
-          child: StudentDisciplinesPage(),
+          child: DisciplinesPage(),
         ),
       ),
       AppRoutes.studentCalendar: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Calendário',
           activeNavItem: StudentNavItem.calendario,
-          child: StudentCalendarPage(),
+          child: CalendarPage(),
         ),
       ),
       AppRoutes.studentDeliveries: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Entregas',
           activeNavItem: StudentNavItem.entregas,
-          child: StudentDeliveriesPage(),
+          child: DeliveriesPage(),
         ),
       ),
       AppRoutes.studentSettings: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Configurações',
           activeNavItem: StudentNavItem.configuracoes,
-          child: StudentSettingsPage(),
+          child: SettingsPage(),
         ),
       ),
       AppRoutes.videoCall: _buildVideoCallRoute,

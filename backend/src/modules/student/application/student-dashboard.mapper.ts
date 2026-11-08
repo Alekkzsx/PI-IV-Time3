@@ -126,6 +126,7 @@ export function mapStudentDisciplines(input: {
           size: String(material.size ?? "1.0 MB"),
           fileType: String(material.type ?? "PDF"),
           unitAssociated: String(material.unitAssociated ?? "Unidade 1"),
+          category: material.category ? String(material.category) : undefined,
           downloadUrl: `/api/files/materials/${String(material._id)}`,
         })),
         ...(Array.isArray(classroom.materials) ? classroom.materials : []),
@@ -329,10 +330,14 @@ export function mapStudentForumTopics(topics: Document[]) {
     body: String(topic.body ?? ""),
     authorName: String(topic.authorName ?? ""),
     authorRole: String(topic.authorRole ?? ""),
+    authorProfile: String(topic.authorProfile ?? topic.authorRole ?? "Estudante"),
     category: String(topic.category ?? "Geral"),
     isResolved: topic.isResolved === true,
+    status: String(topic.status ?? (topic.isResolved ? "Respondido" : (Array.isArray(topic.replies) && topic.replies.length > 0 ? "Respondido" : "Aberto"))),
+    timeAgo: String(topic.timeAgo ?? (topic.createdAt ? formatShortDate(new Date(topic.createdAt)) : "Recentemente")),
     createdAt: topic.createdAt ? formatShortDate(new Date(topic.createdAt)) : "",
     replies: Array.isArray(topic.replies) ? topic.replies : [],
+    repliesCount: Array.isArray(topic.replies) ? topic.replies.length : 0,
   }));
 }
 

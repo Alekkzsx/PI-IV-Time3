@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
-import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
+import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 import '../../helpers/student_fixtures.dart';
 
 void main() {

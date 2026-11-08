@@ -6,6 +6,7 @@ import { StudentCalendarService } from "./calendar/index.js";
 import { StudentCommunicationsService } from "./communications/index.js";
 import { StudentNotesService } from "./notes/index.js";
 import { StudentDeliveryService } from "./deliveries/index.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 
 export class StudentPortalOperationsService {
   private readonly protocolService: StudentProtocolService;
@@ -15,8 +16,8 @@ export class StudentPortalOperationsService {
   private readonly notesService: StudentNotesService;
   private readonly deliveryService: StudentDeliveryService;
 
-  constructor(database: Db) {
-    this.protocolService = new StudentProtocolService(database);
+  constructor(database: Db, emailService?: UnifiedEmailService) {
+    this.protocolService = new StudentProtocolService(database, emailService);
     this.forumService = new StudentForumService(database);
     this.calendarService = new StudentCalendarService(database);
     this.communicationsService = new StudentCommunicationsService(database);

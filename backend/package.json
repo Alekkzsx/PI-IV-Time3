@@ -13,6 +13,7 @@
     "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
     "test:unit": "npm run build && node --test \"dist/tests/unit/*.test.js\"",
     "test:integration": "npm run build && node --test \"dist/tests/integration/*.test.js\"",
+    "test:email": "tsx src/scripts/test-email-resilience.ts",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:student": "tsx src/scripts/seed-student.ts",
     "seed:ecosystem": "tsx src/scripts/seed-ecosystem.ts"

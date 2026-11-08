@@ -3,9 +3,13 @@ import { randomBytes } from "node:crypto";
 import type { Db, Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";
 import { formatShortDate } from "../../../../shared/formatting/date-formatters.js";
+import type { UnifiedEmailService } from "../../../notifications/domain/notification.types.js";
 
 export class StudentProtocolService {
-  constructor(private readonly database: Db) {}
+  constructor(
+    private readonly database: Db,
+    private readonly emailService?: UnifiedEmailService,
+  ) {}
 
   async submit(
     studentId: string,
@@ -48,6 +52,21 @@ export class StudentProtocolService {
       details: { requestType: input.requestType, targetComponent: input.targetComponent },
       createdAt: now,
     });
+
+    if (this.emailService && user.email) {
+      void this.emailService.sendProtocolSubmitted({
+        to: user.email,
+        studentName: user.displayName,
+        protocolCode: code,
+        requestType: input.requestType,
+        targetComponent: input.targetComponent,
+        justification: input.justification,
+        estimatedDays: 5,
+      }).catch((err) => {
+        console.warn(`[student-protocol] Falha ao enviar confirmação de protocolo por e-mail: ${err?.message}`);
+      });
+    }
+
     return {
       id: String(inserted.insertedId),
       protocolCode: code,

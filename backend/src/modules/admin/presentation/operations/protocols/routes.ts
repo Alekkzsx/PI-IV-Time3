@@ -6,8 +6,13 @@ import { z } from "zod";
 import { AuthError } from "../../../../../shared/auth-error.js";
 import { objectId, parse } from "../../../../../shared/validation.js";
 import { adminWrite, audit, publicRecord } from "../../../infrastructure/admin-support.js";
+import type { UnifiedEmailService } from "../../../../notifications/domain/notification.types.js";
 
-export function registerAdminProtocolRoutes(router: Router, database: Db): void {
+export function registerAdminProtocolRoutes(
+	router: Router,
+	database: Db,
+	emailService?: UnifiedEmailService,
+): void {
 	const protocols = database.collection("academic_protocols");
 
 	router.get("/protocols", async (_request, response) => {
@@ -89,6 +94,29 @@ export function registerAdminProtocolRoutes(router: Router, database: Db): void 
 			await audit(database, response.locals.adminId, "protocol_decided", String(id), { approved: input.approved }, session);
 			return publicRecord(updated);
 		});
+
+		if (emailService && record) {
+			void database
+				.collection("auth_users")
+				.findOne({ _id: objectId(String(record.studentId)) })
+				.then((student) => {
+					if (student?.email) {
+						return emailService.sendProtocolDecided({
+							to: student.email,
+							studentName: student.displayName ?? record.studentName,
+							protocolCode: record.code,
+							requestType: record.requestType,
+							approved: input.approved,
+							decisionNote: input.decisionNote,
+							signedBy,
+						});
+					}
+				})
+				.catch((err) => {
+					console.warn(`[admin-protocols] Falha ao notificar discente por e-mail: ${err?.message}`);
+				});
+		}
+
 		response.json(record);
 	});
 }

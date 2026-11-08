@@ -10,14 +10,21 @@ import { registerAdminCalendarRoutes } from "./operations/calendar/routes.js";
 import { registerAdminProtocolRoutes } from "./operations/protocols/routes.js";
 import { registerAdminAnnouncementRoutes } from "./operations/announcements/routes.js";
 import { registerAdminSettingsRoutes } from "./operations/settings/routes.js";
+import { registerAdminEmailDiagnosticRoutes } from "./operations/system/email-diagnostic.routes.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 
-export function createAdminOperationsRouter(database: Db, secret: string): Router {
+export function createAdminOperationsRouter(
+  database: Db,
+  secret: string,
+  emailService?: UnifiedEmailService,
+): Router {
   const router = Router();
   router.use(adminOnly(secret, database));
   registerAdminCalendarRoutes(router, database);
-  registerAdminProtocolRoutes(router, database);
+  registerAdminProtocolRoutes(router, database, emailService);
   registerAdminAnnouncementRoutes(router, database);
   registerAdminSettingsRoutes(router, database);
+  registerAdminEmailDiagnosticRoutes(router, database, emailService);
   const protocols = database.collection("academic_protocols");
 
   router.get("/dashboard", async (_request, response) => {

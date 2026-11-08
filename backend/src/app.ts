@@ -19,12 +19,13 @@ import { createFilesRouter } from "./modules/student/presentation/files/index.js
 import { createTeacherRouter } from "./modules/teacher/presentation/index.js";
 import { createVideoCallRouter } from "./modules/video-call/presentation/index.js";
 import { AuthError } from "./shared/auth-error.js";
+import type { UnifiedEmailService } from "./modules/notifications/domain/notification.types.js";
 
 /** Monta middlewares e rotas; recebe dependências prontas para facilitar testes. */
 export function createApp(
   service: AuthService,
   environment: Pick<Environment, "nodeEnv" | "corsOrigins">,
-  adminOptions?: { database: Db; jwtSecret: string },
+  adminOptions?: { database: Db; jwtSecret: string; emailSender?: UnifiedEmailService },
 ): Express {
   const app = express();
 
@@ -75,10 +76,10 @@ export function createApp(
 
   if (adminOptions) {
     app.use("/api/auth", createSessionRouter(adminOptions.database, adminOptions.jwtSecret, service));
-    app.use("/api/admin/users", createAdminUsersRouter(adminOptions.database, adminOptions.jwtSecret, service));
-    app.use("/api/admin", createAdminOperationsRouter(adminOptions.database, adminOptions.jwtSecret));
+    app.use("/api/admin/users", createAdminUsersRouter(adminOptions.database, adminOptions.jwtSecret, service, adminOptions.emailSender));
+    app.use("/api/admin", createAdminOperationsRouter(adminOptions.database, adminOptions.jwtSecret, adminOptions.emailSender));
     app.use("/api/admin", createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret));
-    app.use("/api/student", createStudentDashboardRouter(adminOptions.database, adminOptions.jwtSecret));
+    app.use("/api/student", createStudentDashboardRouter(adminOptions.database, adminOptions.jwtSecret, adminOptions.emailSender));
     app.use("/api/teacher", createTeacherRouter(adminOptions.database, adminOptions.jwtSecret));
     app.use("/api/files", createFilesRouter(adminOptions.database, adminOptions.jwtSecret));
     app.use("/api/video-call", createVideoCallRouter(adminOptions.database, adminOptions.jwtSecret));

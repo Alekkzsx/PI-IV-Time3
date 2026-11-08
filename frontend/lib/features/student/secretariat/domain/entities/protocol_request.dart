@@ -1,52 +1,59 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+/// [ProtocolStatus]
+///
 /// Status possíveis de um protocolo formal submetido à Secretaria Acadêmica.
 enum ProtocolStatus {
-  /// Requerimento aprovado e deferido pela secretaria.
+  /// Requerimento aprovado e deferido pela secretaria ou coordenação.
   approved,
 
   /// Requerimento em análise técnica ou documental.
   pending,
 
-  /// Requerimento indeferido.
+  /// Requerimento indeferido pela autoridade acadêmica competente.
   rejected,
 }
 
-/// Entidade de domínio que representa um protocolo de requerimento acadêmico.
+/// [ProtocolRequest]
+///
+/// Entidade imutável de domínio que representa um protocolo formal de requerimento discente.
+/// Engloba código de rastreabilidade, tipo de solicitação, componente curricular afetado,
+/// justificativa, anexos comprobatórios e despacho/parecer oficial emitido.
 class ProtocolRequest {
+  /// Identificador do registro no banco de dados.
   final String? id;
 
-  /// Código oficial do protocolo (ex: 'PROT-2026/8835').
+  /// Código oficial do protocolo emitido no recebimento (ex: 'PROT-2026/8835').
   final String protocolCode;
 
-  /// Data/hora formatada de envio (ex: 'Ontem, 16:20').
+  /// Data/hora formatada da submissão do protocolo.
   final String submittedAt;
 
-  /// Tipo ou assunto do requerimento (ex: 'Horas Complementares', '2ª Chamada de Avaliação').
+  /// Assunto ou categoria do requerimento (ex: '2ª Chamada', 'Revisão de Faltas').
   final String subjectType;
 
-  /// Objeto ou componente curricular relacionado (ex: '218131 - APS-II (Análise e Projeto de Sistemas II)').
+  /// Componente curricular ou disciplina associada ao pedido.
   final String componentObject;
 
-  /// Situação atual do protocolo.
+  /// Situação atual da tramitação do requerimento.
   final ProtocolStatus status;
 
-  /// Texto do parecer oficial emitido pela Secretaria Acadêmica ou Coordenação.
+  /// Parecer circunstanciado e fundamentação do despacho emitido pela secretaria.
   final String officialOpinion;
 
-  /// Justificativa detalhada informada pelo estudante na submissão.
+  /// Justificativa apresentada pelo discente no momento do pedido.
   final String justification;
 
-  /// Nome do arquivo anexo comprobatório (se houver).
+  /// Nome do arquivo de comprovante ou atestado médico anexado, se houver.
   final String? attachmentName;
 
-  /// Responsável pela análise/despacho (ex: 'Coordenadoria de Engenharia de Software').
+  /// Nome do setor ou autoridade responsável pelo despacho.
   final String? approverName;
 
-  /// Data de emissão do parecer (ex: '22/10/2026 às 17:40').
+  /// Data de registro do despacho formal.
   final String? responseDate;
 
-  /// Cria uma instância imutável de [ProtocolRequest].
+  /// Cria uma nova instância imutável de [ProtocolRequest].
   const ProtocolRequest({
     this.id,
     required this.protocolCode,
@@ -62,7 +69,7 @@ class ProtocolRequest {
     this.responseDate,
   });
 
-  /// Retorna o rótulo textual correspondente à situação do protocolo.
+  /// Retorna o rótulo textual legível correspondente ao status do protocolo.
   String get statusLabel {
     switch (status) {
       case ProtocolStatus.approved:
@@ -74,7 +81,7 @@ class ProtocolRequest {
     }
   }
 
-  /// Retorna uma cópia atualizada do protocolo.
+  /// Retorna uma cópia atualizada do protocolo com campos alterados seletivamente.
   ProtocolRequest copyWith({
     String? id,
     String? protocolCode,

@@ -1,11 +1,11 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pi_iv_time3/features/student/calendar/presentation/widgets/student_calendar_sidebar.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava_syllabus_materials_tab.dart';
-import 'package:pi_iv_time3/features/student/shared/controllers/student_portal_controller.dart';
-import 'package:pi_iv_time3/features/student/shared/models/student_models.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/widgets/student_footer.dart';
+import 'package:pi_iv_time3/features/student/calendar/presentation/widgets/panels/calendar_sidebar.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava/ava_syllabus_materials_tab.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
+import 'package:pi_iv_time3/features/student/shared/models/models.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/widgets/navigation/portal_footer.dart';
 
 
 void main() {

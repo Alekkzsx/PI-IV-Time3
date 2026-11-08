@@ -727,6 +727,186 @@ export async function seedEcosystem(
     );
   }
 
+  // Enriquecimento com materiais didáticos e tópicos de fórum do cockpit AVA (FIS)
+  const fisClasses = ["FIS-2026-4N", "FIS"];
+  for (const fisCode of fisClasses) {
+    // 1. Materiais do repositório
+    const mockMaterials = [
+      {
+        seedKey: `mat-fis-repo-1-${fisCode}`,
+        classCode: fisCode,
+        title: "Plano_de_Ensino_Oficial_2026_2.pdf",
+        fileName: "Plano_de_Ensino_Oficial_2026_2.pdf",
+        category: "INSTITUCIONAL",
+        unitAssociated: "Geral",
+        dateLabel: "01/08/2026",
+        size: "1.2 MB",
+        type: "PDF",
+      },
+      {
+        seedKey: `mat-fis-repo-2-${fisCode}`,
+        classCode: fisCode,
+        title: "Aula_01_Introducao_Arquitetura_Software.pdf",
+        fileName: "Aula_01_Introducao_Arquitetura_Software.pdf",
+        category: "SLIDES DE AULA",
+        unitAssociated: "Unidade 1",
+        dateLabel: "12/08/2026",
+        size: "4.8 MB",
+        type: "PDF",
+      },
+      {
+        seedKey: `mat-fis-repo-3-${fisCode}`,
+        classCode: fisCode,
+        title: "Guia_Pratico_Diagramacao_UML_2.5.pdf",
+        fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf",
+        category: "MATERIAL COMPLEMENTAR",
+        unitAssociated: "Unidade 2",
+        dateLabel: "25/08/2026",
+        size: "3.1 MB",
+        type: "PDF",
+      },
+      {
+        seedKey: `mat-fis-repo-4-${fisCode}`,
+        classCode: fisCode,
+        title: "Template_Projeto_Camadas_Spring_Domain.zip",
+        fileName: "Template_Projeto_Camadas_Spring_Domain.zip",
+        category: "LABORATÓRIOS & CÓDIGOS",
+        unitAssociated: "Laboratório",
+        dateLabel: "10/09/2026",
+        size: "14.5 MB",
+        type: "ZIP",
+      },
+      {
+        seedKey: `mat-fis-repo-5-${fisCode}`,
+        classCode: fisCode,
+        title: "Lista_Exercicios_Padroes_GoF_Grasp.pdf",
+        fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf",
+        category: "EXERCÍCIOS",
+        unitAssociated: "Exercícios",
+        dateLabel: "22/09/2026",
+        size: "850 KB",
+        type: "PDF",
+      },
+      {
+        seedKey: `mat-fis-repo-6-${fisCode}`,
+        classCode: fisCode,
+        title: "Artigo_Referencia_Microservices_Clean_Arch.pdf",
+        fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf",
+        category: "LEITURAS OBRIGATÓRIAS",
+        unitAssociated: "Leituras",
+        dateLabel: "02/10/2026",
+        size: "2.4 MB",
+        type: "PDF",
+      },
+    ];
+
+    for (const m of mockMaterials) {
+      await upsertOnInsert(
+        "academic_materials",
+        { classCode: fisCode, seedKey: m.seedKey },
+        {
+          ...m,
+          mimeType: m.type === "ZIP" ? "application/zip" : "application/pdf",
+          contentBase64: Buffer.from("Material Pedagógico Institucional do AVA", "utf8").toString("base64"),
+          uploadedBy: String(mainTeacher._id),
+          uploadedByName: mainTeacher.displayName,
+          isTimelineItem: false,
+          createdAt: now,
+          seedTag: SEED_TAG,
+        },
+      );
+    }
+
+    // 2. Tópicos de fórum de dúvidas e discussões
+    await upsertOnInsert(
+      "academic_forum_topics",
+      { classCode: fisCode, seedKey: `forum-fis-top-1-${fisCode}` },
+      {
+        seedKey: `forum-fis-top-1-${fisCode}`,
+        classCode: fisCode,
+        title: "Dúvida sobre a modelagem de agregados no Trabalho Prático 2",
+        body: "Professor, na modelagem do agregado de Pedido, a entidade ItemPedido deve ser acessada unicamente pela raiz do agregado ou o repositório...",
+        authorName: "Lucas Silveira",
+        authorRole: "aluno",
+        authorProfile: "Estudante",
+        category: "Trabalho Prático",
+        status: "Respondido",
+        isResolved: true,
+        timeAgo: "Há 2 dias",
+        replies: [
+          {
+            id: `rep-fis-1-${fisCode}`,
+            authorName: mainTeacher.displayName,
+            authorRole: "docente",
+            body: "Exatamente! Toda mutação e acesso ao ItemPedido deve transitar pela raiz do agregado Pedido para resguardar as invariantes.",
+            createdAt: now,
+          },
+          {
+            id: `rep-fis-2-${fisCode}`,
+            authorName: "Mariana Campos",
+            authorRole: "aluno",
+            body: "Isso também facilita a persistência atômica com o padrão Unit of Work.",
+            createdAt: now,
+          },
+          {
+            id: `rep-fis-3-${fisCode}`,
+            authorName: "Carlos Eduardo",
+            authorRole: "aluno",
+            body: "Excelente esclarecimento, agora ficou claro o escopo da transação.",
+            createdAt: now,
+          },
+          {
+            id: `rep-fis-4-${fisCode}`,
+            authorName: "Lucas Silveira",
+            authorRole: "aluno",
+            body: "Obrigado, professor e colegas!",
+            createdAt: now,
+          },
+        ],
+        createdAt: now,
+        updatedAt: now,
+        seedTag: SEED_TAG,
+      },
+    );
+
+    await upsertOnInsert(
+      "academic_forum_topics",
+      { classCode: fisCode, seedKey: `forum-fis-top-2-${fisCode}` },
+      {
+        seedKey: `forum-fis-top-2-${fisCode}`,
+        classCode: fisCode,
+        title: "Data da prova substitutiva (P2) e conteúdo programático",
+        body: "A prova substitutiva abordará apenas o conteúdo da P2 ou será cumulativa de todo o semestre?",
+        authorName: "Marina Campos",
+        authorRole: "aluno",
+        authorProfile: "Estudante",
+        category: "Avaliações",
+        status: "Respondido",
+        isResolved: true,
+        timeAgo: "Há 5 dias",
+        replies: [
+          {
+            id: `rep-fis-sub-1-${fisCode}`,
+            authorName: mainTeacher.displayName,
+            authorRole: "docente",
+            body: "A substitutiva terá ênfase no conteúdo de N2, com conceitos transversais de modelagem.",
+            createdAt: now,
+          },
+          {
+            id: `rep-fis-sub-2-${fisCode}`,
+            authorName: "Marina Campos",
+            authorRole: "aluno",
+            body: "Perfeito, vou revisar o módulo 2!",
+            createdAt: now,
+          },
+        ],
+        createdAt: now,
+        updatedAt: now,
+        seedTag: SEED_TAG,
+      },
+    );
+  }
+
   // Enriquecimento adicional de ES-DEMO-4N (se existente)
   const esDemoClass = await database.collection("academic_classes").findOne({ code: "ES-DEMO-4N" });
   const profDemo = ensuredUsers.get("prof.demo");

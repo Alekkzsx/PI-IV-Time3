@@ -6,7 +6,7 @@ import { loadEnvironment } from "./config/environment.js";
 import { MongoAuthSecurityRepository } from "./modules/auth/infrastructure/mongo-auth-security.repository.js";
 import { AuthService } from "./modules/auth/application/index.js";
 import { MongoAuthDatabase } from "./modules/auth/infrastructure/mongo-auth.repository.js";
-import { SmtpRecoveryEmailSender } from "./modules/auth/infrastructure/smtp-recovery-email.sender.js";
+import { ResilientEmailSender } from "./modules/notifications/index.js";
 import {
   BcryptPasswordHasher,
   JwtAccessTokenIssuer,
@@ -22,6 +22,11 @@ async function start(): Promise<void> {
   catch (error) { await database.close(); throw error; }
 
   const passwords = new BcryptPasswordHasher();
+  const emailSender = new ResilientEmailSender(
+    environment,
+    database.databaseForModules(),
+  );
+
   const authService = new AuthService({
     users: database.users(),
     security: new MongoAuthSecurityRepository(database.databaseForModules()),
@@ -31,7 +36,7 @@ async function start(): Promise<void> {
       environment.jwtSecret,
       environment.jwtTtl,
     ),
-    recoveryEmail: new SmtpRecoveryEmailSender(environment.smtp),
+    recoveryEmail: emailSender,
     dummyPasswordHash: await passwords.hash("invalid-login-timing-decoy"),
     environment,
   });
@@ -40,6 +45,7 @@ async function start(): Promise<void> {
     createApp(authService, environment, {
       database: database.databaseForModules(),
       jwtSecret: environment.jwtSecret,
+      emailSender,
     }),
   );
   server.listen(environment.port, () => {

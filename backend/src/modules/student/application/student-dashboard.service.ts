@@ -18,14 +18,18 @@ import {
 import { StudentDashboardRepository } from "./student-dashboard.repository.js";
 import { StudentPortalOperationsService } from "./student-portal-operations.service.js";
 import { buildStudentTimeline } from "./timeline/student-timeline.builder.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 
 export class StudentDashboardService {
   private readonly repository: StudentDashboardRepository;
   private readonly operations: StudentPortalOperationsService;
 
-  constructor(private readonly database: Db) {
+  constructor(
+    private readonly database: Db,
+    emailService?: UnifiedEmailService,
+  ) {
     this.repository = new StudentDashboardRepository(database);
-    this.operations = new StudentPortalOperationsService(database);
+    this.operations = new StudentPortalOperationsService(database, emailService);
   }
 
   async getBootstrap(studentId: string, user: Document, currentSessionId?: string) {

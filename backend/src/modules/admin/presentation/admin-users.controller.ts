@@ -9,6 +9,7 @@ import { emailSchema, identitySchema, objectId, parse, passwordSchema } from "..
 import { adminOnly } from "../infrastructure/admin-auth.middleware.js";
 import { adminWrite, audit, publicUser } from "../infrastructure/admin-support.js";
 import type { AuthService } from "../../auth/application/auth.service.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 
 const newUserSchema = z.object({
   identity: identitySchema,
@@ -25,7 +26,12 @@ const updateUserSchema = newUserSchema.omit({ password: true }).partial()
 
 const collation = { locale: "en", strength: 2 };
 
-export function createAdminUsersRouter(database: Db, jwtSecret: string, service: AuthService): Router {
+export function createAdminUsersRouter(
+  database: Db,
+  jwtSecret: string,
+  service: AuthService,
+  emailService?: UnifiedEmailService,
+): Router {
   const router = Router();
   const users = database.collection("auth_users");
   router.use(adminOnly(jwtSecret, database));
@@ -97,6 +103,20 @@ export function createAdminUsersRouter(database: Db, jwtSecret: string, service:
       await audit(database, response.locals.adminId, "user_created", String(result.insertedId), { profile: fields.profile }, session);
       return publicUser({ _id: result.insertedId, ...user });
     });
+
+    if (emailService && fields.email) {
+      void emailService.sendWelcomeUser({
+        to: fields.email,
+        displayName: fields.displayName,
+        identity: fields.identity,
+        profile: fields.profile,
+        temporaryPassword: password,
+        portalUrl: "http://localhost:5000",
+      }).catch((err) => {
+        console.warn(`[admin-users] Falha ao enviar e-mail de boas-vindas: ${err?.message}`);
+      });
+    }
+
     response.status(201).json(created);
   });
 

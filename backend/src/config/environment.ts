@@ -23,6 +23,13 @@ const environmentSchema = z
       const match = value.match(/<([^>]+)>/);
       return match && match[1] ? match[1].trim() : value.trim();
     }, z.string().email().optional()),
+    RESEND_API_KEY: z.string().optional(),
+    BREVO_API_KEY: z.string().optional(),
+    GMAIL_WEBHOOK_URL: z.preprocess((val) => {
+      if (typeof val !== "string" || val.trim() === "") return undefined;
+      return val.trim();
+    }, z.string().url().optional()),
+    EMAIL_FALLBACK_MODE: z.enum(["outbox", "strict"]).default("outbox"),
   })
   .superRefine((env, context) => {
     if (env.AUTH_JWT_SECRET === env.AUTH_OTP_SECRET) {
@@ -60,6 +67,12 @@ export type Environment = {
   jwtTtl: string;
   otpTtlSeconds: number;
   otpMaxAttempts: number;
+  emailProviders: {
+    resendApiKey?: string;
+    brevoApiKey?: string;
+    gmailWebhookUrl?: string;
+    fallbackMode: "outbox" | "strict";
+  };
   smtp:
     | {
         host: string;
@@ -115,6 +128,12 @@ export function loadEnvironment(
     jwtTtl: values.AUTH_JWT_TTL,
     otpTtlSeconds: values.AUTH_OTP_TTL_SECONDS,
     otpMaxAttempts: values.AUTH_OTP_MAX_ATTEMPTS,
+    emailProviders: {
+      resendApiKey: values.RESEND_API_KEY?.trim() || undefined,
+      brevoApiKey: values.BREVO_API_KEY?.trim() || undefined,
+      gmailWebhookUrl: values.GMAIL_WEBHOOK_URL || undefined,
+      fallbackMode: values.EMAIL_FALLBACK_MODE,
+    },
     smtp: smtpConfigured
       ? {
           host: values.SMTP_HOST!,

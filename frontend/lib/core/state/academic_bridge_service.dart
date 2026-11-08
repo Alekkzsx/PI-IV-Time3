@@ -4,11 +4,11 @@
 import 'package:flutter/foundation.dart';
 import 'app_user_session.dart';
 import 'role_permission_policy.dart';
-import '../../features/student/shared/models/student_models.dart';
+import '../../features/student/shared/models/models.dart';
 import '../../features/teacher/shared/domain/models/assignment_model.dart';
 import '../../features/teacher/shared/domain/models/rubric_model.dart';
 import '../../features/admin/shared/models/admin_models.dart';
-import '../../features/student/secretariat/domain/entities/protocol_request.dart';
+import 'package:pi_iv_time3/features/student/secretariat/domain/entities/protocol_request.dart';
 
 /// Modelo de sessão síncrona / videochamada de uma turma registrada.
 class AcademicLiveSession {
