@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 
 /// [AvaLeftSidebar]
 ///
@@ -24,12 +25,12 @@ class AvaLeftSidebar extends StatelessWidget {
 
   static const List<Map<String, dynamic>> menuItems = [
     {'title': 'Página inicial', 'badge': null},
-    {'title': 'Tarefas e Atividades', 'badge': 1},
+    {'title': 'Tarefas e Atividades', 'badge': null},
     {'title': 'Sala Virtual', 'badge': null},
-    {'title': 'Fóruns', 'badge': 2},
+    {'title': 'Fóruns', 'badge': null},
     {'title': 'Notas', 'badge': null},
     {'title': 'Pessoas', 'badge': null},
-    {'title': 'Arquivos', 'badge': 8},
+    {'title': 'Arquivos', 'badge': null},
     {'title': 'Programa', 'badge': null},
     {'title': 'Colaborações', 'badge': null},
     {'title': 'Caderno', 'badge': null},
@@ -38,8 +39,11 @@ class AvaLeftSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = StudentPortalController.instance;
+    final currentCode = controller.selectedDiscipline?.code;
+
     return Container(
-      width: 190,
+      width: 204,
       padding: const EdgeInsets.only(right: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -47,7 +51,21 @@ class AvaLeftSidebar extends StatelessWidget {
           final item = menuItems[index];
           final isSelected = activeIndex == index;
           final title = item['title'] as String;
-          final badge = item['badge'] as int?;
+
+          int? dynamicBadge;
+          if (currentCode != null) {
+            if (index == 1) {
+              final pending = controller.pendingDeliveriesCountFor(currentCode);
+              if (pending > 0) dynamicBadge = pending;
+            } else if (index == 3) {
+              final forumCount = controller.forumTopicsCountFor(currentCode);
+              if (forumCount > 0) dynamicBadge = forumCount;
+            } else if (index == 6) {
+              final matCount = controller.materialsCountFor(currentCode);
+              if (matCount > 0) dynamicBadge = matCount;
+            }
+          }
+          final badge = dynamicBadge;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 4.0),
@@ -59,7 +77,7 @@ class AvaLeftSidebar extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 hoverColor: const Color(0xFFF4F4F5),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFF18181B) : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
@@ -67,18 +85,21 @@ class AvaLeftSidebar extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Text(
                           title,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
                           style: jakarta(
                             size: 13,
+                            height: 1.15,
                             weight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             color: isSelected ? Colors.white : const Color(0xFF52525B),
                           ),
                         ),
                       ),
-                      if (badge != null) ...[
+                      if (badge != null && badge > 0) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -110,6 +131,5 @@ class AvaLeftSidebar extends StatelessWidget {
   }
 }
 
-
-
 typedef StudentAvaLeftSidebar = AvaLeftSidebar;
+

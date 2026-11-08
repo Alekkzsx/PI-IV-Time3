@@ -52,6 +52,9 @@ class _AvaCockpitPageState extends State<AvaCockpitPage> {
   void initState() {
     super.initState();
     _currentDiscipline = widget.discipline;
+    if (_controller.selectedDiscipline?.code != widget.discipline.code) {
+      _controller.selectDiscipline(widget.discipline);
+    }
     _controller.activeAvaTabIndex = widget.initialTabIndex;
     _controller.addListener(_onControllerChanged);
   }
@@ -179,6 +182,81 @@ class _AvaCockpitPageState extends State<AvaCockpitPage> {
                 color: const Color(0xFF18181B),
               ),
             ),
+            if (_controller.disciplines.length > 1)
+              PopupMenuButton<StudentDisciplineModel>(
+                tooltip: 'Alternar disciplina',
+                color: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                onSelected: switchDiscipline,
+                itemBuilder: (context) => _controller.disciplines
+                    .map(
+                      (d) => PopupMenuItem<StudentDisciplineModel>(
+                        value: d,
+                        child: Row(
+                          children: [
+                            Icon(
+                              d.code == _currentDiscipline.code
+                                  ? Icons.radio_button_checked_rounded
+                                  : Icons.radio_button_off_rounded,
+                              size: 15,
+                              color: d.code == _currentDiscipline.code
+                                  ? const Color(0xFF18181B)
+                                  : const Color(0xFFA1A1AA),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${d.code} — ${d.name}',
+                                overflow: TextOverflow.ellipsis,
+                                style: jakarta(
+                                  size: 12,
+                                  weight: d.code == _currentDiscipline.code
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: const Color(0xFF18181B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF8F5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Trocar turma',
+                        style: jakarta(
+                          size: 11,
+                          weight: FontWeight.w600,
+                          color: const Color(0xFF52525B),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.unfold_more_rounded,
+                        size: 13,
+                        color: Color(0xFF52525B),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 10),
@@ -221,7 +299,17 @@ class _AvaCockpitPageState extends State<AvaCockpitPage> {
                 onSelectTab: (idx) => _controller.setAvaTab(idx),
               ),
               const SizedBox(width: 20),
-              Expanded(child: _buildActiveTabContent()),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFF4F4F5)),
+                  ),
+                  child: _buildActiveTabContent(),
+                ),
+              ),
               const SizedBox(width: 20),
               Container(
                 decoration: const BoxDecoration(

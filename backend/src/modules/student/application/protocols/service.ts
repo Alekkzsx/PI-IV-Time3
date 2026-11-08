@@ -80,4 +80,25 @@ export class StudentProtocolService {
       attachmentName: doc.attachmentName || null,
     };
   }
+
+  async requestGradeClarification(
+    studentId: string,
+    user: Document,
+    classCode: string,
+    input: { evaluationType: string; question: string },
+  ) {
+    const enrollment = await this.database.collection("academic_enrollments").findOne({
+      classCode,
+      studentId: String(studentId),
+      status: "active",
+    });
+    if (!enrollment) {
+      throw new AuthError(403, "enrollment_required", "Você não está matriculado nesta turma.");
+    }
+    return this.submit(studentId, user, {
+      requestType: `Revisão / Esclarecimento de Nota (${input.evaluationType})`,
+      targetComponent: classCode,
+      justification: input.question.trim(),
+    });
+  }
 }

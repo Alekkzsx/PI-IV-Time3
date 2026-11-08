@@ -98,6 +98,18 @@ if (\$dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
     }
   }
 
+  static Future<String?> saveAndLaunchFile({
+    required String fileName,
+    required List<int> bytes,
+    String mimeType = 'application/octet-stream',
+  }) async {
+    return saveOrDownloadFile(
+      fileName: fileName,
+      bytes: bytes,
+      mimeType: mimeType,
+    );
+  }
+
   static String _guessMimeType(String name) {
     final lower = name.toLowerCase();
     if (lower.endsWith('.pdf')) return 'application/pdf';

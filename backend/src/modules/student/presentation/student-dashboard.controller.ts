@@ -187,5 +187,100 @@ export function createStudentDashboardRouter(
     response.status(201).json(created);
   });
 
+  router.put("/disciplines/:classCode/checklist/:itemId", async (request, response) => {
+    const body = parse(
+      z.object({ completed: z.boolean().optional() }).strict(),
+      request.body ?? {},
+    );
+    const result = await service.setChecklistItem(
+      response.locals.userId,
+      request.params.classCode!,
+      request.params.itemId!,
+      body.completed,
+    );
+    response.json(result);
+  });
+
+  router.get("/disciplines/:classCode/chat", async (request, response) => {
+    const messages = await service.getClassChatMessages(
+      response.locals.userId,
+      request.params.classCode!,
+    );
+    response.json(messages);
+  });
+
+  router.post("/disciplines/:classCode/chat", async (request, response) => {
+    const body = parse(
+      z.object({
+        message: z.string().trim().min(1).max(2000).optional(),
+        body: z.string().trim().min(1).max(2000).optional(),
+      }).strict(),
+      request.body,
+    );
+    const text = (body.message ?? body.body ?? "").trim();
+    if (!text) {
+      throw new AuthError(400, "invalid_message", "Informe a mensagem a ser enviada.");
+    }
+    const created = await service.postClassChatMessage(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      text,
+    );
+    response.status(201).json(created);
+  });
+
+  router.post("/disciplines/:classCode/contact-professor", async (request, response) => {
+    const body = parse(
+      z.object({
+        subject: z.string().trim().min(2).max(160),
+        message: z.string().trim().min(4).max(4000),
+      }).strict(),
+      request.body,
+    );
+    const created = await service.contactProfessor(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      body,
+    );
+    response.status(201).json(created);
+  });
+
+  router.post("/disciplines/:classCode/grades/clarification", async (request, response) => {
+    const body = parse(
+      z.object({
+        evaluationType: z.string().trim().min(1).max(80),
+        question: z.string().trim().min(4).max(3000),
+      }).strict(),
+      request.body,
+    );
+    const created = await service.requestGradeClarification(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      body,
+    );
+    response.status(201).json(created);
+  });
+
+  router.patch("/disciplines/:classCode/squads/:squadId", async (request, response) => {
+    const body = parse(
+      z.object({
+        repoUrl: z.string().trim().max(400).optional(),
+        projectTitle: z.string().trim().max(200).optional(),
+        sprintStatus: z.string().trim().max(120).optional(),
+      }).strict(),
+      request.body,
+    );
+    const updated = await service.updateSquad(
+      response.locals.userId,
+      request.params.classCode!,
+      request.params.squadId!,
+      body,
+    );
+    response.json(updated);
+  });
+
   return router;
 }

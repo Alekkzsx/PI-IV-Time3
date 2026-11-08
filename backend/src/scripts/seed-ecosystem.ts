@@ -37,6 +37,22 @@ export async function seedEcosystem(
     return (await database.collection(collection).findOne(filter)) ?? toInsert;
   };
 
+  const upsertSync = async (collection: string, filter: Document, doc: Document): Promise<Document> => {
+    const { _id: _ignoreId, createdAt, ...mutableFields } = doc;
+    const res = await database
+      .collection(collection)
+      .updateOne(
+        filter,
+        {
+          $set: mutableFields,
+          $setOnInsert: { _id: new ObjectId(), createdAt: createdAt ?? now },
+        },
+        { upsert: true },
+      );
+    recordStat(collection, res.upsertedCount === 1);
+    return (await database.collection(collection).findOne(filter)) ?? doc;
+  };
+
   const passwordHash = await bcrypt.hash(password, 12);
 
   // 1. Garante contas verificáveis sem jamais sobrescrever senhas de contas existentes
@@ -384,33 +400,54 @@ export async function seedEcosystem(
       location: "Lab. Engenharia 304 / Sala Síncrona",
       totalHours: 80,
       completedHours: 40,
+      ementa: "Concepção, arquitetura e entrega contínua de sistemas distribuídos full-stack com persistência NoSQL, autenticação segura em múltiplos fatores, comunicação em tempo real via WebRTC e observabilidade ponta a ponta.",
+      objectives: "1. Projetar e homologar contratos REST/WebSocket desacoplados.\n2. Operar persistência transacional auditável no MongoDB Atlas.\n3. Integrar interfaces reativas Flutter Web/Mobile sem mocks estáticos.",
+      methodology: "Aprendizagem Baseada em Projetos (PBL) organizada em Sprints quinzenais com code-review docente, integração contínua e banca integradora final.",
       syllabusUnits: [
         {
-          id: "unit-1",
+          id: "unit-pi4-1",
           unitNumber: 1,
+          tag: "UNIDADE 1 • 20 HORAS LETIVAS • CONCLUÍDA",
           title: "Unidade I — Arquitetura Modular e Contratos REST/WebSocket",
           topics: ["Camadas limpas", "Autenticação JWT e 2FA", "Sinalização WebSocket"],
           hours: 20,
           completedClasses: 10,
           totalClasses: 10,
+          items: [
+            { id: "item-pi4-1-1", type: "pdf", title: "Plano de Ensino & Regulamento do Projeto Integrador IV", subtitle: "PDF • 1.2 MB", actionType: "access", fileName: "Plano_de_Ensino_Oficial_2026_2.pdf", fileSize: "1.2 MB" },
+            { id: "item-pi4-1-2", type: "pdf", title: "Slides Aula 01: Contratos REST, DTOs e Autenticação em 2 Fatores", subtitle: "PDF • 4.8 MB", actionType: "access", fileName: "Aula_01_Introducao_Arquitetura_Software.pdf", fileSize: "4.8 MB" },
+            { id: "item-pi4-1-3", type: "video", title: "Gravação Síncrona: Sinalização WebSocket & Salas Ao Vivo", subtitle: "Vídeo • 1h 42min", actionType: "access" },
+          ],
         },
         {
-          id: "unit-2",
+          id: "unit-pi4-2",
           unitNumber: 2,
+          tag: "UNIDADE 2 • 20 HORAS LETIVAS • EM ANDAMENTO",
           title: "Unidade II — Persistência Distribuída com MongoDB Atlas",
           topics: ["Transações ACID", "Trilhas de auditoria", "Protocolos SHA-256"],
           hours: 20,
           completedClasses: 10,
           totalClasses: 10,
+          items: [
+            { id: "item-pi4-2-1", type: "pdf", title: "Guia Prático: Modelagem de Agregados e Índices no MongoDB", subtitle: "PDF • 3.1 MB", actionType: "access", fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf", fileSize: "3.1 MB" },
+            { id: "item-pi4-2-2", type: "code", title: "Laboratório Prático: Repositórios, Mappers e Hash SHA-256", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+            { id: "item-pi4-2-3", type: "task", title: "Atividade Prática 03: Implementação de API REST", subtitle: "Tarefa • Entrega via AVA", actionType: "delivery" },
+          ],
         },
         {
-          id: "unit-3",
+          id: "unit-pi4-3",
           unitNumber: 3,
+          tag: "UNIDADE 3 • 40 HORAS LETIVAS • PRÓXIMA ETAPA",
           title: "Unidade III — Integração Full-Stack Flutter e Homologação",
           topics: ["Consumo reativo sem mocks", "Videochamada síncrona", "Banca final"],
           hours: 40,
           completedClasses: 4,
           totalClasses: 20,
+          items: [
+            { id: "item-pi4-3-1", type: "reading", title: "Artigo Técnico: Estado Reativo e Arquitetura Modular em Flutter", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf", fileSize: "2.4 MB" },
+            { id: "item-pi4-3-2", type: "pdf", title: "Checklist de Homologação e Rubrica Oficial da Banca", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+            { id: "item-pi4-3-3", type: "task", title: "Submissão Integrada da Sprint: Repositório & Evidências", subtitle: "Tarefa • Entrega em Equipe", actionType: "delivery" },
+          ],
         },
       ],
     },
@@ -426,24 +463,56 @@ export async function seedEcosystem(
       location: "Auditório B-12 / Sala Síncrona",
       totalHours: 80,
       completedHours: 30,
+      ementa: "Estilos e padrões arquiteturais contemporâneos: Clean Architecture, Arquitetura Hexagonal (Ports & Adapters), Domain-Driven Design (DDD), decomposição em microsserviços, resiliência (Circuit Breaker, Retry, Outbox) e observabilidade distribuída.",
+      objectives: "1. Estruturar domínios ricos isolados de infraestrutura com Clean Architecture e DDD.\n2. Projetar comunicação síncrona e assíncrona resiliente a falhas de rede.\n3. Instrumentar telemetria, rate-limiting, revogação de sessão e conformidade LGPD.",
+      methodology: "Aulas expositivas dialogadas com estudos de caso reais de engenharia de produção, laboratórios de refatoração arquitetural e Architecture Decision Records (ADRs).",
       syllabusUnits: [
         {
-          id: "unit-1",
+          id: "unit-arq-1",
           unitNumber: 1,
+          tag: "UNIDADE 1 • 30 HORAS LETIVAS • EM ANDAMENTO",
           title: "Unidade I — Clean Architecture & Domain-Driven Design",
-          topics: ["Apresentação, Aplicação, Domínio e Infraestrutura", "Inversão de dependência"],
-          hours: 40,
+          topics: ["Apresentação, Aplicação, Domínio e Infraestrutura", "Agregados, Entidades e Inversão de Dependência"],
+          hours: 30,
           completedClasses: 15,
-          totalClasses: 20,
+          totalClasses: 15,
+          items: [
+            { id: "item-arq-1-1", type: "pdf", title: "Plano de Ensino e Guia Arquitetural — ARQ-2026-4N", subtitle: "PDF • 1.2 MB", actionType: "access", fileName: "Plano_de_Ensino_Oficial_2026_2.pdf", fileSize: "1.2 MB" },
+            { id: "item-arq-1-2", type: "pdf", title: "Slides Aula 01: Clean Architecture, Ports & Adapters e DDD Estratégico", subtitle: "PDF • 4.8 MB", actionType: "access", fileName: "Aula_01_Introducao_Arquitetura_Software.pdf", fileSize: "4.8 MB" },
+            { id: "item-arq-1-3", type: "reading", title: "Material Complementar: Estudo de Caso de Microsserviços", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "estudo-de-caso-microsservicos.pdf", fileSize: "2.4 MB" },
+            { id: "item-arq-1-4", type: "code", title: "Template de Projeto em Camadas Limpas & Agregados de Domínio", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+          ],
         },
         {
-          id: "unit-2",
+          id: "unit-arq-2",
           unitNumber: 2,
+          tag: "UNIDADE 2 • 30 HORAS LETIVAS • CONTEÚDO LIBERADO",
           title: "Unidade II — Resiliência, Observabilidade e Segurança",
-          topics: ["Rate limiting", "Sessões revogáveis", "Conformidade LGPD"],
-          hours: 40,
+          topics: ["Circuit Breaker, Outbox Pattern & Rate Limiting", "Sessões Revogáveis & Conformidade LGPD"],
+          hours: 30,
+          completedClasses: 4,
+          totalClasses: 15,
+          items: [
+            { id: "item-arq-2-1", type: "pdf", title: "Apostila Técnica: Padrões de Resiliência (Circuit Breaker, Retry & Transactional Outbox)", subtitle: "PDF • 3.1 MB", actionType: "access", fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf", fileSize: "3.1 MB" },
+            { id: "item-arq-2-2", type: "video", title: "Videoaula Síncrona: Observabilidade com OpenTelemetry, Logs Estruturados e LGPD", subtitle: "Vídeo • 1h 48min", actionType: "access" },
+            { id: "item-arq-2-3", type: "pdf", title: "Lista de Exercícios: Arquitetura Resiliente, Rate Limiting e Zero-Trust", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+            { id: "item-arq-2-4", type: "task", title: "Entrega Prática: Especificação de ADR e Resiliência de Serviços", subtitle: "Tarefa • Submissão com Protocolo SHA-256", actionType: "delivery" },
+          ],
+        },
+        {
+          id: "unit-arq-3",
+          unitNumber: 3,
+          tag: "UNIDADE 3 • 20 HORAS LETIVAS • PRÓXIMA ETAPA",
+          title: "Unidade III — Mensageria Assíncrona, Event-Driven & Governança de APIs",
+          topics: ["Coreografia vs Orquestração (Saga)", "API Gateway e Contratos Versionados"],
+          hours: 20,
           completedClasses: 0,
-          totalClasses: 20,
+          totalClasses: 10,
+          items: [
+            { id: "item-arq-3-1", type: "reading", title: "Leitura Obrigatória: Padrão Saga e Consistência Eventual em Sistemas Críticos", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf", fileSize: "2.4 MB" },
+            { id: "item-arq-3-2", type: "code", title: "Laboratório Guiado: Mensageria Assíncrona e Idempotência de Consumidores", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+            { id: "item-arq-3-3", type: "video", title: "Seminário Arquitetural: Evolução de Monolitos Modulares para Microsserviços", subtitle: "Vídeo • 1h 30min", actionType: "access" },
+          ],
         },
       ],
     },
@@ -459,7 +528,56 @@ export async function seedEcosystem(
       location: "Lab. 201 / Sala Síncrona",
       totalHours: 80,
       completedHours: 60,
-      syllabusUnits: [],
+      ementa: "Otimização de consultas e indexação avançada em SGBDs relacionais, controle de concorrência multiversão (MVCC), isolamento transacional ACID, bancos orientados a documentos (MongoDB) e modelagem híbrida.",
+      objectives: "1. Analisar planos de execução e projetar índices compostos de alta seletividade.\n2. Dominar níveis de isolamento transacional, locks e recuperação a falhas.\n3. Modelar coleções, pipelines de agregação e replicação em MongoDB.",
+      methodology: "Laboratórios práticos com datasets reais em PostgreSQL e MongoDB Atlas, tuning de queries e resolução de estudos de caso transacionais.",
+      syllabusUnits: [
+        {
+          id: "unit-bd2-1",
+          unitNumber: 1,
+          tag: "UNIDADE 1 • 28 HORAS LETIVAS • CONCLUÍDA",
+          title: "Unidade I — Indexação B-Tree, Planos de Execução e Tuning SQL",
+          topics: ["Árvores B+ e Hash Indexes", "EXPLAIN ANALYZE", "Particionamento de Tabelas"],
+          hours: 28,
+          completedClasses: 14,
+          totalClasses: 14,
+          items: [
+            { id: "item-bd2-1-1", type: "pdf", title: "Plano de Ensino & Guia de Laboratório de Bancos de Dados II", subtitle: "PDF • 1.2 MB", actionType: "access", fileName: "Plano_de_Ensino_Oficial_2026_2.pdf", fileSize: "1.2 MB" },
+            { id: "item-bd2-1-2", type: "pdf", title: "Slides Aula 01: Estruturas Internas de Armazenamento e Índices Compostos", subtitle: "PDF • 4.8 MB", actionType: "access", fileName: "Aula_01_Introducao_Arquitetura_Software.pdf", fileSize: "4.8 MB" },
+            { id: "item-bd2-1-3", type: "task", title: "Entrega: Atividade 2 - Modelagem de Banco de Dados Relacional", subtitle: "Tarefa • Avaliada", actionType: "delivery" },
+          ],
+        },
+        {
+          id: "unit-bd2-2",
+          unitNumber: 2,
+          tag: "UNIDADE 2 • 28 HORAS LETIVAS • EM ANDAMENTO",
+          title: "Unidade II — Transações ACID, Concorrência MVCC e Recuperação WAL",
+          topics: ["Isolamento Read Committed vs Serializable", "Deadlocks", "Write-Ahead Logging"],
+          hours: 28,
+          completedClasses: 12,
+          totalClasses: 14,
+          items: [
+            { id: "item-bd2-2-1", type: "pdf", title: "Apostila: Controle de Concorrência Multiversão (MVCC) e Isolamento", subtitle: "PDF • 3.1 MB", actionType: "access", fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf", fileSize: "3.1 MB" },
+            { id: "item-bd2-2-2", type: "code", title: "Scripts de Laboratório: Simulação de Anomalias Transacionais e Locks", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+            { id: "item-bd2-2-3", type: "pdf", title: "Lista de Exercícios: Serializabilidade e Recuperação por Log", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+          ],
+        },
+        {
+          id: "unit-bd2-3",
+          unitNumber: 3,
+          tag: "UNIDADE 3 • 24 HORAS LETIVAS • CONTEÚDO LIBERADO",
+          title: "Unidade III — Bancos NoSQL Orientados a Documentos e Aggregation Pipeline",
+          topics: ["Schema Design em MongoDB", "Aggregation Framework", "Replica Sets e Sharding"],
+          hours: 24,
+          completedClasses: 4,
+          totalClasses: 12,
+          items: [
+            { id: "item-bd2-3-1", type: "reading", title: "Artigo Técnico: Padrões de Modelagem Documental e Consistência Distribuída", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf", fileSize: "2.4 MB" },
+            { id: "item-bd2-3-2", type: "video", title: "Aula Gravada: Aggregation Pipelines de Alta Performance no MongoDB Atlas", subtitle: "Vídeo • 1h 38min", actionType: "access" },
+            { id: "item-bd2-3-3", type: "task", title: "Projeto Prático N2: Otimização de Consultas e Índices Híbridos", subtitle: "Tarefa • Entrega via AVA", actionType: "delivery" },
+          ],
+        },
+      ],
     },
     {
       code: "FIS-2026-4N",
@@ -473,7 +591,56 @@ export async function seedEcosystem(
       location: "Sala 105",
       totalHours: 60,
       completedHours: 50,
-      syllabusUnits: [],
+      ementa: "Epistemologia da computação, ética algorítmica, governança de Inteligência Artificial, capitalismo de vigilância, proteção de dados pessoais (LGPD / Marco Civil da Internet) e responsabilidade socioambiental na engenharia de software.",
+      objectives: "1. Analisar criticamente os impactos éticos, políticos e sociais de sistemas algorítmicos.\n2. Aplicar princípios de Privacy by Design, transparência e não-discriminação em projetos de TI.\n3. Compreender o arcabouço jurídico brasileiro de proteção de dados e direitos digitais.",
+      methodology: "Seminários socráticos orientados por textos clássicos e contemporâneos, análise de casos reais de governança de IA e fóruns avaliativos.",
+      syllabusUnits: [
+        {
+          id: "unit-fis-1",
+          unitNumber: 1,
+          tag: "UNIDADE 1 • 20 HORAS LETIVAS • CONCLUÍDA",
+          title: "Unidade 1: Ética na Sociedade da Informação e Cultura Algorítmica",
+          topics: ["Filosofia da Técnica", "Economia da Atenção", "Transparência Algorítmica"],
+          hours: 20,
+          completedClasses: 10,
+          totalClasses: 10,
+          items: [
+            { id: "item-fis-1-1", type: "reading", title: "Texto Base: O Dilema das Redes e a Arquitetura da Persuasão Digital", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf", fileSize: "2.4 MB" },
+            { id: "item-fis-1-2", type: "pdf", title: "Plano de Ensino Oficial — Filosofia, Informação e Sociedade", subtitle: "PDF • 1.2 MB", actionType: "access", fileName: "Plano_de_Ensino_Oficial_2026_2.pdf", fileSize: "1.2 MB" },
+            { id: "item-fis-1-3", type: "video", title: "Aula Magna Gravada: Epistemologia Cibernética e Sociedade em Rede", subtitle: "Vídeo • 1h 28min", actionType: "access" },
+          ],
+        },
+        {
+          id: "unit-fis-2",
+          unitNumber: 2,
+          tag: "UNIDADE 2 • 20 HORAS LETIVAS • EM ANDAMENTO",
+          title: "Unidade 2: Governança de Inteligência Artificial e Responsabilidade Civil",
+          topics: ["Viés Algorítmico", "Explicabilidade (XAI)", "Sistemas Autônomos Críticos"],
+          hours: 20,
+          completedClasses: 10,
+          totalClasses: 10,
+          items: [
+            { id: "item-fis-2-1", type: "pdf", title: "Slides Aula 04: Ética Aplicada à IA Generativa e Decisão Automatizada", subtitle: "PDF • 4.8 MB", actionType: "access", fileName: "Aula_01_Introducao_Arquitetura_Software.pdf", fileSize: "4.8 MB" },
+            { id: "item-fis-2-2", type: "pdf", title: "Guia de Estudo: Diretrizes Internacionais de Confiabilidade em IA", subtitle: "PDF • 3.1 MB", actionType: "access", fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf", fileSize: "3.1 MB" },
+            { id: "item-fis-2-3", type: "task", title: "Fórum Temático: Ética na Inteligência Artificial", subtitle: "Tarefa • Ensaio Crítico", actionType: "delivery" },
+          ],
+        },
+        {
+          id: "unit-fis-3",
+          unitNumber: 3,
+          tag: "UNIDADE 3 • 20 HORAS LETIVAS • CONTEÚDO LIBERADO",
+          title: "Unidade 3: Direitos Digitais, Soberania de Dados e Conformidade LGPD",
+          topics: ["Autodeterminação Informativa", "Marco Civil da Internet", "Cidadania Digital"],
+          hours: 20,
+          completedClasses: 5,
+          totalClasses: 10,
+          items: [
+            { id: "item-fis-3-1", type: "pdf", title: "Caderno de Casos Práticos: Relatório de Impacto à Proteção de Dados (RIPD)", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+            { id: "item-fis-3-2", type: "video", title: "Debate Gravado: Privacidade por Padrão na Engenharia de Software", subtitle: "Vídeo • 1h 20min", actionType: "access" },
+            { id: "item-fis-3-3", type: "code", title: "Kit Documental: Templates de Governança, Termos e Auditoria LGPD", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+          ],
+        },
+      ],
     },
     {
       code: "FSO-2026-4N",
@@ -487,7 +654,56 @@ export async function seedEcosystem(
       location: "Lab. 102",
       totalHours: 80,
       completedHours: 43,
-      syllabusUnits: [],
+      ementa: "Arquitetura de núcleos monolíticos e microkernels, gerência de processos e threads POSIX, escalonamento de CPU, sincronização e semáforos, gerência de memória virtual paginada, sistemas de arquivos e virtualização em contêineres Linux.",
+      objectives: "1. Compreender chamadas de sistema, troca de contexto e escalonamento preemptivo.\n2. Resolver problemas clássicos de concorrência sem condições de corrida ou deadlocks.\n3. Analisar paginação sob demanda, substituição de páginas e isolamento via namespaces/cgroups.",
+      methodology: "Aulas teóricas integradas a experimentos práticos em ambiente Linux POSIX (C/Rust e shell) e análise de telemetria do kernel.",
+      syllabusUnits: [
+        {
+          id: "unit-fso-1",
+          unitNumber: 1,
+          tag: "UNIDADE 1 • 28 HORAS LETIVAS • CONCLUÍDA",
+          title: "Unidade I — Kernel, Processos, Threads e Escalonamento de CPU",
+          topics: ["Syscalls POSIX", "Troca de Contexto", "Escalonador CFS Linux"],
+          hours: 28,
+          completedClasses: 14,
+          totalClasses: 14,
+          items: [
+            { id: "item-fso-1-1", type: "pdf", title: "Plano de Ensino & Roteiro de Laboratório Linux — FSO", subtitle: "PDF • 1.2 MB", actionType: "access", fileName: "Plano_de_Ensino_Oficial_2026_2.pdf", fileSize: "1.2 MB" },
+            { id: "item-fso-1-2", type: "pdf", title: "Slides Aula 01: Modo Usuário vs Modo Kernel, Fork/Exec e Threads", subtitle: "PDF • 4.8 MB", actionType: "access", fileName: "Aula_01_Introducao_Arquitetura_Software.pdf", fileSize: "4.8 MB" },
+            { id: "item-fso-1-3", type: "code", title: "Laboratório 01: Implementação de Shell e Pool de Threads POSIX", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+          ],
+        },
+        {
+          id: "unit-fso-2",
+          unitNumber: 2,
+          tag: "UNIDADE 2 • 28 HORAS LETIVAS • EM ANDAMENTO",
+          title: "Unidade II — Concorrência, Exclusão Mútua e Memória Virtual Paginada",
+          topics: ["Mutexes, Semáforos e Monitores", "TLB e Page Faults", "Algoritmo LRU/Clock"],
+          hours: 28,
+          completedClasses: 8,
+          totalClasses: 14,
+          items: [
+            { id: "item-fso-2-1", type: "pdf", title: "Apostila: Sincronização de Processos, Deadlocks e Paginação Hierárquica", subtitle: "PDF • 3.1 MB", actionType: "access", fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf", fileSize: "3.1 MB" },
+            { id: "item-fso-2-2", type: "pdf", title: "Lista de Exercícios: Tabelas de Páginas, TLB e Substituição", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+            { id: "item-fso-2-3", type: "task", title: "Gerenciamento de Memória Virtual", subtitle: "Tarefa • Simulador de Paginação", actionType: "delivery" },
+          ],
+        },
+        {
+          id: "unit-fso-3",
+          unitNumber: 3,
+          tag: "UNIDADE 3 • 24 HORAS LETIVAS • PRÓXIMA ETAPA",
+          title: "Unidade III — Sistemas de Arquivos, I/O Assíncrono e Contêineres Linux",
+          topics: ["Inodes e Journaling (ext4)", "epoll / io_uring", "Namespaces e Cgroups"],
+          hours: 24,
+          completedClasses: 0,
+          totalClasses: 12,
+          items: [
+            { id: "item-fso-3-1", type: "reading", title: "Artigo Base: Isolamento de Recursos no Kernel Linux para Contêineres", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf", fileSize: "2.4 MB" },
+            { id: "item-fso-3-2", type: "video", title: "Videoaula: Subsistemas de E/S, Descritores de Arquivo e Virtualização", subtitle: "Vídeo • 1h 35min", actionType: "access" },
+            { id: "item-fso-3-3", type: "code", title: "Experimento Prático: Construindo um Mini-Container com Namespaces", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+          ],
+        },
+      ],
     },
     {
       code: "MAT-2026-4N",
@@ -501,12 +717,175 @@ export async function seedEcosystem(
       location: "Sala 204",
       totalHours: 80,
       completedHours: 40,
-      syllabusUnits: [],
+      ementa: "Funções reais de uma e múltiplas variáveis, limites e continuidade, derivadas e otimização não-linear (gradiente), integrais definidas e impróprias, séries numéricas e aplicações computacionais em ciência de dados e algoritmos.",
+      objectives: "1. Dominar taxas de variação, aproximações lineares e problemas de otimização.\n2. Calcular integrais definidas/múltiplas aplicadas a probabilidades e grandezas contínuas.\n3. Relacionar derivadas parciais e gradiente com algoritmos numéricos de aprendizado de máquina.",
+      methodology: "Resolução estruturada de problemas em sala, listas graduais de exercícios analíticos e visualização geométrica computacional em Python/GeoGebra.",
+      syllabusUnits: [
+        {
+          id: "unit-mat-1",
+          unitNumber: 1,
+          tag: "UNIDADE 1 • 28 HORAS LETIVAS • CONCLUÍDA",
+          title: "Unidade I — Limites, Continuidade e Diferenciação de Funções Reais",
+          topics: ["Limites Fundamentais", "Regra da Cadeia", "Derivação Implícita"],
+          hours: 28,
+          completedClasses: 14,
+          totalClasses: 14,
+          items: [
+            { id: "item-mat-1-1", type: "pdf", title: "Plano de Ensino & Formulário Oficial de Cálculo — MAT-2026-4N", subtitle: "PDF • 1.2 MB", actionType: "access", fileName: "Plano_de_Ensino_Oficial_2026_2.pdf", fileSize: "1.2 MB" },
+            { id: "item-mat-1-2", type: "pdf", title: "Notas de Aula 01: Limites, Assíntotas e Taxa Instantânea de Variação", subtitle: "PDF • 4.8 MB", actionType: "access", fileName: "Aula_01_Introducao_Arquitetura_Software.pdf", fileSize: "4.8 MB" },
+            { id: "item-mat-1-3", type: "pdf", title: "Lista Resolvida A1: Derivadas, Regra da Cadeia e L'Hôpital", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+          ],
+        },
+        {
+          id: "unit-mat-2",
+          unitNumber: 2,
+          tag: "UNIDADE 2 • 28 HORAS LETIVAS • EM ANDAMENTO",
+          title: "Unidade II — Otimização, Polinômios de Taylor e Integração Definida",
+          topics: ["Máximos e Mínimos", "Teorema Fundamental do Cálculo", "Integração por Partes"],
+          hours: 28,
+          completedClasses: 6,
+          totalClasses: 14,
+          items: [
+            { id: "item-mat-2-1", type: "pdf", title: "Apostila: Otimização Analítica, Séries de Taylor e Métodos de Integração", subtitle: "PDF • 3.1 MB", actionType: "access", fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf", fileSize: "3.1 MB" },
+            { id: "item-mat-2-2", type: "video", title: "Videoaula de Revisão: Técnicas de Substituição Trigonométrica e Frações Parciais", subtitle: "Vídeo • 1h 40min", actionType: "access" },
+            { id: "item-mat-2-3", type: "code", title: "Notebooks Computacionais: Integração Numérica (Simpson/Trapézio) e Gradiente", subtitle: "ZIP • 14.5 MB", actionType: "access", fileName: "Template_Projeto_Camadas_Spring_Domain.zip", fileSize: "14.5 MB" },
+          ],
+        },
+        {
+          id: "unit-mat-3",
+          unitNumber: 3,
+          tag: "UNIDADE 3 • 24 HORAS LETIVAS • PRÓXIMA ETAPA",
+          title: "Unidade III — Derivadas Parciais, Vetor Gradiente e Integrais Múltiplas",
+          topics: ["Curvas de Nível", "Descida do Gradiente", "Integrais Duplas"],
+          hours: 24,
+          completedClasses: 0,
+          totalClasses: 12,
+          items: [
+            { id: "item-mat-3-1", type: "reading", title: "Leitura Aplicada: O Papel do Cálculo Multivariável na Otimização de Redes Neurais", subtitle: "PDF • 2.4 MB", actionType: "access", fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf", fileSize: "2.4 MB" },
+            { id: "item-mat-3-2", type: "pdf", title: "Lista Preparatória A2: Gradiente, Multiplicadores de Lagrange e Integrais", subtitle: "PDF • 850 KB", actionType: "access", fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf", fileSize: "850 KB" },
+            { id: "item-mat-3-3", type: "task", title: "Entrega Avaliativa: Modelagem Matemática e Otimização Computacional", subtitle: "Tarefa • Entrega Individual", actionType: "delivery" },
+          ],
+        },
+      ],
     },
   ];
 
   for (const clsSpec of classesToEnsure) {
-    await upsertOnInsert(
+    const existingClassDoc = await database.collection("academic_classes").findOne({ code: clsSpec.code });
+    const defaultEmenta =
+      (clsSpec as Document).ementa ??
+      "Engenharia de requisitos avançada, modelagem orientada a objetos com UML 2.5, padrões de projeto GRASP e GoF, arquitetura limpa e integração de sistemas corporativos.";
+    const defaultObjectives =
+      (clsSpec as Document).objectives ??
+      "1. Dominar a especificação formal de requisitos e modelagem arquitetural.\n2. Aplicar padrões GRASP, GoF e princípios SOLID em software sustentável.\n3. Conduzir entregas iterativas auditáveis em equipe.";
+    const defaultMethodology =
+      (clsSpec as Document).methodology ??
+      "Aulas expositivas dialogadas combinadas a estudos de caso arquiteturais, laboratórios guiados e entregas práticas incrementais com feedback contínuo.";
+    const defaultBibliography = [
+      {
+        type: "Básica",
+        title: `Fundamentos e Práticas Avançadas em ${clsSpec.subjectName}`,
+        authors: "MARTIN, Robert C.; EVANS, Eric",
+        publisher: "Bookman / Alta Books",
+        year: "2024",
+      },
+      {
+        type: "Básica",
+        title: "Arquitetura Limpa, Padrões de Projeto e Sistemas Distribuídos Modernos",
+        authors: "RICHARDS, Mark; FORD, Neal",
+        publisher: "O'Reilly / Novatec",
+        year: "2023",
+      },
+      {
+        type: "Complementar",
+        title: "Engenharia de Software Moderna: Princípios, Qualidade e Escala",
+        authors: "VALENTE, Marco Tulio; SOMMERVILLE, Ian",
+        publisher: "Pearson Universidades",
+        year: "2024",
+      },
+      {
+        type: "Complementar",
+        title: "Confiabilidade, Segurança e Governança de Dados em Plataformas Digitais",
+        authors: "KLEPPMANN, Martin",
+        publisher: "Novatec Editora",
+        year: "2023",
+      },
+    ];
+    const defaultRecordedSessions = [
+      {
+        id: `rec-${clsSpec.code.toLowerCase()}-1`,
+        category: "GRAVAÇÃO SÍNCRONA",
+        title: `Aula 01 — Contrato Pedagógico e Fundamentos de ${clsSpec.subjectName}`,
+        date: "12/08/2026",
+        duration: "1h 45min",
+        instructor: clsSpec.professor.displayName,
+        summary: "Apresentação do plano de ensino, critérios de avaliação N1/N2 e arquitetura base da disciplina.",
+      },
+      {
+        id: `rec-${clsSpec.code.toLowerCase()}-2`,
+        category: "GRAVAÇÃO SÍNCRONA",
+        title: `Aula 02 — Estudo de Caso Guiado e Modelagem Estrutural (${clsSpec.code})`,
+        date: "26/08/2026",
+        duration: "1h 52min",
+        instructor: clsSpec.professor.displayName,
+        summary: "Resolução comentada de problemas reais e demonstração prática em ambiente de laboratório.",
+      },
+      {
+        id: `rec-${clsSpec.code.toLowerCase()}-3`,
+        category: "GRAVAÇÃO SÍNCRONA",
+        title: `Aula 03 — Laboratório Prático, Padrões e Revisão N1 (${clsSpec.code})`,
+        date: "09/09/2026",
+        duration: "1h 40min",
+        instructor: clsSpec.professor.displayName,
+        summary: "Implementação passo a passo, revisão de dúvidas frequentes da turma e preparação avaliativa.",
+      },
+      {
+        id: `rec-${clsSpec.code.toLowerCase()}-4`,
+        category: "GRAVAÇÃO SÍNCRONA",
+        title: `Aula 04 — Tópicos Avançados da Unidade II & Orientações de Entrega`,
+        date: "23/09/2026",
+        duration: "1h 48min",
+        instructor: clsSpec.professor.displayName,
+        summary: "Aprofundamento nos temas centrais da Unidade II e checklist técnico para submissão com hash SHA-256.",
+      },
+    ];
+    const defaultChatMessages =
+      Array.isArray(existingClassDoc?.chatMessages) && existingClassDoc.chatMessages.length > 0
+        ? existingClassDoc.chatMessages
+        : [
+            {
+              id: `chat-${clsSpec.code.toLowerCase()}-1`,
+              authorName: clsSpec.professor.displayName,
+              authorRole: "docente",
+              authorProfile: "Docente Titular",
+              message: `Bem-vindos ao canal oficial da turma ${clsSpec.code} (${clsSpec.subjectName})! Os materiais das Unidades I, II e III já estão publicados e atualizados.`,
+              body: `Bem-vindos ao canal oficial da turma ${clsSpec.code} (${clsSpec.subjectName})! Os materiais das Unidades I, II e III já estão publicados e atualizados.`,
+              timestamp: "10/09/2026",
+              createdAt: now.toISOString(),
+            },
+            {
+              id: `chat-${clsSpec.code.toLowerCase()}-2`,
+              authorName: "Gabriel Almeida (Monitoria)",
+              authorRole: "monitor",
+              authorProfile: "Monitor Acadêmico",
+              message: "Pessoal, plantão de dúvidas técnicas e apoio aos laboratórios confirmado às quintas das 18h00 às 19h00 na Sala Virtual!",
+              body: "Pessoal, plantão de dúvidas técnicas e apoio aos laboratórios confirmado às quintas das 18h00 às 19h00 na Sala Virtual!",
+              timestamp: "15/09/2026",
+              createdAt: now.toISOString(),
+            },
+            {
+              id: `chat-${clsSpec.code.toLowerCase()}-3`,
+              authorName: String(stMariana.displayName),
+              authorRole: "aluno",
+              authorProfile: "Estudante",
+              message: "Excelente! Nosso Squad já sincronizou o repositório e concluiu os exercícios da Unidade I.",
+              body: "Excelente! Nosso Squad já sincronizou o repositório e concluiu os exercícios da Unidade I.",
+              timestamp: "18/09/2026",
+              createdAt: now.toISOString(),
+            },
+          ];
+
+    await upsertSync(
       "academic_classes",
       { code: clsSpec.code },
       {
@@ -517,28 +896,64 @@ export async function seedEcosystem(
         professorId: String(clsSpec.professor._id),
         professorIdentity: clsSpec.professor.normalizedIdentity,
         professorName: clsSpec.professor.displayName,
+        professorEmail: clsSpec.professor.email,
         semester: clsSpec.semester,
         shift: clsSpec.shift,
         schedule: clsSpec.schedule,
         location: clsSpec.location,
         totalHours: clsSpec.totalHours,
         completedHours: clsSpec.completedHours,
+        credits: (clsSpec as Document).credits ?? 4,
+        officeHours: (clsSpec as Document).officeHours ?? "Terças-feiras • 18:00 às 19:00",
+        officeLocation:
+          (clsSpec as Document).officeLocation ?? "Sala dos Professores (Bloco C) ou Sala Virtual Teams",
         maxCapacity: 45,
         formulaRegime: "autonomia_docente",
         evaluationFormula: "(N1 × 0.4) + (N2 × 0.6)",
         gradeLocked: false,
         pautaHomologated: false,
         active: true,
+        ementa: defaultEmenta,
+        objectives: defaultObjectives,
+        methodology: defaultMethodology,
+        bibliography: defaultBibliography,
         syllabusUnits: clsSpec.syllabusUnits,
-        squads: [
+        recordedSessions: defaultRecordedSessions,
+        monitors: [
           {
-            id: `sq-${clsSpec.code.toLowerCase()}-1`,
-            name: "Squad Time 3 — Plataforma Acadêmica",
-            projectTitle: "Integração Full-Stack Flutter + Node + Java + MongoDB",
-            repoUrl: "https://github.com/PI-IV-Time3",
-            members: [String(stMariana.displayName), String(stLucas.displayName)],
+            id: `mon-${clsSpec.code.toLowerCase()}`,
+            name: "Gabriel Almeida",
+            ra: "202510890",
+            email: "monitoria.engenharia@agmrm.edu.br",
+            schedule: "Quintas • 18:00 às 19:00",
           },
         ],
+        squads:
+          Array.isArray(existingClassDoc?.squads) && existingClassDoc.squads.length >= 2
+            ? existingClassDoc.squads
+            : [
+                {
+                  id: `sq-${clsSpec.code.toLowerCase()}-1`,
+                  name: "Squad Time 3 — Arquitetura & Integração",
+                  projectTitle: `Projeto Semestral Aplicado — ${clsSpec.subjectName}`,
+                  sprintStatus: "Sprint 3 • Em Homologação",
+                  repoUrl: "https://github.com/PI-IV-Time3",
+                  members: [
+                    String(stMariana.displayName),
+                    String(stLucas.displayName),
+                    String(stTest.displayName),
+                  ],
+                },
+                {
+                  id: `sq-${clsSpec.code.toLowerCase()}-2`,
+                  name: "Squad Nexus — Engenharia Distribuída",
+                  projectTitle: `Estudo Experimental & Observabilidade (${clsSpec.code})`,
+                  sprintStatus: "Sprint 3 • Em Desenvolvimento",
+                  repoUrl: "https://github.com/agmrm-academico/squad-nexus",
+                  members: ["Beatriz Cavalcante", "Rafael Nogueira", "Camila Azevedo"],
+                },
+              ],
+        chatMessages: defaultChatMessages,
         createdBy: String(adminActor._id),
         createdAt: now,
         updatedAt: now,
@@ -630,13 +1045,15 @@ export async function seedEcosystem(
       "3. Entregas com protocolo criptográfico SHA-256 auditável.",
     ].join("\n");
 
-    await upsertOnInsert(
+    await upsertSync(
       "academic_materials",
       { classCode: clsSpec.code, seedKey: `mat-1-${clsSpec.code}` },
       {
         seedKey: `mat-1-${clsSpec.code}`,
         classCode: clsSpec.code,
+        category: "INSTITUCIONAL",
         unitAssociated: "Unidade 1",
+        dateLabel: "01/08/2026",
         title: `Plano de Ensino e Guia Arquitetural — ${clsSpec.code}`,
         fileName: `plano-ensino-${clsSpec.code.toLowerCase()}.txt`,
         mimeType: "text/plain; charset=utf-8",
@@ -727,16 +1144,26 @@ export async function seedEcosystem(
     );
   }
 
-  // Enriquecimento com materiais didáticos e tópicos de fórum do cockpit AVA (FIS)
-  const fisClasses = ["FIS-2026-4N", "FIS"];
-  for (const fisCode of fisClasses) {
-    // 1. Materiais do repositório
-    const mockMaterials = [
+  // Enriquecimento com materiais didáticos (6 categorias) e tópicos de fórum do cockpit AVA para todas as disciplinas
+  const avaEnrichedClasses = [
+    "218131 - APS-II",
+    "PI4-2026-4N",
+    "ARQ-2026-4N",
+    "BD2-2026-4N",
+    "FIS-2026-4N",
+    "FIS",
+    "FSO-2026-4N",
+    "MAT-2026-4N",
+  ];
+  for (const fisCode of avaEnrichedClasses) {
+    const safeSlug = fisCode.replace(/[^a-zA-Z0-9_-]/g, "_");
+    // 1. Materiais do repositório (6 categorias canônicas)
+    const repoMaterials = [
       {
         seedKey: `mat-fis-repo-1-${fisCode}`,
         classCode: fisCode,
-        title: "Plano_de_Ensino_Oficial_2026_2.pdf",
-        fileName: "Plano_de_Ensino_Oficial_2026_2.pdf",
+        title: `Plano_de_Ensino_Oficial_${safeSlug}_2026_2.pdf`,
+        fileName: `Plano_de_Ensino_Oficial_${safeSlug}_2026_2.pdf`,
         category: "INSTITUCIONAL",
         unitAssociated: "Geral",
         dateLabel: "01/08/2026",
@@ -746,8 +1173,8 @@ export async function seedEcosystem(
       {
         seedKey: `mat-fis-repo-2-${fisCode}`,
         classCode: fisCode,
-        title: "Aula_01_Introducao_Arquitetura_Software.pdf",
-        fileName: "Aula_01_Introducao_Arquitetura_Software.pdf",
+        title: `Aula_01_Fundamentos_e_Arquitetura_${safeSlug}.pdf`,
+        fileName: `Aula_01_Fundamentos_e_Arquitetura_${safeSlug}.pdf`,
         category: "SLIDES DE AULA",
         unitAssociated: "Unidade 1",
         dateLabel: "12/08/2026",
@@ -757,8 +1184,8 @@ export async function seedEcosystem(
       {
         seedKey: `mat-fis-repo-3-${fisCode}`,
         classCode: fisCode,
-        title: "Guia_Pratico_Diagramacao_UML_2.5.pdf",
-        fileName: "Guia_Pratico_Diagramacao_UML_2.5.pdf",
+        title: `Guia_Pratico_Estudo_de_Caso_${safeSlug}.pdf`,
+        fileName: `Guia_Pratico_Estudo_de_Caso_${safeSlug}.pdf`,
         category: "MATERIAL COMPLEMENTAR",
         unitAssociated: "Unidade 2",
         dateLabel: "25/08/2026",
@@ -768,10 +1195,10 @@ export async function seedEcosystem(
       {
         seedKey: `mat-fis-repo-4-${fisCode}`,
         classCode: fisCode,
-        title: "Template_Projeto_Camadas_Spring_Domain.zip",
-        fileName: "Template_Projeto_Camadas_Spring_Domain.zip",
+        title: `Laboratorio_Pratico_Workspace_${safeSlug}.zip`,
+        fileName: `Laboratorio_Pratico_Workspace_${safeSlug}.zip`,
         category: "LABORATÓRIOS & CÓDIGOS",
-        unitAssociated: "Laboratório",
+        unitAssociated: "Unidade 2",
         dateLabel: "10/09/2026",
         size: "14.5 MB",
         type: "ZIP",
@@ -779,10 +1206,10 @@ export async function seedEcosystem(
       {
         seedKey: `mat-fis-repo-5-${fisCode}`,
         classCode: fisCode,
-        title: "Lista_Exercicios_Padroes_GoF_Grasp.pdf",
-        fileName: "Lista_Exercicios_Padroes_GoF_Grasp.pdf",
+        title: `Lista_Exercicios_Avaliacao_Formativa_${safeSlug}.pdf`,
+        fileName: `Lista_Exercicios_Avaliacao_Formativa_${safeSlug}.pdf`,
         category: "EXERCÍCIOS",
-        unitAssociated: "Exercícios",
+        unitAssociated: "Unidade 3",
         dateLabel: "22/09/2026",
         size: "850 KB",
         type: "PDF",
@@ -790,24 +1217,27 @@ export async function seedEcosystem(
       {
         seedKey: `mat-fis-repo-6-${fisCode}`,
         classCode: fisCode,
-        title: "Artigo_Referencia_Microservices_Clean_Arch.pdf",
-        fileName: "Artigo_Referencia_Microservices_Clean_Arch.pdf",
+        title: `Artigo_Referencia_Leitura_Obrigatoria_${safeSlug}.pdf`,
+        fileName: `Artigo_Referencia_Leitura_Obrigatoria_${safeSlug}.pdf`,
         category: "LEITURAS OBRIGATÓRIAS",
-        unitAssociated: "Leituras",
+        unitAssociated: "Unidade 3",
         dateLabel: "02/10/2026",
         size: "2.4 MB",
         type: "PDF",
       },
     ];
 
-    for (const m of mockMaterials) {
-      await upsertOnInsert(
+    for (const m of repoMaterials) {
+      await upsertSync(
         "academic_materials",
         { classCode: fisCode, seedKey: m.seedKey },
         {
           ...m,
           mimeType: m.type === "ZIP" ? "application/zip" : "application/pdf",
-          contentBase64: Buffer.from("Material Pedagógico Institucional do AVA", "utf8").toString("base64"),
+          contentBase64: Buffer.from(
+            `Material Pedagógico Oficial do AVA — Turma ${fisCode} — ${m.title}`,
+            "utf8",
+          ).toString("base64"),
           uploadedBy: String(mainTeacher._id),
           uploadedByName: mainTeacher.displayName,
           isTimelineItem: false,
@@ -1288,7 +1718,7 @@ export async function seedEcosystem(
     },
   );
 
-  // 7. Parâmetros institucionais padrão se ainda não configurados
+  // 7. Parâmetros institucionais padrão se ainda não configurados + recursos acadêmicos de apoio
   await upsertOnInsert(
     "admin_settings",
     { _id: "institutional" as unknown as ObjectId },
@@ -1303,6 +1733,51 @@ export async function seedEcosystem(
       lgpdRetentionMonths: 60,
       dpoEmail: "dpo@agmrm.edu.br",
       updatedAt: now,
+    },
+  );
+  await database.collection("admin_settings").updateOne(
+    { _id: "institutional" as unknown as ObjectId },
+    {
+      $set: {
+        academicResources: [
+          {
+            id: "res-biblioteca-virtual",
+            title: "Biblioteca Virtual Pearson & Minha Biblioteca",
+            subtitle: "Acervo completo de Engenharia, Arquitetura e Computação",
+            category: "ACERVO DIGITAL",
+            actionLabel: "Acessar Acervo",
+            url: "https://biblioteca.agmrm.edu.br",
+            icon: "menu_book",
+          },
+          {
+            id: "res-labs-docker",
+            title: "Laboratórios Remotos Cloud & Containers",
+            subtitle: "Ambientes Linux, Docker, PostgreSQL e MongoDB sob demanda",
+            category: "INFRAESTRUTURA",
+            actionLabel: "Provisionar Lab",
+            url: "https://labs.agmrm.edu.br",
+            icon: "terminal",
+          },
+          {
+            id: "res-monitoria-nivelamento",
+            title: "Central de Monitoria & Nivelamento Acadêmico",
+            subtitle: "Plantões semanais com monitores bolsistas das disciplinas",
+            category: "SUPORTE DISCENTE",
+            actionLabel: "Ver Horários",
+            url: "https://monitoria.agmrm.edu.br",
+            icon: "groups",
+          },
+          {
+            id: "res-templates-abnt",
+            title: "Guias Regimentais, Normas ABNT & Templates",
+            subtitle: "Modelos oficiais LaTeX/DOCX para relatórios técnicos e PI",
+            category: "INSTITUCIONAL",
+            actionLabel: "Baixar Modelos",
+            url: "https://normas.agmrm.edu.br",
+            icon: "description",
+          },
+        ],
+      },
     },
   );
 

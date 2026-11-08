@@ -13,6 +13,9 @@ enum AvaBadgeVariant {
 
   /// Cinza suave (`#F4F4F5` / `#52525B`): Categorias de materiais, cargos e tags neutras.
   neutral,
+
+  /// Azul suave institucional (`#EFF6FF` / `#1D4ED8`): Avisos, canais e informações.
+  info,
 }
 
 /// [AvaStatusBadge]
@@ -58,6 +61,11 @@ class AvaStatusBadge extends StatelessWidget {
         const Color(0xFFF4F4F5),
         const Color(0xFFE4E4E7),
         const Color(0xFF52525B),
+      ),
+      AvaBadgeVariant.info => (
+        const Color(0xFFEFF6FF),
+        const Color(0xFFBFDBFE),
+        const Color(0xFF1D4ED8),
       ),
     };
 

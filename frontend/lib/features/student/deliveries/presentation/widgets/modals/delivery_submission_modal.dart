@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:agmrm_security/student/student_security.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/features/student/shared/models/models.dart';
@@ -231,8 +232,12 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 8,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
       child: Container(
         width: 660,
         constraints: const BoxConstraints(maxHeight: 740),
@@ -257,9 +262,11 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+            color: Color(0xFFFAF8F5),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+            border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -269,33 +276,34 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
                     child: const Icon(
                       Icons.cloud_upload_outlined,
                       size: 20,
-                      color: Color(0xFF0F172A),
+                      color: Color(0xFF18181B),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Submissão de Atividade Acadêmica',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
+                        style: jakarta(
+                          size: 16,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF18181B),
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         'Confira os parâmetros regimentais e protocole os artefatos requeridos.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
+                        style: jakarta(
+                          size: 12,
+                          color: const Color(0xFF71717A),
                         ),
                       ),
                     ],
@@ -306,7 +314,7 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 icon: const Icon(
                   Icons.close,
                   size: 20,
-                  color: Color(0xFF64748B),
+                  color: Color(0xFF71717A),
                 ),
                 onPressed: () => Navigator.pop(context),
               ),
@@ -321,12 +329,12 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
               children: [
                 SubmissionContextBanner(item: widget.item),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   '1. Artefato Principal da Entrega',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                  style: jakarta(
+                    size: 13,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -338,32 +346,41 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                   onRemoveFile: _onRemoveFile,
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   '2. Links & Observações Pedagógicas (Opcional)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                  style: jakarta(
+                    size: 13,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _gitController,
-                  style: const TextStyle(fontSize: 13),
+                  style: jakarta(size: 13, color: const Color(0xFF18181B)),
                   decoration: InputDecoration(
                     labelText:
                         'Link do Repositório Git (GitHub, GitLab ou Bitbucket)',
-                    labelStyle: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
+                    labelStyle: jakarta(
+                      size: 12,
+                      color: const Color(0xFF71717A),
                     ),
                     prefixIcon: const Icon(
                       Icons.code,
                       size: 18,
-                      color: Color(0xFF64748B),
+                      color: Color(0xFF71717A),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF18181B)),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -375,16 +392,25 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                 TextField(
                   controller: _obsController,
                   maxLines: 2,
-                  style: const TextStyle(fontSize: 13),
+                  style: jakarta(size: 13, color: const Color(0xFF18181B)),
                   decoration: InputDecoration(
                     labelText: 'Notas / Observações para o Docente',
-                    labelStyle: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
+                    labelStyle: jakarta(
+                      size: 12,
+                      color: const Color(0xFF71717A),
                     ),
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF18181B)),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -404,19 +430,30 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           decoration: const BoxDecoration(
-            color: Color(0xFFF8FAFC),
-            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+            color: Color(0xFFFAF8F5),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(15)),
+            border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton(
+              OutlinedButton(
                 onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-                child: const Text(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF71717A),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
                   'Cancelar',
-                  style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                  style: jakarta(
+                    size: 12,
+                    color: const Color(0xFF71717A),
+                    weight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -441,17 +478,20 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
                   _isSubmitting
                       ? 'Gerando Protocolo...'
                       : 'Protocolar Envio Oficial',
+                  style: jakarta(size: 12, weight: FontWeight.w600, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F172A),
+                  backgroundColor: const Color(0xFF18181B),
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFFCBD5E1),
+                  disabledBackgroundColor: const Color(0xFFE5E7EB),
+                  disabledForegroundColor: const Color(0xFFA1A1AA),
+                  elevation: 0,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
+                    horizontal: 22,
                     vertical: 12,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
               ),
@@ -462,3 +502,4 @@ class _DeliverySubmissionModalState extends State<DeliverySubmissionModal> {
     );
   }
 }
+

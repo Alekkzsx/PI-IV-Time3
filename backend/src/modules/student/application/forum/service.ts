@@ -69,4 +69,81 @@ export class StudentForumService {
     );
     return reply;
   }
+
+  async getClassChatMessages(studentId: string, classCode: string) {
+    const enrollment = await this.database.collection("academic_enrollments").findOne({
+      classCode,
+      studentId: String(studentId),
+      status: "active",
+    });
+    if (!enrollment) throw new AuthError(403, "enrollment_required", "Você não está matriculado nesta turma.");
+    const classroom = await this.database.collection("academic_classes").findOne({ code: classCode });
+    return Array.isArray(classroom?.chatMessages) ? classroom.chatMessages : [];
+  }
+
+  async postClassChatMessage(studentId: string, user: Document, classCode: string, messageText: string) {
+    const enrollment = await this.database.collection("academic_enrollments").findOne({
+      classCode,
+      studentId: String(studentId),
+      status: "active",
+    });
+    if (!enrollment) throw new AuthError(403, "enrollment_required", "Você não está matriculado nesta turma.");
+    const now = new Date();
+    const message = {
+      id: randomUUID(),
+      authorId: String(studentId),
+      authorName: String(user.displayName ?? user.identity),
+      authorRa: String(user.identity ?? ""),
+      authorRole: "aluno",
+      authorProfile: "Estudante",
+      message: messageText.trim(),
+      body: messageText.trim(),
+      timestamp: formatShortDate(now),
+      createdAt: now.toISOString(),
+    };
+    await this.database.collection("academic_classes").updateOne(
+      { code: classCode },
+      { $push: { chatMessages: message } as unknown as Document },
+    );
+    await this.database.collection("academic_class_chat_messages").insertOne({
+      classCode,
+      ...message,
+    });
+    return message;
+  }
+
+  async updateSquad(
+    studentId: string,
+    classCode: string,
+    squadId: string,
+    input: { repoUrl?: string; projectTitle?: string; sprintStatus?: string },
+  ) {
+    const enrollment = await this.database.collection("academic_enrollments").findOne({
+      classCode,
+      studentId: String(studentId),
+      status: "active",
+    });
+    if (!enrollment) throw new AuthError(403, "enrollment_required", "Você não está matriculado nesta turma.");
+    const classroom = await this.database.collection("academic_classes").findOne({ code: classCode });
+    if (!classroom) throw new AuthError(404, "class_not_found", "Turma não encontrada.");
+
+    const squads = Array.isArray(classroom.squads) ? [...classroom.squads] : [];
+    const idx = squads.findIndex((sq: Document) => String(sq.id) === squadId);
+    if (idx === -1) throw new AuthError(404, "squad_not_found", "Squad não localizado nesta turma.");
+
+    const updated = {
+      ...squads[idx],
+      ...(input.repoUrl !== undefined ? { repoUrl: input.repoUrl.trim() } : {}),
+      ...(input.projectTitle !== undefined ? { projectTitle: input.projectTitle.trim() } : {}),
+      ...(input.sprintStatus !== undefined ? { sprintStatus: input.sprintStatus.trim() } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    squads[idx] = updated;
+
+    await this.database.collection("academic_classes").updateOne(
+      { _id: classroom._id },
+      { $set: { squads } as Document },
+    );
+    return updated;
+  }
 }

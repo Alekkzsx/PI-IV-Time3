@@ -20,7 +20,7 @@ export class StudentPortalOperationsService {
     this.protocolService = new StudentProtocolService(database, emailService);
     this.forumService = new StudentForumService(database);
     this.calendarService = new StudentCalendarService(database);
-    this.communicationsService = new StudentCommunicationsService(database);
+    this.communicationsService = new StudentCommunicationsService(database, emailService);
     this.notesService = new StudentNotesService(database);
     this.deliveryService = new StudentDeliveryService(database);
   }
@@ -77,6 +77,10 @@ export class StudentPortalOperationsService {
     return this.notesService.savePersonalNote(studentId, classCode, content);
   }
 
+  async setChecklistItem(studentId: string, classCode: string, itemId: string, completed?: boolean) {
+    return this.notesService.setChecklistItem(studentId, classCode, itemId, completed);
+  }
+
   async createForumTopic(
     studentId: string,
     user: Document,
@@ -88,5 +92,40 @@ export class StudentPortalOperationsService {
 
   async replyForumTopic(studentId: string, user: Document, classCode: string, topicId: string, body: string) {
     return this.forumService.reply(studentId, user, classCode, topicId, body);
+  }
+
+  async getClassChatMessages(studentId: string, classCode: string) {
+    return this.forumService.getClassChatMessages(studentId, classCode);
+  }
+
+  async postClassChatMessage(studentId: string, user: Document, classCode: string, message: string) {
+    return this.forumService.postClassChatMessage(studentId, user, classCode, message);
+  }
+
+  async contactProfessor(
+    studentId: string,
+    user: Document,
+    classCode: string,
+    input: { subject: string; message: string },
+  ) {
+    return this.communicationsService.contactProfessor(studentId, user, classCode, input);
+  }
+
+  async requestGradeClarification(
+    studentId: string,
+    user: Document,
+    classCode: string,
+    input: { evaluationType: string; question: string },
+  ) {
+    return this.protocolService.requestGradeClarification(studentId, user, classCode, input);
+  }
+
+  async updateSquad(
+    studentId: string,
+    classCode: string,
+    squadId: string,
+    input: { repoUrl?: string; projectTitle?: string; sprintStatus?: string },
+  ) {
+    return this.forumService.updateSquad(studentId, classCode, squadId, input);
   }
 }

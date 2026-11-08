@@ -3,6 +3,7 @@ import { ObjectId, type Db, type Document } from "mongodb";
 
 export interface StudentDashboardData {
   enrollments: Document[];
+  classEnrollments: Document[];
   classCodes: string[];
   courseCodes: string[];
   classes: Document[];
@@ -21,6 +22,7 @@ export interface StudentDashboardData {
   liveSessions: Document[];
   activeSessions: Document[];
   auditLogs: Document[];
+  institutionalSettings: Document | null;
   profMap: Map<string, Document>;
 }
 
@@ -37,6 +39,7 @@ export class StudentDashboardRepository {
 
     const [
       classes,
+      classEnrollments,
       courses,
       classSessions,
       assignments,
@@ -52,10 +55,14 @@ export class StudentDashboardRepository {
       liveSessions,
       activeSessions,
       auditLogs,
+      institutionalSettings,
     ] = await Promise.all([
       classCodes.length > 0
-        ? this.database.collection("academic_classes").find({ code: { $in: classCodes } }).toArray()
-        : Promise.resolve([]),
+          ? this.database.collection("academic_classes").find({ code: { $in: classCodes } }).toArray()
+          : Promise.resolve([]),
+      classCodes.length > 0
+          ? this.database.collection("academic_enrollments").find({ classCode: { $in: classCodes }, status: "active" }).toArray()
+          : Promise.resolve([]),
       courseCodes.length > 0
         ? this.database.collection("academic_courses").find({ code: { $in: courseCodes } }).toArray()
         : Promise.resolve([]),
@@ -122,6 +129,7 @@ export class StudentDashboardRepository {
         .sort({ createdAt: -1 })
         .limit(20)
         .toArray(),
+      this.database.collection("admin_settings").findOne({ _id: "institutional" as unknown as ObjectId }),
     ]);
 
     const professorIds = Array.from(
@@ -145,6 +153,7 @@ export class StudentDashboardRepository {
 
     return {
       enrollments,
+      classEnrollments,
       classCodes,
       courseCodes,
       classes,
@@ -163,6 +172,7 @@ export class StudentDashboardRepository {
       liveSessions,
       activeSessions,
       auditLogs,
+      institutionalSettings,
       profMap: new Map(professors.map((professor) => [String(professor._id), professor])),
     };
   }

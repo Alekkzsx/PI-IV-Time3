@@ -1,13 +1,17 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava/common/ava_common.dart';
 import 'package:pi_iv_time3/features/student/shared/models/models.dart';
 
 /// [DeliveryFeedbackModal]
 ///
-/// Modal de diálogo para exibição aprofundada da Devolutiva Pedagógica e Avaliação por Rubricas.
-/// Apresenta a nota final homologada, critérios avaliativos detalhados, parecer circunstanciado do docente
-/// e data formal de validação da pontuação.
+/// Modal institucional canônico de exibição da Devolutiva Pedagógica e Avaliação por Rubricas.
+/// Unificado ao Design System claro do AVA (`AvaStandardModal`, `#FAF8F5`, `#FFFFFF`, `#E5E7EB`, `jakarta`).
 class DeliveryFeedbackModal extends StatelessWidget {
   /// Atividade acadêmica avaliada.
   final StudentDeliveryItem item;
@@ -16,14 +20,55 @@ class DeliveryFeedbackModal extends StatelessWidget {
   const DeliveryFeedbackModal({super.key, required this.item});
 
   /// Exibe o diálogo modal na árvore de widgets.
-  ///
-  /// Parâmetros:
-  /// - [context]: Contexto de construção para acionamento do [showDialog].
-  /// - [item]: Entrega avaliada com rubricas a exibir.
   static Future<void> show(BuildContext context, StudentDeliveryItem item) {
     return showDialog<void>(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
       builder: (_) => DeliveryFeedbackModal(item: item),
+    );
+  }
+
+  Future<void> _exportFeedbackReport(BuildContext context) async {
+    final scoreStr = item.score?.toStringAsFixed(1) ?? '—';
+    final buffer = StringBuffer()
+      ..writeln('PARECER PEDAGÓGICO E DEVOLUTIVA OFICIAL — AGMRM AVA')
+      ..writeln('====================================================')
+      ..writeln('Disciplina: ${item.disciplineCode} — ${item.disciplineName}')
+      ..writeln('Atividade: ${item.title}')
+      ..writeln('Docente: ${item.professor ?? "Docente Titular"}')
+      ..writeln('Protocolo: ${item.protocol ?? "—"}')
+      ..writeln('Nota Homologada: $scoreStr / ${item.maxScore.toStringAsFixed(1)}')
+      ..writeln('')
+      ..writeln('PARECER DESCRITIVO:')
+      ..writeln(item.feedback ?? 'Nenhum parecer descritivo informado.')
+      ..writeln('');
+
+    if (item.rubrics.isNotEmpty) {
+      buffer.writeln('DETALHAMENTO POR RUBRICA:');
+      for (final r in item.rubrics) {
+        buffer.writeln(
+          '- ${r['criterio']}: ${r['nota']} / ${r['pontos']} pts',
+        );
+      }
+    }
+
+    final safeCode = item.disciplineCode.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    final bytes = Uint8List.fromList(utf8.encode(buffer.toString()));
+    final savedPath = await PlatformFileHelper.saveAndLaunchFile(
+      bytes: bytes,
+      fileName: 'parecer_pedagogico_$safeCode.txt',
+      mimeType: 'text/plain; charset=utf-8',
+    );
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          savedPath == null
+              ? 'Não foi possível exportar o parecer pedagógico.'
+              : 'Parecer pedagógico exportado: $savedPath',
+        ),
+      ),
     );
   }
 
@@ -31,369 +76,293 @@ class DeliveryFeedbackModal extends StatelessWidget {
   Widget build(BuildContext context) {
     final scoreStr = item.score?.toStringAsFixed(1) ?? '—';
 
-    return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 8,
-      child: Container(
-        width: 640,
-        constraints: const BoxConstraints(maxHeight: 720),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Cabeçalho
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+    return AvaStandardModal(
+      overlineTag: 'DEVOLUTIVA HOMOLOGADA • ${item.disciplineCode}',
+      title: 'Devolutiva & Parecer Pedagógico',
+      subtitle: '${item.activityCode ?? item.disciplineCode} • ${item.title}',
+      maxWidth: 640,
+      actions: [
+        AvaActionPillButton(
+          label: 'Exportar Parecer (.txt)',
+          icon: Icons.download_rounded,
+          variant: AvaButtonVariant.secondary,
+          onPressed: () => _exportFeedbackReport(context),
+        ),
+        AvaActionPillButton(
+          label: 'Fechar',
+          variant: AvaButtonVariant.primary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCFCE7).withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.verified_rounded,
+                        color: Color(0xFF166534),
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          'Nota Oficial Atribuída',
+                          style: jakarta(
+                            size: 13.5,
+                            weight: FontWeight.w700,
+                            color: const Color(0xFF166534),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '$scoreStr / ${item.maxScore.toStringAsFixed(1)}',
+                  style: jakarta(
+                    size: 20,
+                    weight: FontWeight.w800,
+                    color: const Color(0xFF166534),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Parecer Descritivo do Docente',
+                style: jakarta(
+                  size: 13,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Devolutiva & Parecer Pedagógico',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${item.activityCode ?? item.disciplineCode} • ${item.title}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
+              if (item.feedbackDate != null)
+                Text(
+                  'Emitido em ${item.feedbackDate}',
+                  style: jakarta(
+                    size: 11,
+                    weight: FontWeight.w500,
+                    color: const Color(0xFF71717A),
                   ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.close,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF8F5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Text(
+              item.feedback ?? 'Nenhum parecer descritivo foi informado.',
+              style: jakarta(
+                size: 13,
+                weight: FontWeight.w400,
+                color: const Color(0xFF3F3F46),
+                height: 1.5,
               ),
             ),
-
-            // 2. Conteúdo Rolável
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Banner de Nota em Destaque
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFBBF7D0)),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'Detalhamento por Rubrica Avaliativa',
+            style: jakarta(
+              size: 13,
+              weight: FontWeight.w700,
+              color: const Color(0xFF18181B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (item.rubrics.isNotEmpty)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFAF8F5),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(9),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(
-                                Icons.check_circle,
-                                color: Color(0xFF16A34A),
-                                size: 24,
-                              ),
-                              SizedBox(width: 10),
-                              Text(
-                                'Nota Oficial Atribuída:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Color(0xFF166534),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            '$scoreStr / ${item.maxScore.toStringAsFixed(1)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 22,
-                              color: Color(0xFF166534),
-                            ),
-                          ),
-                        ],
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE5E7EB)),
                       ),
                     ),
-                    const SizedBox(height: 20),
-
-                    // Parecer Descritivo do Docente
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Row(
                       children: [
-                        const Text(
-                          'Parecer Descritivo do Docente:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        if (item.feedbackDate != null)
-                          Text(
-                            'Emitido em ${item.feedbackDate}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
+                        Expanded(
+                          flex: 5,
+                          child: Text(
+                            'CRITÉRIO',
+                            style: jakarta(
+                              size: 10.5,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF71717A),
+                              letterSpacing: 0.5,
                             ),
                           ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'PESO MÁX.',
+                            style: jakarta(
+                              size: 10.5,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF71717A),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            'OBTIDA',
+                            textAlign: TextAlign.right,
+                            style: jakarta(
+                              size: 10.5,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF71717A),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                  ),
+                  for (var i = 0; i < item.rubrics.length; i++)
                     Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: Text(
-                        item.feedback ??
-                            'Nenhum parecer descritivo foi informado.',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.45,
-                          color: Color(0xFF334155),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Detalhamento por Rubricas
-                    const Text(
-                      'Detalhamento por Rubrica Avaliativa:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (item.rubrics.isNotEmpty)
-                      Table(
-                        border: TableBorder.all(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        children: [
-                          const TableRow(
-                            decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                child: Text(
-                                  'CRITÉRIO',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    color: Color(0xFF475569),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                child: Text(
-                                  'PESO MÁXIMO',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    color: Color(0xFF475569),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                child: Text(
-                                  'NOTA OBTIDA',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    color: Color(0xFF475569),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          ...item.rubrics.map((r) {
-                            return TableRow(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  child: Text(
-                                    r['criterio'] as String,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF1E293B),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  child: Text(
-                                    '${r['pontos']} pts',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  child: Text(
-                                    '${r['nota']} pts',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: Color(0xFF16A34A),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          }),
-                        ],
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: const Text(
-                          'Nota atribuída globalmente pelo docente titular.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Metadados do Protocolo Oficial
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
+                        border: i < item.rubrics.length - 1
+                            ? const Border(
+                                bottom: BorderSide(color: Color(0xFFE5E7EB)),
+                              )
+                            : null,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Protocolo Oficial: ${item.protocol ?? "—"}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF475569),
+                          Expanded(
+                            flex: 5,
+                            child: Text(
+                              '${item.rubrics[i]['criterio'] ?? ''}',
+                              style: jakarta(
+                                size: 12.5,
+                                weight: FontWeight.w500,
+                                color: const Color(0xFF18181B),
+                              ),
                             ),
                           ),
-                          Text(
-                            'Submetido em ${item.submissionDate ?? item.dueDate}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${item.rubrics[i]['pontos']} pts',
+                              style: jakarta(
+                                size: 12,
+                                weight: FontWeight.w500,
+                                color: const Color(0xFF71717A),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${item.rubrics[i]['nota']} pts',
+                              textAlign: TextAlign.right,
+                              style: jakarta(
+                                size: 12.5,
+                                weight: FontWeight.w700,
+                                color: const Color(0xFF166534),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                ],
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Text(
+                'Nota atribuída globalmente pelo docente titular.',
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w400,
+                  color: const Color(0xFF71717A),
                 ),
               ),
             ),
-
-            // 3. Rodapé
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF8FAFC),
-                border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Download do parecer pedagógico assinado iniciado (PDF).',
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.download, size: 16),
-                    label: const Text('Baixar Parecer Assinado (PDF)'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF334155),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F172A),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Fechar'),
-                  ),
-                ],
-              ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF8F5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
-          ],
-        ),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 6,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Protocolo Oficial: ${item.protocol ?? "—"}',
+                  style: jakarta(
+                    size: 11.5,
+                    weight: FontWeight.w600,
+                    color: const Color(0xFF52525B),
+                  ),
+                ),
+                Text(
+                  'Submetido em ${item.submissionDate ?? item.dueDate}',
+                  style: jakarta(
+                    size: 11.5,
+                    weight: FontWeight.w400,
+                    color: const Color(0xFF71717A),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -2,44 +2,36 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 
 /// [AcademicSupportCard]
 ///
 /// Card de Apoio Acadêmico & Recursos Oficiais Universitários.
-/// Provê acesso rápido a serviços complementares como Biblioteca Virtual, Laboratórios Virtuais,
-/// Monitoria Acadêmica e download de templates para relatórios e TCC.
+/// Consome dinamicamente os recursos cadastrados em `admin_settings.academicResources` via MongoDB.
 class AcademicSupportCard extends StatelessWidget {
   /// Cria uma nova instância de [AcademicSupportCard].
   const AcademicSupportCard({super.key});
 
+  IconData _resolveIcon(dynamic iconKey) {
+    final k = iconKey?.toString().toLowerCase() ?? '';
+    if (k.contains('book') || k.contains('biblioteca')) {
+      return Icons.menu_book_outlined;
+    }
+    if (k.contains('laptop') || k.contains('lab') || k.contains('docker')) {
+      return Icons.laptop_chromebook_rounded;
+    }
+    if (k.contains('people') || k.contains('monitoria')) {
+      return Icons.people_outline_rounded;
+    }
+    if (k.contains('download') || k.contains('file') || k.contains('template')) {
+      return Icons.file_download_outlined;
+    }
+    return Icons.link_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final resources = [
-      {
-        'icon': Icons.menu_book_outlined,
-        'title': 'Biblioteca Virtual Universitária',
-        'desc': 'Mais de 15.000 títulos técnicos Pearson & Minha Biblioteca',
-        'isDownload': false,
-      },
-      {
-        'icon': Icons.laptop_chromebook_rounded,
-        'title': 'Laboratórios Virtuais & Docker',
-        'desc': 'Ambientes conteinerizados de PostgreSQL e Linux',
-        'isDownload': false,
-      },
-      {
-        'icon': Icons.people_outline_rounded,
-        'title': 'Monitoria & Nivelamento',
-        'desc': 'Plantões com discentes bolsistas de Seg a Sex',
-        'isDownload': false,
-      },
-      {
-        'icon': Icons.file_download_outlined,
-        'title': 'Templates Oficiais ABNT & TCC',
-        'desc': 'Modelos LaTeX e Word aprovados pelo Colegiado',
-        'isDownload': true,
-      },
-    ];
+    final resources = PortalController.instance.academicResources;
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -75,70 +67,87 @@ class AcademicSupportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          for (final res in resources)
+          if (resources.isEmpty)
             Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFAFAFA),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                color: const Color(0xFFFAF8F5),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(
-                      res['icon'] as IconData,
-                      size: 18,
-                      color: const Color(0xFF18181B),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          res['title'] as String,
-                          style: jakarta(
-                            size: 12.5,
-                            weight: FontWeight.w700,
-                            color: const Color(0xFF18181B),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          res['desc'] as String,
-                          style: jakarta(
-                            size: 11,
-                            color: const Color(0xFF71717A),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    (res['isDownload'] as bool)
-                        ? Icons.download_rounded
-                        : Icons.open_in_new_rounded,
-                    size: 16,
-                    color: const Color(0xFFA1A1AA),
-                  ),
-                ],
+              child: Center(
+                child: Text(
+                  'Nenhum recurso de apoio cadastrado pela coordenação acadêmica.',
+                  style: jakarta(size: 12, color: const Color(0xFF71717A)),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            ),
+            )
+          else
+            for (final res in resources)
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF8F5),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        _resolveIcon(res['icon'] ?? res['iconName']),
+                        size: 18,
+                        color: const Color(0xFF18181B),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            (res['title'] ?? res['name'] ?? 'Recurso').toString(),
+                            style: jakarta(
+                              size: 12.5,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF18181B),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            (res['desc'] ?? res['description'] ?? '').toString(),
+                            style: jakarta(
+                              size: 11,
+                              color: const Color(0xFF71717A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      res['isDownload'] == true
+                          ? Icons.download_rounded
+                          : Icons.open_in_new_rounded,
+                      size: 16,
+                      color: const Color(0xFFA1A1AA),
+                    ),
+                  ],
+                ),
+              ),
         ],
       ),
     );
   }
 }
-
 
 typedef StudentAcademicSupportCard = AcademicSupportCard;

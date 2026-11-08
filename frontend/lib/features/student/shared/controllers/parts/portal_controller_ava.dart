@@ -28,11 +28,27 @@ mixin _PortalAvaMixin on _PortalControllerBase {
   /// - [classCode]: Código identificador da turma.
   ///
   /// Retorna a lista de tópicos filtrados.
-  List<Map<String, dynamic>> forumTopics(String classCode) =>
-      remoteDashboard?.forumTopics
-          .where((topic) => topic['classCode']?.toString() == classCode)
-          .toList(growable: false) ??
-      const [];
+  List<Map<String, dynamic>> forumTopics(String classCode) {
+    final disc = disciplines
+        .where(
+          (d) =>
+              d.code == classCode ||
+              d.roomCode == classCode ||
+              d.fullCode == classCode,
+        )
+        .firstOrNull;
+    return remoteDashboard?.forumTopics
+            .where((topic) {
+              final tCode = topic['classCode']?.toString() ?? '';
+              return tCode == classCode ||
+                  (disc != null &&
+                      (tCode == disc.code ||
+                          tCode == disc.roomCode ||
+                          tCode == disc.fullCode));
+            })
+            .toList(growable: false) ??
+        const [];
+  }
 
   /// Retorna os tópicos do fórum fortemente tipados como [StudentForumTopic].
   ///
@@ -144,5 +160,174 @@ mixin _PortalAvaMixin on _PortalControllerBase {
     }
     await _remote.saveNote(classCode: classCode, content: text);
     await loadRemote(force: true);
+  }
+
+  /// Verifica se um item didático do checklist da unidade foi marcado como concluído.
+  bool isChecklistItemCompleted(String classCode, String itemId) {
+    final tracked = completedChecklistIds[classCode];
+    if (tracked != null) {
+      return tracked.contains(itemId);
+    }
+    final disc = disciplines.where((d) => d.code == classCode).firstOrNull;
+    return disc?.completedChecklistItems.contains(itemId) ?? false;
+  }
+
+  /// Alterna o estado de conclusão de um item didático da unidade e sincroniza com o MongoDB.
+  Future<void> toggleChecklistItem(String classCode, String itemId) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem atualizar o progresso.');
+    }
+    final currentSet = completedChecklistIds.putIfAbsent(
+      classCode,
+      () => Set<String>.from(
+        disciplines
+                .where((d) => d.code == classCode)
+                .firstOrNull
+                ?.completedChecklistItems ??
+            const <String>[],
+      ),
+    );
+    final nextCompleted = !currentSet.contains(itemId);
+    if (nextCompleted) {
+      currentSet.add(itemId);
+    } else {
+      currentSet.remove(itemId);
+    }
+    notifyListeners();
+
+    try {
+      final response = await _remote.setChecklistItem(
+        classCode: classCode,
+        itemId: itemId,
+        completed: nextCompleted,
+      );
+      final serverList = response['completedChecklistItems'];
+      if (serverList is List) {
+        completedChecklistIds[classCode] = serverList
+            .map((e) => '$e')
+            .where((s) => s.isNotEmpty)
+            .toSet();
+        notifyListeners();
+      }
+    } catch (_) {
+      // Reverte estado otimista em caso de falha na rede
+      if (nextCompleted) {
+        currentSet.remove(itemId);
+      } else {
+        currentSet.add(itemId);
+      }
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Publica uma mensagem síncrona no canal da turma e atualiza o estado a partir do MongoDB.
+  Future<void> sendClassChatMessage(String classCode, String message) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem publicar no chat da turma.');
+    }
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) {
+      throw const ApiException('Digite uma mensagem antes de enviar.');
+    }
+    await _remote.postClassChatMessage(classCode: classCode, message: trimmed);
+    await loadRemote(force: true);
+  }
+
+  /// Envia mensagem institucional e e-mail ao docente titular da disciplina.
+  Future<Map<String, dynamic>> contactProfessor({
+    required String classCode,
+    required String subject,
+    required String message,
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem contatar o docente.');
+    }
+    if (subject.trim().length < 3 || message.trim().length < 5) {
+      throw const ApiException('Preencha o assunto e a mensagem detalhada.');
+    }
+    final res = await _remote.contactProfessor(
+      classCode: classCode,
+      subject: subject.trim(),
+      message: message.trim(),
+    );
+    await loadRemote(force: true);
+    return res;
+  }
+
+  /// Registra protocolo oficial de esclarecimento ou revisão de nota na disciplina.
+  Future<Map<String, dynamic>> requestGradeClarification({
+    required String classCode,
+    required String evaluationType,
+    required String question,
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem solicitar esclarecimento.');
+    }
+    if (question.trim().length < 5) {
+      throw const ApiException('Descreva o pedido de esclarecimento.');
+    }
+    final res = await _remote.requestGradeClarification(
+      classCode: classCode,
+      evaluationType: evaluationType.trim(),
+      question: question.trim(),
+    );
+    await loadRemote(force: true);
+    return res;
+  }
+
+  /// Atualiza o repositório Git, título ou status de sprint de um Squad da disciplina.
+  Future<void> updateSquad({
+    required String classCode,
+    required String squadId,
+    String? repoUrl,
+    String? projectTitle,
+    String? sprintStatus,
+  }) async {
+    if (!AppUserSession.instance.hasRole('aluno')) {
+      throw const ApiException('Apenas alunos podem atualizar o Squad.');
+    }
+    await _remote.updateSquad(
+      classCode: classCode,
+      squadId: squadId,
+      repoUrl: repoUrl?.trim(),
+      projectTitle: projectTitle?.trim(),
+      sprintStatus: sprintStatus?.trim(),
+    );
+    await loadRemote(force: true);
+  }
+
+  /// Calcula a quantidade real de entregas pendentes vinculadas a uma disciplina.
+  int pendingDeliveriesCountFor(String classCode) {
+    final disc = disciplines.where((d) => d.code == classCode).firstOrNull;
+    return deliveries.where((item) {
+      final matchesCode =
+          item.disciplineCode == classCode ||
+          item.disciplineCode == disc?.roomCode ||
+          item.disciplineCode == disc?.fullCode;
+      return matchesCode && item.status == 'Pendente';
+    }).length;
+  }
+
+  /// Calcula a quantidade real de tópicos do fórum vinculados a uma disciplina.
+  int forumTopicsCountFor(String classCode) {
+    final disc = disciplines.where((d) => d.code == classCode).firstOrNull;
+    return (remoteDashboard?.forumTopics ?? const []).where((topic) {
+      final tCode = topic['classCode']?.toString() ?? '';
+      return tCode == classCode ||
+          tCode == disc?.roomCode ||
+          tCode == disc?.fullCode;
+    }).length;
+  }
+
+  /// Calcula a quantidade real de materiais publicados para uma disciplina.
+  int materialsCountFor(String classCode) {
+    final disc = disciplines.where((d) => d.code == classCode).firstOrNull;
+    if (disc != null &&
+        selectedDiscipline != null &&
+        selectedDiscipline!.code == classCode) {
+      return selectedDiscipline!.materials.length;
+    }
+    return disc?.materials.length ?? 0;
   }
 }

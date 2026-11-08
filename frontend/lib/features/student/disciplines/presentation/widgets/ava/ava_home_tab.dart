@@ -9,8 +9,8 @@ import 'common/ava_common.dart';
 /// [AvaHomeTab]
 ///
 /// Aba "Página Inicial" do Cockpit AVA: Módulos & Conteúdos de Aprendizagem.
-/// Apresenta os cartões de unidades curriculares estruturados com capa visual,
-/// checklist de leitura e videoaulas concluídas e atalho de download de materiais didáticos.
+/// Apresenta as unidades didáticas estruturadas com banner [#FAF8F5] canônico,
+/// checklist de leitura/videoaulas reativo integrado ao MongoDB e atalhos de acesso.
 class AvaHomeTab extends StatelessWidget {
   /// Disciplina acadêmica selecionada.
   final StudentDisciplineModel discipline;
@@ -27,31 +27,41 @@ class AvaHomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final units = discipline.syllabusUnits;
+    final controller = StudentPortalController.instance;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const AvaOpenSectionHeader(
-          title: 'Módulos & Conteúdos de Aprendizagem',
-          subtitle:
-              'Acesse as unidades didáticas, assista às videoaulas e baixe os materiais disponibilizados pelo professor.',
-        ),
-        const SizedBox(height: 20),
-        if (units.isEmpty)
-          const AvaEmptyStateCard(
-            icon: Icons.layers_outlined,
-            title: 'Nenhuma unidade didática cadastrada para esta disciplina.',
-          )
-        else
-          for (var uIdx = 0; uIdx < units.length; uIdx++)
-            _buildUnitCard(context, units[uIdx], uIdx),
-      ],
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final units = discipline.syllabusUnits;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AvaOpenSectionHeader(
+              title: 'Módulos & Conteúdos de Aprendizagem',
+              subtitle:
+                  'Acesse as unidades didáticas, assista às videoaulas e baixe os materiais disponibilizados pelo professor.',
+            ),
+            const SizedBox(height: 20),
+            if (units.isEmpty)
+              const AvaEmptyStateCard(
+                icon: Icons.layers_outlined,
+                title: 'Nenhuma unidade didática cadastrada para esta disciplina.',
+                subtitle:
+                    'Os conteúdos e materiais oficiais serão publicados pelo docente titular.',
+              )
+            else
+              for (var uIdx = 0; uIdx < units.length; uIdx++)
+                _buildUnitCard(context, controller, units[uIdx], uIdx),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildUnitCard(
     BuildContext context,
+    StudentPortalController controller,
     Map<String, dynamic> unit,
     int uIndex,
   ) {
@@ -70,7 +80,7 @@ class AvaHomeTab extends StatelessWidget {
       final unitMaterials = discipline.materials.where((m) {
         final ua = m.unitAssociated.toLowerCase();
         return ua.contains('unidade $uNum') ||
-            ua.contains('unidade 1') && uNum == 1 ||
+            (ua.contains('unidade 1') && uNum == 1) ||
             ua == unitTitle.toLowerCase() ||
             (uNum == 1 && discipline.materials.length == 1);
       }).toList();
@@ -89,101 +99,74 @@ class AvaHomeTab extends StatelessWidget {
     }
 
     final tagText = (unit['tag'] ??
-            'UNIDADE ${unit['unitNumber'] ?? (uIndex + 1)} • ${unit['hours'] ?? 20} HORAS LETIVAS')
+            'UNIDADE ${unit['unitNumber'] ?? (uIndex + 1)} • ${unit['hours'] ?? 40} HORAS LETIVAS')
         .toString();
     final titleText =
         (unit['title'] ?? unit['name'] ?? 'Unidade ${uIndex + 1}').toString();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.015),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Banner Superior da Unidade
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFAF8F5),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(11)),
-              border: Border(bottom: BorderSide(color: Color(0xFFE4E4E7))),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tagText,
-                        style: jakarta(
-                          size: 10.5,
-                          weight: FontWeight.w700,
-                          color: const Color(0xFF52525B),
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        titleText,
-                        style: jakarta(
-                          size: 14.5,
-                          weight: FontWeight.w700,
-                          color: const Color(0xFF18181B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '${items.length} itens didáticos',
-                  style: jakarta(
-                    size: 11.5,
-                    weight: FontWeight.w500,
-                    color: const Color(0xFF71717A),
-                  ),
-                ),
-              ],
-            ),
-          ),
+    var completedCount = 0;
+    for (var i = 0; i < items.length; i++) {
+      final itemId = items[i]['id']?.toString() ?? 'u${uIndex}_i$i';
+      if (controller.isChecklistItemCompleted(discipline.code, itemId)) {
+        completedCount++;
+      }
+    }
 
-          // Itens Didáticos da Unidade
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 18),
-              child: Text(
-                'Nenhum item didático publicado para esta unidade.',
-                style: jakarta(size: 12, color: const Color(0xFF71717A)),
+    final progressLabel = items.isEmpty
+        ? '0 itens didáticos'
+        : '$completedCount/${items.length} concluídos • ${items.length} itens didáticos';
+
+    return AvaBannerSurfaceCard(
+      margin: const EdgeInsets.only(bottom: 20),
+      overlineTag: tagText,
+      title: titleText,
+      headerTrailing: Text(
+        progressLabel,
+        style: jakarta(
+          size: 11.5,
+          weight: FontWeight.w500,
+          color: const Color(0xFF71717A),
+        ),
+      ),
+      bodyPadding: EdgeInsets.zero,
+      child: items.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 18),
+              child: Center(
+                child: Text(
+                  'Nenhum item didático publicado para esta unidade.',
+                  style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
+                ),
               ),
             )
-          else
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0)
-                const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
-              _buildItemRow(context, items[i]),
-            ],
-        ],
-      ),
+          : Column(
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  if (i > 0)
+                    const Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Color(0xFFF4F4F5),
+                    ),
+                  _buildItemRow(context, controller, items[i], uIndex, i),
+                ],
+              ],
+            ),
     );
   }
 
-  Widget _buildItemRow(BuildContext context, Map<String, dynamic> item) {
+  Widget _buildItemRow(
+    BuildContext context,
+    StudentPortalController controller,
+    Map<String, dynamic> item,
+    int uIndex,
+    int iIndex,
+  ) {
     final type = (item['type'] ?? 'pdf').toString().toLowerCase();
     final actionType = (item['actionType'] ?? '').toString().toLowerCase();
     final isTask = type == 'task' || actionType == 'delivery';
+    final itemId = item['id']?.toString() ?? 'u${uIndex}_i$iIndex';
+    final isDone = controller.isChecklistItemCompleted(discipline.code, itemId);
 
     final actionButton = isTask
         ? OutlinedButton(
@@ -208,7 +191,7 @@ class AvaHomeTab extends StatelessWidget {
             ),
           )
         : OutlinedButton.icon(
-            onPressed: () => _handleItemAccess(context, item),
+            onPressed: () => _handleItemAccess(context, controller, item),
             icon: const Icon(
               Icons.download_rounded,
               size: 12,
@@ -234,11 +217,48 @@ class AvaHomeTab extends StatelessWidget {
             ),
           );
 
+    final checkCircle = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('btn_checklist_item_$itemId'),
+        onTap: () async {
+          try {
+            await controller.toggleChecklistItem(discipline.code, itemId);
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao atualizar progresso: $e')),
+            );
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDone ? const Color(0xFF16A34A) : Colors.transparent,
+            border: Border.all(
+              color: isDone ? const Color(0xFF16A34A) : const Color(0xFFD4D4D8),
+              width: 1.5,
+            ),
+          ),
+          child: isDone
+              ? const Icon(
+                  Icons.check,
+                  size: 13,
+                  color: Colors.white,
+                )
+              : null,
+        ),
+      ),
+    );
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final isNarrow = constraints.maxWidth < 360;
+          final isNarrow = constraints.maxWidth < 400;
           if (isNarrow) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,19 +266,11 @@ class AvaHomeTab extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFD4D4D8),
-                          width: 1.5,
-                        ),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: checkCircle,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _buildTypeIcon(type),
                     const SizedBox(width: 8),
                     Expanded(
@@ -296,17 +308,7 @@ class AvaHomeTab extends StatelessWidget {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFD4D4D8),
-                    width: 1.5,
-                  ),
-                ),
-              ),
+              checkCircle,
               const SizedBox(width: 12),
               _buildTypeIcon(type),
               const SizedBox(width: 12),
@@ -322,7 +324,7 @@ class AvaHomeTab extends StatelessWidget {
                         color: const Color(0xFF18181B),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       item['subtitle']?.toString() ?? '',
                       style: jakarta(
@@ -384,17 +386,32 @@ class AvaHomeTab extends StatelessWidget {
     }
   }
 
-  void _handleItemAccess(BuildContext context, Map<String, dynamic> item) async {
-    final material = item['material'] as StudentMaterialItem?;
-    if (material != null) {
+  void _handleItemAccess(
+    BuildContext context,
+    StudentPortalController controller,
+    Map<String, dynamic> item,
+  ) async {
+    // 1. Tenta correspondência direta com objeto de material
+    StudentMaterialItem? targetMat = item['material'] as StudentMaterialItem?;
+    if (targetMat == null) {
+      final title = item['title']?.toString().toLowerCase() ?? '';
+      final fName = item['fileName']?.toString().toLowerCase() ?? '';
+      targetMat = discipline.materials.where((m) {
+        final mTitle = m.title.toLowerCase();
+        final mFile = m.fileName.toLowerCase();
+        return mTitle == title || mFile == fName || (title.isNotEmpty && mTitle.contains(title));
+      }).firstOrNull;
+    }
+
+    if (targetMat != null) {
       try {
-        final path = await StudentPortalController.instance.downloadMaterial(material);
+        final path = await controller.downloadMaterial(targetMat);
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               path == null
-                  ? 'Não foi possível salvar o material.'
+                  ? 'Não foi possível baixar o material agora.'
                   : 'Material salvo em $path',
             ),
           ),
@@ -405,16 +422,66 @@ class AvaHomeTab extends StatelessWidget {
           SnackBar(content: Text(error.toString())),
         );
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Abrindo ${item['title'] ?? "material"}...'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      return;
     }
+
+    // 2. Caso contrário, abre o modal de leitura rápida do recurso pedagógico
+    AvaStandardModal.show<void>(
+      context: context,
+      overlineTag: 'RECURSO PEDAGÓGICO',
+      title: item['title']?.toString() ?? 'Conteúdo Didático',
+      subtitle: item['subtitle']?.toString(),
+      builder: (modalCtx) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Acesse os detalhes do recurso publicado pelo docente titular da disciplina ${discipline.code}:',
+              style: jakarta(size: 13, color: const Color(0xFF52525B), height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF8F5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  _buildTypeIcon((item['type'] ?? 'pdf').toString().toLowerCase()),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['title']?.toString() ?? '',
+                          style: jakarta(size: 13, weight: FontWeight.w700, color: const Color(0xFF18181B)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item['subtitle']?.toString() ?? '',
+                          style: jakarta(size: 11.5, color: const Color(0xFF71717A)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      actions: [
+        AvaActionPillButton(
+          label: 'Fechar',
+          variant: AvaButtonVariant.secondary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ],
+    );
   }
 }
-
 
 typedef StudentAvaHomeTab = AvaHomeTab;

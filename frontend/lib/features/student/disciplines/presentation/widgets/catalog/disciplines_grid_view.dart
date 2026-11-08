@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 import 'package:pi_iv_time3/features/student/shared/models/models.dart';
 import '../modals/disciplines_modals.dart';
 
@@ -119,61 +120,95 @@ class DisciplinesGridView extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (d.hasPendingTask) ...[
-                          InkWell(
-                            onTap: () => onSelectDiscipline(d, 1),
-                            borderRadius: BorderRadius.circular(4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
-                                border: Border.all(
-                                  color: const Color(0xFFFDE68A),
+                        () {
+                          final pendingCount = StudentPortalController.instance
+                              .pendingDeliveriesCountFor(d.code);
+                          if (pendingCount > 0) {
+                            return InkWell(
+                              onTap: () => onSelectDiscipline(d, 1),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
                                 ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.assignment_outlined,
-                                    size: 12,
-                                    color: Color(0xFFB45309),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  border: Border.all(
+                                    color: const Color(0xFFFDE68A),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '1 tarefa pendente',
-                                    style: jakarta(
-                                      size: 10.5,
-                                      weight: FontWeight.w600,
-                                      color: const Color(0xFFB45309),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.assignment_outlined,
+                                      size: 11,
+                                      color: Color(0xFFB45309),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$pendingCount ${pendingCount == 1 ? "tarefa pendente" : "tarefas pendentes"}',
+                                      style: jakarta(
+                                        size: 10.5,
+                                        weight: FontWeight.w600,
+                                        color: const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            );
+                          }
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              border: Border.all(color: const Color(0xFFBBF7D0)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  size: 11,
+                                  color: Color(0xFF166534),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Em dia',
+                                  style: jakarta(
+                                    size: 10.5,
+                                    weight: FontWeight.w700,
+                                    color: const Color(0xFF166534),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }(),
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            border: Border.all(color: const Color(0xFFBBF7D0)),
-                            borderRadius: BorderRadius.circular(4),
+                            color: const Color(0xFFF4F4F5),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             'Freq. ${d.attendancePercentage.toStringAsFixed(1)}%',
                             style: jakarta(
                               size: 10.5,
                               weight: FontWeight.w700,
-                              color: const Color(0xFF166534),
+                              color: const Color(0xFF52525B),
                             ),
                           ),
                         ),
@@ -491,6 +526,7 @@ class DisciplinesGridView extends StatelessWidget {
                         onTap: () =>
                             StudentDisciplinesModals.showPlanoEnsinoModal(
                               context,
+                              discipline: d,
                             ),
                         child: Text(
                           'Ver Plano de Ensino & Ementa',

@@ -332,9 +332,9 @@ class AvaRightSidebar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: const Color(0xFFFAF8F5),
               border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,15 +373,11 @@ class AvaRightSidebar extends StatelessWidget {
           const SizedBox(height: 14),
           OutlinedButton.icon(
             key: const Key('btn_contatar_docente_email'),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Abrindo canal direto com ${discipline.professor}...',
-                  ),
+            onPressed: () =>
+                StudentDisciplinesModals.showContactProfessorModal(
+                  context,
+                  discipline: discipline,
                 ),
-              );
-            },
             icon: const Icon(
               Icons.mail_outline_rounded,
               size: 14,
@@ -400,7 +396,7 @@ class AvaRightSidebar extends StatelessWidget {
               backgroundColor: Colors.white,
               side: const BorderSide(color: Color(0xFFE5E7EB)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),
@@ -473,7 +469,7 @@ class AvaRightSidebar extends StatelessWidget {
           ElevatedButton.icon(
             key: const Key('btn_ver_ementa_metodologia'),
             onPressed: () =>
-                StudentDisciplinesModals.showPlanoEnsinoModal(context),
+                StudentDisciplinesModals.showPlanoEnsinoModal(context, discipline: discipline),
             icon: const Icon(
               Icons.menu_book_outlined,
               size: 14,
@@ -491,8 +487,9 @@ class AvaRightSidebar extends StatelessWidget {
               minimumSize: const Size.fromHeight(38),
               backgroundColor: const Color(0xFF18181B),
               foregroundColor: Colors.white,
+              elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ),

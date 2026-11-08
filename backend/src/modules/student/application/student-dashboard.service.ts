@@ -35,6 +35,7 @@ export class StudentDashboardService {
   async getBootstrap(studentId: string, user: Document, currentSessionId?: string) {
     const {
       enrollments,
+      classEnrollments,
       classCodes,
       courseCodes,
       classes,
@@ -53,6 +54,7 @@ export class StudentDashboardService {
       liveSessions,
       activeSessions,
       auditLogs,
+      institutionalSettings,
       profMap,
     } = await this.repository.load(studentId);
 
@@ -66,6 +68,7 @@ export class StudentDashboardService {
     const mappedDisciplines = mapStudentDisciplines({
       classes,
       enrollments,
+      classEnrollments,
       grades,
       submissions,
       classSessions,
@@ -96,6 +99,10 @@ export class StudentDashboardService {
       disciplines: mappedDisciplines,
     });
 
+    const academicResources = Array.isArray(institutionalSettings?.academicResources)
+      ? institutionalSettings.academicResources
+      : [];
+
     return {
       studentInfo,
       stats,
@@ -108,6 +115,7 @@ export class StudentDashboardService {
       protocols: mappedProtocols,
       forumTopics: mapStudentForumTopics(forumTopics),
       personalNotes: notesMap,
+      academicResources,
       activeSessions: mapStudentSessions(activeSessions, currentSessionId),
       securityLogs: mapStudentSecurityLogs(auditLogs),
     };
@@ -301,6 +309,10 @@ export class StudentDashboardService {
     return this.operations.savePersonalNote(studentId, classCode, content);
   }
 
+  async setChecklistItem(studentId: string, classCode: string, itemId: string, completed?: boolean) {
+    return this.operations.setChecklistItem(studentId, classCode, itemId, completed);
+  }
+
   async createForumTopic(
     studentId: string,
     user: Document,
@@ -312,5 +324,40 @@ export class StudentDashboardService {
 
   async replyForumTopic(studentId: string, user: Document, classCode: string, topicId: string, body: string) {
     return this.operations.replyForumTopic(studentId, user, classCode, topicId, body);
+  }
+
+  async getClassChatMessages(studentId: string, classCode: string) {
+    return this.operations.getClassChatMessages(studentId, classCode);
+  }
+
+  async postClassChatMessage(studentId: string, user: Document, classCode: string, message: string) {
+    return this.operations.postClassChatMessage(studentId, user, classCode, message);
+  }
+
+  async contactProfessor(
+    studentId: string,
+    user: Document,
+    classCode: string,
+    input: { subject: string; message: string },
+  ) {
+    return this.operations.contactProfessor(studentId, user, classCode, input);
+  }
+
+  async requestGradeClarification(
+    studentId: string,
+    user: Document,
+    classCode: string,
+    input: { evaluationType: string; question: string },
+  ) {
+    return this.operations.requestGradeClarification(studentId, user, classCode, input);
+  }
+
+  async updateSquad(
+    studentId: string,
+    classCode: string,
+    squadId: string,
+    input: { repoUrl?: string; projectTitle?: string; sprintStatus?: string },
+  ) {
+    return this.operations.updateSquad(studentId, classCode, squadId, input);
   }
 }

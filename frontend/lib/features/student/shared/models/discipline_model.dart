@@ -107,12 +107,40 @@ class DisciplineModel {
   /// Coleção de materiais didáticos, apostilas e slides disponibilizados para download.
   final List<MaterialItem> materials;
 
+  /// Endereço de e-mail institucional do docente titular.
+  final String professorEmail;
+
+  /// Ementa oficial homologada da disciplina no Projeto Pedagógico de Curso.
+  final String ementa;
+
+  /// Objetivos pedagógicos gerais e específicos da disciplina.
+  final String objectives;
+
+  /// Metodologia de ensino, práticas de laboratório e condução didática.
+  final String methodology;
+
+  /// Referências bibliográficas básicas e complementares da disciplina.
+  final List<Map<String, dynamic>> bibliography;
+
+  /// Aulas síncronas gravadas e disponibilizadas no acervo da Sala Virtual.
+  final List<Map<String, dynamic>> recordedSessions;
+
+  /// Participantes da turma (docente titular, monitores acadêmicos e discentes matriculados).
+  final List<Map<String, dynamic>> participants;
+
+  /// Mensagens e comunicados publicados no canal síncrono da turma.
+  final List<Map<String, dynamic>> chatMessages;
+
+  /// Identificadores dos itens didáticos concluídos pelo discente nas unidades do AVA.
+  final List<String> completedChecklistItems;
+
   /// Cria uma nova instância imutável de [DisciplineModel].
   const DisciplineModel({
     required this.code,
     String? roomCode,
     required this.name,
     required this.professor,
+    this.professorEmail = '',
     String? schedule,
     required this.time,
     required this.location,
@@ -138,8 +166,16 @@ class DisciplineModel {
     this.evaluationFormula = '(N1 × 0.4) + (N2 × 0.6)',
     this.semester = '',
     this.isLab = false,
+    this.ementa = '',
+    this.objectives = '',
+    this.methodology = '',
+    this.bibliography = const [],
     this.syllabusUnits = const [],
     this.squads = const [],
+    this.recordedSessions = const [],
+    this.participants = const [],
+    this.chatMessages = const [],
+    this.completedChecklistItems = const [],
     this.materials = const [],
   }) : roomCode = roomCode ?? code,
        schedule = schedule ?? time;
@@ -161,10 +197,30 @@ class DisciplineModel {
     int intOrZero(Object? v) =>
         v is num ? v.toInt() : (int.tryParse('$v') ?? 0);
 
+    List<Map<String, dynamic>> mapList(Object? raw) {
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+
+    List<Map<String, dynamic>> parseBibliography(Object? raw) {
+      if (raw is! List) return const [];
+      final items = <Map<String, dynamic>>[];
+      for (final entry in raw) {
+        if (entry is Map) {
+          items.add(Map<String, dynamic>.from(entry));
+        } else if (entry != null && '$entry'.trim().isNotEmpty) {
+          items.add({'title': '$entry'.trim(), 'type': 'Básica'});
+        }
+      }
+      return items;
+    }
+
     final code = json['code']?.toString() ?? '';
     final rawMats = json['materials'];
-    final rawUnits = json['syllabusUnits'];
-    final rawSquads = json['squads'];
+    final rawChecklist = json['completedChecklistItems'];
 
     return DisciplineModel(
       code: code,
@@ -172,6 +228,7 @@ class DisciplineModel {
       fullCode: json['fullCode']?.toString() ?? code,
       name: json['name']?.toString() ?? code,
       professor: json['professor']?.toString() ?? '',
+      professorEmail: json['professorEmail']?.toString() ?? '',
       schedule: json['schedule']?.toString() ?? json['time']?.toString() ?? '',
       time: json['time']?.toString() ?? json['schedule']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
@@ -201,17 +258,17 @@ class DisciplineModel {
           json['evaluationFormula']?.toString() ?? '(N1 × 0.4) + (N2 × 0.6)',
       semester: json['semester']?.toString() ?? '',
       isLab: json['isLab'] == true,
-      syllabusUnits: rawUnits is List
-          ? rawUnits
-                .whereType<Map>()
-                .map((u) => Map<String, dynamic>.from(u))
-                .toList()
-          : const [],
-      squads: rawSquads is List
-          ? rawSquads
-                .whereType<Map>()
-                .map((s) => Map<String, dynamic>.from(s))
-                .toList()
+      ementa: json['ementa']?.toString() ?? '',
+      objectives: json['objectives']?.toString() ?? '',
+      methodology: json['methodology']?.toString() ?? '',
+      bibliography: parseBibliography(json['bibliography']),
+      syllabusUnits: mapList(json['syllabusUnits']),
+      squads: mapList(json['squads']),
+      recordedSessions: mapList(json['recordedSessions']),
+      participants: mapList(json['participants']),
+      chatMessages: mapList(json['chatMessages']),
+      completedChecklistItems: rawChecklist is List
+          ? rawChecklist.map((e) => '$e').where((s) => s.isNotEmpty).toList()
           : const [],
       materials: rawMats is List
           ? rawMats
@@ -231,6 +288,9 @@ class DisciplineModel {
     bool? isLive,
     String? roomStatus,
     List<MaterialItem>? materials,
+    List<Map<String, dynamic>>? squads,
+    List<Map<String, dynamic>>? chatMessages,
+    List<String>? completedChecklistItems,
   }) {
     return DisciplineModel(
       code: code,
@@ -238,6 +298,7 @@ class DisciplineModel {
       fullCode: fullCode,
       name: name,
       professor: professor,
+      professorEmail: professorEmail,
       schedule: schedule,
       time: time,
       location: location,
@@ -254,13 +315,25 @@ class DisciplineModel {
       absences: absences,
       totalHours: totalHours,
       completedHours: completedHours,
+      credits: credits,
+      officeHours: officeHours,
+      officeLocation: officeLocation,
       hasPendingTask: hasPendingTask,
       maxAbsenceHours: maxAbsenceHours,
       evaluationFormula: evaluationFormula,
       semester: semester,
       isLab: isLab,
+      ementa: ementa,
+      objectives: objectives,
+      methodology: methodology,
+      bibliography: bibliography,
       syllabusUnits: syllabusUnits,
-      squads: squads,
+      squads: squads ?? this.squads,
+      recordedSessions: recordedSessions,
+      participants: participants,
+      chatMessages: chatMessages ?? this.chatMessages,
+      completedChecklistItems:
+          completedChecklistItems ?? this.completedChecklistItems,
       materials: materials ?? this.materials,
     );
   }

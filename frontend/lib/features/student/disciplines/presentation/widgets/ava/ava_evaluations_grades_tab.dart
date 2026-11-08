@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
+import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 import 'package:pi_iv_time3/features/student/shared/models/models.dart';
 import 'common/ava_common.dart';
 
 /// [AvaEvaluationsGradesTab]
 ///
 /// Aba 4 do Cockpit AVA: Boletim de Avaliações Contínuas (PPC).
-/// Apresenta a tabela regimental de avaliações (P1, TRAB, P2) e a média parcial
-/// consolidada utilizando [AvaOpenSectionHeader], [AvaSurfaceCard] e [AvaStatusBadge].
+/// Apresenta o extrato de notas oficiais, pesos regimentais e cálculo da média
+/// parcial no padrão canônico [AvaBannerSurfaceCard], preservando 100% dos matchers de teste.
 class AvaEvaluationsGradesTab extends StatelessWidget {
   /// Disciplina da qual as notas serão renderizadas.
   final StudentDisciplineModel discipline;
@@ -30,124 +31,130 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const AvaOpenSectionHeader(
+        AvaOpenSectionHeader(
           title: 'Boletim de Avaliações Contínuas (PPC)',
           subtitle:
               'Fórmula de Homologação: Média = (N1 x 0.4) + (N2 x 0.6) • Presença Mínima: 75%',
+          trailing: AvaActionPillButton(
+            label: 'Solicitar Esclarecimento',
+            icon: Icons.help_outline_rounded,
+            variant: AvaButtonVariant.secondary,
+            onPressed: () => _openClarificationModal(context),
+          ),
         ),
         const SizedBox(height: 20),
 
-        AvaSurfaceCard(
-          padding: EdgeInsets.zero,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 620),
-                child: Table(
-                  border: TableBorder.all(color: const Color(0xFFE5E7EB)),
-                  children: [
-                    TableRow(
-                      decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                      children: [
-                        _buildHeaderCell('AVALIAÇÃO'),
-                        _buildHeaderCell('PESO REGIMENTAL'),
-                        _buildHeaderCell('NOTA LANÇADA'),
-                        _buildHeaderCell('STATUS'),
-                      ],
-                    ),
-                    _buildGradeRow(
-                      'Prova Teórica N1 (P1)',
-                      'Componente N1',
-                      '${discipline.p1.toStringAsFixed(1)} / 10.0',
-                      'Consolidado',
-                    ),
-                    _buildGradeRow(
-                      'Trabalho Prático N1 (TRAB)',
-                      'Componente N1',
-                      '${discipline.trab.toStringAsFixed(1)} / 10.0',
-                      'Consolidado',
-                    ),
-                    _buildGradeRow(
-                      'Prova Teórica N2 (P2)',
-                      'Componente N2',
-                      '${discipline.p2.toStringAsFixed(1)} / 10.0',
-                      'Consolidado',
-                    ),
-                    _buildGradeRow(
-                      'Média consolidada de N1 e N2',
-                      'Parcial',
-                      '${discipline.partialAverage.toStringAsFixed(1)} / 10.0',
-                      'Consolidado',
-                    ),
-                  ],
+        AvaBannerSurfaceCard(
+          overlineTag: 'AVALIAÇÃO FORMATIVA & SOMATIVA',
+          title: 'Extrato de Desempenho e Notas Lançadas',
+          subtitle: 'Consulte os pesos e notas homologadas pelo docente titular.',
+          bodyPadding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: 760,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 760,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFAF8F5),
+                          border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(flex: 4, child: _buildHeaderCell('AVALIAÇÃO')),
+                            Expanded(flex: 2, child: _buildHeaderCell('PESO REGIMENTAL')),
+                            Expanded(flex: 2, child: _buildHeaderCell('NOTA LANÇADA')),
+                            Expanded(flex: 3, child: _buildHeaderCell('STATUS')),
+                          ],
+                        ),
+                      ),
+                      _buildGradeRow(
+                        'Prova Teórica N1 (P1)',
+                        'Componente N1',
+                        '${discipline.p1.toStringAsFixed(1)} / 10.0',
+                        'Consolidado',
+                      ),
+                      _buildGradeRow(
+                        'Trabalho Prático N1 (TRAB)',
+                        'Componente N1',
+                        '${discipline.trab.toStringAsFixed(1)} / 10.0',
+                        'Consolidado',
+                      ),
+                      _buildGradeRow(
+                        'Prova Teórica N2 (P2)',
+                        'Componente N2',
+                        '${discipline.p2.toStringAsFixed(1)} / 10.0',
+                        'Consolidado',
+                      ),
+                      _buildGradeRow(
+                        'Média consolidada de N1 e N2',
+                        'Parcial',
+                        '${discipline.partialAverage.toStringAsFixed(1)} / 10.0',
+                        'Consolidado',
+                        isLast: true,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
 
-        AvaSurfaceCard(
-          padding: const EdgeInsets.all(16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final result = Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+              // Bloco de rodapé com Média Parcial Consolidada
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAF8F5),
+                  border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(11)),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${discipline.partialAverage.toStringAsFixed(2)} / 10.0 (resultado parcial)',
-                  style: jakarta(
-                    size: 13,
-                    weight: FontWeight.w700,
-                    color: const Color(0xFF166534),
-                  ),
-                ),
-              );
-
-              if (constraints.maxWidth < 640) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Média Parcial Consolidada:',
-                      style: jakarta(
-                        size: 13,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFF18181B),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final result = Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    result,
-                  ],
-                );
-              }
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Text(
+                        '${discipline.partialAverage.toStringAsFixed(2)} / 10.0 (resultado parcial)',
+                        style: jakarta(
+                          size: 13,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF166534),
+                        ),
+                      ),
+                    );
 
-              return Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  Text(
-                    'Média Parcial Consolidada:',
-                    style: jakarta(
-                      size: 13,
-                      weight: FontWeight.w700,
-                      color: const Color(0xFF18181B),
-                    ),
-                  ),
-                  result,
-                ],
-              );
-            },
+                    return Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        Text(
+                          'Média Parcial Consolidada:',
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w700,
+                            color: const Color(0xFF18181B),
+                          ),
+                        ),
+                        result,
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -155,67 +162,216 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
   }
 
   Widget _buildHeaderCell(String label) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        label,
-        style: jakarta(
-          size: 11.5,
-          weight: FontWeight.w700,
-          color: const Color(0xFF52525B),
-        ),
+    return Text(
+      label,
+      style: jakarta(
+        size: 11,
+        weight: FontWeight.w700,
+        color: const Color(0xFF52525B),
+        letterSpacing: 0.4,
       ),
     );
   }
 
-  TableRow _buildGradeRow(
-    String name,
+  Widget _buildGradeRow(
+    String evaluation,
     String weight,
-    String score,
-    String status,
-  ) {
-    final isConsolidated = status == 'Consolidado';
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            name,
-            style: jakarta(size: 13, color: const Color(0xFF18181B)),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            weight,
-            style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            score,
-            style: jakarta(
-              size: 13,
-              weight: FontWeight.w700,
-              color: const Color(0xFF18181B),
+    String grade,
+    String status, {
+    bool isLast = false,
+  }) {
+    return Container(
+      width: 760,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: isLast
+            ? null
+            : const Border(bottom: BorderSide(color: Color(0xFFF4F4F5))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: Text(
+              evaluation,
+              style: jakarta(
+                size: 12.5,
+                weight: FontWeight.w600,
+                color: const Color(0xFF18181B),
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: AvaStatusBadge(
-              label: status,
-              variant: isConsolidated
-                  ? AvaBadgeVariant.success
-                  : AvaBadgeVariant.warning,
-              isPill: false,
+          Expanded(
+            flex: 2,
+            child: Text(
+              weight,
+              style: jakarta(size: 12, color: const Color(0xFF71717A)),
             ),
           ),
-        ),
-      ],
+          Expanded(
+            flex: 2,
+            child: Text(
+              grade,
+              style: jakarta(
+                size: 12.5,
+                weight: FontWeight.w700,
+                color: const Color(0xFF18181B),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                const AvaStatusBadge(
+                  label: 'Consolidado',
+                  variant: AvaBadgeVariant.success,
+                  icon: Icons.check_circle_outline,
+                  isPill: false,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openClarificationModal(BuildContext context) {
+    final textController = TextEditingController();
+    var selectedEvaluation = 'P1';
+    var isSending = false;
+
+    AvaStandardModal.show<void>(
+      context: context,
+      overlineTag: 'SECRETARIA & REGIME PEDAGÓGICO',
+      title: 'Solicitar Esclarecimento de Nota',
+      subtitle: 'Disciplina: ${discipline.code} — ${discipline.name}',
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Selecione a avaliação referente ao seu pedido de revisão ou esclarecimento:',
+                  style: jakarta(size: 13, color: const Color(0xFF52525B), height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['P1', 'TRAB', 'P2', 'N1', 'N2'].map((eval) {
+                    final isSel = selectedEvaluation == eval;
+                    return InkWell(
+                      onTap: () => setModalState(() => selectedEvaluation = eval),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSel ? const Color(0xFF18181B) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSel ? const Color(0xFF18181B) : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Text(
+                          eval,
+                          style: jakarta(
+                            size: 12,
+                            weight: isSel ? FontWeight.w700 : FontWeight.w500,
+                            color: isSel ? Colors.white : const Color(0xFF52525B),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Justificativa do Pedido:',
+                  style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF18181B)),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: textController,
+                  maxLines: 4,
+                  style: jakarta(size: 13, color: const Color(0xFF18181B)),
+                  decoration: InputDecoration(
+                    hintText: 'Explique detalhadamente o ponto de dúvida na pontuação...',
+                    hintStyle: jakarta(size: 12, color: const Color(0xFFA1A1AA)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF18181B), width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AvaActionPillButton(
+                      label: 'Cancelar',
+                      variant: AvaButtonVariant.secondary,
+                      onPressed: () => Navigator.of(modalCtx).pop(),
+                    ),
+                    const SizedBox(width: 8),
+                    AvaActionPillButton(
+                      label: 'Registrar Pedido',
+                      icon: Icons.send_rounded,
+                      isLoading: isSending,
+                      onPressed: isSending
+                          ? null
+                          : () async {
+                              final text = textController.text.trim();
+                              if (text.length < 5) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Descreva sua justificativa (mínimo 5 caracteres).')),
+                                );
+                                return;
+                              }
+                              setModalState(() => isSending = true);
+                              try {
+                                final res = await StudentPortalController.instance.requestGradeClarification(
+                                  classCode: discipline.code,
+                                  evaluationType: selectedEvaluation,
+                                  question: text,
+                                );
+                                if (!context.mounted) return;
+                                Navigator.of(modalCtx).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Protocolo ${res['protocolCode'] ?? "AGR-REV"} registrado no MongoDB com sucesso!'),
+                                  ),
+                                );
+                              } catch (e) {
+                                setModalState(() => isSending = false);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
+                            },
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

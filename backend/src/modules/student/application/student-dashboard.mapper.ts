@@ -12,6 +12,7 @@ type StudentDisciplineReference = {
 export function mapStudentDisciplines(input: {
   classes: Document[];
   enrollments: Document[];
+  classEnrollments?: Document[];
   grades: Document[];
   submissions: Document[];
   classSessions: Document[];
@@ -23,6 +24,13 @@ export function mapStudentDisciplines(input: {
   professorById: Map<string, Document>;
 }) {
   const enrollmentByClass = new Map(input.enrollments.map((enrollment) => [String(enrollment.classCode), enrollment]));
+  const allEnrollmentsByClass = new Map<string, Document[]>();
+  for (const enr of input.classEnrollments ?? input.enrollments) {
+    const cCode = String(enr.classCode);
+    const list = allEnrollmentsByClass.get(cCode) ?? [];
+    list.push(enr);
+    allEnrollmentsByClass.set(cCode, list);
+  }
   const gradeByClass = new Map(input.grades.map((grade) => [String(grade.classCode), grade]));
   const liveByRoom = new Map(input.liveSessions.map((session) => [String(session.roomCode).toUpperCase(), session]));
   const materialsByClass = new Map<string, Document[]>();
@@ -81,6 +89,57 @@ export function mapStudentDisciplines(input: {
       : [scheduleString, "19:00 - 20:40"];
     const live = liveByRoom.get(roomCode);
     const classMaterials = materialsByClass.get(code) ?? [];
+    const professorEmail = String(
+      classroom.professorEmail ?? professor?.email ?? "docente.agmrm@agmrm.edu.br",
+    );
+
+    const monitors: Array<Record<string, unknown>> = Array.isArray(classroom.monitors)
+      ? classroom.monitors.map((m: Document) => ({
+          id: String(m.id ?? m.ra ?? m.name),
+          name: String(m.name ?? "Monitor Acadêmico"),
+          role: "Monitor Acadêmico",
+          ra: String(m.ra ?? ""),
+          email: String(m.email ?? ""),
+          schedule: String(m.schedule ?? ""),
+          status: "Ativo",
+        }))
+      : [];
+
+    const enrolledStudents = (allEnrollmentsByClass.get(code) ?? []).map((enr: Document) => ({
+      id: String(enr.studentId ?? enr._id),
+      name: String(enr.displayName ?? enr.studentName ?? enr.studentIdentity ?? "Estudante"),
+      role: "Estudante",
+      ra: String(enr.studentIdentity ?? ""),
+      status: "Matriculado",
+    }));
+
+    const participants = [
+      {
+        id: String(classroom.professorId ?? `prof-${code}`),
+        name: professorName,
+        role: "Docente Titular",
+        email: professorEmail,
+        officeHours: classroom.officeHours ? String(classroom.officeHours) : "Terças-feiras • 18:00 às 19:00",
+        officeLocation: classroom.officeLocation
+          ? String(classroom.officeLocation)
+          : "Sala dos Professores (Bloco C) ou Sala Virtual Teams",
+        status: "Docente Titular",
+      },
+      ...monitors,
+      ...enrolledStudents,
+    ];
+
+    const recordedSessions = Array.isArray(classroom.recordedSessions) && classroom.recordedSessions.length > 0
+      ? classroom.recordedSessions
+      : sessionsForClass.map((session, idx) => ({
+          id: String(session._id ?? `rec-${code}-${idx + 1}`),
+          title: String(session.title ?? `Aula 0${idx + 1} — ${classroom.subjectName ?? code}`),
+          date: session.startsAt ? formatShortDate(new Date(session.startsAt)) : "Out/2026",
+          duration: `${Number(session.hours ?? 2)}h 00min`,
+          instructor: professorName,
+          category: "GRAVAÇÃO SÍNCRONA",
+          summary: String(session.contentProgram ?? "Transmissão síncrona com apuração de presença homologada."),
+        }));
 
     return {
       code,
@@ -90,6 +149,7 @@ export function mapStudentDisciplines(input: {
         : (code.includes("-") ? code : `${code} - ${classroom.subjectName ?? classroom.courseName ?? code}`),
       name: String(classroom.subjectName ?? classroom.courseName ?? code),
       professor: professorName,
+      professorEmail,
       schedule: scheduleDays ?? scheduleString,
       time: scheduleTime ?? "19:00 - 20:40",
       location: String(classroom.location ?? "Sala Virtual"),
@@ -114,8 +174,18 @@ export function mapStudentDisciplines(input: {
       hasPendingTask: pendingByClass.has(code),
       isLab: String(classroom.location ?? "").toLowerCase().includes("lab"),
       semester: String(classroom.semester ?? "2026/2"),
+      ementa: String(classroom.ementa ?? ""),
+      objectives: String(classroom.objectives ?? ""),
+      methodology: String(classroom.methodology ?? ""),
+      bibliography: Array.isArray(classroom.bibliography) ? classroom.bibliography : [],
       syllabusUnits: Array.isArray(classroom.syllabusUnits) ? classroom.syllabusUnits : [],
       squads: Array.isArray(classroom.squads) ? classroom.squads : [],
+      chatMessages: Array.isArray(classroom.chatMessages) ? classroom.chatMessages : [],
+      recordedSessions,
+      participants,
+      completedChecklistItems: Array.isArray(enrollment?.completedChecklistItems)
+        ? enrollment.completedChecklistItems.map(String)
+        : [],
       materials: [
         ...classMaterials.map((material) => ({
           id: String(material._id),

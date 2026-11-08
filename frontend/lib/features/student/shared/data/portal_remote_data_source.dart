@@ -46,6 +46,9 @@ class DashboardSnapshot {
   /// Tópicos de discussão em fóruns acadêmicos vinculados às disciplinas.
   final List<Map<String, dynamic>> forumTopics;
 
+  /// Recursos institucionais de apoio acadêmico e infraestrutura discente.
+  final List<Map<String, dynamic>> academicResources;
+
   /// Cria uma nova instância imutável do snapshot do dashboard.
   const DashboardSnapshot({
     required this.studentInfo,
@@ -60,6 +63,7 @@ class DashboardSnapshot {
     required this.personalNotes,
     required this.protocols,
     required this.forumTopics,
+    this.academicResources = const [],
   });
 
   /// Instancia [DashboardSnapshot] a partir do mapa JSON retornado pelo endpoint de bootstrap.
@@ -103,6 +107,7 @@ class DashboardSnapshot {
       personalNotes: _asMap(json['personalNotes']),
       protocols: _asMaps(json['protocols']),
       forumTopics: _asMaps(json['forumTopics']),
+      academicResources: _asMaps(json['academicResources']),
     );
   }
 
@@ -304,6 +309,84 @@ class PortalRemoteDataSource {
     return _api.postMap(
       '/api/student/disciplines/$classCode/forum/$topicId/reply',
       {'body': body},
+    );
+  }
+
+  /// Atualiza o estado de conclusão de um item didático do checklist da disciplina no MongoDB.
+  Future<Map<String, dynamic>> setChecklistItem({
+    required String classCode,
+    required String itemId,
+    required bool completed,
+  }) {
+    final encodedClass = Uri.encodeComponent(classCode);
+    final encodedItem = Uri.encodeComponent(itemId);
+    return _api.putMap(
+      '/api/student/disciplines/$encodedClass/checklist/$encodedItem',
+      {'completed': completed},
+    );
+  }
+
+  /// Obtém o histórico de mensagens síncronas da turma acadêmica.
+  Future<List<Map<String, dynamic>>> getClassChatMessages(String classCode) {
+    final encodedClass = Uri.encodeComponent(classCode);
+    return _api.getList('/api/student/disciplines/$encodedClass/chat');
+  }
+
+  /// Publica uma mensagem no canal síncrono da turma no MongoDB.
+  Future<Map<String, dynamic>> postClassChatMessage({
+    required String classCode,
+    required String message,
+  }) {
+    final encodedClass = Uri.encodeComponent(classCode);
+    return _api.postMap(
+      '/api/student/disciplines/$encodedClass/chat',
+      {'message': message},
+    );
+  }
+
+  /// Envia mensagem institucional e e-mail ao docente titular da disciplina.
+  Future<Map<String, dynamic>> contactProfessor({
+    required String classCode,
+    required String subject,
+    required String message,
+  }) {
+    final encodedClass = Uri.encodeComponent(classCode);
+    return _api.postMap(
+      '/api/student/disciplines/$encodedClass/contact-professor',
+      {'subject': subject, 'message': message},
+    );
+  }
+
+  /// Registra solicitação formal de esclarecimento de nota vinculada à disciplina.
+  Future<Map<String, dynamic>> requestGradeClarification({
+    required String classCode,
+    required String evaluationType,
+    required String question,
+  }) {
+    final encodedClass = Uri.encodeComponent(classCode);
+    return _api.postMap(
+      '/api/student/disciplines/$encodedClass/grades/clarification',
+      {'evaluationType': evaluationType, 'question': question},
+    );
+  }
+
+  /// Atualiza os metadados de repositório ou sprint de um Squad da disciplina no MongoDB.
+  Future<Map<String, dynamic>> updateSquad({
+    required String classCode,
+    required String squadId,
+    String? repoUrl,
+    String? projectTitle,
+    String? sprintStatus,
+  }) {
+    final encodedClass = Uri.encodeComponent(classCode);
+    final encodedSquad = Uri.encodeComponent(squadId);
+    return _api.patchMap(
+      '/api/student/disciplines/$encodedClass/squads/$encodedSquad',
+      {
+        if (repoUrl != null) 'repoUrl': repoUrl,
+        if (projectTitle != null) 'projectTitle': projectTitle,
+        if (sprintStatus != null) 'sprintStatus': sprintStatus,
+      },
     );
   }
 

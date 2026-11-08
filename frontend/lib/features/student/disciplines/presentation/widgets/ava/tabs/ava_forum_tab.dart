@@ -8,10 +8,10 @@ import '../common/ava_common.dart';
 
 /// [AvaForumTab]
 ///
-/// Aba 3 do Cockpit AVA: Fórum de Dúvidas e Discussões.
-/// Apresenta os tópicos da disciplina vindos do backend/MongoDB em cartões brancos
-/// desacoplados com badge semântica "Respondido", autor, tempo e contador de respostas.
-class AvaForumTab extends StatelessWidget {
+/// Aba 3 do Cockpit AVA: Fórum de Dúvidas e Discussões Acadêmicas.
+/// Permite pesquisar tópicos, filtrar por status ('Todos', 'Respondidos', 'Abertos'),
+/// publicar novas dúvidas com segurança e interagir respondendo diretamente aos tópicos.
+class AvaForumTab extends StatefulWidget {
   /// Controlador reativo do portal do estudante.
   final StudentPortalController controller;
 
@@ -19,9 +19,61 @@ class AvaForumTab extends StatelessWidget {
   const AvaForumTab({super.key, required this.controller});
 
   @override
+  State<AvaForumTab> createState() => _AvaForumTabState();
+}
+
+class _AvaForumTabState extends State<AvaForumTab> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter = 'Todos';
+  String _searchQuery = '';
+
+  static const List<String> _filterOptions = [
+    'Todos',
+    'Respondidos',
+    'Abertos',
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final classCode = controller.selectedDiscipline?.code ?? '';
-    final displayList = controller.forumTopics(classCode);
+    final classCode = widget.controller.selectedDiscipline?.code ?? '';
+    final allTopics = widget.controller.forumTopics(classCode);
+
+    final filteredTopics = allTopics.where((t) {
+      final title = (t['title'] ?? '').toString().toLowerCase();
+      final body = (t['body'] ?? '').toString().toLowerCase();
+      final author = (t['authorName'] ?? '').toString().toLowerCase();
+      final q = _searchQuery.toLowerCase();
+      final matchesSearch = q.isEmpty || title.contains(q) || body.contains(q) || author.contains(q);
+
+      final status = (t['status'] ?? '').toString().toLowerCase();
+      final isAnswered = status.contains('respondido') || t['isResolved'] == true;
+      final matchesFilter = switch (_selectedFilter) {
+        'Respondidos' => isAnswered,
+        'Abertos' => !isAnswered,
+        _ => true,
+      };
+
+      return matchesSearch && matchesFilter;
+    }).toList();
+
+    final answeredCount = allTopics.where((t) {
+      final s = (t['status'] ?? '').toString().toLowerCase();
+      return s.contains('respondido') || t['isResolved'] == true;
+    }).length;
+
+    final openCount = allTopics.length - answeredCount;
+
+    final counts = <String, int>{
+      'Todos': allTopics.length,
+      'Respondidos': answeredCount,
+      'Abertos': openCount,
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,38 +82,42 @@ class AvaForumTab extends StatelessWidget {
           title: 'Fórum de Dúvidas e Discussões',
           subtitle:
               'Tire dúvidas com o professor, monitores e interaja com os colegas da disciplina.',
-          trailing: ElevatedButton.icon(
-            onPressed: () => _showNewTopicDialog(context),
-            icon: const Icon(Icons.add, size: 16, color: Colors.white),
-            label: Text(
-              'Nova Dúvida',
-              style: jakarta(
-                size: 13,
-                weight: FontWeight.w600,
-                color: Colors.white,
+          trailing: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              AvaSearchPillField(
+                controller: _searchController,
+                hintText: 'Buscar tópicos...',
+                width: 200,
+                onChanged: (q) => setState(() => _searchQuery = q.trim()),
               ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF18181B),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+              AvaActionPillButton(
+                label: 'Nova Dúvida',
+                icon: Icons.add_rounded,
+                onPressed: () => _showNewTopicDialog(context),
               ),
-            ),
+            ],
           ),
         ),
+        const SizedBox(height: 12),
+        AvaFilterPillBar(
+          options: _filterOptions,
+          selected: _selectedFilter,
+          counts: counts,
+          onSelected: (filter) => setState(() => _selectedFilter = filter),
+        ),
         const SizedBox(height: 20),
-        if (displayList.isEmpty)
+        if (filteredTopics.isEmpty)
           const AvaEmptyStateCard(
             icon: Icons.forum_outlined,
-            title: 'Nenhuma dúvida ou tópico aberto',
+            title: 'Nenhuma dúvida ou discussão encontrada.',
             subtitle:
-                'Seja o primeiro a publicar uma dúvida utilizando o botão "+ Nova Dúvida".',
+                'Publique uma nova dúvida utilizando o botão "+ Nova Dúvida" ou altere os filtros.',
           )
         else
-          for (final topic in displayList) _buildForumTopicCard(context, topic),
+          for (final topic in filteredTopics) _buildForumTopicCard(context, topic),
       ],
     );
   }
@@ -79,8 +135,8 @@ class AvaForumTab extends StatelessWidget {
     final status = (topic['status'] ?? 'Respondido').toString();
     final replies =
         topic['repliesCount'] ??
-        (topic['replies'] is List ? (topic['replies'] as List).length : 4);
-    final isAnswered = status.toLowerCase().contains('respondido');
+        (topic['replies'] is List ? (topic['replies'] as List).length : 0);
+    final isAnswered = status.toLowerCase().contains('respondido') || topic['isResolved'] == true;
 
     return AvaSurfaceCard(
       margin: const EdgeInsets.only(bottom: 14),
@@ -101,7 +157,7 @@ class AvaForumTab extends StatelessWidget {
                     Text(
                       title,
                       style: jakarta(
-                        size: 13.5,
+                        size: 14,
                         weight: FontWeight.w700,
                         color: const Color(0xFF18181B),
                       ),
@@ -111,6 +167,12 @@ class AvaForumTab extends StatelessWidget {
                         label: 'Respondido',
                         variant: AvaBadgeVariant.success,
                         icon: Icons.check_circle_outline,
+                      )
+                    else
+                      const AvaStatusBadge(
+                        label: 'Aberto',
+                        variant: AvaBadgeVariant.warning,
+                        icon: Icons.help_outline_rounded,
                       ),
                   ],
                 ),
@@ -145,8 +207,8 @@ class AvaForumTab extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Icon(
-                Icons.chevron_right,
-                size: 16,
+                Icons.chevron_right_rounded,
+                size: 18,
                 color: Color(0xFFA1A1AA),
               ),
             ],
@@ -155,13 +217,13 @@ class AvaForumTab extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               body,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: jakarta(
                 size: 12.5,
                 weight: FontWeight.w400,
                 color: const Color(0xFF71717A),
-                height: 1.4,
+                height: 1.45,
               ),
             ),
           ],
@@ -183,105 +245,210 @@ class AvaForumTab extends StatelessWidget {
     BuildContext context,
     Map<String, dynamic> topic,
   ) {
-    final rawReplies = topic['replies'];
-    final repliesList = rawReplies is List
-        ? rawReplies.whereType<Map>().toList()
-        : const <Map>[];
+    final topicId = (topic['id'] ?? topic['_id'] ?? '').toString();
+    final classCode = widget.controller.selectedDiscipline?.code ?? '';
+    final replyController = TextEditingController();
 
-    showModalBottomSheet<void>(
+    var isSending = false;
+
+    AvaStandardModal.show<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      topic['title']?.toString() ?? 'Tópico',
-                      style: jakarta(
-                        size: 16,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFF18181B),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                topic['body']?.toString() ?? 'Sem descrição detalhada.',
-                style: jakarta(
-                  size: 13,
-                  color: const Color(0xFF52525B),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
-              Text(
-                'Respostas da Comunidade Acadêmica:',
-                style: jakarta(
-                  size: 13,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (repliesList.isEmpty)
+      overlineTag: 'DISCUSSÃO DO FÓRUM',
+      title: topic['title']?.toString() ?? 'Tópico de Discussão',
+      subtitle: 'Iniciado por ${topic['authorName'] ?? 'Estudante'} • ${topic['category'] ?? 'Geral'}',
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final rawReplies = topic['replies'];
+            final repliesList = rawReplies is List
+                ? rawReplies.whereType<Map>().toList()
+                : const <Map>[];
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Descrição da dúvida
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFFAF8F5),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFFE5E7EB)),
                   ),
-                  child: Text(
-                    'Aguardando resposta oficial do docente ou monitor da turma.',
-                    style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        topic['body']?.toString() ?? 'Sem descrição detalhada.',
+                        style: jakarta(
+                          size: 13,
+                          color: const Color(0xFF3F3F46),
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Publicado em: ${topic['createdAt'] ?? topic['timeAgo'] ?? 'Recentemente'}',
+                        style: jakarta(size: 11, color: const Color(0xFF71717A)),
+                      ),
+                    ],
                   ),
-                )
-              else
-                for (final r in repliesList)
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Respostas da Comunidade Acadêmica (${repliesList.length}):',
+                  style: jakarta(
+                    size: 13,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (repliesList.isEmpty)
                   Container(
                     width: double.infinity,
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
-                    child: Text(
-                      '${r['authorName'] ?? 'Docente'}: ${r['body'] ?? ''}',
-                      style: jakarta(
-                        size: 12.5,
-                        color: const Color(0xFF334155),
+                    child: Center(
+                      child: Text(
+                        'Aguardando resposta do docente, monitores ou colegas.',
+                        style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
                       ),
                     ),
+                  )
+                else
+                  for (final r in repliesList) ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${r['authorName'] ?? 'Participante'}',
+                                style: jakarta(
+                                  size: 12.5,
+                                  weight: FontWeight.w700,
+                                  color: const Color(0xFF18181B),
+                                ),
+                              ),
+                              if ((r['authorRole'] ?? '').toString() == 'docente')
+                                const AvaStatusBadge(
+                                  label: 'Docente',
+                                  variant: AvaBadgeVariant.success,
+                                  isPill: false,
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            r['body']?.toString() ?? '',
+                            style: jakarta(
+                              size: 12.5,
+                              color: const Color(0xFF52525B),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                const SizedBox(height: 16),
+                const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
+                const SizedBox(height: 14),
+
+                // Campo de resposta funcional
+                Text(
+                  'Sua Contribuição ou Resposta:',
+                  style: jakarta(
+                    size: 12,
+                    weight: FontWeight.w600,
+                    color: const Color(0xFF18181B),
                   ),
-            ],
-          ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: replyController,
+                  maxLines: 3,
+                  style: jakarta(size: 13, color: const Color(0xFF18181B)),
+                  decoration: InputDecoration(
+                    hintText: 'Escreva sua contribuição ou resposta ao tópico...',
+                    hintStyle: jakarta(size: 12, color: const Color(0xFFA1A1AA)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF18181B), width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: AvaActionPillButton(
+                    label: 'Publicar Resposta',
+                    icon: Icons.send_rounded,
+                    isLoading: isSending,
+                    onPressed: isSending
+                        ? null
+                        : () async {
+                            final text = replyController.text.trim();
+                            if (text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Digite sua resposta antes de enviar.')),
+                              );
+                              return;
+                            }
+                            setModalState(() => isSending = true);
+                            try {
+                              await widget.controller.replyForumTopic(
+                                classCode: classCode,
+                                topicId: topicId,
+                                body: text,
+                              );
+                              if (!context.mounted) return;
+                              Navigator.of(modalCtx).pop();
+                              setState(() {});
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Resposta publicada com sucesso no fórum!')),
+                              );
+                            } catch (e) {
+                              setModalState(() => isSending = false);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            }
+                          },
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -290,140 +457,149 @@ class AvaForumTab extends StatelessWidget {
   void _showNewTopicDialog(BuildContext context) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
+    var isPosting = false;
 
-    showDialog<void>(
+    AvaStandardModal.show<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Publicar Nova Dúvida no Fórum',
-          style: jakarta(
-            size: 18,
-            weight: FontWeight.w700,
-            color: const Color(0xFF18181B),
-          ),
-        ),
-        content: SizedBox(
-          width: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                style: jakarta(size: 13.5, color: const Color(0xFF18181B)),
-                decoration: InputDecoration(
-                  labelText: 'Título da Dúvida',
-                  labelStyle: jakarta(
-                    size: 13,
-                    color: const Color(0xFF71717A),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+      overlineTag: 'NOVA PUBLICAÇÃO',
+      title: 'Publicar Nova Dúvida no Fórum',
+      subtitle: 'Sua postagem ficará visível para o professor, monitores e todos os colegas.',
+      builder: (modalCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Título da Dúvida',
+                  style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF18181B)),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: titleController,
+                  style: jakarta(size: 13, color: const Color(0xFF18181B)),
+                  decoration: InputDecoration(
+                    hintText: 'Ex.: Dúvida sobre a modelagem de agregados no TP2',
+                    hintStyle: jakarta(size: 12, color: const Color(0xFFA1A1AA)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF18181B), width: 1.5),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: descController,
-                maxLines: 4,
-                style: jakarta(size: 13.5, color: const Color(0xFF18181B)),
-                decoration: InputDecoration(
-                  labelText: 'Descrição detalhada do problema',
-                  labelStyle: jakarta(
-                    size: 13,
-                    color: const Color(0xFF71717A),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 14),
+                Text(
+                  'Descrição Detalhada do Problema',
+                  style: jakarta(size: 12, weight: FontWeight.w600, color: const Color(0xFF18181B)),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: descController,
+                  maxLines: 4,
+                  style: jakarta(size: 13, color: const Color(0xFF18181B)),
+                  decoration: InputDecoration(
+                    hintText: 'Descreva detalhadamente sua dúvida, trecho de código ou contexto da disciplina...',
+                    hintStyle: jakarta(size: 12, color: const Color(0xFFA1A1AA)),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.all(12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF18181B), width: 1.5),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancelar',
-              style: jakarta(size: 13, color: const Color(0xFF71717A)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final classCode = controller.selectedDiscipline?.code;
-              if (classCode == null || classCode.isEmpty) return;
-
-              if (!StudentActionRateLimiter.instance.canExecute(
-                StudentActionType.createForumTopic,
-              )) {
-                final cooldown = StudentActionRateLimiter.instance
-                    .getRemainingCooldownSeconds(
-                      StudentActionType.createForumTopic,
-                    );
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Aguarde $cooldown s antes de publicar outro tópico.',
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AvaActionPillButton(
+                      label: 'Cancelar',
+                      variant: AvaButtonVariant.secondary,
+                      onPressed: () => Navigator.of(modalCtx).pop(),
                     ),
-                    backgroundColor: const Color(0xFFD97706),
-                  ),
-                );
-                return;
-              }
+                    const SizedBox(width: 8),
+                    AvaActionPillButton(
+                      label: 'Publicar Dúvida',
+                      icon: Icons.send_rounded,
+                      isLoading: isPosting,
+                      onPressed: isPosting
+                          ? null
+                          : () async {
+                              final classCode = widget.controller.selectedDiscipline?.code;
+                              if (classCode == null || classCode.isEmpty) return;
 
-              final safeTitle =
-                  StudentForumContentSanitizer.sanitizeForumTitle(
-                    titleController.text,
-                  );
-              final safeBody = StudentForumContentSanitizer.sanitizeForumBody(
-                descController.text,
-              );
+                              if (!StudentActionRateLimiter.instance.canExecute(StudentActionType.createForumTopic)) {
+                                final cooldown = StudentActionRateLimiter.instance.getRemainingCooldownSeconds(
+                                  StudentActionType.createForumTopic,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Aguarde $cooldown s antes de publicar outro tópico.')),
+                                );
+                                return;
+                              }
 
-              if (safeTitle.length <
-                  StudentSecurityLimits.minForumTitleLength) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'O título deve conter pelo menos ${StudentSecurityLimits.minForumTitleLength} caracteres válidos.',
+                              final safeTitle = StudentForumContentSanitizer.sanitizeForumTitle(titleController.text);
+                              final safeBody = StudentForumContentSanitizer.sanitizeForumBody(descController.text);
+
+                              if (safeTitle.length < StudentSecurityLimits.minForumTitleLength) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('O título deve conter pelo menos ${StudentSecurityLimits.minForumTitleLength} caracteres.'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setModalState(() => isPosting = true);
+                              try {
+                                await widget.controller.createForumTopic(
+                                  classCode: classCode,
+                                  title: safeTitle,
+                                  body: safeBody,
+                                );
+                                StudentActionRateLimiter.instance.recordAction(StudentActionType.createForumTopic);
+                                if (!context.mounted) return;
+                                Navigator.of(modalCtx).pop();
+                                setState(() {});
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Dúvida publicada no fórum com sucesso!')),
+                                );
+                              } catch (e) {
+                                setModalState(() => isPosting = false);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
+                            },
                     ),
-                    backgroundColor: const Color(0xFFDC2626),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                await controller.createForumTopic(
-                  classCode: classCode,
-                  title: safeTitle,
-                  body: safeBody,
-                );
-                StudentActionRateLimiter.instance.recordAction(
-                  StudentActionType.createForumTopic,
-                );
-                if (!ctx.mounted) return;
-                Navigator.pop(ctx);
-              } catch (error) {
-                if (!ctx.mounted) return;
-                ScaffoldMessenger.of(
-                  ctx,
-                ).showSnackBar(SnackBar(content: Text(error.toString())));
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF18181B),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            ),
-            child: const Text('Publicar'),
-          ),
-        ],
-      ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

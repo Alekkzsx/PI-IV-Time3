@@ -21,6 +21,15 @@ class AvaFilesTab extends StatefulWidget {
 
 class _AvaFilesTabState extends State<AvaFilesTab> {
   String _searchQuery = '';
+  String _selectedCategory = 'Todos';
+
+  static const List<String> _categoryFilters = [
+    'Todos',
+    'Slides de Aula',
+    'Institucional',
+    'Material Complementar',
+    'Laboratórios & Códigos',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +39,33 @@ class _AvaFilesTabState extends State<AvaFilesTab> {
         const <StudentMaterialItem>[];
 
     final filteredMaterials = sourceMaterials.where((mat) {
+      final category = _resolveCategory(mat);
+      if (_selectedCategory != 'Todos') {
+        if (_selectedCategory == 'Slides de Aula' &&
+            !category.contains('SLIDE')) {
+          return false;
+        }
+        if (_selectedCategory == 'Institucional' &&
+            !category.contains('INSTITUCIONAL')) {
+          return false;
+        }
+        if (_selectedCategory == 'Material Complementar' &&
+            !category.contains('COMPLEMENTAR')) {
+          return false;
+        }
+        if (_selectedCategory == 'Laboratórios & Códigos' &&
+            !category.contains('LAB') &&
+            !category.contains('CÓDIGO')) {
+          return false;
+        }
+      }
+
       if (_searchQuery.trim().isEmpty) return true;
       final q = _searchQuery.toLowerCase();
       return mat.title.toLowerCase().contains(q) ||
           mat.fileName.toLowerCase().contains(q) ||
-          mat.unitAssociated.toLowerCase().contains(q);
+          mat.unitAssociated.toLowerCase().contains(q) ||
+          category.toLowerCase().contains(q);
     }).toList();
 
     return Column(
@@ -44,54 +75,32 @@ class _AvaFilesTabState extends State<AvaFilesTab> {
           title: 'Repositório de Arquivos e Materiais',
           subtitle:
               'Baixe slides de aulas, listas de exercícios, templates de código e apostilas oficiais.',
-          trailing: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 260),
-            child: SizedBox(
-              height: 38,
-              child: TextField(
-                onChanged: (val) => setState(() => _searchQuery = val),
-                style: jakarta(size: 13, color: const Color(0xFF18181B)),
-                decoration: InputDecoration(
-                  hintText: 'Buscar material...',
-                  hintStyle: jakarta(
-                    size: 12.5,
-                    color: const Color(0xFFA1A1AA),
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    size: 16,
-                    color: Color(0xFFA1A1AA),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF8FAFC),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 0,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: Color(0xFF18181B)),
-                  ),
-                ),
-              ),
-            ),
+          trailing: AvaSearchPillField(
+            hintText: 'Buscar material...',
+            width: 250,
+            onChanged: (val) => setState(() => _searchQuery = val),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
+
+        if (sourceMaterials.isNotEmpty) ...[
+          AvaFilterPillBar(
+            options: _categoryFilters,
+            selected: _selectedCategory,
+            onSelected: (cat) => setState(() => _selectedCategory = cat),
+          ),
+          const SizedBox(height: 18),
+        ],
 
         if (filteredMaterials.isEmpty)
           AvaEmptyStateCard(
             icon: Icons.folder_open_outlined,
-            title: _searchQuery.isEmpty
+            title: _searchQuery.isEmpty && _selectedCategory == 'Todos'
                 ? 'Nenhum material didático disponibilizado'
-                : 'Nenhum material encontrado para "$_searchQuery"',
-            subtitle: _searchQuery.isEmpty
+                : 'Nenhum material encontrado para o filtro selecionado',
+            subtitle: _searchQuery.isEmpty && _selectedCategory == 'Todos'
                 ? 'O docente titular ainda não fez o upload de arquivos para esta disciplina.'
-                : 'Tente utilizar outras palavras-chave para sua busca.',
+                : 'Tente alterar a categoria ou o termo de busca pesquisado.',
           )
         else
           LayoutBuilder(
@@ -163,8 +172,9 @@ class _AvaFilesTabState extends State<AvaFilesTab> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F5),
+              color: const Color(0xFFFAF8F5),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
             child: const Icon(
               Icons.description_outlined,
@@ -177,24 +187,10 @@ class _AvaFilesTabState extends State<AvaFilesTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF4F4F5),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    category,
-                    style: jakarta(
-                      size: 9,
-                      weight: FontWeight.w700,
-                      color: const Color(0xFF52525B),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+                AvaStatusBadge(
+                  label: category,
+                  variant: AvaBadgeVariant.neutral,
+                  isPill: false,
                 ),
                 const SizedBox(height: 5),
                 Text(
@@ -202,7 +198,7 @@ class _AvaFilesTabState extends State<AvaFilesTab> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: jakarta(
-                    size: 12.5,
+                    size: 13,
                     weight: FontWeight.w700,
                     color: const Color(0xFF18181B),
                   ),
@@ -305,3 +301,4 @@ class _AvaFilesTabState extends State<AvaFilesTab> {
     return 'MATERIAL DIDÁTICO';
   }
 }
+

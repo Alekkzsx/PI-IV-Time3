@@ -109,6 +109,9 @@ abstract class _PortalControllerBase extends ChangeNotifier {
   /// Texto do bloco de anotações particulares do discente para a disciplina ativa.
   String studentPersonalNotes = '';
 
+  /// Mapa de itens didáticos concluídos por disciplina (`classCode` -> `Set<itemId>`).
+  final Map<String, Set<String>> completedChecklistIds = {};
+
   /// Getter dos dados cadastrais do aluno extraídos do snapshot remoto.
   Map<String, dynamic> get studentInfo =>
       remoteDashboard?.studentInfo ?? const {};
@@ -130,6 +133,10 @@ abstract class _PortalControllerBase extends ChangeNotifier {
   /// Lista de requerimentos administrativos registrados na secretaria virtual.
   List<Map<String, dynamic>> get protocols =>
       remoteDashboard?.protocols ?? const [];
+
+  /// Recursos institucionais de apoio acadêmico vindos de `admin_settings` no MongoDB.
+  List<Map<String, dynamic>> get academicResources =>
+      remoteDashboard?.academicResources ?? const [];
 
   /// Atualiza o item de navegação ativo e notifica os ouvintes da interface.
   void setNavItem(StudentNavItem item) {
@@ -207,14 +214,27 @@ abstract class _PortalControllerBase extends ChangeNotifier {
           result.disciplines.map((discipline) => discipline.code),
           studentEmail: result.studentInfo['email']?.toString(),
         );
+        final previousSelectedCode = selectedDiscipline?.code;
         disciplines = result.disciplines;
         deliveries = result.deliveries;
         events = result.events;
+        completedChecklistIds
+          ..clear()
+          ..addEntries(
+            result.disciplines.map(
+              (d) => MapEntry(d.code, Set<String>.from(d.completedChecklistItems)),
+            ),
+          );
         if (disciplines.isNotEmpty) {
-          final firstDiscipline = disciplines.first;
-          selectedDiscipline = firstDiscipline;
+          final preserved = previousSelectedCode == null
+              ? null
+              : disciplines
+                    .where((d) => d.code == previousSelectedCode)
+                    .firstOrNull;
+          final targetDiscipline = preserved ?? disciplines.first;
+          selectedDiscipline = targetDiscipline;
           studentPersonalNotes =
-              result.personalNotes[firstDiscipline.code]?.toString() ?? '';
+              result.personalNotes[targetDiscipline.code]?.toString() ?? '';
         } else {
           selectedDiscipline = null;
           studentPersonalNotes = '';
