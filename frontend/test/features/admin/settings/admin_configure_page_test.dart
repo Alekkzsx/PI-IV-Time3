@@ -28,6 +28,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(AcademicGuidelinesTab), findsOneWidget);
+      expect(find.text('Matriz de Permissões (RBAC)'), findsNothing);
       expect(find.text('Diretrizes Acadêmicas Regimentais'), findsOneWidget);
       expect(find.text('MÉDIA DE APROVAÇÃO'), findsOneWidget);
       expect(find.text('FREQUÊNCIA PRESENCIAL'), findsOneWidget);
@@ -114,6 +115,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Salvar Preferências de Privacidade'), findsOneWidget);
+
+      await tester.tap(find.text('Segurança & Credenciais').first);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Abrir matriz de permissões'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abrir matriz de permissões'));
+      await tester.pumpAndSettle();
+      expect(find.text('Matriz de Permissões por Perfil'), findsOneWidget);
     });
 
     testWidgets('renders individual tabs directly in isolation', (

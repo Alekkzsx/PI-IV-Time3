@@ -331,12 +331,15 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      item.label,
-                      style: jakarta(
-                        size: 13,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        overflow: TextOverflow.ellipsis,
+                        style: jakarta(
+                          size: 13,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
                       ),
                     ),
                   ],

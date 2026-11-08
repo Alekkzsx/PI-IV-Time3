@@ -440,6 +440,8 @@ void main() {
         find.text('Calendário Acadêmico Oficial & Prazos Regimentais'),
         findsOneWidget,
       );
+      expect(find.text('RESOLUÇÃO CONSEPE 2026/04'), findsOneWidget);
+      expect(find.text('Semana 10 de 18'), findsOneWidget);
       expect(find.text('Nenhum marco cadastrado.'), findsOneWidget);
 
       // Testa botão de trava regimental

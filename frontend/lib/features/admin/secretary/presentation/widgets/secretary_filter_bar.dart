@@ -36,10 +36,10 @@ class SecretaryFilterBar extends StatelessWidget {
           onTap: () => controller.setProtocolFilter(f),
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFF18181B) : Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: isSelected
                     ? const Color(0xFF18181B)
@@ -49,7 +49,7 @@ class SecretaryFilterBar extends StatelessWidget {
             child: Text(
               f,
               style: jakarta(
-                size: 13,
+                size: 11.5,
                 weight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? Colors.white : const Color(0xFF525252),
               ),

@@ -53,23 +53,28 @@ class _SecretaryPageState extends State<SecretaryPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isDesktop ? 48.0 : 20.0,
-                      vertical: 36.0,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(isDesktop),
-                        const SizedBox(height: 24),
-                        SecretaryFilterBar(controller: _controller),
-                        const SizedBox(height: 24),
-                        SecretaryProtocolsTable(
-                          protocols: filteredProtocols,
-                          controller: _controller,
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1280),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? 24 : 20,
+                          vertical: 36,
                         ),
-                      ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(isDesktop),
+                            const SizedBox(height: 24),
+                            SecretaryFilterBar(controller: _controller),
+                            const SizedBox(height: 24),
+                            SecretaryProtocolsTable(
+                              protocols: filteredProtocols,
+                              controller: _controller,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const AdminFooter(),
@@ -89,17 +94,17 @@ class _SecretaryPageState extends State<SecretaryPage> {
         Text(
           'Secretaria Acadêmica Geral & Protocolos',
           style: jakarta(
-            size: isDesktop ? 26 : 22,
+            size: isDesktop ? 22 : 20,
             weight: FontWeight.w700,
             color: const Color(0xFF18181B),
-            letterSpacing: -0.5,
+            letterSpacing: -0.3,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           'Mesa de análise de atestados médicos, pedidos de segunda chamada, trancamentos e validação de horas complementares',
           style: jakarta(
-            size: 14,
+            size: 13,
             weight: FontWeight.w400,
             color: const Color(0xFF737373),
           ),

@@ -61,7 +61,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 1)),
@@ -124,7 +124,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1)),
@@ -138,7 +138,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
             child: Text(
               p.id,
               style: jakarta(
-                size: 13,
+                size: 11,
                 weight: FontWeight.w700,
                 color: const Color(0xFF18181B),
               ),
@@ -156,7 +156,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
                 Text(
                   p.studentName,
                   style: jakarta(
-                    size: 13.5,
+                    size: 12,
                     weight: FontWeight.w700,
                     color: const Color(0xFF18181B),
                   ),
@@ -165,7 +165,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
                 Text(
                   p.studentRa,
                   style: jakarta(
-                    size: 12,
+                    size: 10,
                     weight: FontWeight.w400,
                     color: const Color(0xFF737373),
                   ),
@@ -187,13 +187,13 @@ class SecretaryProtocolsTable extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F4F5),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                   border: Border.all(color: const Color(0xFFE4E4E7)),
                 ),
                 child: Text(
                   p.requestType,
                   style: jakarta(
-                    size: 11,
+                    size: 10,
                     weight: FontWeight.w700,
                     color: const Color(0xFF52525B),
                     letterSpacing: 0.3,
@@ -210,7 +210,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
             child: Text(
               p.targetComponent,
               style: jakarta(
-                size: 13,
+                size: 12,
                 weight: FontWeight.w400,
                 color: const Color(0xFF525252),
               ),
@@ -236,7 +236,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
                 child: Text(
                   p.status,
                   style: jakarta(
-                    size: 12,
+                    size: 11,
                     weight: FontWeight.w600,
                     color: statusText,
                   ),
@@ -257,11 +257,11 @@ class SecretaryProtocolsTable extends StatelessWidget {
                   protocol: p,
                   controller: controller,
                 ),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
+                    horizontal: 10,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -271,7 +271,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
                   child: Text(
                     'Analisar Requerimento',
                     style: jakarta(
-                      size: 12.5,
+                      size: 11,
                       weight: FontWeight.w600,
                       color: const Color(0xFF18181B),
                     ),

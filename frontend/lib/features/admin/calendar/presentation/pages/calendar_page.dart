@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
@@ -43,44 +44,52 @@ class _CalendarPageState extends State<CalendarPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32.0,
-                    vertical: 28.0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Cabeçalho da Página
-                      const Text(
-                        'Calendário Acadêmico Oficial & Prazos Regimentais',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF09090B),
-                          letterSpacing: -0.3,
-                        ),
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1280),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 36,
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Parametrização das janelas de provas, controle das travas regimentais de notas e homologação de semestres.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF71717A),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      if (_controller.remoteError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            _controller.remoteError!,
-                            style: const TextStyle(color: Colors.red),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Cabeçalho da Página
+                          Text(
+                            'Calendário Acadêmico Oficial & Prazos Regimentais',
+                            style: jakarta(
+                              size: 22,
+                              weight: FontWeight.w700,
+                              color: const Color(0xFF09090B),
+                              letterSpacing: -0.3,
+                            ),
                           ),
-                        ),
-                      _buildTimelineCard(),
-                    ],
+                          const SizedBox(height: 6),
+                          Text(
+                            'Parametrização das janelas de provas, controle das travas regimentais de notas e homologação de semestres.',
+                            style: jakarta(
+                              size: 13,
+                              weight: FontWeight.w400,
+                              color: const Color(0xFF71717A),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          if (_controller.remoteError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Text(
+                                _controller.remoteError!,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          _buildResolutionSummary(),
+                          const SizedBox(height: 24),
+                          _buildTimelineCard(),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
 
@@ -91,6 +100,92 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildResolutionSummary() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final heading = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'RESOLUÇÃO CONSEPE 2026/04',
+                style: jakarta(
+                  size: 10,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF71717A),
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Semestre Letivo 2026/2 • Carga de 100 Dias Letivos',
+                style: jakarta(
+                  size: 15,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
+                ),
+              ),
+            ],
+          );
+          final weekBadge = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Text(
+              'Semana 10 de 18',
+              style: jakarta(
+                size: 10,
+                weight: FontWeight.w600,
+                color: const Color(0xFF15803D),
+              ),
+            ),
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (constraints.maxWidth < 560) ...[
+                heading,
+                const SizedBox(height: 10),
+                weekBadge,
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: heading),
+                    weekBadge,
+                  ],
+                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+              ),
+              Text(
+                'O regimento acadêmico prevê o bloqueio automatizado do lançamento de notas após o encerramento do prazo regulamentar. Qualquer retificação extemporânea exige protocolo com justificativa homologada pelo colegiado de curso.',
+                style: jakarta(
+                  size: 12,
+                  weight: FontWeight.w400,
+                  color: const Color(0xFF71717A),
+                  height: 1.5,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -111,10 +206,14 @@ class _CalendarPageState extends State<CalendarPage> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Marcos do calend?rio acad?mico',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    'Marcos do calendário acadêmico',
+                    style: jakarta(
+                      size: 14,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFF18181B),
+                    ),
                   ),
                 ),
                 OutlinedButton.icon(
@@ -149,17 +248,26 @@ class _CalendarPageState extends State<CalendarPage> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      tooltip: 'Editar marco',
-                      onPressed: () =>
-                          _editEvent(_controller.calendarEvents[index]),
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                    IconButton(
-                      tooltip: 'Excluir marco',
-                      onPressed: () =>
-                          _deleteEvent(_controller.calendarEvents[index].id),
-                      icon: const Icon(Icons.delete_outline),
+                    _buildEventStatus(_controller.calendarEvents[index]),
+                    PopupMenuButton<String>(
+                      tooltip: 'Ações do marco',
+                      onSelected: (action) {
+                        if (action == 'edit') {
+                          _editEvent(_controller.calendarEvents[index]);
+                        } else {
+                          _deleteEvent(_controller.calendarEvents[index].id);
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Editar marco'),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Excluir marco'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -174,7 +282,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: Text(
                     _controller.isRegimentalLockActive
                         ? 'Trava regimental ativa'
-                        : 'Di?rios abertos para digita??o',
+                        : 'Diários abertos para digitação',
                   ),
                 ),
                 ElevatedButton(
@@ -188,7 +296,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             SnackBar(
                               content: Text(
                                 saved
-                                    ? 'Configura??o da trava atualizada.'
+                                    ? 'Configuração da trava atualizada.'
                                     : _controller.remoteError ??
                                           'Falha ao atualizar a trava.',
                               ),
@@ -197,7 +305,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         },
                   child: Text(
                     _controller.isRegimentalLockActive
-                        ? 'Liberar di?rios'
+                        ? 'Liberar diários'
                         : 'Ativar trava',
                   ),
                 ),
@@ -213,9 +321,66 @@ class _CalendarPageState extends State<CalendarPage> {
     final start = DateTime.tryParse(startsAt)?.toLocal();
     final end = DateTime.tryParse(endsAt ?? '')?.toLocal();
     if (start == null) return startsAt;
-    String date(DateTime value) =>
-        '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-    return end == null ? date(start) : '${date(start)} ? ${date(end)}';
+    const months = [
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro',
+    ];
+    String date(DateTime value, {bool includeTime = false}) {
+      final date =
+          '${value.day} de ${months[value.month - 1]} de ${value.year}';
+      if (!includeTime || (value.hour == 0 && value.minute == 0)) return date;
+      final time =
+          '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+      return '$date às $time';
+    }
+
+    return end == null
+        ? date(start, includeTime: true)
+        : '${date(start)} a ${date(end, includeTime: true)}';
+  }
+
+  Widget _buildEventStatus(AdminCalendarMilestone event) {
+    final startsAt = DateTime.tryParse(event.startsAt)?.toLocal();
+    final endsAt = DateTime.tryParse(event.endsAt ?? '')?.toLocal();
+    final now = DateTime.now();
+    final label = startsAt == null || startsAt.isAfter(now)
+        ? 'Futuro'
+        : endsAt != null && endsAt.isBefore(now)
+        ? 'Encerrado'
+        : 'Em Andamento';
+    final color = label == 'Em Andamento'
+        ? const Color(0xFF1D4ED8)
+        : const Color(0xFF52525B);
+    final background = label == 'Em Andamento'
+        ? const Color(0xFFEFF6FF)
+        : const Color(0xFFFAFAFA);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: label == 'Em Andamento'
+              ? const Color(0xFFBFDBFE)
+              : const Color(0xFFE4E4E7),
+        ),
+      ),
+      child: Text(
+        label,
+        style: jakarta(size: 10, weight: FontWeight.w500, color: color),
+      ),
+    );
   }
 
   String? _inputDate(String? value) {
@@ -386,7 +551,7 @@ class _CalendarPageState extends State<CalendarPage> {
               child: Text(
                 tag,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF52525B),
                 ),
@@ -396,7 +561,11 @@ class _CalendarPageState extends State<CalendarPage> {
             Flexible(
               child: Text(
                 dateText,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF71717A)),
+                style: jakarta(
+                  size: 11,
+                  weight: FontWeight.w400,
+                  color: const Color(0xFF71717A),
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -406,8 +575,8 @@ class _CalendarPageState extends State<CalendarPage> {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF09090B),
           ),
         ),
@@ -415,7 +584,7 @@ class _CalendarPageState extends State<CalendarPage> {
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth < 680) {
@@ -440,5 +609,4 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
     );
   }
-
 }

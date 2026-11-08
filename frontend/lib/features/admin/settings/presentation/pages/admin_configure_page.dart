@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 import '../widgets/academic_guidelines_tab.dart';
 import '../widgets/admin_profile_tab.dart';
@@ -29,11 +30,6 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
       icon: Icons.school_outlined,
       title: 'Diretrizes Acadêmicas (Metas)',
       subtitle: 'Metas regimentais de notas, frequência e corte',
-    ),
-    _NavTabItem(
-      icon: Icons.security_outlined,
-      title: 'Matriz de Permissões (RBAC)',
-      subtitle: 'Controle de privilégios entre discentes, docentes e TI',
     ),
     _NavTabItem(
       icon: Icons.person_outline_rounded,
@@ -67,17 +63,44 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
       case 0:
         return const AcademicGuidelinesTab();
       case 1:
-        return const RbacMatrixTab();
-      case 2:
         return const AdminProfileTab();
+      case 2:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SecurityCredentialsTab(),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => setState(() => _activeTabIndex = 6),
+                icon: const Icon(Icons.admin_panel_settings_outlined, size: 16),
+                label: const Text('Abrir matriz de permissões'),
+              ),
+            ),
+          ],
+        );
       case 3:
-        return const SecurityCredentialsTab();
-      case 4:
         return const CampusAlertsTab();
-      case 5:
+      case 4:
         return const SystemPreferencesTab();
-      case 6:
+      case 5:
         return const GovernanceLgpdTab();
+      case 6:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => setState(() => _activeTabIndex = 2),
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: const Text('Voltar para segurança'),
+              ),
+            ),
+            const RbacMatrixTab(),
+          ],
+        );
       default:
         return const AcademicGuidelinesTab();
     }
@@ -86,59 +109,75 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Main Section Header
-                  const Text(
-                    'Configurações da Conta de Administração',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -0.5,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1280),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 40,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Main Section Header
+                        Text(
+                          'Configurações da Conta de Administração',
+                          style: jakarta(
+                            size: 22,
+                            weight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Gestão de credenciais com permissões elevadas, autenticação multifator e parâmetros corporativos.',
+                          style: jakarta(
+                            size: 12,
+                            weight: FontWeight.w400,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // 2. Two-Column Layout (Sidebar Navigation + Active Tab Content)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isStacked = constraints.maxWidth < 980;
+                            return isStacked
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildNavigationMenu(),
+                                      const SizedBox(height: 24),
+                                      _buildActiveTabContent(),
+                                    ],
+                                  )
+                                : Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 384,
+                                        child: _buildNavigationMenu(),
+                                      ),
+                                      const SizedBox(width: 20),
+                                      Expanded(child: _buildActiveTabContent()),
+                                    ],
+                                  );
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Gestão de credenciais com permissões elevadas, autenticação multifator e parâmetros corporativos.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // 2. Two-Column Layout (Sidebar Navigation + Active Tab Content)
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isStacked = constraints.maxWidth < 980;
-                      return isStacked
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildNavigationMenu(),
-                                const SizedBox(height: 24),
-                                _buildActiveTabContent(),
-                              ],
-                            )
-                          : Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: 320,
-                                  child: _buildNavigationMenu(),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(child: _buildActiveTabContent()),
-                              ],
-                            );
-                    },
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -183,31 +222,32 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       child: Column(
         children: List.generate(_navItems.length, (index) {
           final item = _navItems[index];
-          final isSelected = _activeTabIndex == index;
+          final isSelected =
+              _activeTabIndex == index || (index == 2 && _activeTabIndex == 6);
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: InkWell(
               onTap: () => setState(() => _activeTabIndex = index),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 12,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFF0F172A)
+                      ? const Color(0xFF18181B)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [

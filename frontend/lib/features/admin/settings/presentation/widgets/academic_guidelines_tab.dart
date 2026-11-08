@@ -232,7 +232,7 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
   Widget _buildMetricsGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 850;
+        final isNarrow = constraints.maxWidth < 700;
         final approvalCard = GuidelinesMetricCard(
           icon: Icons.calculate_outlined,
           iconColor: const Color(0xFF2563EB),

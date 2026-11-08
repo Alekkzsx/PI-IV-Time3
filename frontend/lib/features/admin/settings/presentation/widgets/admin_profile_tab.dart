@@ -38,15 +38,15 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
         _civilNameController.text =
             profile['displayName']?.toString() ??
             AppUserSession.instance.effectiveName;
-        _socialNameController.text =
-            profile['socialName']?.toString() ?? '';
+        _socialNameController.text = profile['socialName']?.toString() ?? '';
         _loading = false;
       });
     } catch (error) {
-      if (mounted) setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
+      if (mounted)
+        setState(() {
+          _error = error.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -57,9 +57,9 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       });
       await _loadProfile();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil atualizado.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Perfil atualizado.')));
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     }
@@ -191,7 +191,10 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                   return isNarrow
                       ? Column(
                           children: [
-                            _buildInfoField('MATRÍCULA / RA', _field('identity')),
+                            _buildInfoField(
+                              'MATRÍCULA / RA',
+                              _field('identity'),
+                            ),
                             const SizedBox(height: 12),
                             _buildInfoField(
                               'CURSO VINCULADO',
@@ -303,15 +306,18 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       children: [
         Row(
           children: [
-            const Text(
-              'Nome de Registro Civil',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF334155),
+            const Expanded(
+              child: Text(
+                'Nome de Registro Civil',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF334155),
+                ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
@@ -370,15 +376,18 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       children: [
         Row(
           children: [
-            const Text(
-              'Nome Social / Preferido',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF334155),
+            const Expanded(
+              child: Text(
+                'Nome Social / Preferido',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF334155),
+                ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
