@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -112,10 +112,17 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
     final profile = _selectedProfile;
     final success = await _controller.submit();
     if (success && mounted) {
-      final session = RecoverySession.fromProfileAndIdentity(
-        profile: profile,
-        identity: identity,
-      );
+      final responseData = _controller.lastRecoveryResponse;
+      final session = responseData != null
+          ? RecoverySession.fromServerData(
+              fallbackProfile: profile,
+              fallbackIdentity: identity,
+              data: responseData,
+            )
+          : RecoverySession.fromProfileAndIdentity(
+              profile: profile,
+              identity: identity,
+            );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

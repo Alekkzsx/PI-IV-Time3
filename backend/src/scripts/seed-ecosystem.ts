@@ -112,6 +112,18 @@ export async function seedEcosystem(
       campus: "Unidade Sede",
     },
     {
+      identity: "24802449",
+      normalizedIdentity: "24802449",
+      email: "alex.soares.gabriel111@gmail.com",
+      normalizedEmail: "alex.soares.gabriel111@gmail.com",
+      displayName: "Alex Gabriel Soares Sousa",
+      profile: "aluno",
+      departmentOrCourse: "Engenharia de Software",
+      semester: "2026/2 - 4º Semestre",
+      shift: "Noturno",
+      campus: "Unidade Sede",
+    },
+    {
       identity: "aluno.test",
       normalizedIdentity: "aluno.test",
       email: "aluno.test@agmrm.edu.br",

@@ -103,15 +103,17 @@ class AcademicIdentityCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  effectiveDepartment,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
+                if (effectiveDepartment.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    effectiveDepartment,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF475569),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 1),
                 Text(
                   effectiveEmail,

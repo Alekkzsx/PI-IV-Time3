@@ -436,8 +436,17 @@ if [[ "$SKIP_INSTALL" == "false" ]]; then
         shopt -u globstar nullglob 2>/dev/null || true
 
         javac_bin="${JAVAC_CMD:-javac}"
-        if "$javac_bin" --release 8 -encoding UTF-8 -d bin @"$tmp_list" 2>/dev/null || \
-           "$javac_bin" -encoding UTF-8 -d bin @"$tmp_list"; then
+        # Monta classpath incluindo jars do MongoDB em lib/ (essencial para auth)
+        cp_sep=":"
+        if command -v cygpath >/dev/null 2>&1 && [[ "${javac_bin}" == *.exe ]]; then
+            cp_sep=";"
+        fi
+        cp_path="lib/*"
+        if [[ -d "lib" ]]; then
+            cp_path="lib/*${cp_sep}bin"
+        fi
+        if "$javac_bin" --release 8 -encoding UTF-8 -cp "$cp_path" -d bin @"$tmp_list" 2>/dev/null || \
+           "$javac_bin" -encoding UTF-8 -cp "$cp_path" -d bin @"$tmp_list"; then
             echo -e "  ${CLR_GREEN}[OK] Modulo server/ compilado com sucesso.${CLR_RESET}"
         else
             echo -e "  ${CLR_YELLOW}[AVISO] Nao foi possivel compilar server/ nesta etapa. O console interativo tentara novamente.${CLR_RESET}"

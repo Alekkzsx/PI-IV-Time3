@@ -13,6 +13,9 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> recoverPassword({required String identity}) async {}
 
   @override
+  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async => {};
+
+  @override
   Future<String> login({
     required String identity,
     required String password,
@@ -35,6 +38,15 @@ class _FakeAuthRepository implements AuthRepository {
   }) async {
     verifiedCode = code;
     return recoveryToken;
+  }
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async {
+    verifiedCode = code;
+    return currentSession.withResetToken(recoveryToken);
   }
 
   @override

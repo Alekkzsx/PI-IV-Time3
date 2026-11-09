@@ -48,32 +48,89 @@ class RecoverySession {
     this.resetToken,
   });
 
-  RecoverySession withResetToken(String token) => RecoverySession(
-    profile: profile,
-    identity: identity,
-    displayName: displayName,
-    institutionalEmail: institutionalEmail,
-    departmentOrCourse: departmentOrCourse,
-    roleBadge: roleBadge,
-    resetToken: token,
+  RecoverySession withResetToken(String token) => copyWith(resetToken: token);
+
+  RecoverySession copyWith({
+    UserProfile? profile,
+    String? identity,
+    String? displayName,
+    String? institutionalEmail,
+    String? departmentOrCourse,
+    String? roleBadge,
+    String? resetToken,
+  }) => RecoverySession(
+    profile: profile ?? this.profile,
+    identity: identity ?? this.identity,
+    displayName: displayName ?? this.displayName,
+    institutionalEmail: institutionalEmail ?? this.institutionalEmail,
+    departmentOrCourse: departmentOrCourse ?? this.departmentOrCourse,
+    roleBadge: roleBadge ?? this.roleBadge,
+    resetToken: resetToken ?? this.resetToken,
   );
+
+  /// Constrói a sessão com dados reais retornados pelo servidor Java / MongoDB.
+  factory RecoverySession.fromServerData({
+    required UserProfile fallbackProfile,
+    required String fallbackIdentity,
+    required Map<String, dynamic> data,
+    String? resetToken,
+  }) {
+    final profileStr = data['profile']?.toString() ?? fallbackProfile.name;
+    final profile = switch (profileStr.toLowerCase()) {
+      'admin' => UserProfile.admin,
+      'docente' => UserProfile.docente,
+      _ => UserProfile.aluno,
+    };
+    final identity = data['identity']?.toString() ?? fallbackIdentity;
+    final displayName = data['displayName']?.toString() ??
+        data['nome']?.toString() ??
+        'Usuário';
+    final email = data['email']?.toString() ??
+        data['maskedEmail']?.toString() ??
+        (identity.contains('@') ? identity : 'e-mail cadastrado');
+    final departmentOrCourse = data['departmentOrCourse']?.toString() ??
+        data['department']?.toString() ??
+        '';
+    final token = resetToken ??
+        data['resetToken']?.toString() ??
+        data['recoveryToken']?.toString();
+
+    return RecoverySession(
+      profile: profile,
+      identity: identity,
+      displayName: displayName,
+      institutionalEmail: email,
+      departmentOrCourse: departmentOrCourse,
+      roleBadge: profile == UserProfile.admin
+          ? 'Administrador'
+          : profile == UserProfile.docente
+          ? 'Docente'
+          : 'Aluno',
+      resetToken: token,
+    );
+  }
 
   /// Constrói a sessão de recuperação com os dados institucionais oficiais padronizados
   /// de acordo com o perfil e o identificador fornecido.
   factory RecoverySession.fromProfileAndIdentity({
     required UserProfile profile,
     required String identity,
+    String? displayName,
+    String? institutionalEmail,
+    String? departmentOrCourse,
   }) {
     final cleanIdentity = identity.trim();
     if (cleanIdentity.isEmpty) throw ArgumentError('Identidade obrigatória.');
     return RecoverySession(
       profile: profile,
       identity: cleanIdentity,
-      displayName: 'Usuário',
-      institutionalEmail: cleanIdentity.contains('@')
-          ? cleanIdentity
-          : 'e-mail cadastrado',
-      departmentOrCourse: '',
+      displayName: displayName != null && displayName.trim().isNotEmpty
+          ? displayName.trim()
+          : (cleanIdentity.contains('@') ? cleanIdentity.split('@').first : 'Usuário'),
+      institutionalEmail: institutionalEmail != null && institutionalEmail.trim().isNotEmpty
+          ? institutionalEmail.trim()
+          : (cleanIdentity.contains('@') ? cleanIdentity : 'e-mail cadastrado'),
+      departmentOrCourse: departmentOrCourse ?? '',
       roleBadge: profile == UserProfile.admin
           ? 'Administrador'
           : profile == UserProfile.docente

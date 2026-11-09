@@ -166,8 +166,18 @@ invoke_compilation() {
             return 1
         fi
 
+        # Classpath inclui jars do MongoDB em lib/ (essencial para auth)
+        local cp_sep=":"
+        if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
+            cp_sep=";"
+        fi
+        local cp_path="bin"
+        if [[ -d "lib" ]]; then
+            cp_path="lib/*${cp_sep}bin"
+        fi
+
         local build_ok=0
-        "$JAVAC_CMD" --release 8 -encoding UTF-8 -d bin @"$tmp_list" 2>/dev/null || build_ok=$?
+        "$JAVAC_CMD" --release 8 -encoding UTF-8 -cp "$cp_path" -d bin @"$tmp_list" 2>/dev/null || build_ok=$?
 
         if [[ $build_ok -eq 0 ]]; then
             echo -e "${CLR_GREEN}[BUILD] Compilacao concluida com sucesso em '${BIN_DIR}'.${CLR_RESET}"
@@ -175,7 +185,7 @@ invoke_compilation() {
             return 0
         else
             echo -e "${CLR_YELLOW}[BUILD] Tentando compilacao direta com codificacao UTF-8...${CLR_RESET}"
-            if "$JAVAC_CMD" -encoding UTF-8 -d bin @"$tmp_list"; then
+            if "$JAVAC_CMD" -encoding UTF-8 -cp "$cp_path" -d bin @"$tmp_list"; then
                 echo -e "${CLR_GREEN}[BUILD] Compilacao concluida com sucesso em '${BIN_DIR}'.${CLR_RESET}"
                 rm -f "$tmp_list"
                 return 0
@@ -211,7 +221,16 @@ start_server() {
     : > "$ERR_LOG_FILE"
 
     cd "$SERVER_DIR"
-    nohup "$JAVA_CMD" -Dfile.encoding=UTF-8 -cp "$BIN_DIR" Main > "$LOG_FILE" 2> "$ERR_LOG_FILE" < /dev/null &
+    # Classpath runtime inclui bin/ (classes compiladas) + lib/* (drivers MongoDB nativos)
+    local runtime_cp="$BIN_DIR"
+    if [[ -d "lib" ]]; then
+        local cp_sep=":"
+        if command -v cygpath >/dev/null 2>&1 && [[ "${JAVA_CMD:-}" == *.exe ]]; then
+            cp_sep=";"
+        fi
+        runtime_cp="${BIN_DIR}${cp_sep}lib/*"
+    fi
+    nohup "$JAVA_CMD" -Dfile.encoding=UTF-8 -cp "$runtime_cp" Main > "$LOG_FILE" 2> "$ERR_LOG_FILE" < /dev/null &
     local s_pid=$!
     echo "$s_pid" > "$PID_FILE"
 
@@ -293,11 +312,21 @@ run_native_tests() {
         done
         shopt -u globstar nullglob 2>/dev/null || true
 
-        if "$JAVAC_CMD" --release 8 -encoding UTF-8 -d bin @"$tmp_tests" 2>/dev/null || \
-           "$JAVAC_CMD" -encoding UTF-8 -d bin @"$tmp_tests"; then
+        # Classpath inclui jars do MongoDB em lib/ (essencial para auth)
+        local cp_sep=":"
+        if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
+            cp_sep=";"
+        fi
+        local cp_path="bin"
+        if [[ -d "lib" ]]; then
+            cp_path="lib/*${cp_sep}bin"
+        fi
+
+        if "$JAVAC_CMD" --release 8 -encoding UTF-8 -cp "$cp_path" -d bin @"$tmp_tests" 2>/dev/null || \
+           "$JAVAC_CMD" -encoding UTF-8 -cp "$cp_path" -d bin @"$tmp_tests"; then
             rm -f "$tmp_tests"
             echo -e "${CLR_YELLOW}[EXEC] Executando SuiteTestesServidor...${CLR_RESET}"
-            "$JAVA_CMD" -Dfile.encoding=UTF-8 -cp bin SuiteTestesServidor
+            "$JAVA_CMD" -Dfile.encoding=UTF-8 -cp "$cp_path" SuiteTestesServidor
         else
             rm -f "$tmp_tests"
             echo -e "${CLR_RED}[ERRO] Falha na compilacao dos testes.${CLR_RESET}"
@@ -373,7 +402,7 @@ while true; do
     echo -e "${CLR_WHITE} [3] Status e Diagnostico em Tempo Real (Testa endpoints)${CLR_RESET}"
     echo -e "${CLR_WHITE} [4] Visualizar Logs do Servidor (server.log)${CLR_RESET}"
     echo -e "${CLR_WHITE} [5] Recompilar Fontes Java (Sem reiniciar processo atual)${CLR_RESET}"
-    echo -e "${CLR_WHITE} [6] Executar Suite de Testes Nativos (7 suites sem JUnit)${CLR_RESET}"
+    echo -e "${CLR_WHITE} [6] Executar Suite de Testes Nativos (11 suites sem JUnit)${CLR_RESET}"
     echo -e "${CLR_WHITE} [7] Exibir Variaveis Carregadas do .env Mestre${CLR_RESET}"
     echo -e "${CLR_WHITE} [8] Abrir Endpoint no Navegador (Healthcheck: /api/videocall/rooms)${CLR_RESET}"
     echo -e "${CLR_WHITE} [9] Limpar Tela do Console${CLR_RESET}"
@@ -386,7 +415,7 @@ while true; do
         2) stop_server ;;
         3)
             echo -e "\n${CLR_CYAN}>>> Diagnostico de Endpoints:${CLR_RESET}"
-            for ep in "/api/videocall/rooms" "/api/teste-tipos" "/api/presenca" "/api/auth/session"; do
+            for ep in "/api/videocall/rooms" "/api/auth/session" "/api/auth/login"; do
                 if command -v curl >/dev/null 2>&1; then
                     code="$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "http://127.0.0.1:8080${ep}" 2>/dev/null || echo "000")"
                     if [[ "$code" == "200" ]]; then

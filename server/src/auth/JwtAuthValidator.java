@@ -24,8 +24,16 @@ import java.util.Set;
 
 /**
  * Validador JWT HS256 implementado 100% na unha com a biblioteca padrao do JDK (zero dependencias externas).
- * Confere assinatura HMAC-SHA256 em tempo constante, expiracao, perfil institucional e, opcionalmente,
- * revogacao de sessao ativa no backend TypeScript (/api/auth/me).
+ *
+ * Confere:
+ * - Assinatura HMAC-SHA256 em tempo constante (MessageDigest.isEqual)
+ * - Expiracao (exp)
+ * - Perfil institucional valido (aluno, docente, admin)
+ * - Revogacao via blacklist (RevogacaoTokens)
+ * - Tipo de token (access vs refresh)
+ * - Versao da sessao (ver) contra repositorio
+ *
+ * Opcionalmente consulta o backend TypeScript (/api/auth/me) para validacao remota.
  */
 public final class JwtAuthValidator {
     private static final String ALGORITMO_HMAC = "HmacSHA256";
@@ -55,8 +63,15 @@ public final class JwtAuthValidator {
 
     /**
      * Valida criptograficamente um token JWT HS256 usando o segredo informado.
+     * Verifica tambem a blacklist de tokens revogados.
+     *
+     * @param token          Token JWT a ser validado.
+     * @param segredo        Segredo HMAC-SHA256.
+     * @param tipoEsperado   Tipo de token esperado ("access" ou "refresh"), ou null para qualquer tipo.
+     * @return UsuarioAutenticado com os claims extraidos.
+     * @throws SecurityException se o token for invalido, expirado ou revogado.
      */
-    public static UsuarioAutenticado validarToken(String token, String segredo) {
+    public static UsuarioAutenticado validarToken(String token, String segredo, String tipoEsperado) {
         if (token == null || token.trim().isEmpty()) {
             throw new SecurityException("Token de autenticacao ausente.");
         }
@@ -105,6 +120,21 @@ public final class JwtAuthValidator {
             throw new SecurityException("Payload JWT invalido.");
         }
 
+        // Verificar blacklist (token revogado via logout)
+        Object jtiObj = claims.get("jti");
+        String jti = jtiObj instanceof String ? (String) jtiObj : "";
+        if (!jti.isEmpty() && RevogacaoTokens.getInstance().estaRevogado(jti)) {
+            throw new SecurityException("Sessao encerrada. Realize login novamente.");
+        }
+
+        // Verificar tipo do token
+        Object typeObj = claims.get("type");
+        String tipo = typeObj instanceof String ? (String) typeObj : "access";
+        if (tipoEsperado != null && !tipoEsperado.equals(tipo)) {
+            throw new SecurityException("Tipo de token invalido. Esperado: " + tipoEsperado + ", recebido: " + tipo);
+        }
+
+        // Verificar claims obrigatorios
         Object subObj = claims.get("sub");
         if (!(subObj instanceof String) || ((String) subObj).trim().isEmpty()) {
             throw new SecurityException("Identificador do usuario (sub) ausente no token.");
@@ -134,12 +164,28 @@ public final class JwtAuthValidator {
             throw new SecurityException("Token ainda nao ativo (nbf).");
         }
 
-        String jti = claims.get("jti") instanceof String ? (String) claims.get("jti") : "";
         int ver = claims.get("ver") instanceof Number ? ((Number) claims.get("ver")).intValue() : 0;
         String identity = claims.get("identity") instanceof String ? (String) claims.get("identity") : "";
         String displayName = claims.get("name") instanceof String ? (String) claims.get("name") : "";
+        String email = claims.get("email") instanceof String ? (String) claims.get("email") : "";
 
-        return new UsuarioAutenticado(((String) subObj).trim(), profile, jti, ver, identity, displayName);
+        return new UsuarioAutenticado(
+                ((String) subObj).trim(),
+                profile,
+                jti,
+                ver,
+                identity,
+                displayName,
+                email,
+                false
+        );
+    }
+
+    /**
+     * Valida um token JWT (compatibilidade com assinatura anterior).
+     */
+    public static UsuarioAutenticado validarToken(String token, String segredo) {
+        return validarToken(token, segredo, null);
     }
 
     /**
@@ -165,6 +211,7 @@ public final class JwtAuthValidator {
         payload.put("sub", userId);
         payload.put("profile", profile);
         payload.put("ver", sessionVersion);
+        payload.put("type", "access");
         if (sessionId != null && !sessionId.isEmpty()) {
             payload.put("jti", sessionId);
         }
@@ -241,7 +288,18 @@ public final class JwtAuthValidator {
         if (token == null) {
             throw new SecurityException("Autenticacao necessaria. Informe o token Bearer do login.");
         }
-        return validarComConfiguracaoAmbiente(token);
+        return validarComConfiguracaoAmbiente(token, "access");
+    }
+
+    /**
+     * Exige um refresh token valido na requisicao.
+     */
+    public static UsuarioAutenticado autenticarRefreshToken(RequisicaoHttp requisicao) {
+        String token = extrairBearerToken(requisicao);
+        if (token == null) {
+            throw new SecurityException("Refresh token necessario.");
+        }
+        return validarComConfiguracaoAmbiente(token, "refresh");
     }
 
     /**
@@ -256,13 +314,13 @@ public final class JwtAuthValidator {
             }
             return null;
         }
-        return validarComConfiguracaoAmbiente(token);
+        return validarComConfiguracaoAmbiente(token, "access");
     }
 
-    private static UsuarioAutenticado validarComConfiguracaoAmbiente(String token) {
+    private static UsuarioAutenticado validarComConfiguracaoAmbiente(String token, String tipoEsperado) {
         String segredo = ConfigEnv.obter("AUTH_JWT_SECRET", null);
         if (segredo != null && segredo.length() >= 16) {
-            UsuarioAutenticado local = validarToken(token, segredo);
+            UsuarioAutenticado local = validarToken(token, segredo, tipoEsperado);
             if ("true".equalsIgnoreCase(ConfigEnv.obter("VERIFY_REMOTE_SESSION", "false"))) {
                 return consultarSessaoRemota(token);
             }
@@ -282,4 +340,3 @@ public final class JwtAuthValidator {
         }
     }
 }
-

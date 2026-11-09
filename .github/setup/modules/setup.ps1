@@ -433,8 +433,15 @@ if (-not $SkipInstall) {
     $tempList = Join-Path $env:TEMP ("agmrm_setup_src_" + (Get-Random) + ".txt")
     [System.IO.File]::WriteAllLines($tempList, $srcFiles)
     
+    # Classpath inclui jars do MongoDB em lib/ (essencial para auth)
+    $LibDir = Join-Path $ServerDir "lib"
+    $Classpath = "bin"
+    if (Test-Path $LibDir) {
+        $Classpath = "lib\*;bin"
+    }
+    
     $javacToUse = if ($JavacPath) { $JavacPath } else { "javac.exe" }
-    $p = Start-Process -FilePath $javacToUse -ArgumentList "--release", "8", "-encoding", "UTF-8", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
+    $p = Start-Process -FilePath $javacToUse -ArgumentList "--release", "8", "-encoding", "UTF-8", "-cp", "`"$Classpath`"", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
     Remove-Item $tempList -Force -ErrorAction SilentlyContinue
     
     if ($p.ExitCode -eq 0) {
@@ -443,7 +450,7 @@ if (-not $SkipInstall) {
         Write-Host "  [AVISO] Tentando compilacao direta sem flag --release..." -ForegroundColor Yellow
         $tempList = Join-Path $env:TEMP ("agmrm_setup_src_" + (Get-Random) + ".txt")
         [System.IO.File]::WriteAllLines($tempList, $srcFiles)
-        $p2 = Start-Process -FilePath $javacToUse -ArgumentList "-encoding", "UTF-8", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
+        $p2 = Start-Process -FilePath $javacToUse -ArgumentList "-encoding", "UTF-8", "-cp", "`"$Classpath`"", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
         Remove-Item $tempList -Force -ErrorAction SilentlyContinue
         if ($p2.ExitCode -eq 0) {
             Write-Host "  [OK] Modulo server/ compilado com sucesso." -ForegroundColor Green

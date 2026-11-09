@@ -16,7 +16,7 @@ class ApiException implements Exception {
 class AuthenticatedApiClient {
   static const baseUrl = String.fromEnvironment(
     'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
+    defaultValue: 'http://127.0.0.1:8080',
   );
   final http.Client _client;
   AuthenticatedApiClient({http.Client? client})

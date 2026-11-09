@@ -1,5 +1,6 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
+import '../domain/models/recovery_session.dart';
 import '../domain/auth_repository.dart';
 import 'auth_remote_datasource.dart';
 
@@ -22,6 +23,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> recoverPassword({required String identity}) async {
     await remoteDataSource.sendPasswordResetInstructions(identity: identity);
+  }
+
+  @override
+  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async {
+    return await remoteDataSource.sendPasswordResetInstructions(identity: identity);
   }
 
   @override
@@ -56,6 +62,31 @@ class AuthRepositoryImpl implements AuthRepository {
     return remoteDataSource.verifyPasswordRecoveryCodeRemote(
       identity: identity,
       code: code,
+    );
+  }
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async {
+    final result = await remoteDataSource.verifyRecoverySessionRemote(
+      identity: currentSession.identity,
+      code: code,
+    );
+    final profile = switch (result.profile.toLowerCase()) {
+      'admin' => UserProfile.admin,
+      'docente' => UserProfile.docente,
+      'aluno' => UserProfile.aluno,
+      _ => currentSession.profile,
+    };
+    return currentSession.copyWith(
+      profile: profile,
+      identity: result.identity.isNotEmpty ? result.identity : currentSession.identity,
+      displayName: result.displayName.isNotEmpty ? result.displayName : currentSession.displayName,
+      institutionalEmail: result.email.isNotEmpty ? result.email : currentSession.institutionalEmail,
+      departmentOrCourse: result.departmentOrCourse.isNotEmpty ? result.departmentOrCourse : currentSession.departmentOrCourse,
+      resetToken: result.resetToken,
     );
   }
 

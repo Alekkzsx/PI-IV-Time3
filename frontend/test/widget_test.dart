@@ -72,7 +72,7 @@ void main() {
 
     expect(find.text('Acesse seu AVA'), findsOneWidget);
     expect(find.text('R.A. do Aluno ou E-mail Acadêmico'), findsOneWidget);
-    expect(find.text('ex: 2024.1.00892'), findsOneWidget);
+    expect(find.text('ex: 202610401'), findsOneWidget);
     expect(find.text('Entrar no AVA'), findsOneWidget);
   });
 

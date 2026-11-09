@@ -250,7 +250,7 @@ class AppUserSession extends ChangeNotifier {
     if (token == null || token.isEmpty) return false;
     const baseUrl = String.fromEnvironment(
       'AUTH_API_BASE_URL',
-      defaultValue: 'http://127.0.0.1:3001',
+      defaultValue: 'http://127.0.0.1:8080',
     );
     final httpClient = client ?? http.Client();
     try {
@@ -342,7 +342,7 @@ class AppUserSession extends ChangeNotifier {
     if (token == null) return;
     const baseUrl = String.fromEnvironment(
       'AUTH_API_BASE_URL',
-      defaultValue: 'http://127.0.0.1:3001',
+      defaultValue: 'http://127.0.0.1:8080',
     );
     try {
       await http

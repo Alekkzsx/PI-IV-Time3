@@ -32,13 +32,17 @@ public class RespostaHttp {
         switch (status) {
             case 200: descricao = "OK"; break;
             case 201: descricao = "Created"; break;
+            case 202: descricao = "Accepted"; break;
             case 204: descricao = "No Content"; break;
             case 400: descricao = "Bad Request"; break;
             case 401: descricao = "Unauthorized"; break;
             case 403: descricao = "Forbidden"; break;
             case 404: descricao = "Not Found"; break;
             case 405: descricao = "Method Not Allowed"; break;
-            default: descricao = "Internal Server Error";
+            case 429: descricao = "Too Many Requests"; break;
+            case 500: descricao = "Internal Server Error"; break;
+            case 503: descricao = "Service Unavailable"; break;
+            default: descricao = status >= 400 ? "Error" : "OK";
         }
         StringBuilder cabecalho = new StringBuilder("HTTP/1.1 " + status + " " + descricao + "\r\n");
         cabecalhos.putIfAbsent("Content-Type", "application/json; charset=utf-8");

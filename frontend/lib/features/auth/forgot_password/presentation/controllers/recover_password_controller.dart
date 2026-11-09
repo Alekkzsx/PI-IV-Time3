@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/foundation.dart';
 import '../../../../../core/utils/input_validators.dart';
@@ -22,9 +22,13 @@ class RecoverPasswordController extends ChangeNotifier {
   String? _errorMessage;
   bool _isSuccess = false;
   int _operationId = 0;
+  Map<String, dynamic>? _lastRecoveryResponse;
 
   /// Retorna o valor atual da credencial ou e-mail digitado pelo usuário.
   String get identity => _identity;
+
+  /// Retorna a resposta com dados reais (como maskedEmail) vinda do servidor Java / MongoDB.
+  Map<String, dynamic>? get lastRecoveryResponse => _lastRecoveryResponse;
 
   /// Indica se a operação de envio de recuperação está em processamento ativo.
   bool get isLoading => _isLoading;
@@ -82,20 +86,30 @@ class RecoverPasswordController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await recoverPasswordUseCase(identity: identity);
+      final repository = recoverPasswordUseCase.repository;
+      _lastRecoveryResponse = await repository.recoverPasswordDetails(identity: identity);
       if (operationId != _operationId) return false;
       _isLoading = false;
       _isSuccess = true;
       notifyListeners();
       return true;
     } catch (_) {
-      if (operationId != _operationId) return false;
-      _isLoading = false;
-      _errorMessage =
-          'Não foi possível solicitar a recuperação agora. Tente novamente.';
-      _isSuccess = false;
-      notifyListeners();
-      return false;
+      try {
+        await recoverPasswordUseCase(identity: identity);
+        if (operationId != _operationId) return false;
+        _isLoading = false;
+        _isSuccess = true;
+        notifyListeners();
+        return true;
+      } catch (_) {
+        if (operationId != _operationId) return false;
+        _isLoading = false;
+        _errorMessage =
+            'Não foi possível solicitar a recuperação agora. Tente novamente.';
+        _isSuccess = false;
+        notifyListeners();
+        return false;
+      }
     }
   }
 
@@ -107,6 +121,7 @@ class RecoverPasswordController extends ChangeNotifier {
     _errorMessage = null;
     _isSuccess = false;
     _isLoading = false;
+    _lastRecoveryResponse = null;
     notifyListeners();
   }
 

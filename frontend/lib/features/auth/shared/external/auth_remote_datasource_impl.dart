@@ -7,14 +7,14 @@ import 'package:http/http.dart' as http;
 
 import '../data/auth_remote_datasource.dart';
 
-/// Datasource HTTP para o serviço de autenticação TypeScript.
+/// Datasource HTTP para o serviço de autenticação nativo Java (porta 8080).
 ///
 /// A URL pode ser substituída em builds com
 /// `--dart-define=AUTH_API_BASE_URL=https://...`.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   static const String _baseUrl = String.fromEnvironment(
     'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
+    defaultValue: 'http://127.0.0.1:8080',
   );
   static const Duration _requestTimeout = Duration(seconds: 8);
 
@@ -68,15 +68,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> sendPasswordResetInstructions({required String identity}) async {
+  Future<Map<String, dynamic>> sendPasswordResetInstructions({required String identity}) async {
     final response = await _post('/api/auth/send-recovery-otp', {
       'identity': identity,
     });
-    _decodeResponse(response);
+    return _decodeResponse(response);
   }
 
   @override
   Future<String> verifyPasswordRecoveryCodeRemote({
+    required String identity,
+    required String code,
+  }) async {
+    final result = await verifyRecoverySessionRemote(
+      identity: identity,
+      code: code,
+    );
+    return result.resetToken;
+  }
+
+  @override
+  Future<RecoveryVerificationResult> verifyRecoverySessionRemote({
     required String identity,
     required String code,
   }) async {
@@ -85,7 +97,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'code': code,
     });
     final payload = _decodeResponse(response);
-    final resetToken = payload['resetToken'];
+    final resetToken = payload['resetToken'] ?? payload['recoveryToken'];
 
     if (payload['valid'] != true ||
         resetToken is! String ||
@@ -95,7 +107,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
 
-    return resetToken;
+    return RecoveryVerificationResult.fromMap(payload, resetToken);
   }
 
   @override

@@ -60,6 +60,8 @@ build/
 
 # ─── 3. Artefatos de Compilação do Java e Backend (server/ e backend/) ───
 server/bin/
+server/*.pid
+server/*.log
 **/bin/
 *.class
 **/*.class

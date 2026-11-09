@@ -157,4 +157,78 @@ void main() {
       );
     },
   );
+
+  test(
+    'sendPasswordResetInstructions returns server metadata with maskedEmail and profile',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient((request) async {
+          expect(request.url.path, '/api/auth/send-recovery-otp');
+          expect(jsonDecode(request.body), {'identity': '24802449'});
+          return http.Response(
+            jsonEncode({
+              'status': 200,
+              'success': true,
+              'maskedEmail': 'a***1@gmail.com',
+              'identity': '24802449',
+              'displayName': 'Alex Gabriel Soares Sousa',
+              'profile': 'aluno',
+              'departmentOrCourse': 'Engenharia de Software',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final result = await source.sendPasswordResetInstructions(identity: '24802449');
+      expect(result['maskedEmail'], 'a***1@gmail.com');
+      expect(result['displayName'], 'Alex Gabriel Soares Sousa');
+      expect(result['profile'], 'aluno');
+      expect(result['departmentOrCourse'], 'Engenharia de Software');
+    },
+  );
+
+  test(
+    'verifyRecoverySessionRemote returns complete verified user details from MongoDB',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient((request) async {
+          expect(request.url.path, '/api/auth/verify-recovery-otp');
+          expect(jsonDecode(request.body), {
+            'identity': '24802449',
+            'code': '654321',
+          });
+          return http.Response(
+            jsonEncode({
+              'status': 200,
+              'valid': true,
+              'resetToken': 'valid-mongo-recovery-token',
+              'identity': '24802449',
+              'displayName': 'Alex Gabriel Soares Sousa',
+              'email': 'alex.soares.gabriel111@gmail.com',
+              'profile': 'aluno',
+              'departmentOrCourse': 'Engenharia de Software',
+              'campus': 'Unidade Sede',
+              'semester': '2026/2 - 4º Semestre',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final sessionResult = await source.verifyRecoverySessionRemote(
+        identity: '24802449',
+        code: '654321',
+      );
+
+      expect(sessionResult.resetToken, 'valid-mongo-recovery-token');
+      expect(sessionResult.displayName, 'Alex Gabriel Soares Sousa');
+      expect(sessionResult.email, 'alex.soares.gabriel111@gmail.com');
+      expect(sessionResult.departmentOrCourse, 'Engenharia de Software');
+      expect(sessionResult.profile, 'aluno');
+      expect(sessionResult.campus, 'Unidade Sede');
+    },
+  );
 }

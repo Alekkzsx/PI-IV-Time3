@@ -123,8 +123,15 @@ function Invoke-JavaCompilation {
     $tempList = Join-Path $env:TEMP ("agmrm_src_" + (Get-Random) + ".txt")
     [System.IO.File]::WriteAllLines($tempList, $srcFiles)
     
+    # Classpath inclui jars do MongoDB em lib/ (essencial para auth)
+    $LibDir = Join-Path $ServerDir "lib"
+    $Classpath = "bin"
+    if (Test-Path $LibDir) {
+        $Classpath = "lib\*;bin"
+    }
+    
     $javacCmd = $JavaTools.Javac
-    $process = Start-Process -FilePath $javacCmd -ArgumentList "--release", "8", "-encoding", "UTF-8", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
+    $process = Start-Process -FilePath $javacCmd -ArgumentList "--release", "8", "-encoding", "UTF-8", "-cp", "`"$Classpath`"", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
     Remove-Item $tempList -Force -ErrorAction SilentlyContinue
     
     if ($process.ExitCode -eq 0) {
@@ -134,7 +141,7 @@ function Invoke-JavaCompilation {
         Write-Host "[BUILD] Tentando compilacao direta com codificacao UTF-8..." -ForegroundColor Yellow
         $tempList = Join-Path $env:TEMP ("agmrm_src_" + (Get-Random) + ".txt")
         [System.IO.File]::WriteAllLines($tempList, $srcFiles)
-        $process2 = Start-Process -FilePath $javacCmd -ArgumentList "-encoding", "UTF-8", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
+        $process2 = Start-Process -FilePath $javacCmd -ArgumentList "-encoding", "UTF-8", "-cp", "`"$Classpath`"", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
         Remove-Item $tempList -Force -ErrorAction SilentlyContinue
         return ($process2.ExitCode -eq 0)
     }
@@ -167,8 +174,15 @@ function Start-JavaServer {
     "" | Out-File -FilePath $LogFile -Force
     "" | Out-File -FilePath $ErrorLogFile -Force
     
+    # Classpath runtime inclui bin/ (classes compiladas) + lib\* (drivers MongoDB)
+    $LibDir = Join-Path $ServerDir "lib"
+    $RuntimeCp = "`"$BinDir`""
+    if (Test-Path $LibDir) {
+        $RuntimeCp = "`"$BinDir;lib\*`""
+    }
+    
     $global:ServerProc = Start-Process -FilePath $javaCmd `
-        -ArgumentList "-Dfile.encoding=UTF-8", "-cp", "`"$BinDir`"", "Main" `
+        -ArgumentList "-Dfile.encoding=UTF-8", "-cp", $RuntimeCp, "Main" `
         -WorkingDirectory $ServerDir `
         -RedirectStandardOutput $LogFile `
         -RedirectStandardError $ErrorLogFile `
@@ -247,7 +261,14 @@ function Run-NativeTests {
     $javacCmd = $JavaTools.Javac
     $javaCmd = $JavaTools.Java
     
-    $p = Start-Process -FilePath $javacCmd -ArgumentList "--release", "8", "-encoding", "UTF-8", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
+    # Classpath inclui jars do MongoDB em lib/ (essencial para auth)
+    $LibDir = Join-Path $ServerDir "lib"
+    $Classpath = "bin"
+    if (Test-Path $LibDir) {
+        $Classpath = "lib\*;bin"
+    }
+    
+    $p = Start-Process -FilePath $javacCmd -ArgumentList "--release", "8", "-encoding", "UTF-8", "-cp", "`"$Classpath`"", "-d", "`"$BinDir`"", "@`"$tempList`"" -NoNewWindow -Wait -PassThru
     Remove-Item $tempList -Force -ErrorAction SilentlyContinue
     
     if ($p.ExitCode -ne 0) {
@@ -256,7 +277,7 @@ function Run-NativeTests {
     }
     
     Write-Host "[EXEC] Executando SuiteTestesServidor..." -ForegroundColor Yellow
-    & $javaCmd -Dfile.encoding=UTF-8 -cp $BinDir SuiteTestesServidor
+    & $javaCmd -Dfile.encoding=UTF-8 -cp $Classpath SuiteTestesServidor
 }
 
 # Exibe logs recentes
@@ -331,7 +352,7 @@ while ($true) {
     Write-Host " [3] Status e Diagnostico em Tempo Real (Testa endpoints)" -ForegroundColor White
     Write-Host " [4] Visualizar Logs do Servidor (server.log)" -ForegroundColor White
     Write-Host " [5] Recompilar Fontes Java (Sem reiniciar processo atual)" -ForegroundColor White
-    Write-Host " [6] Executar Suite de Testes Nativos (7 suites sem JUnit)" -ForegroundColor White
+    Write-Host " [6] Executar Suite de Testes Nativos (11 suites sem JUnit)" -ForegroundColor White
     Write-Host " [7] Exibir Variaveis Carregadas do .env Mestre" -ForegroundColor White
     Write-Host " [8] Abrir Endpoint no Navegador (Healthcheck: /api/videocall/rooms)" -ForegroundColor White
     Write-Host " [9] Limpar Tela do Console" -ForegroundColor White
@@ -347,9 +368,8 @@ while ($true) {
             Write-Host "`n>>> Diagnostico de Endpoints:" -ForegroundColor Cyan
             $endpoints = @(
                 "/api/videocall/rooms",
-                "/api/teste-tipos",
-                "/api/presenca",
-                "/api/auth/session"
+                "/api/auth/session",
+                "/api/auth/login"
             )
             foreach ($ep in $endpoints) {
                 try {

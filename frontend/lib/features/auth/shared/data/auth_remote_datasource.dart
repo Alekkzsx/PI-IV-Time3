@@ -1,5 +1,41 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
+/// Resultado da validação do código de recuperação contendo metadados reais do MongoDB.
+class RecoveryVerificationResult {
+  final String resetToken;
+  final String identity;
+  final String displayName;
+  final String email;
+  final String profile;
+  final String departmentOrCourse;
+  final String campus;
+  final String semester;
+
+  const RecoveryVerificationResult({
+    required this.resetToken,
+    this.identity = '',
+    this.displayName = '',
+    this.email = '',
+    this.profile = '',
+    this.departmentOrCourse = '',
+    this.campus = '',
+    this.semester = '',
+  });
+
+  factory RecoveryVerificationResult.fromMap(Map<String, dynamic> map, String fallbackToken) {
+    return RecoveryVerificationResult(
+      resetToken: map['resetToken']?.toString() ?? map['recoveryToken']?.toString() ?? fallbackToken,
+      identity: map['identity']?.toString() ?? '',
+      displayName: map['displayName']?.toString() ?? '',
+      email: map['email']?.toString() ?? '',
+      profile: map['profile']?.toString() ?? '',
+      departmentOrCourse: map['departmentOrCourse']?.toString() ?? map['department']?.toString() ?? '',
+      campus: map['campus']?.toString() ?? '',
+      semester: map['semester']?.toString() ?? '',
+    );
+  }
+}
+
 /// Contrato para comunicação remota com serviços e APIs de autenticação no backend.
 abstract class AuthRemoteDataSource {
   Future<String> completeTwoFactor({
@@ -8,9 +44,8 @@ abstract class AuthRemoteDataSource {
   });
 
   /// Envia requisição remota de redefinição de senha para a [identity] informada.
-  ///
-  /// Lança [Exception] caso o serviço remoto rejeite a requisição ou ocorra falha de conexão.
-  Future<void> sendPasswordResetInstructions({required String identity});
+  /// Retorna o mapa de resposta do servidor contendo o maskedEmail real quando disponível.
+  Future<Map<String, dynamic>> sendPasswordResetInstructions({required String identity});
 
   /// Envia credenciais ([identity], [password], [profile]) para autenticação remota junto ao servidor.
   ///
@@ -29,6 +64,12 @@ abstract class AuthRemoteDataSource {
 
   /// Confirma o OTP de recuperação e devolve o grant temporário para redefinição.
   Future<String> verifyPasswordRecoveryCodeRemote({
+    required String identity,
+    required String code,
+  });
+
+  /// Confirma o OTP de recuperação e devolve a sessão completa com metadados do MongoDB.
+  Future<RecoveryVerificationResult> verifyRecoverySessionRemote({
     required String identity,
     required String code,
   });

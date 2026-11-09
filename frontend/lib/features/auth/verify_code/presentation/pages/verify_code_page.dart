@@ -146,13 +146,22 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     });
 
     try {
-      final resetToken = await widget.repository.verifyPasswordRecoveryCode(
-        identity: session.identity,
-        code: code,
-      );
+      RecoverySession nextSession;
+      try {
+        nextSession = await widget.repository.verifyRecoverySession(
+          currentSession: session,
+          code: code,
+        );
+      } catch (_) {
+        final resetToken = await widget.repository.verifyPasswordRecoveryCode(
+          identity: session.identity,
+          code: code,
+        );
+        nextSession = session.withResetToken(resetToken);
+      }
       if (!mounted) return;
 
-      if (resetToken.isNotEmpty) {
+      if (nextSession.resetToken != null && nextSession.resetToken!.isNotEmpty) {
         _isNavigating = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -181,7 +190,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
           if (mounted) {
             Navigator.of(context).pushReplacementNamed(
               '/reset-password',
-              arguments: session.withResetToken(resetToken),
+              arguments: nextSession,
             );
           }
         });
@@ -232,7 +241,14 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     if (_isResending || _isVerifying || _isNavigating) return;
     setState(() => _isResending = true);
     try {
-      await widget.repository.recoverPassword(identity: session.identity);
+      String masked = session.maskedEmail;
+      try {
+        final details = await widget.repository.recoverPasswordDetails(identity: session.identity);
+        final m = details['maskedEmail']?.toString();
+        if (m != null && m.isNotEmpty) masked = m;
+      } catch (_) {
+        await widget.repository.recoverPassword(identity: session.identity);
+      }
       if (!mounted) return;
       for (final controller in _controllers) {
         controller.clear();
@@ -250,7 +266,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Novo código enviado para ${session.maskedEmail}!',
+                  'Novo código enviado para $masked!',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),

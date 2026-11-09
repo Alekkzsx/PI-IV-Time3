@@ -1,4 +1,7 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
+
+export 'models/recovery_session.dart';
+import 'models/recovery_session.dart';
 
 /// Resultado detalhado de uma tentativa de autenticação, suportando prontidão para 2FA.
 class AuthResult {
@@ -38,6 +41,9 @@ abstract class AuthRepository {
   /// Lança exceção de domínio caso o identificador não seja encontrado ou ocorra falha de rede.
   Future<void> recoverPassword({required String identity});
 
+  /// Solicita instruções e devolve metadados da resposta (ex.: maskedEmail real do MongoDB).
+  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity});
+
   /// Realiza a autenticação do usuário utilizando [identity], [password] e [profile].
   ///
   /// Lança exceção de domínio caso as credenciais sejam inválidas ou haja erro de comunicação.
@@ -53,6 +59,12 @@ abstract class AuthRepository {
   /// Confirma um código de recuperação e devolve o token de redefinição de uso único.
   Future<String> verifyPasswordRecoveryCode({
     required String identity,
+    required String code,
+  });
+
+  /// Confirma o código OTP e devolve a sessão enriquecida com os dados reais do MongoDB.
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
     required String code,
   });
 

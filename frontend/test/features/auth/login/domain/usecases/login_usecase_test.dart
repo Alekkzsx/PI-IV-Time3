@@ -24,6 +24,9 @@ class MockAuthRepository implements AuthRepository {
   Future<void> recoverPassword({required String identity}) async {}
 
   @override
+  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async => {};
+
+  @override
   Future<String> login({
     required String identity,
     required String password,
@@ -49,6 +52,12 @@ class MockAuthRepository implements AuthRepository {
     required String identity,
     required String code,
   }) async => 'test-reset-token';
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async => currentSession.withResetToken('test-reset-token');
 
   @override
   Future<void> resetPassword({
