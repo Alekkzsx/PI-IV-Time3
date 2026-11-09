@@ -188,6 +188,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
       allowLateWithPenalty: _allowLate,
       rubricCriteria: rubricCriteria,
     );
+    if (!mounted) return;
     if (!created) {
       _showValidationError(
         'Não foi possível publicar a atividade para esta turma.',

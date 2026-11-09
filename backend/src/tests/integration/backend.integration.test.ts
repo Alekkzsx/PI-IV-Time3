@@ -11,7 +11,7 @@ import { MongoAuthSecurityRepository } from "../../modules/auth/infrastructure/m
 import { BcryptPasswordHasher, JwtAccessTokenIssuer } from "../../modules/auth/infrastructure/security.providers.js";
 import { AuthService } from "../../modules/auth/application/auth.service.js";
 import { createApp } from "../../app.js";
-import { seedAdminDemo } from "../../scripts/admin-demo.seed.js";
+import { runSeeds } from "../../scripts/index.js";
 import type { Db } from "mongodb";
 import { AuthError } from "../../shared/auth-error.js";
 
@@ -49,7 +49,7 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     connection = new MongoAuthDatabase(environment.mongoUri, testDatabaseName);
     await connection.connect();
     database = connection.databaseForModules();
-    await seedAdminDemo(database, password);
+    await runSeeds(database, password);
     const passwords = new BcryptPasswordHasher();
     const service = new AuthService({
       users: connection.users(),

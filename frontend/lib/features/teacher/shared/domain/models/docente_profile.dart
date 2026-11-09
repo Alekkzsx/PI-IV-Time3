@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 /// An active login session on a user's device.
 class ActiveSession {
@@ -60,6 +60,21 @@ class DocenteProfile {
   final bool twoFactorEnabled;
   final List<ActiveSession> activeSessions;
   final List<LoginAudit> loginAudits;
+
+  static const DocenteProfile empty = DocenteProfile(
+    fullName: '',
+    socialName: '',
+    registrationId: '',
+    department: '',
+    semester: '',
+    campus: '',
+    status: '',
+    academicEmail: '',
+    personalEmail: '',
+    twoFactorEnabled: false,
+    activeSessions: [],
+    loginAudits: [],
+  );
 
   const DocenteProfile({
     required this.fullName,

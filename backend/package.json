@@ -14,9 +14,16 @@
     "test:unit": "npm run build && node --test dist/tests/unit/*.test.js",
     "test:integration": "npm run build && node --test dist/tests/integration/*.test.js",
     "test:email": "tsx src/scripts/test-email-resilience.ts",
-    "seed:admin": "tsx src/scripts/seed-admin.ts",
-    "seed:student": "tsx src/scripts/seed-student.ts",
-    "seed:ecosystem": "tsx src/scripts/seed-ecosystem.ts"
+    "seed": "tsx src/scripts/index.ts",
+    "seed:all": "tsx src/scripts/index.ts",
+    "seed:users": "tsx src/scripts/index.ts --users",
+    "seed:courses": "tsx src/scripts/index.ts --courses",
+    "seed:classes": "tsx src/scripts/index.ts --classes",
+    "seed:teacher": "tsx src/scripts/index.ts --teacher",
+    "seed:student": "tsx src/scripts/index.ts --student",
+    "seed:institutional": "tsx src/scripts/index.ts --institutional",
+    "seed:admin": "tsx src/scripts/index.ts --users",
+    "seed:ecosystem": "tsx src/scripts/index.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

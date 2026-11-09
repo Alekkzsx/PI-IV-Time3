@@ -5,6 +5,7 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_profile.dart';
+import 'components/change_password_dialog.dart';
 
 /// Card de configurações de 2FA, gerenciamento de sessões ativas e histórico de auditoria.
 class DocenteSecuritySessionsCard extends StatelessWidget {
@@ -13,53 +14,8 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
   const DocenteSecuritySessionsCard({super.key, required this.controller});
 
   Future<void> _changePassword(BuildContext context) async {
-    final current = TextEditingController();
-    final next = TextEditingController();
-    final confirm = TextEditingController();
-    final values = await showDialog<List<String>>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Alterar senha'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: current,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Senha atual'),
-            ),
-            TextField(
-              controller: next,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Nova senha'),
-            ),
-            TextField(
-              controller: confirm,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirmar senha'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (current.text.isEmpty ||
-                  next.text.length < 8 ||
-                  next.text != confirm.text) {
-                return;
-              }
-              Navigator.pop(context, [current.text, next.text]);
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
-    );
-    if (values != null) {
+    final values = await ChangePasswordDialog.show(context);
+    if (values != null && context.mounted) {
       final changed = await controller.changePassword(
         currentPassword: values[0],
         newPassword: values[1],
@@ -79,9 +35,6 @@ class DocenteSecuritySessionsCard extends StatelessWidget {
         );
       }
     }
-    current.dispose();
-    next.dispose();
-    confirm.dispose();
   }
 
   Future<void> _showBackupCodes(BuildContext context) async {

@@ -51,7 +51,10 @@ function Get-JavaTools {
         "C:\Program Files\Eclipse Adoptium\jdk-17*\bin",
         "C:\Program Files\Eclipse Adoptium\jdk-21*\bin",
         "C:\Program Files\Microsoft\jdk-17*\bin",
-        "C:\Program Files\Microsoft\jdk-21*\bin"
+        "C:\Program Files\Microsoft\jdk-21*\bin",
+        "C:\Program Files\Zulu\zulu-17*\bin",
+        "C:\Program Files\Amazon Corretto\jdk17*\bin",
+        "C:\Program Files\Semeru\jdk-17*\bin"
     )
     foreach ($kd in $knownDirs) {
         $resolved = Resolve-Path $kd -ErrorAction SilentlyContinue

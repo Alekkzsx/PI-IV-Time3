@@ -9,6 +9,7 @@
 param (
     [switch]$SkipInstall,
     [switch]$NoLaunch,
+    [switch]$Seed,
     [string]$FlutterDevice
 )
 
@@ -393,6 +394,31 @@ if (-not $SkipInstall) {
     } finally {
         Pop-Location
     }
+
+    # Opcional / Interativo: Popular MongoDB com Seeds Modulares (30+ registros por entidade)
+    $shouldSeed = $Seed
+    if (-not $shouldSeed -and [Environment]::UserInteractive) {
+        $ans = Read-Host "  Deseja popular o MongoDB agora com as novas seeds modulares (30+ registros por entidade)? (S/N)"
+        if ($ans -and $ans.Trim().ToUpper() -eq "S") {
+            $shouldSeed = $true
+        }
+    }
+    if ($shouldSeed) {
+        Write-Host "`n  -> [backend/] Executando 'npm run seed'..." -ForegroundColor Yellow
+        Push-Location $BackendDir
+        try {
+            & npm run seed
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  [OK] Banco de dados MongoDB populado com sucesso." -ForegroundColor Green
+            } else {
+                Write-Host "  [AVISO] 'npm run seed' retornou codigo $LASTEXITCODE. Verifique se o MongoDB esta ativo." -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host "  [AVISO] Nao foi possivel executar as seeds: $_" -ForegroundColor Yellow
+        } finally {
+            Pop-Location
+        }
+    }
     
     # B. Security (Flutter pub get)
     if ($FlutterCmd) {
@@ -479,6 +505,15 @@ function Stop-PortListener([int]$port) {
             }
         }
     } catch {}
+    try {
+        $lines = netstat -ano | Select-String ":$port\s+.*LISTENING\s+(\d+)"
+        foreach ($line in $lines) {
+            $pidToKill = [int]$line.Matches.Groups[1].Value
+            if ($pidToKill -gt 0) {
+                Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch {}
 }
 Stop-PortListener 8080
 Stop-PortListener 3001
@@ -488,24 +523,47 @@ Stop-PortListener 3001
 # -----------------------------------------------------------------------------
 Write-Host "`n[ETAPA 3/4] Inicializando os servicos em abas/janelas dedicadas de terminal..." -ForegroundColor Cyan
 
-# 1. ABA/JANELA SEPARADA: Servidor Java SE Interativo (Porta 8080)
-Write-Host "  -> Abrindo Janela 1: Servidor Java SE (Console Interativo com Menu: Reiniciar, Desligar, Status...)" -ForegroundColor Yellow
-$javaArgs = @('/k', "title AGMRM - Servidor Java SE (Porta 8080) & powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$JavaConsoleScript`"")
-Start-Process "cmd.exe" -ArgumentList $javaArgs
+$hasWt = [bool](Get-Command wt.exe -ErrorAction SilentlyContinue)
 
-Start-Sleep -Seconds 1
+if ($hasWt) {
+    Write-Host "  -> Windows Terminal (wt.exe) detectado: criando sessoes integradas em abas dedicadas..." -ForegroundColor Green
+    # Inicia Janela 1: Java Server Console
+    Start-Process "wt.exe" -ArgumentList @(
+        "-w", "0", "new-tab", "--title", "AGMRM - Servidor Java (8080)", "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$JavaConsoleScript`""
+    )
+    Start-Sleep -Milliseconds 700
 
-# 2. ABA/JANELA SEPARADA: Backend TypeScript API (Porta 3001)
-Write-Host "  -> Abrindo Janela 2: Backend API TypeScript (Express + MongoDB na Porta 3001)" -ForegroundColor Yellow
-$backendArgs = @('/k', "title AGMRM - Backend API TypeScript (Porta 3001) & cd /d `"$BackendDir`" & npm run dev")
-Start-Process "cmd.exe" -ArgumentList $backendArgs
+    # Inicia Janela 2: Backend API
+    Start-Process "wt.exe" -ArgumentList @(
+        "-w", "0", "new-tab", "--title", "AGMRM - Backend API (3001)", "-d", "`"$BackendDir`"", "cmd.exe", "/k", "npm run dev"
+    )
+    Start-Sleep -Milliseconds 700
 
-Start-Sleep -Seconds 1
+    # Inicia Janela 3: Frontend Flutter
+    Start-Process "wt.exe" -ArgumentList @(
+        "-w", "0", "new-tab", "--title", "AGMRM - Frontend Flutter ($TargetDevice)", "-d", "`"$FrontendDir`"", "cmd.exe", "/k", "flutter run -d $TargetDevice || flutter run -d chrome"
+    )
+} else {
+    # Fallback padrao: 3 janelas CMD / PowerShell independentes
+    # 1. ABA/JANELA SEPARADA: Servidor Java SE Interativo (Porta 8080)
+    Write-Host "  -> Abrindo Janela 1: Servidor Java SE (Console Interativo com Menu: Reiniciar, Desligar, Status...)" -ForegroundColor Yellow
+    $javaArgs = @('/k', "title AGMRM - Servidor Java SE (Porta 8080) & powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$JavaConsoleScript`"")
+    Start-Process "cmd.exe" -ArgumentList $javaArgs
 
-# 3. ABA/JANELA SEPARADA: Frontend Flutter App
-Write-Host "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TargetDevice)" -ForegroundColor Yellow
-$frontendArgs = @('/k', "title AGMRM - Frontend Flutter ($TargetDevice) & cd /d `"$FrontendDir`" & flutter run -d $TargetDevice || flutter run -d chrome")
-Start-Process "cmd.exe" -ArgumentList $frontendArgs
+    Start-Sleep -Seconds 1
+
+    # 2. ABA/JANELA SEPARADA: Backend TypeScript API (Porta 3001)
+    Write-Host "  -> Abrindo Janela 2: Backend API TypeScript (Express + MongoDB na Porta 3001)" -ForegroundColor Yellow
+    $backendArgs = @('/k', "title AGMRM - Backend API TypeScript (Porta 3001) & cd /d `"$BackendDir`" & npm run dev")
+    Start-Process "cmd.exe" -ArgumentList $backendArgs
+
+    Start-Sleep -Seconds 1
+
+    # 3. ABA/JANELA SEPARADA: Frontend Flutter App
+    Write-Host "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TargetDevice)" -ForegroundColor Yellow
+    $frontendArgs = @('/k', "title AGMRM - Frontend Flutter ($TargetDevice) & cd /d `"$FrontendDir`" & flutter run -d $TargetDevice || flutter run -d chrome")
+    Start-Process "cmd.exe" -ArgumentList $frontendArgs
+}
 
 # -----------------------------------------------------------------------------
 # 5. RESUMO DOS SERVICOS E CONCLUSAO

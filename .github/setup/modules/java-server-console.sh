@@ -51,22 +51,45 @@ detect_java_tools() {
     JAVAC_CMD=""
     JAVA_CMD=""
 
-    if command -v javac >/dev/null 2>&1; then
-        JAVAC_CMD="$(command -v javac)"
-    elif command -v javac.exe >/dev/null 2>&1; then
-        JAVAC_CMD="$(command -v javac.exe)"
+    # No macOS, verifica primeiramente o utilitario nativo java_home
+    if [[ "$(uname -s)" == "Darwin" ]] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
+        for v in 17 21 8; do
+            local jh_cand="$("/usr/libexec/java_home" -v "$v" 2>/dev/null || true)"
+            if [[ -n "$jh_cand" && -x "${jh_cand}/bin/javac" ]]; then
+                JAVAC_CMD="${jh_cand}/bin/javac"
+                JAVA_CMD="${jh_cand}/bin/java"
+                export JAVA_HOME="$jh_cand"
+                export PATH="${jh_cand}/bin:$PATH"
+                break
+            fi
+        done
     fi
 
-    if command -v java >/dev/null 2>&1; then
-        JAVA_CMD="$(command -v java)"
-    elif command -v java.exe >/dev/null 2>&1; then
-        JAVA_CMD="$(command -v java.exe)"
+    if [[ -z "$JAVAC_CMD" ]]; then
+        if command -v javac >/dev/null 2>&1; then
+            JAVAC_CMD="$(command -v javac)"
+        elif command -v javac.exe >/dev/null 2>&1; then
+            JAVAC_CMD="$(command -v javac.exe)"
+        fi
+    fi
+
+    if [[ -z "$JAVA_CMD" ]]; then
+        if command -v java >/dev/null 2>&1; then
+            JAVA_CMD="$(command -v java)"
+        elif command -v java.exe >/dev/null 2>&1; then
+            JAVA_CMD="$(command -v java.exe)"
+        fi
     fi
 
     if [[ -z "$JAVAC_CMD" ]]; then
         JDK_CANDIDATES=(
             "${JAVA_HOME:-}/bin/javac"
             "${JAVA_HOME:-}/bin/javac.exe"
+            "/opt/homebrew/opt/openjdk@17/bin/javac"
+            "/usr/local/opt/openjdk@17/bin/javac"
+            "/opt/homebrew/opt/openjdk/bin/javac"
+            "/usr/local/opt/openjdk/bin/javac"
+            "/Library/Java/JavaVirtualMachines/*/Contents/Home/bin/javac"
             "/usr/lib/jvm/java-17-openjdk*/bin/javac"
             "/usr/lib/jvm/java-21-openjdk*/bin/javac"
             "/usr/lib/jvm/default-java/bin/javac"
@@ -104,7 +127,7 @@ detect_java_tools() {
 detect_java_tools
 
 # -----------------------------------------------------------------------------
-# Mata processos escutando na porta 8080
+# Mata processos escutando na porta 8080 (BSD e Linux safe)
 # -----------------------------------------------------------------------------
 stop_port_8080() {
     # 1. PID salvo
@@ -116,24 +139,32 @@ stop_port_8080() {
         rm -f "$PID_FILE" 2>/dev/null || true
     fi
 
-    # 2. fuser
+    # 2. fuser (se disponivel no Linux)
     if command -v fuser >/dev/null 2>&1; then
         fuser -k -9 8080/tcp >/dev/null 2>&1 || true
     fi
 
-    # 3. lsof
+    # 3. lsof (compativel com BSD macOS e Linux sem xargs -r)
     if command -v lsof >/dev/null 2>&1; then
         local pids="$(lsof -ti:8080 2>/dev/null || true)"
         if [[ -n "$pids" ]]; then
-            echo "$pids" | xargs -r kill -9 >/dev/null 2>&1 || true
+            printf '%s\n' "$pids" | while IFS= read -r pid; do
+                if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+                    kill -9 "$pid" 2>/dev/null || true
+                fi
+            done
         fi
     fi
 
-    # 4. ss / netstat
+    # 4. ss / netstat (Linux)
     if command -v ss >/dev/null 2>&1; then
         local ss_pids="$(ss -lptn 'sport = :8080' 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 || true)"
         if [[ -n "$ss_pids" ]]; then
-            echo "$ss_pids" | xargs -r kill -9 >/dev/null 2>&1 || true
+            printf '%s\n' "$ss_pids" | while IFS= read -r pid; do
+                if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+                    kill -9 "$pid" 2>/dev/null || true
+                fi
+            done
         fi
     fi
 }
@@ -150,15 +181,13 @@ invoke_compilation() {
         local tmp_list="$(mktemp /tmp/agmrm_src_XXXXXX.txt 2>/dev/null || echo "bin/src_list.txt")"
         : > "$tmp_list"
 
-        shopt -s globstar nullglob 2>/dev/null || true
-        for jf in src/**/*.java; do
+        find src -name "*.java" | while IFS= read -r jf; do
             if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
                 cygpath -w "$jf" >> "$tmp_list"
             else
                 echo "$jf" >> "$tmp_list"
             fi
         done
-        shopt -u globstar nullglob 2>/dev/null || true
 
         if [[ ! -s "$tmp_list" ]]; then
             echo -e "${CLR_RED}[ERRO] Nenhum arquivo .java encontrado em ${SERVER_DIR}/src${CLR_RESET}"
@@ -302,15 +331,13 @@ run_native_tests() {
         local tmp_tests="$(mktemp /tmp/agmrm_tests_XXXXXX.txt 2>/dev/null || echo "bin/tests_list.txt")"
         : > "$tmp_tests"
 
-        shopt -s globstar nullglob 2>/dev/null || true
-        for jf in src/**/*.java tests/**/*.java; do
+        find src tests -name "*.java" | while IFS= read -r jf; do
             if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
                 cygpath -w "$jf" >> "$tmp_tests"
             else
                 echo "$jf" >> "$tmp_tests"
             fi
         done
-        shopt -u globstar nullglob 2>/dev/null || true
 
         # Classpath inclui jars do MongoDB em lib/ (essencial para auth)
         local cp_sep=":"

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Status of student attendance in a class session.
 enum AttendanceStatus { presente, ausente, justificada }
@@ -72,6 +72,18 @@ class ClassSession {
   final String location;
   final bool isHomologated;
   final List<AttendanceStudent> attendanceList;
+
+  static const ClassSession empty = ClassSession(
+    id: '',
+    courseId: '',
+    sessionNumber: 0,
+    hours: 0,
+    dateFormatted: '',
+    contentProgram: '',
+    methodology: '',
+    isHomologated: false,
+    attendanceList: [],
+  );
 
   const ClassSession({
     this.id = '',

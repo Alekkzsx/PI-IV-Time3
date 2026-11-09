@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# AGMRM Educational Platform - Launcher de Setup para Linux
+# AGMRM Educational Platform - Launcher de Setup para Linux & macOS
 # =============================================================================
 # Desenvolvido para o ecossistema AGMRM (PI-IV Time 3 - PUC-Campinas 2026)
+# Suporta distros Linux (Debian, Ubuntu, Fedora, Arch, WSL2) e macOS (Darwin)
 # =============================================================================
 set -euo pipefail
 

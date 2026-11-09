@@ -11,7 +11,7 @@ import 'package:pi_iv_time3/features/auth/login/presentation/pages/login_page.da
 import 'package:pi_iv_time3/features/auth/reset_password/presentation/pages/reset_password_page.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 import 'package:pi_iv_time3/features/auth/verify_code/presentation/pages/verify_code_page.dart';
-import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
+import 'package:pi_iv_time3/features/teacher/teacher.dart';
 import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/deliveries_page.dart';
@@ -39,6 +39,13 @@ class AppRoutes {
   static const String studentDeliveries = '/student/entregas';
   static const String studentSettings = '/student/configuracoes';
   static const String docenteHome = '/docente/home';
+  static const String docenteTurmas = '/docente/turmas';
+  static const String docenteDiario = '/docente/diario';
+  static const String docenteAtividades = '/docente/atividades';
+  static const String docenteNotas = '/docente/notas';
+  static const String docenteAgenda = '/docente/agenda';
+  static const String docenteComunicados = '/docente/comunicados';
+  static const String docenteConfiguracoes = '/docente/configuracoes';
   static const String adminShell = '/admin-shell';
   static const String videoCall = '/video-call';
 }
@@ -102,7 +109,38 @@ class AppRouter {
       ),
       AppRoutes.videoCall: _buildVideoCallRoute,
       AppRoutes.adminShell: _roleRoute('admin', const AdminShellPage()),
-      AppRoutes.docenteHome: _roleRoute('docente', const DocenteShellPage()),
+      AppRoutes.docenteHome: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.painel),
+      ),
+      AppRoutes.docenteTurmas: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.turmas),
+      ),
+      AppRoutes.docenteDiario: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.diario),
+      ),
+      AppRoutes.docenteAtividades: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.atividades),
+      ),
+      AppRoutes.docenteNotas: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.notas),
+      ),
+      AppRoutes.docenteAgenda: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.agenda),
+      ),
+      AppRoutes.docenteComunicados: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.comunicados),
+      ),
+      AppRoutes.docenteConfiguracoes: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.configuracoes),
+      ),
     };
   }
 

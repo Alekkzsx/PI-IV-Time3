@@ -66,12 +66,17 @@ backend/
 │   │       ├── application/          # Autorização de salas ao vivo e tickets efêmeros SHA-256
 │   │       └── presentation/         # Controller de salas e consumo de ticket (/api/video-call/*)
 │   ├── scripts/
+│   │   ├── index.ts                  # Orquestrador mestre das seeds do ecossistema
+│   │   ├── modules/                  # Módulos especializados de seeds por domínio
+│   │   │   ├── 01-users.seed.ts      # Contas de usuários reais (Admin, Docentes, Alunos)
+│   │   │   ├── 02-courses.seed.ts    # Curso real de Engenharia de Software e matriz
+│   │   │   ├── 03-classes.seed.ts    # Turmas e matrículas ativas
+│   │   │   ├── 04-teacher.seed.ts    # Diário de aulas, materiais didáticos, tarefas e fóruns
+│   │   │   ├── 05-student.seed.ts    # Entregas de atividades, notas, protocolos e anotações
+│   │   │   └── 06-institutional.seed.ts # Calendário, comunicados e parâmetros do sistema
+│   │   ├── shared/                   # Runner e tipagens compartilhadas de seeds
 │   │   ├── create-auth-user.ts       # Provisionamento seguro de contas via CLI
-│   │   ├── admin-demo.seed.ts        # Regra idempotente de seed demonstrativo ADMIN
-│   │   ├── seed-admin.ts             # Entrypoint CLI do seed ADMIN
-│   │   ├── student-demo.seed.ts      # Regra de seed demonstrativo do discente
-│   │   ├── seed-student.ts           # Entrypoint CLI do seed do discente
-│   │   └── seed-ecosystem.ts         # Seed explícito do ecossistema acadêmico
+│   │   └── test-email-resilience.ts  # Teste de envio e resiliência de e-mail (outbox)
 │   └── tests/
 │       ├── unit/                     # Testes unitários isolados (env, auth service, seed)
 │       └── integration/              # Testes de integração HTTP ponta a ponta
@@ -152,12 +157,23 @@ Base local: `http://127.0.0.1:3001`
 | `POST` | `/api/video-call/rooms/close` | Docente responsável encerra a sala ao vivo |
 | `POST` | `/api/video-call/rooms/consume-ticket` | Consome uma única vez o ticket de 60s durante o handshake WebSocket Java |
 
-## Seed demonstrativo do ADMIN
+## Seeds do Ecossistema Acadêmico
 
-Execute somente quando quiser inserir dados de demonstração em desenvolvimento (bloqueado em produção):
+Execute para popular o banco de dados de desenvolvimento com o ecossistema acadêmico completo (bloqueado em produção):
 
 ```powershell
-npm run seed:admin
+npm run seed
 ```
 
-Defina `SEED_DEMO_PASSWORD` localmente (entre 8 caracteres e 72 bytes UTF-8) em `.env.local` ou variável de terminal. Se o resolvedor local apresentar `querySrv ECONNREFUSED`, configure opcionalmente `$env:SEED_DNS_SERVERS = "1.1.1.1,8.8.8.8"` antes de rodar o comando.
+Você também pode executar módulos específicos através das opções:
+
+```powershell
+npm run seed:users          # Apenas contas de usuários (Admin, Docentes e Alunos)
+npm run seed:courses        # Apenas cursos e matriz curricular
+npm run seed:classes        # Apenas turmas e matrículas
+npm run seed:teacher        # Apenas domínio do docente (aulas, materiais, tarefas)
+npm run seed:student        # Apenas domínio do aluno (entregas, notas, protocolos)
+npm run seed:institutional  # Apenas domínio institucional (calendário, comunicados, configurações)
+```
+
+Defina opcionalmente `SEED_DEMO_PASSWORD` localmente (entre 8 caracteres e 72 bytes UTF-8) em `.env.local` ou variável de terminal (caso não definida, o valor padrão de desenvolvimento `Agmrm@2026` será utilizado de forma segura). Se o resolvedor local apresentar `querySrv ECONNREFUSED`, configure opcionalmente `$env:SEED_DNS_SERVERS = "1.1.1.1,8.8.8.8"` antes de rodar o comando.

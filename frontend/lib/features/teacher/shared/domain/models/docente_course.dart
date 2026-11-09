@@ -86,6 +86,22 @@ class DocenteCourse {
   final List<Map<String, dynamic>> forumTopics;
   final List<Map<String, dynamic>> squads;
 
+  static const DocenteCourse empty = DocenteCourse(
+    id: '',
+    teacherIdentity: '',
+    code: '',
+    title: '',
+    term: '',
+    shift: '',
+    room: '',
+    schedule: '',
+    enrolledCount: 0,
+    completedHours: 0,
+    totalHours: 0,
+    syllabusUnits: [],
+    materials: [],
+  );
+
   const DocenteCourse({
     required this.id,
     required this.teacherIdentity,
@@ -117,14 +133,24 @@ class DocenteCourse {
   List<int> get classWeekdays {
     final lower = schedule.toLowerCase();
     final days = <int>[];
-    if (lower.contains('segunda')) days.add(DateTime.monday);
-    if (lower.contains('terça') || lower.contains('terca'))
+    if (lower.contains('segunda')) {
+      days.add(DateTime.monday);
+    }
+    if (lower.contains('terça') || lower.contains('terca')) {
       days.add(DateTime.tuesday);
-    if (lower.contains('quarta')) days.add(DateTime.wednesday);
-    if (lower.contains('quinta')) days.add(DateTime.thursday);
-    if (lower.contains('sexta')) days.add(DateTime.friday);
-    if (lower.contains('sábado') || lower.contains('sabado'))
+    }
+    if (lower.contains('quarta')) {
+      days.add(DateTime.wednesday);
+    }
+    if (lower.contains('quinta')) {
+      days.add(DateTime.thursday);
+    }
+    if (lower.contains('sexta')) {
+      days.add(DateTime.friday);
+    }
+    if (lower.contains('sábado') || lower.contains('sabado')) {
       days.add(DateTime.saturday);
+    }
     return days;
   }
 

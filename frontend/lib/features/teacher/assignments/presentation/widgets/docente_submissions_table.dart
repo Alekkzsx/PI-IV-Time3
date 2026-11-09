@@ -6,7 +6,7 @@ import 'package:pi_iv_time3/features/teacher/assignments/presentation/widgets/do
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/assignment_model.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
-import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
+import 'components/submission_status_badge.dart';
 
 /// Callback para acionamento do modal de avaliação por rubricas.
 typedef OnOpenRubricCallback =
@@ -437,7 +437,9 @@ class DocenteSubmissionsTable extends StatelessWidget {
                     // Status Badge
                     SizedBox(
                       width: 150,
-                      child: Center(child: _buildStatusBadge(sub.status)),
+                      child: Center(
+                        child: SubmissionStatusBadge(status: sub.status),
+                      ),
                     ),
                     // Ação Button
                     SizedBox(
@@ -477,36 +479,6 @@ class DocenteSubmissionsTable extends StatelessWidget {
       return '${name.substring(0, 23)}...';
     }
     return name;
-  }
-
-  Widget _buildStatusBadge(SubmissionStatus status) {
-    switch (status) {
-      case SubmissionStatus.corrigido:
-        return const AcademicStatusBadge(
-          label: 'Corrigido',
-          type: AcademicStatusType.aprovado,
-        );
-      case SubmissionStatus.aguardandoCorrecao:
-        return const AcademicStatusBadge(
-          label: 'Aguardando Correção',
-          type: AcademicStatusType.pendente,
-        );
-      case SubmissionStatus.entregue:
-        return const AcademicStatusBadge(
-          label: 'Entregue',
-          type: AcademicStatusType.aberto,
-        );
-      case SubmissionStatus.atrasado:
-        return const AcademicStatusBadge(
-          label: 'Atrasado',
-          type: AcademicStatusType.reprovado,
-        );
-      case SubmissionStatus.naoEntregue:
-        return const AcademicStatusBadge(
-          label: 'Não Entregue',
-          type: AcademicStatusType.custom,
-        );
-    }
   }
 
   Widget _buildActionButton(BuildContext context, StudentSubmission sub) {

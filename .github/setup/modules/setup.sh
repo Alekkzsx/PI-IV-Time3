@@ -20,6 +20,7 @@ CLR_GRAY="\033[0;90m"
 SKIP_INSTALL=false
 NO_LAUNCH=false
 AUTO_INSTALL=false
+RUN_SEED=false
 TARGET_DEVICE=""
 
 for arg in "$@"; do
@@ -27,13 +28,14 @@ for arg in "$@"; do
         --skip-install|-s) SKIP_INSTALL=true ;;
         --no-launch|-n)    NO_LAUNCH=true ;;
         --auto-install|-y) AUTO_INSTALL=true ;;
+        --seed)            RUN_SEED=true ;;
         --device=*)        TARGET_DEVICE="${arg#*=}" ;;
         -d=*)              TARGET_DEVICE="${arg#*=}" ;;
         *)                 ;;
     esac
 done
 
-printf "\033]0;%s\007" "AGMRM - Setup e Orquestrador Linux" 2>/dev/null || true
+printf "\033]0;%s\007" "AGMRM - Setup e Orquestrador Multiplataforma" 2>/dev/null || true
 
 # -----------------------------------------------------------------------------
 # FUNCAO: Localizacao Dinamica e Resiliente da Raiz do Projeto
@@ -104,8 +106,11 @@ ask_user() {
         # Modo nao interativo (pipe ou sem tty disponivel)
         return 1
     fi
+    local ans=""
     read -rp "$question (s/n): " ans
-    case "${ans,,}" in
+    local ans_clean
+    ans_clean="$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')"
+    case "$ans_clean" in
         s|y|sim|yes) return 0 ;;
         *) return 1 ;;
     esac
@@ -115,11 +120,12 @@ install_package() {
     local deb_pkg="$1"
     local rpm_pkg="${2:-$1}"
     local arch_pkg="${3:-$1}"
+    local brew_pkg="${4:-$1}"
 
     case "$PKG_MANAGER" in
         brew)
-            echo -e "${CLR_CYAN}  Executando: brew install $deb_pkg${CLR_RESET}"
-            brew install "$deb_pkg"
+            echo -e "${CLR_CYAN}  Executando: brew install $brew_pkg${CLR_RESET}"
+            brew install "$brew_pkg"
             ;;
         apt)
             echo -e "${CLR_CYAN}  Executando: sudo apt-get update && sudo apt-get install -y $deb_pkg${CLR_RESET}"
@@ -150,7 +156,7 @@ DEPS_OK=true
 if ! command -v curl >/dev/null 2>&1; then
     echo -e "  ${CLR_YELLOW}[AVISO] curl nao encontrado.${CLR_RESET}"
     if [[ -n "$PKG_MANAGER" ]] && ask_user "  Deseja instalar curl via $PKG_MANAGER?"; then
-        install_package curl curl curl
+        install_package curl curl curl curl
     fi
 fi
 
@@ -160,7 +166,7 @@ if command -v git >/dev/null 2>&1; then
 else
     echo -e "  ${CLR_RED}[FALHA] Git nao encontrado!${CLR_RESET}"
     if [[ -n "$PKG_MANAGER" ]] && ask_user "  Deseja que o setup instale o Git automaticamente via $PKG_MANAGER?"; then
-        install_package git git git
+        install_package git git git git
         if command -v git >/dev/null 2>&1; then
             echo -e "  ${CLR_GREEN}[OK] Git instalado com sucesso!${CLR_RESET}"
         else
@@ -188,14 +194,16 @@ fi
 if [[ "$NODE_OK" == "false" ]]; then
     echo -e "  ${CLR_RED}[FALHA] Node.js nao encontrado ou desatualizado!${CLR_RESET}"
     if [[ -n "$PKG_MANAGER" ]] && ask_user "  Deseja instalar Node.js 20.x LTS via instalador oficial?"; then
-        if [[ "$PKG_MANAGER" == "apt" ]]; then
+        if [[ "$PKG_MANAGER" == "brew" ]]; then
+            install_package nodejs nodejs nodejs node@20
+        elif [[ "$PKG_MANAGER" == "apt" ]]; then
             curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
             sudo apt-get install -y nodejs
         elif [[ "$PKG_MANAGER" == "dnf" ]]; then
             curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
             sudo dnf install -y nodejs
         else
-            install_package nodejs nodejs nodejs
+            install_package nodejs nodejs nodejs node
         fi
         if command -v node >/dev/null 2>&1; then
             echo -e "  ${CLR_GREEN}[OK] Node.js instalado com sucesso: $(node -v)${CLR_RESET}"
@@ -213,7 +221,7 @@ if command -v npm >/dev/null 2>&1; then
 else
     echo -e "  ${CLR_RED}[FALHA] npm nao encontrado!${CLR_RESET}"
     if [[ -n "$PKG_MANAGER" ]] && ask_user "  Deseja instalar npm via $PKG_MANAGER?"; then
-        install_package npm npm npm
+        install_package npm npm npm npm
     else
         DEPS_OK=false
     fi
@@ -223,22 +231,45 @@ fi
 JAVAC_CMD=""
 JAVA_CMD=""
 
-if command -v javac >/dev/null 2>&1; then
-    JAVAC_CMD="$(command -v javac)"
-elif command -v javac.exe >/dev/null 2>&1; then
-    JAVAC_CMD="$(command -v javac.exe)"
+# No macOS, verifica primeiramente o utilitario nativo java_home
+if [[ "$IS_DARWIN" == "true" ]] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    for v in 17 21 8; do
+        jh_candidate="$("/usr/libexec/java_home" -v "$v" 2>/dev/null || true)"
+        if [[ -n "$jh_candidate" && -x "${jh_candidate}/bin/javac" ]]; then
+            JAVAC_CMD="${jh_candidate}/bin/javac"
+            JAVA_CMD="${jh_candidate}/bin/java"
+            export JAVA_HOME="$jh_candidate"
+            export PATH="${jh_candidate}/bin:$PATH"
+            break
+        fi
+    done
 fi
 
-if command -v java >/dev/null 2>&1; then
-    JAVA_CMD="$(command -v java)"
-elif command -v java.exe >/dev/null 2>&1; then
-    JAVA_CMD="$(command -v java.exe)"
+if [[ -z "$JAVAC_CMD" ]]; then
+    if command -v javac >/dev/null 2>&1; then
+        JAVAC_CMD="$(command -v javac)"
+    elif command -v javac.exe >/dev/null 2>&1; then
+        JAVAC_CMD="$(command -v javac.exe)"
+    fi
+fi
+
+if [[ -z "$JAVA_CMD" ]]; then
+    if command -v java >/dev/null 2>&1; then
+        JAVA_CMD="$(command -v java)"
+    elif command -v java.exe >/dev/null 2>&1; then
+        JAVA_CMD="$(command -v java.exe)"
+    fi
 fi
 
 if [[ -z "$JAVAC_CMD" ]]; then
     JDK_CANDIDATES=(
         "${JAVA_HOME:-}/bin/javac"
         "${JAVA_HOME:-}/bin/javac.exe"
+        "/opt/homebrew/opt/openjdk@17/bin/javac"
+        "/usr/local/opt/openjdk@17/bin/javac"
+        "/opt/homebrew/opt/openjdk/bin/javac"
+        "/usr/local/opt/openjdk/bin/javac"
+        "/Library/Java/JavaVirtualMachines/*/Contents/Home/bin/javac"
         "/c/Users/${USER:-24802449}/AppData/Roaming/Antigravity IDE/User/globalStorage/pleiades.java-extension-pack-jdk/java/17/bin/javac.exe"
         "/c/Users/${USER:-24802449}/AppData/Roaming/Code/User/globalStorage/pleiades.java-extension-pack-jdk/java/17/bin/javac.exe"
         "/c/Program Files/Java/jdk-17*/bin/javac.exe"
@@ -253,17 +284,19 @@ if [[ -z "$JAVAC_CMD" ]]; then
         "$HOME/.sdkman/candidates/java/current/bin/javac"
     )
     for cand in "${JDK_CANDIDATES[@]}"; do
-        if [[ -f "$cand" || -x "$cand" ]]; then
-            JAVAC_CMD="$cand"
-            cand_dir="$(dirname "$cand")"
-            export PATH="${cand_dir}:$PATH"
-            if [[ -f "${cand_dir}/java" || -x "${cand_dir}/java" ]]; then
-                JAVA_CMD="${cand_dir}/java"
-            elif [[ -f "${cand_dir}/java.exe" || -x "${cand_dir}/java.exe" ]]; then
-                JAVA_CMD="${cand_dir}/java.exe"
+        for match in $cand; do
+            if [[ -f "$match" || -x "$match" ]]; then
+                JAVAC_CMD="$match"
+                cand_dir="$(dirname "$match")"
+                export PATH="${cand_dir}:$PATH"
+                if [[ -f "${cand_dir}/java" || -x "${cand_dir}/java" ]]; then
+                    JAVA_CMD="${cand_dir}/java"
+                elif [[ -f "${cand_dir}/java.exe" || -x "${cand_dir}/java.exe" ]]; then
+                    JAVA_CMD="${cand_dir}/java.exe"
+                fi
+                break 2
             fi
-            break
-        fi
+        done
     done
 fi
 
@@ -273,7 +306,7 @@ if [[ -n "$JAVAC_CMD" ]]; then
 else
     echo -e "  ${CLR_RED}[FALHA] Compilador javac nao encontrado!${CLR_RESET}"
     if [[ -n "$PKG_MANAGER" ]] && ask_user "  Deseja instalar OpenJDK 17 JDK via $PKG_MANAGER?"; then
-        install_package openjdk-17-jdk java-17-openjdk-devel jdk17-openjdk
+        install_package openjdk-17-jdk java-17-openjdk-devel jdk17-openjdk openjdk@17
         if command -v javac >/dev/null 2>&1; then
             JAVAC_CMD="$(command -v javac)"
             JAVA_CMD="$(command -v java)"
@@ -336,6 +369,16 @@ fi
 if [[ -z "$TARGET_DEVICE" ]]; then
     if [[ "$IS_DARWIN" == "true" ]]; then
         TARGET_DEVICE="macos"
+        if [[ -n "$FLUTTER_CMD" ]]; then
+            devs="$(flutter devices 2>/dev/null || true)"
+            if echo "$devs" | grep -q "macos • macos"; then
+                TARGET_DEVICE="macos"
+                echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: macOS Desktop nativo.${CLR_RESET}"
+            elif echo "$devs" | grep -q "chrome • chrome"; then
+                TARGET_DEVICE="chrome"
+                echo -e "  ${CLR_GREEN}[OK] Dispositivo de execucao: Google Chrome (Web).${CLR_RESET}"
+            fi
+        fi
     elif [[ -n "$FLUTTER_CMD" ]]; then
         devs="$(flutter devices 2>/dev/null || true)"
         if echo "$devs" | grep -q "linux • linux"; then
@@ -400,6 +443,15 @@ if [[ "$SKIP_INSTALL" == "false" ]]; then
     )
     echo -e "  ${CLR_GREEN}[OK] Dependencias do backend TypeScript atualizadas com sucesso.${CLR_RESET}"
 
+    # Opcional / Interativo: Popular MongoDB com Seeds Modulares (30+ registros por entidade)
+    if [[ "$RUN_SEED" == "true" ]] || ask_user "  Deseja popular o MongoDB agora com as novas seeds modulares (30+ registros por entidade)?"; then
+        echo -e "\n  ${CLR_YELLOW}-> [backend/] Executando 'npm run seed'...${CLR_RESET}"
+        (
+            cd "$BACKEND_DIR"
+            npm run seed || echo -e "  ${CLR_YELLOW}[AVISO] Nao foi possivel concluir 'npm run seed'. Verifique se o MongoDB esta acessivel.${CLR_RESET}"
+        )
+    fi
+
     # B. Security & Frontend (Flutter pub get)
     if [[ -n "$FLUTTER_CMD" ]]; then
         echo -e "\n  ${CLR_YELLOW}-> [security/] Executando 'flutter pub get' no modulo de ciberdefesa...${CLR_RESET}"
@@ -425,15 +477,13 @@ if [[ "$SKIP_INSTALL" == "false" ]]; then
         tmp_list="$(mktemp /tmp/agmrm_setup_src_XXXXXX.txt 2>/dev/null || echo "bin/src_list.txt")"
         : > "$tmp_list"
 
-        shopt -s globstar nullglob 2>/dev/null || true
-        for jf in src/**/*.java; do
+        find src -name "*.java" | while IFS= read -r jf; do
             if command -v cygpath >/dev/null 2>&1 && [[ "${JAVAC_CMD:-}" == *.exe ]]; then
                 cygpath -w "$jf" >> "$tmp_list"
             else
                 echo "$jf" >> "$tmp_list"
             fi
         done
-        shopt -u globstar nullglob 2>/dev/null || true
 
         javac_bin="${JAVAC_CMD:-javac}"
         # Monta classpath incluindo jars do MongoDB em lib/ (essencial para auth)
@@ -463,16 +513,27 @@ if [[ "$NO_LAUNCH" == "true" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 3. LIBERACAO DE PORTAS ANTES DE ABRIR OS SERVICOS
+# 3. LIBERACAO DE PORTAS ANTES DE ABRIR OS SERVICOS (COMPATIVEL COM LINUX E MACOS BSD)
 # -----------------------------------------------------------------------------
-if command -v fuser >/dev/null 2>&1; then
-    fuser -k -9 8080/tcp >/dev/null 2>&1 || true
-    fuser -k -9 3001/tcp >/dev/null 2>&1 || true
-fi
-if command -v lsof >/dev/null 2>&1; then
-    lsof -ti:8080 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-    lsof -ti:3001 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-fi
+free_port() {
+    local port="$1"
+    if command -v fuser >/dev/null 2>&1; then
+        fuser -k -9 "${port}/tcp" >/dev/null 2>&1 || true
+    fi
+    if command -v lsof >/dev/null 2>&1; then
+        local pids
+        pids="$(lsof -ti:"${port}" 2>/dev/null || true)"
+        if [[ -n "$pids" ]]; then
+            printf '%s\n' "$pids" | while IFS= read -r pid; do
+                if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+                    kill -9 "$pid" 2>/dev/null || true
+                fi
+            done
+        fi
+    fi
+}
+free_port 8080
+free_port 3001
 
 # -----------------------------------------------------------------------------
 # 4. INICIALIZACAO DOS SERVICOS EM JANELAS / ABAS DE TERMINAL SEPARADAS
@@ -499,7 +560,7 @@ launch_window() {
 
     case "$TERMINAL_EMU" in
         darwin)
-            osascript -e "tell application \"Terminal\" to do script \"cd '$workdir' && $command\"" >/dev/null 2>&1 &
+            osascript -e "tell application \"Terminal\" to do script \"cd '$workdir' && printf '\\\e]0;$title\\\a' && $command\"" >/dev/null 2>&1 &
             ;;
         gnome-terminal)
             gnome-terminal --title="$title" --working-directory="$workdir" -- bash -c "$command; exec bash" 2>/dev/null &

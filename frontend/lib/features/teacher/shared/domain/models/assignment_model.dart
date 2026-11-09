@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'rubric_model.dart';
 
@@ -84,6 +84,21 @@ class AssignmentItem {
   final List<RubricCriterion> rubricCriteria;
   final List<StudentSubmission> submissions;
   final List<Map<String, dynamic>> doubts;
+
+  static const AssignmentItem empty = AssignmentItem(
+    id: '',
+    courseId: '',
+    courseCode: '',
+    title: '',
+    weight: 0,
+    stage: '',
+    dueDateFormatted: '',
+    isUrgent: false,
+    modality: '',
+    allowLateWithPenalty: false,
+    rubricCriteria: [],
+    submissions: [],
+  );
 
   const AssignmentItem({
     required this.id,
