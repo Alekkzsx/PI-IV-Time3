@@ -9,6 +9,7 @@ import '../domain/models/docente_course.dart';
 import '../domain/models/docente_profile.dart';
 import '../domain/models/grade_record.dart';
 import '../domain/models/rubric_model.dart';
+import '../domain/models/teacher_protocol.dart';
 
 class TeacherDashboardSnapshot {
   final DocenteProfile profile;
@@ -19,6 +20,7 @@ class TeacherDashboardSnapshot {
   final List<StudentGrade> grades;
   final List<AcademicEvent> events;
   final List<AcademicNotice> notices;
+  final List<TeacherProtocol> protocols;
 
   const TeacherDashboardSnapshot({
     required this.profile,
@@ -29,6 +31,7 @@ class TeacherDashboardSnapshot {
     required this.grades,
     required this.events,
     required this.notices,
+    this.protocols = const [],
   });
 
   factory TeacherDashboardSnapshot.fromJson(Map<String, dynamic> json) {
@@ -41,6 +44,7 @@ class TeacherDashboardSnapshot {
       grades: _maps(json['grades']).map(_grade).toList(),
       events: _maps(json['events']).map(_event).toList(),
       notices: _maps(json['notices']).map(_notice).toList(),
+      protocols: _maps(json['protocols']).map(_protocol).toList(),
     );
   }
 }
@@ -517,5 +521,27 @@ AcademicNotice _notice(Map<String, dynamic> json) {
     readCount: _int(json['readCount']),
     totalRecipients: _int(json['totalRecipients']),
     isFromSecretaria: json['isFromSecretaria'] == true,
+  );
+}
+
+TeacherProtocol _protocol(Map<String, dynamic> json) {
+  final statusStr = _string(json['status']).toLowerCase();
+  final status = switch (statusStr) {
+    'deferido' => TeacherProtocolStatus.deferido,
+    'indeferido' => TeacherProtocolStatus.indeferido,
+    _ => TeacherProtocolStatus.pendente,
+  };
+  return TeacherProtocol(
+    id: _string(json['id']),
+    code: _string(json['code']),
+    studentName: _string(json['studentName']),
+    studentRa: _string(json['studentRa']),
+    requestType: _string(json['requestType']),
+    targetComponent: _string(json['targetComponent']),
+    description: _string(json['description'], _string(json['justification'])),
+    status: status,
+    createdAt: _string(json['createdAt']),
+    documentUrl: json['documentUrl']?.toString(),
+    officialResponse: json['officialResponse']?.toString(),
   );
 }

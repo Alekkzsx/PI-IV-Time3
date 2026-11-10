@@ -492,17 +492,23 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Bem-vindo(a), Docente.'), findsOneWidget);
+        // Verify Header and Sidebar render Painel Geral
+        expect(find.text('Painel Geral'), findsWidgets);
 
-        // Verify Dashboard KPI cards
-        expect(find.text('TURMAS ATIVAS'), findsOneWidget);
-        expect(find.text('ATIVIDADES'), findsOneWidget);
-        expect(find.text('CARGA HORÁRIA TOTAL'), findsOneWidget);
-        expect(find.text('FREQUÊNCIA MÉDIA'), findsOneWidget);
+        // Verify Dashboard Course Cards matching reference UI
+        expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
+        expect(find.text('Sala de Aula AVA'), findsWidgets);
+        expect(find.text('Progresso do Plano'), findsWidgets);
+        expect(find.text('Autoria & Edição habilitadas'), findsWidgets);
 
-        // Verify Today Class card
-        expect(find.text('Aula do Dia'), findsOneWidget);
-        expect(find.text('Iniciar Transmissão'), findsOneWidget);
+        // Verify Academic Requirements section
+        expect(find.text('Requerimentos Acadêmicos das Turmas'), findsOneWidget);
+        expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
+        expect(find.text('Rodrigo Antunes Nogueira'), findsOneWidget);
+
+        // Verify Right Column Cards (Assessment preview & Notices preview)
+        expect(find.text('Avaliação Parcial: Gerenciamento de Memória'), findsOneWidget);
+        expect(find.text('Mensagens e Avisos'), findsOneWidget);
 
         // Verify DocenteFooter is present
         expect(find.byType(DocenteFooter), findsOneWidget);
@@ -538,7 +544,7 @@ void main() {
         expect(find.text('Alunos Matriculados'), findsOneWidget);
         expect(find.text('Plano de Ensino'), findsOneWidget);
         expect(find.text('Equipes de Projeto'), findsOneWidget);
-        expect(find.text('M?dia geral'), findsOneWidget);
+        expect(find.text('Média geral'), findsOneWidget);
 
         // Verify DocenteFooter is rendered
         expect(find.byType(DocenteFooter), findsOneWidget);

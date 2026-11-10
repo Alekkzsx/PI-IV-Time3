@@ -98,7 +98,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Disparar Aviso ? Turma'),
+        title: const Text('Disparar Aviso à Turma'),
         content: SizedBox(
           width: 440,
           child: Column(
@@ -106,7 +106,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(labelText: 'T?tulo do Aviso'),
+                decoration: const InputDecoration(labelText: 'Título do Aviso'),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -131,7 +131,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
               if (title.isEmpty || message.isEmpty) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
-                    content: Text('Preencha o t?tulo e a mensagem.'),
+                    content: Text('Preencha o título e a mensagem.'),
                   ),
                 );
                 return;
@@ -148,7 +148,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      'N?o foi poss?vel publicar o aviso para esta turma.',
+                      'Não foi possível publicar o aviso para esta turma.',
                     ),
                   ),
                 );
@@ -186,7 +186,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
     final values = await showDialog<List<String>>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Novo t?pico do f?rum'),
+        title: const Text('Novo tópico do fórum'),
         content: SizedBox(
           width: 420,
           child: Column(
@@ -194,7 +194,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
             children: [
               TextField(
                 controller: title,
-                decoration: const InputDecoration(labelText: 'T?tulo'),
+                decoration: const InputDecoration(labelText: 'Título'),
               ),
               TextField(
                 controller: body,
@@ -233,7 +233,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.controller.remoteError ?? 'N?o foi poss?vel criar o t?pico.',
+            widget.controller.remoteError ?? 'Não foi possível criar o tópico.',
           ),
         ),
       );
@@ -259,7 +259,7 @@ class _DocenteCourseHubPageState extends State<DocenteCourseHubPage> {
               TextField(
                 controller: members,
                 decoration: const InputDecoration(
-                  labelText: 'Identidades dos membros (separadas por v?rgula)',
+                  labelText: 'Identidades dos membros (separadas por vírgula)',
                 ),
               ),
             ],

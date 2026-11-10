@@ -70,13 +70,17 @@ export async function seedClasses(
   // Busca todos os alunos cadastrados (36 alunos reais)
   const allStudents = await database.collection("auth_users").find({ profile: "aluno" }).toArray();
 
-  // Matricula os alunos em todas as turmas do 4º semestre (ativas)
-  const activeSemesterClasses = classesToCreate.filter(
-    (c) => c.code.includes("4N") || c.code.includes("APS-II") || c.code === "PI4-2026-4N",
+  // Matricula todos os alunos nas turmas do 4º semestre (ativas) e uma coorte nas demais turmas
+  const activeSemesterCodes = new Set(
+    classesToCreate
+      .filter((c) => c.code.includes("4N") || c.code.includes("APS-II") || c.code === "PI4-2026-4N")
+      .map((c) => c.code),
   );
+  const cohortStudents = allStudents.slice(Math.min(20, allStudents.length), Math.min(32, allStudents.length));
 
-  for (const classroom of activeSemesterClasses) {
-    for (const st of allStudents) {
+  for (const classroom of classesToCreate) {
+    const enrolledList = activeSemesterCodes.has(classroom.code) ? allStudents : cohortStudents;
+    for (const st of enrolledList) {
       await upsertOnInsert(
         "academic_enrollments",
         { classCode: classroom.code, studentId: String(st._id) },

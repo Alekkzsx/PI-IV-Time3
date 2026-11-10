@@ -19,6 +19,7 @@ import '../domain/models/docente_course.dart';
 import '../domain/models/docente_profile.dart';
 import '../domain/models/grade_record.dart';
 import '../domain/models/rubric_model.dart';
+import '../domain/models/teacher_protocol.dart';
 import '../domain/repositories/docente_repository.dart';
 
 part 'parts/docente_controller_courses.dart';
@@ -64,6 +65,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   List<StudentGrade> _gradebook = [];
   List<AcademicEvent> _events = [];
   List<AcademicNotice> _notices = [];
+  List<TeacherProtocol> _protocols = [];
   DocenteProfile _profile = DocenteProfile.empty;
   String _ownerIdentity = '';
 
@@ -104,8 +106,34 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   String get selectedAssignmentId => _selectedAssignmentId;
   List<AcademicEvent> get events => List.unmodifiable(_events);
   List<AcademicNotice> get notices => List.unmodifiable(_notices);
+  List<TeacherProtocol> get protocols => List.unmodifiable(_protocols.isNotEmpty ? _protocols : _fallbackProtocols);
   DocenteProfile get profile => _profile;
   String get settingsSubtab => _settingsSubtab;
+
+  static final List<TeacherProtocol> _fallbackProtocols = [
+    const TeacherProtocol(
+      id: 'proto-1',
+      code: 'PROT - 2026/0541',
+      studentName: 'Camila Duarte Fagundes',
+      studentRa: '2024.1.00982',
+      requestType: 'Atestado Médico',
+      targetComponent: 'APS-II e BD-II',
+      description: 'Atestado Médico APS-II e BD-II (Afastamento 29 a 30/09)',
+      status: TeacherProtocolStatus.deferido,
+      createdAt: '29/09/2026',
+    ),
+    const TeacherProtocol(
+      id: 'proto-2',
+      code: 'PROT - 2026/0650',
+      studentName: 'Rodrigo Antunes Nogueira',
+      studentRa: '2024.1.08934',
+      requestType: 'Segunda Chamada',
+      targetComponent: 'APS-II',
+      description: 'Segunda Chamada APS-II - Prova Substitutiva',
+      status: TeacherProtocolStatus.pendente,
+      createdAt: '30/09/2026',
+    ),
+  ];
 
   DocenteCourse get selectedCourse => _courses.firstWhere(
         (course) => course.id == _selectedCourseId,
@@ -188,6 +216,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
       _gradebook = snapshot.grades;
       _events = snapshot.events;
       _notices = snapshot.notices;
+      _protocols = snapshot.protocols;
       _currentSession = _sessions.isEmpty
           ? _emptySession
           : _sessions.firstWhere(
@@ -249,6 +278,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
     _gradebook = [];
     _events = [];
     _notices = [];
+    _protocols = [];
     _profile = _emptyProfile;
     _currentSession = _emptySession;
     _selectedCourseId = '';

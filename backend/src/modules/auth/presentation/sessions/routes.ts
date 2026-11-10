@@ -8,7 +8,7 @@ export function registerSessionRoutes(router: Router, database: Db): void {
     const records = await database
       .collection("auth_sessions")
       .find(
-        { userId: response.locals.userId, expiresAt: { $gt: new Date() } },
+        { userId: response.locals.userId, active: { $ne: false }, expiresAt: { $gt: new Date() } },
         { projection: { _id: 0, createdAt: 1, expiresAt: 1, sessionId: 1, userAgent: 1, ipAddress: 1 } },
       )
       .sort({ createdAt: -1 })

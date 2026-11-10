@@ -6,7 +6,7 @@ import type { SeedModule, SeedSummary } from "../shared/seed.types.js";
 
 // Lista com 36 alunos reais com RAs e e-mails institucionais
 export const studentAccounts = [
-  { identity: "24802449", name: "Alex Gabriel Soares Sousa", email: "alex.soares.gabriel111@gmail.com" },
+  { identity: "aluno.test", name: "Alex Gabriel Soares Sousa", email: "alex.soares.gabriel111@gmail.com" },
   { identity: "202610401", name: "Mariana Costa Ferreira", email: "mariana.ferreira@aluno.agmrm.edu.br" },
   { identity: "202610402", name: "Lucas Henrique Prado", email: "lucas.prado@aluno.agmrm.edu.br" },
   { identity: "202610403", name: "Beatriz Lima Albuquerque", email: "beatriz.albuquerque@aluno.agmrm.edu.br" },
@@ -46,7 +46,7 @@ export const studentAccounts = [
 
 // Lista com 10 docentes mestres e doutores com titulações e departamentos
 export const teacherAccounts = [
-  { identity: "docente.agmrm", name: "Prof. Dr. Ricardo Vasconcelos", email: "docente.agmrm@agmrm.edu.br", dept: "Sistemas Distribuídos e Nuvem" },
+  { identity: "professor.test", name: "Prof. Dr. Ricardo Vasconcelos", email: "professor.test@agmrm.edu.br", dept: "Sistemas Distribuídos e Nuvem" },
   { identity: "helena.bittencourt", name: "Profa. Dra. Helena Bittencourt", email: "helena.bittencourt@agmrm.edu.br", dept: "Engenharia de Requisitos e Processos Ágeis" },
   { identity: "carlos.menezes", name: "Prof. Dr. Carlos Eduardo Menezes", email: "carlos.menezes@agmrm.edu.br", dept: "Bancos de Dados e NoSQL" },
   { identity: "patricia.abreu", name: "Profa. Dra. Patricia Abreu Miranda", email: "patricia.abreu@agmrm.edu.br", dept: "Compiladores e Teoria da Computação" },
@@ -160,6 +160,7 @@ export async function seedUsers(
 
   // Contas docentes adicionais de teste
   const extraTeachers = [
+    { identity: "docente.agmrm", name: "Prof. Dr. Ricardo Vasconcelos", email: "docente.agmrm@agmrm.edu.br" },
     { identity: "docente.test", name: "Docente Teste AGMRM", email: "docente.test@agmrm.edu.br" },
     { identity: "prof.demo", name: "Professor Demonstração", email: "prof.demo@example.com" },
   ];
@@ -189,6 +190,12 @@ export async function seedUsers(
   }
 
   // 3. ALUNOS (36 alunos reais + testes)
+  // Evita conflito de índice único de e-mail caso 24802449 já possua o mesmo e-mail de aluno.test
+  await database.collection("auth_users").updateOne(
+    { normalizedIdentity: "24802449", email: "alex.soares.gabriel111@gmail.com" },
+    { $set: { email: "alex.soares.24802449@aluno.agmrm.edu.br", normalizedEmail: "alex.soares.24802449@aluno.agmrm.edu.br" } },
+  );
+
   for (const st of studentAccounts) {
     const doc = await upsertOnInsert(
       "auth_users",
@@ -218,7 +225,7 @@ export async function seedUsers(
 
   // Contas alunos de teste / integração
   const extraStudents = [
-    { identity: "aluno.test", name: "Aluno Teste AGMRM", email: "aluno.test@agmrm.edu.br" },
+    { identity: "24802449", name: "Alex Gabriel Soares Sousa", email: "alex.soares.24802449@aluno.agmrm.edu.br" },
     { identity: "aluno.demo1", name: "Aluno Demonstração Um", email: "aluno.demo1@example.com" },
     { identity: "aluno.demo2", name: "Aluno Demonstração Dois", email: "aluno.demo2@example.com" },
   ];

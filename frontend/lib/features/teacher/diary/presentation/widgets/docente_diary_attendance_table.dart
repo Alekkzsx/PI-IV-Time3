@@ -1,6 +1,8 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/attendance_record.dart';
 import 'components/attendance_student_tile.dart';
@@ -34,7 +36,7 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
+        border: Border.all(color: InstColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -55,34 +57,34 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
                   children: [
                     Text(
                       'Total: $totalCount',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF18181B),
+                      style: jakarta(
+                        size: 12.5,
+                        weight: FontWeight.w700,
+                        color: InstColors.ink,
                       ),
                     ),
                     Text(
                       'Presentes: $presentCount',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF16A34A),
+                      style: jakarta(
+                        size: 12.5,
+                        weight: FontWeight.w700,
+                        color: InstColors.success,
                       ),
                     ),
                     Text(
                       'Faltas: $absentCount',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFDC2626),
+                      style: jakarta(
+                        size: 12.5,
+                        weight: FontWeight.w700,
+                        color: InstColors.danger,
                       ),
                     ),
                     Text(
                       'Justificadas: $justifiedCount',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF475569),
+                      style: jakarta(
+                        size: 12.5,
+                        weight: FontWeight.w700,
+                        color: InstColors.muted,
                       ),
                     ),
                   ],
@@ -104,7 +106,7 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
                   },
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    side: const BorderSide(color: Color(0xFFE4E4E7)),
+                    side: const BorderSide(color: InstColors.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -113,19 +115,19 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
                       vertical: 8,
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Marcar Todos como Presentes',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF18181B),
+                    style: jakarta(
+                      size: 11.5,
+                      weight: FontWeight.w700,
+                      color: InstColors.ink,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFE4E4E7)),
+          const Divider(height: 1, color: InstColors.border),
 
           // Table with Horizontal Scroll
           LayoutBuilder(
@@ -165,18 +167,18 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE4E4E7))),
+        border: Border(bottom: BorderSide(color: InstColors.border)),
       ),
       child: Row(
-        children: const [
+        children: [
           SizedBox(
             width: 140,
             child: Text(
               'R.A.',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF71717A),
+              style: jakarta(
+                size: 11,
+                weight: FontWeight.w700,
+                color: InstColors.faint,
                 letterSpacing: 0.3,
               ),
             ),
@@ -185,10 +187,10 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
             flex: 4,
             child: Text(
               'ESTUDANTE',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF71717A),
+              style: jakarta(
+                size: 11,
+                weight: FontWeight.w700,
+                color: InstColors.faint,
                 letterSpacing: 0.3,
               ),
             ),
@@ -198,10 +200,10 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
             child: Center(
               child: Text(
                 'PRESENÇA NA AULA',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF71717A),
+                style: jakarta(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: InstColors.faint,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -212,10 +214,10 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
             child: Center(
               child: Text(
                 'FALTAS ACUMULADAS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF71717A),
+                style: jakarta(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: InstColors.faint,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -226,10 +228,10 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
             child: Center(
               child: Text(
                 'FREQUÊNCIA (%)',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF71717A),
+                style: jakarta(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: InstColors.faint,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -241,10 +243,10 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: Text(
                 'SITUAÇÃO REGIMENTAL',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF71717A),
+                style: jakarta(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: InstColors.faint,
                   letterSpacing: 0.3,
                 ),
               ),

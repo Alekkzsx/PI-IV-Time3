@@ -48,14 +48,21 @@ export async function seedStudent(
   }
 
   // 2. PELO MENOS 35 REGISTROS DE NOTAS CONSOLIDADAS (academic_grades)
-  const classes = (await database.collection("academic_classes").find({}).toArray()).slice(0, 10);
+  const classes = await database.collection("academic_classes").find({ active: true }).toArray();
   let gradeIndex = 0;
   for (const classroom of classes) {
-    for (const st of students.slice(0, 4)) {
+    const isFourthSem = String(classroom.code).includes("4N") || String(classroom.code).includes("APS-II");
+    const targetStudents = isFourthSem ? students : students.slice(0, 6);
+    for (const st of targetStudents) {
       gradeIndex++;
-      const n1 = 8.0 + (gradeIndex % 15) * 0.1;
-      const n2 = 7.5 + (gradeIndex % 20) * 0.1;
+      const assignmentsScore = Number((8.0 + (gradeIndex % 15) * 0.1).toFixed(1));
+      const p1Score = Number((7.5 + (gradeIndex % 20) * 0.1).toFixed(1));
+      const projectsScore = Number((8.2 + (gradeIndex % 12) * 0.1).toFixed(1));
+      const p2Score = Number((7.8 + (gradeIndex % 18) * 0.1).toFixed(1));
+      const n1 = Number(((assignmentsScore + p1Score) / 2).toFixed(1));
+      const n2 = Number(((projectsScore + p2Score) / 2).toFixed(1));
       const finalGrade = Math.round((n1 * 0.4 + n2 * 0.6) * 10) / 10;
+      const attendanceRate = 85 + (gradeIndex % 15);
 
       await upsertSync(
         "academic_grades",
@@ -67,16 +74,20 @@ export async function seedStudent(
           studentIdentity: st.identity,
           studentName: st.displayName,
           grades: { n1, n2 },
+          assignmentsScore,
+          p1Score,
+          projectsScore,
+          p2Score,
           finalGrade,
-          attendancePercentage: 85 + (gradeIndex % 15),
-          status: "cursando",
+          finalAverage: finalGrade,
+          attendancePercentage: attendanceRate,
+          attendanceRate,
+          status: "Em curso",
           updatedAt: now,
           seedTag: SEED_TAG,
         },
       );
-      if (gradeIndex >= 36) break;
     }
-    if (gradeIndex >= 36) break;
   }
 
   // 3. PELO MENOS 30 PROTOCOLOS NA SECRETARIA ACADÊMICA (academic_protocols)
@@ -157,16 +168,27 @@ export async function seedStudent(
     "Resumo da LGPD: Consentimento, Finalidade e Direitos do Titular",
   ];
 
+  const fourthSemCodes = [
+    "218131 - APS-II",
+    "PI4-2026-4N",
+    "ARQ-2026-4N",
+    "BD2-2026-4N",
+    "FIS-2026-4N",
+    "MAT-2026-4N",
+  ];
+
   for (let i = 0; i < 30; i++) {
     const title = `${noteTitles[i % noteTitles.length]!} (Parte ${(i % 3) + 1})`;
     const st = students[i % students.length] ?? defaultStudent;
+    const classCode = fourthSemCodes[i % fourthSemCodes.length]!;
 
-    await upsertOnInsert(
+    await upsertSync(
       "student_notes",
       { studentId: String(st._id), title },
       {
         studentId: String(st._id),
         studentIdentity: st.identity,
+        classCode,
         title,
         content: `Anotações detalhadas de estudo feitas pelo discente ${st.displayName} sobre ${title}.`,
         tags: ["Engenharia", "Estudo", "2026/2"],
@@ -195,13 +217,14 @@ export async function seedStudent(
     const st = students[i % students.length] ?? defaultStudent;
     const dueDate = new Date(Date.UTC(2026, 8 + Math.floor(i / 15), 10 + (i % 20), 18, 0, 0));
 
-    await upsertOnInsert(
+    await upsertSync(
       "student_reminders",
       { studentId: String(st._id), title },
       {
         studentId: String(st._id),
         studentIdentity: st.identity,
         title,
+        date: dueDate.toISOString().slice(0, 10),
         dueDate,
         completed: i % 4 === 0,
         createdAt: now,

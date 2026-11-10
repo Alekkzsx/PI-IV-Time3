@@ -198,8 +198,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     var message = 'O serviço de autenticação não concluiu a solicitação.';
     try {
       final decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic> && decoded['message'] is String) {
-        message = decoded['message'] as String;
+      if (decoded is Map<String, dynamic>) {
+        if (decoded['message'] is String) {
+          message = decoded['message'] as String;
+        } else if (decoded['erro'] is String) {
+          message = decoded['erro'] as String;
+        }
       }
     } on FormatException {
       // O erro de status continua sendo explícito mesmo se o corpo não for JSON.

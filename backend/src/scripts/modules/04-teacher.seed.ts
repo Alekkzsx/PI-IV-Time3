@@ -15,14 +15,17 @@ export async function seedTeacher(
   const students = await database.collection("auth_users").find({ profile: "aluno" }).toArray();
   const defaultTeacher = teachers[0]!;
 
-  const coreClasses = [
-    "218131 - APS-II",
-    "PI4-2026-4N",
-    "ARQ-2026-4N",
-    "BD2-2026-4N",
-    "FIS-2026-4N",
-    "MAT-2026-4N",
-  ];
+  const allClassesDocs = await database.collection("academic_classes").find({ active: true }).toArray();
+  const coreClasses = allClassesDocs.length > 0
+    ? allClassesDocs.map((c) => String(c.code))
+    : [
+        "218131 - APS-II",
+        "PI4-2026-4N",
+        "ARQ-2026-4N",
+        "BD2-2026-4N",
+        "FIS-2026-4N",
+        "MAT-2026-4N",
+      ];
 
   // 1. PELO MENOS 35 DIÁRIOS DE AULAS COM CHAMADA (academic_class_sessions)
   const sessionTopics = [
@@ -76,8 +79,15 @@ export async function seedTeacher(
       studentIdentity: st.identity,
       present: (i + sIdx) % 10 !== 0, // 90% presença realista
     }));
+    const attendanceList = students.map((st, sIdx) => ({
+      studentId: String(st._id),
+      ra: st.identity,
+      name: st.displayName,
+      status: (i + sIdx) % 10 !== 0 ? "presente" : "ausente",
+    }));
+    const contentDescription = `Ministrado conteúdo aprofundado sobre ${topic}, com exemplos práticos e laboratório.`;
 
-    await upsertOnInsert(
+    await upsertSync(
       "academic_class_sessions",
       { classCode, title: `Aula ${i + 1}: ${topic}` },
       {
@@ -86,11 +96,13 @@ export async function seedTeacher(
         title: `Aula ${i + 1}: ${topic}`,
         startsAt: sessionDate,
         endsAt: endDate,
-        contentTaught: `Ministrado conteúdo aprofundado sobre ${topic}, com exemplos práticos e laboratório.`,
+        contentTaught: contentDescription,
+        contentProgram: contentDescription,
         location: `Lab. 10${(i % 5) + 1}`,
         createdBy: String(teacher._id),
         status: i < 25 ? "completed" : "scheduled",
         attendances,
+        attendanceList,
         createdAt: now,
         seedTag: SEED_TAG,
       },
@@ -136,7 +148,7 @@ export async function seedTeacher(
     const classCode = coreClasses[i % coreClasses.length]!;
     const teacher = teachers[i % teachers.length] ?? defaultTeacher;
 
-    await upsertOnInsert(
+    await upsertSync(
       "academic_materials",
       { classCode, title: mat.title },
       {
@@ -146,6 +158,7 @@ export async function seedTeacher(
         type: mat.type,
         fileName: `${mat.title.toLowerCase().replace(/[^a-z0-9]/g, "-")}.${mat.type === "code" ? "zip" : "pdf"}`,
         fileSize: mat.size,
+        size: mat.size,
         uploadedBy: String(teacher._id),
         uploadedAt: now,
         downloadsCount: 15 + (i * 2),
@@ -258,13 +271,15 @@ export async function seedTeacher(
     const classCode = coreClasses[i % coreClasses.length]!;
     const teacher = teachers[i % teachers.length] ?? defaultTeacher;
 
-    await upsertOnInsert(
+    const topicBody = `Tópico de discussão acadêmica aberto sobre "${title}". Participem com perguntas e reflexões.`;
+    await upsertSync(
       "academic_forum_topics",
       { classCode, title },
       {
         classCode,
         title,
-        content: `Tópico de discussão acadêmica aberto sobre "${title}". Participem com perguntas e reflexões.`,
+        content: topicBody,
+        body: topicBody,
         authorIdentity: teacher.identity,
         authorName: teacher.displayName,
         authorProfile: "docente",

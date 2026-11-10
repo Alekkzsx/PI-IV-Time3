@@ -1,13 +1,13 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012, Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
+// Painel Geral do Portal Docente redesenhado com fidelidade estrita à imagem de referência
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
-import 'package:pi_iv_time3/shared/widgets/institutional_hero_header.dart';
-import 'package:pi_iv_time3/shared/widgets/institutional_kpi_card.dart';
+import '../widgets/docente_assessment_preview_card.dart';
 import '../widgets/docente_courses_preview_section.dart';
-import '../widgets/docente_deadlines_notices_section.dart';
-import '../widgets/docente_live_class_card.dart';
+import '../widgets/docente_notices_preview_card.dart';
+import '../widgets/docente_requirements_card.dart';
 
 /// Visão principal do Painel Geral do Portal Docente.
 class DocenteDashboardTab extends StatelessWidget {
@@ -26,7 +26,7 @@ class DocenteDashboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth > 1050;
+        final isDesktop = constraints.maxWidth >= 1050;
 
         return SingleChildScrollView(
           child: ConstrainedBox(
@@ -35,84 +35,79 @@ class DocenteDashboardTab extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 28,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 40 : 20,
+                    vertical: isDesktop ? 28 : 20,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Hero Welcome Section
-                      const InstitutionalHeroHeader(
-                        greeting: 'Bem-vindo(a), Docente.',
-                        subtitleItems: ['Portal Docente', 'Gestão acadêmica'],
-                      ),
-                      const SizedBox(height: 28),
-
-                      // 4 KPI Metric Cards
-                      _buildKpiMetricsGrid(context),
-                      const SizedBox(height: 28),
-
-                      // Layout em 2 Colunas (Esquerda: Aula do Dia, Minhas Turmas, Requerimentos | Direita: Prazos, Avisos)
-                      if (isDesktop)
-                        Row(
+                  child: isDesktop
+                      ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Coluna Esquerda
+                            // Coluna Esquerda: Minhas Turmas e Requerimentos
                             Expanded(
-                              flex: 64,
+                              flex: 65,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  DocenteLiveClassCard(
-                                    onOpenVideoCall: onOpenVideoCall,
-                                    onOpenCourseHub: onOpenCourseHub,
-                                  ),
-                                  const SizedBox(height: 28),
                                   DocenteCoursesPreviewSection(
                                     controller: controller,
                                     onOpenCourseHub: onOpenCourseHub,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  DocenteRequirementsCard(
+                                    controller: controller,
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 24),
 
-                            // Coluna Direita
+                            // Coluna Direita: Avaliação Imediata e Mensagens & Avisos
                             Expanded(
-                              flex: 36,
-                              child: DocenteDeadlinesNoticesSection(
-                                controller: controller,
+                              flex: 35,
+                              child: Column(
+                                children: [
+                                  DocenteAssessmentPreviewCard(
+                                    controller: controller,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  DocenteNoticesPreviewCard(
+                                    controller: controller,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         )
-                      else
-                        Column(
+                      : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            DocenteLiveClassCard(
-                              onOpenVideoCall: onOpenVideoCall,
-                              onOpenCourseHub: onOpenCourseHub,
+                            DocenteAssessmentPreviewCard(
+                              controller: controller,
                             ),
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 20),
                             DocenteCoursesPreviewSection(
                               controller: controller,
                               onOpenCourseHub: onOpenCourseHub,
                             ),
-                            const SizedBox(height: 28),
-                            DocenteDeadlinesNoticesSection(
+                            const SizedBox(height: 20),
+                            DocenteRequirementsCard(
+                              controller: controller,
+                            ),
+                            const SizedBox(height: 20),
+                            DocenteNoticesPreviewCard(
                               controller: controller,
                             ),
                           ],
                         ),
-                    ],
-                  ),
                 ),
 
                 // Rodapé Institucional Reutilizável
-                const DocenteFooter(
-                  padding: EdgeInsets.symmetric(horizontal: 48, vertical: 20),
+                DocenteFooter(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 40 : 20,
+                    vertical: 16,
+                  ),
                 ),
               ],
             ),
@@ -120,98 +115,5 @@ class DocenteDashboardTab extends StatelessWidget {
         );
       },
     );
-  }
-
-  Widget _buildKpiMetricsGrid(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width > 1100;
-
-    final courses = controller.courses;
-    final assignments = controller.assignments;
-    final sessions = controller.sessions;
-    final enrolledCount = courses.fold<int>(
-      0,
-      (total, course) => total + course.enrolledCount,
-    );
-    final completedHours = courses.fold<int>(
-      0,
-      (total, course) => total + course.completedHours,
-    );
-    final totalHours = courses.fold<int>(
-      0,
-      (total, course) => total + course.totalHours,
-    );
-    final attendance = sessions.expand((session) => session.attendanceList);
-    final attendanceRecords = attendance.toList();
-    final attendanceRate = attendanceRecords.isEmpty
-        ? 0.0
-        : attendanceRecords
-                  .where((record) => record.status.name == 'presente')
-                  .length /
-              attendanceRecords.length;
-    final cards = [
-      InstitutionalKpiCard(
-        title: 'TURMAS ATIVAS',
-        value: courses.length.toString(),
-        subtitle: 'no Semestre',
-        footerLabel: 'Discentes Matriculados',
-        footerValue: '$enrolledCount alunos',
-        progress: courses.isEmpty ? 0 : 1,
-      ),
-      InstitutionalKpiCard(
-        title: 'ATIVIDADES',
-        value: assignments.length.toString(),
-        subtitle: 'cadastradas',
-        footerLabel: 'Avisos acadêmicos',
-        footerValue: '${controller.notices.length}',
-        progress: assignments.isEmpty ? 0 : 1,
-      ),
-      InstitutionalKpiCard(
-        title: 'CARGA HORÁRIA TOTAL',
-        value: '${completedHours}h',
-        subtitle: '/ ${totalHours}h',
-        footerLabel: 'Cumprimento do Plano',
-        footerValue: totalHours == 0
-            ? '0%'
-            : '${(completedHours / totalHours * 100).toStringAsFixed(1)}%',
-        progress: totalHours == 0 ? 0 : completedHours / totalHours,
-      ),
-      InstitutionalKpiCard(
-        title: 'FREQUÊNCIA MÉDIA',
-        value: '${(attendanceRate * 100).toStringAsFixed(1)}%',
-        subtitle: 'das Turmas',
-        footerLabel: 'Situação Geral',
-        footerValue: attendanceRecords.isEmpty ? 'Sem registros' : 'Atualizada',
-        progress: attendanceRate,
-      ),
-    ];
-
-    if (isDesktop) {
-      return Row(
-        children: cards
-            .map(
-              (c) => Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: c,
-                ),
-              ),
-            )
-            .toList(),
-      );
-    } else {
-      return Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: cards
-            .map(
-              (c) => SizedBox(
-                width: (width - 80) / (width > 600 ? 2 : 1),
-                child: c,
-              ),
-            )
-            .toList(),
-      );
-    }
   }
 }

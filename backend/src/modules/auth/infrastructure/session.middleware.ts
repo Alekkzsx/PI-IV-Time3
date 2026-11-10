@@ -18,7 +18,7 @@ export function authenticated(database: Db, secret: string, admin = false): Requ
       }
       const user = await database.collection("auth_users").findOne({ _id: new ObjectId(claims.sub), active: true });
       const session = await database.collection("auth_sessions").findOne({
-        sessionId: claims.jti, userId: claims.sub, expiresAt: { $gt: new Date() },
+        sessionId: claims.jti, userId: claims.sub, active: { $ne: false }, expiresAt: { $gt: new Date() },
       });
       if (!user || !session || (user.sessionVersion ?? 0) !== claims.ver || user.profile !== claims.profile) {
         throw new AuthError(401, "session_revoked", "Sessão encerrada. Entre novamente.");

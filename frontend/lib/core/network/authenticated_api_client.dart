@@ -16,7 +16,7 @@ class ApiException implements Exception {
 class AuthenticatedApiClient {
   static const baseUrl = String.fromEnvironment(
     'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8080',
+    defaultValue: 'http://127.0.0.1:3001',
   );
   final http.Client _client;
   AuthenticatedApiClient({http.Client? client})
@@ -55,10 +55,13 @@ class AuthenticatedApiClient {
         AppUserSession.instance.expire();
       }
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        final remoteMessage = data is Map
+            ? (data['message'] is String
+                  ? data['message'] as String
+                  : (data['erro'] is String ? data['erro'] as String : null))
+            : null;
         throw ApiException(
-          data is Map && data['message'] is String
-              ? data['message'] as String
-              : 'Não foi possível concluir a operação.',
+          remoteMessage ?? 'Não foi possível concluir a operação.',
           status: response.statusCode,
           code: data is Map && data['code'] is String
               ? data['code'] as String

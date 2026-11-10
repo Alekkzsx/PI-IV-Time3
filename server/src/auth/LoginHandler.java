@@ -71,6 +71,10 @@ public class LoginHandler implements ManipuladorHttp {
             if (senha == null || senha.trim().isEmpty()) {
                 senha = getString(corpo, "password");
             }
+            String perfilSolicitado = getString(corpo, "profile");
+            if (perfilSolicitado == null || perfilSolicitado.trim().isEmpty()) {
+                perfilSolicitado = getString(corpo, "perfil");
+            }
             String ipCliente = extrairIpCliente(requisicao);
 
             // Validar campos obrigatorios
@@ -109,8 +113,21 @@ public class LoginHandler implements ManipuladorHttp {
                 Map<String, Object> erro = new LinkedHashMap<String, Object>();
                 erro.put("status", 401);
                 erro.put("erro", mensagem);
+                erro.put("message", mensagem);
                 int maxTentativas = utils.ConfigEnv.obterInteiro("MAX_FAILED_LOGIN_ATTEMPTS", 5);
                 erro.put("maximo", maxTentativas);
+                resposta.enviarJson(401, Json.escrever(erro));
+                return;
+            }
+
+            if (perfilSolicitado != null && !perfilSolicitado.trim().isEmpty()
+                    && !perfilSolicitado.trim().equalsIgnoreCase(usuario.getProfile())) {
+                aplicarLatenciaPadronizada(inicioProcessamento);
+                String msgPerfil = "Credenciais invalidas para o perfil selecionado.";
+                Map<String, Object> erro = new LinkedHashMap<String, Object>();
+                erro.put("status", 401);
+                erro.put("erro", msgPerfil);
+                erro.put("message", msgPerfil);
                 resposta.enviarJson(401, Json.escrever(erro));
                 return;
             }

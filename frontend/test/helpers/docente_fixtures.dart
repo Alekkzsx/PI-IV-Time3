@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_event.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
@@ -8,6 +8,7 @@ import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_profile.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/grade_record.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_protocol.dart';
 
 /// Test data for the docente portal.
 class DocenteFixtures {
@@ -906,4 +907,34 @@ class DocenteFixtures {
       ),
     ],
   );
+
+  static List<TeacherProtocol> get initialProtocols => [
+    const TeacherProtocol(
+      id: 'proto-1',
+      code: 'PROT - 2026/0541',
+      studentName: 'Camila Duarte Fagundes',
+      studentRa: '2024.1.00982',
+      requestType: 'Atestado Médico',
+      targetComponent: 'APS-II e BD-II',
+      description: 'Atestado Médico APS-II e BD-II (Afastamento 29 a 30/09)',
+      status: TeacherProtocolStatus.deferido,
+      createdAt: '29/09/2026',
+      documentUrl: 'https://agmrm.edu.br/docs/atestado_camila_0541.pdf',
+      officialResponse:
+          'Atestado homologado pela Secretaria Geral e abonado conforme regimento.',
+    ),
+    const TeacherProtocol(
+      id: 'proto-2',
+      code: 'PROT - 2026/0650',
+      studentName: 'Rodrigo Antunes Nogueira',
+      studentRa: '2024.1.08934',
+      requestType: 'Segunda Chamada',
+      targetComponent: 'APS-II',
+      description: 'Segunda Chamada APS-II - Prova Substitutiva',
+      status: TeacherProtocolStatus.pendente,
+      createdAt: '30/09/2026',
+      documentUrl: 'https://agmrm.edu.br/docs/requerimento_rodrigo_0650.pdf',
+      officialResponse: 'Em análise pelo corpo docente da disciplina.',
+    ),
+  ];
 }

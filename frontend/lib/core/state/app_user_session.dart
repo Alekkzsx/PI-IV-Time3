@@ -144,6 +144,12 @@ class AppUserSession extends ChangeNotifier {
           if (_userId == null && payload['sub'] is String) {
             _userId = payload['sub'] as String;
           }
+          if (payload['profile'] is String) {
+            final jwtRole = (payload['profile'] as String).trim().toLowerCase();
+            if (const {'aluno', 'docente', 'admin'}.contains(jwtRole)) {
+              _role = jwtRole;
+            }
+          }
           if (payload['exp'] is num) {
             final remaining = DateTime.fromMillisecondsSinceEpoch(
               (payload['exp'] as num).toInt() * 1000,
@@ -170,6 +176,12 @@ class AppUserSession extends ChangeNotifier {
     if (data['id'] != null) _userId = data['id'].toString();
     if (data['identity'] is String && (data['identity'] as String).isNotEmpty) {
       _identity = data['identity'] as String;
+    }
+    if (data['profile'] is String) {
+      final remoteRole = (data['profile'] as String).trim().toLowerCase();
+      if (const {'aluno', 'docente', 'admin'}.contains(remoteRole)) {
+        _role = remoteRole;
+      }
     }
     if (data['displayName'] is String) {
       _displayName = data['displayName'] as String;
@@ -250,7 +262,7 @@ class AppUserSession extends ChangeNotifier {
     if (token == null || token.isEmpty) return false;
     const baseUrl = String.fromEnvironment(
       'AUTH_API_BASE_URL',
-      defaultValue: 'http://127.0.0.1:8080',
+      defaultValue: 'http://127.0.0.1:3001',
     );
     final httpClient = client ?? http.Client();
     try {
@@ -342,7 +354,7 @@ class AppUserSession extends ChangeNotifier {
     if (token == null) return;
     const baseUrl = String.fromEnvironment(
       'AUTH_API_BASE_URL',
-      defaultValue: 'http://127.0.0.1:8080',
+      defaultValue: 'http://127.0.0.1:3001',
     );
     try {
       await http

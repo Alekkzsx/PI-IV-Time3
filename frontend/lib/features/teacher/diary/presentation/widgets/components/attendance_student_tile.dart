@@ -1,6 +1,8 @@
 // Componente atômico para exibição da linha de presença discente
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import '../../../../shared/domain/models/attendance_record.dart';
 
 class AttendanceStudentTile extends StatelessWidget {
@@ -20,7 +22,7 @@ class AttendanceStudentTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: InstColors.surface,
         border: isLast
             ? null
             : const Border(bottom: BorderSide(color: Color(0xFFF4F4F5))),
@@ -53,10 +55,10 @@ class AttendanceStudentTile extends StatelessWidget {
                     Expanded(
                       child: Text(
                         student.name,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF09090B),
+                        style: jakarta(
+                          size: 13,
+                          weight: FontWeight.w700,
+                          color: InstColors.ink,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -69,16 +71,16 @@ class AttendanceStudentTile extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: InstColors.warningBg,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: const Color(0xFFFDE68A)),
                         ),
-                        child: const Text(
+                        child: Text(
                           'DISCENTE CONECTADO',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFD97706),
+                          style: jakarta(
+                            size: 9,
+                            weight: FontWeight.w700,
+                            color: InstColors.warning,
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -94,7 +96,7 @@ class AttendanceStudentTile extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
+                      color: InstColors.successBg,
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: const Color(0xFFA7F3D0)),
                     ),
@@ -103,16 +105,16 @@ class AttendanceStudentTile extends StatelessWidget {
                         const Icon(
                           Icons.verified_user_rounded,
                           size: 11,
-                          color: Color(0xFF047857),
+                          color: InstColors.success,
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             student.observation!,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF047857),
+                            style: jakarta(
+                              size: 10,
+                              weight: FontWeight.w700,
+                              color: InstColors.success,
                             ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -136,21 +138,27 @@ class AttendanceStudentTile extends StatelessWidget {
                   _buildAttendancePill(
                     label: 'P',
                     isActive: student.status == AttendanceStatus.presente,
-                    activeBg: const Color(0xFF18181B),
+                    activeBg: InstColors.successBg,
+                    activeBorder: InstColors.success,
+                    activeText: InstColors.success,
                     onTap: () => onToggleAttendance(AttendanceStatus.presente),
                   ),
                   const SizedBox(width: 4),
                   _buildAttendancePill(
                     label: 'F',
                     isActive: student.status == AttendanceStatus.ausente,
-                    activeBg: const Color(0xFF7F1D1D),
+                    activeBg: InstColors.dangerBg,
+                    activeBorder: InstColors.danger,
+                    activeText: InstColors.danger,
                     onTap: () => onToggleAttendance(AttendanceStatus.ausente),
                   ),
                   const SizedBox(width: 4),
                   _buildAttendancePill(
                     label: 'J',
                     isActive: student.status == AttendanceStatus.justificada,
-                    activeBg: const Color(0xFF92400E),
+                    activeBg: InstColors.warningBg,
+                    activeBorder: InstColors.warning,
+                    activeText: InstColors.warning,
                     onTap: () => onToggleAttendance(AttendanceStatus.justificada),
                   ),
                 ],
@@ -167,18 +175,18 @@ class AttendanceStudentTile extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: '${student.accumulatedAbsences} ',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF09090B),
+                      style: jakarta(
+                        size: 12.5,
+                        weight: FontWeight.w700,
+                        color: InstColors.ink,
                       ),
                     ),
                     TextSpan(
                       text: '/ ${student.maxAbsences} máx',
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF60A5FA),
+                      style: jakarta(
+                        size: 11.5,
+                        weight: FontWeight.w500,
+                        color: InstColors.muted,
                       ),
                     ),
                   ],
@@ -193,14 +201,12 @@ class AttendanceStudentTile extends StatelessWidget {
             child: Center(
               child: Text(
                 '${student.attendanceRate}%',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w700,
                   color: student.attendanceRate < 75.0
-                      ? const Color(0xFFDC2626)
-                      : (student.attendanceRate < 80.0
-                          ? const Color(0xFFEA580C)
-                          : const Color(0xFF09090B)),
+                      ? InstColors.danger
+                      : InstColors.ink,
                 ),
               ),
             ),
@@ -209,8 +215,7 @@ class AttendanceStudentTile extends StatelessWidget {
           // SITUAÇÃO REGIMENTAL
           SizedBox(
             width: 160,
-            child: Align(
-              alignment: Alignment.centerRight,
+            child: Center(
               child: _buildRiskBadge(student.riskLevel),
             ),
           ),
@@ -223,6 +228,8 @@ class AttendanceStudentTile extends StatelessWidget {
     required String label,
     required bool isActive,
     required Color activeBg,
+    required Color activeBorder,
+    required Color activeText,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -230,22 +237,23 @@ class AttendanceStudentTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        width: 26,
-        height: 26,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
           color: isActive ? activeBg : Colors.white,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: isActive ? activeBg : const Color(0xFFE4E4E7),
+            color: isActive ? activeBorder : InstColors.border,
+            width: isActive ? 1.5 : 1,
           ),
         ),
         child: Center(
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: isActive ? Colors.white : const Color(0xFF27272A),
+            style: jakarta(
+              size: 11,
+              weight: FontWeight.w700,
+              color: isActive ? activeText : const Color(0xFF52525B),
             ),
           ),
         ),
@@ -262,20 +270,20 @@ class AttendanceStudentTile extends StatelessWidget {
     switch (risk) {
       case AttendanceRiskLevel.regular:
         text = 'Regular';
-        color = const Color(0xFF059669);
-        bg = const Color(0xFFECFDF5);
+        color = InstColors.success;
+        bg = InstColors.successBg;
         border = const Color(0xFFA7F3D0);
         break;
       case AttendanceRiskLevel.atencao:
         text = 'Atenção (>15%)';
-        color = const Color(0xFFD97706);
-        bg = const Color(0xFFFEF3C7);
+        color = InstColors.warning;
+        bg = InstColors.warningBg;
         border = const Color(0xFFFDE68A);
         break;
       case AttendanceRiskLevel.critico:
         text = 'Risco de Reprovação';
-        color = const Color(0xFFDC2626);
-        bg = const Color(0xFFFEE2E2);
+        color = InstColors.danger;
+        bg = InstColors.dangerBg;
         border = const Color(0xFFFECACA);
         break;
     }
@@ -289,9 +297,9 @@ class AttendanceStudentTile extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.bold,
+        style: jakarta(
+          size: 10.5,
+          weight: FontWeight.w700,
           color: color,
         ),
       ),

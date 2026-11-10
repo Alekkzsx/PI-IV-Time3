@@ -228,6 +228,17 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _redirectAfterLogin(UserProfile profile) {
+    final activeRole = AppUserSession.instance.role;
+    if (activeRole == 'admin') {
+      Navigator.of(context).pushReplacementNamed('/admin-shell');
+      return;
+    } else if (activeRole == 'aluno') {
+      Navigator.of(context).pushReplacementNamed('/student/home');
+      return;
+    } else if (activeRole == 'docente') {
+      Navigator.of(context).pushReplacementNamed('/docente/home');
+      return;
+    }
     if (profile == UserProfile.admin) {
       Navigator.of(context).pushReplacementNamed('/admin-shell');
     } else if (profile == UserProfile.aluno) {

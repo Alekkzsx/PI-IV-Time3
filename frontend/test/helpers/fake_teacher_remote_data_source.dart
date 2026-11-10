@@ -7,6 +7,7 @@ import 'package:pi_iv_time3/features/teacher/shared/domain/models/assignment_mod
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_profile.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/grade_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_protocol.dart';
 import 'docente_fixtures.dart';
 
 class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
@@ -54,6 +55,7 @@ class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
       .toList();
   List<AcademicEvent> events = DocenteFixtures.initialEvents;
   List<AcademicNotice> notices = DocenteFixtures.initialNotices;
+  List<TeacherProtocol> protocols = DocenteFixtures.initialProtocols;
   DocenteProfile profile = DocenteFixtures.initialProfile;
   Map<String, Object?>? lastCreatedAssignment;
   String? lastEvaluatedSubmissionId;
@@ -67,6 +69,7 @@ class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
     grades: grades,
     events: events,
     notices: notices,
+    protocols: protocols,
   );
 
   @override

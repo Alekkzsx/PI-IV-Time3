@@ -1,6 +1,9 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Barra lateral de navegação interna da disciplina na visão do docente
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Barra lateral de navegação interna da disciplina na visão do docente.
 class CourseHubSubSidebar extends StatelessWidget {
@@ -20,8 +23,8 @@ class CourseHubSubSidebar extends StatelessWidget {
     return Container(
       width: 250,
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Color(0xFFE4E4E7))),
+        color: InstColors.surface,
+        border: Border(right: BorderSide(color: InstColors.border)),
       ),
       child: Column(
         children: [
@@ -47,7 +50,7 @@ class CourseHubSubSidebar extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF18181B)
+                            ? InstColors.stoneActive
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -57,20 +60,20 @@ class CourseHubSubSidebar extends StatelessWidget {
                             item['icon'] as IconData,
                             size: 16,
                             color: isSelected
-                                ? Colors.white
-                                : const Color(0xFF71717A),
+                                ? InstColors.ink
+                                : InstColors.muted,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               item['label'] as String,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
+                              style: jakarta(
+                                size: 12,
+                                weight: isSelected
+                                    ? FontWeight.w700
                                     : FontWeight.w500,
                                 color: isSelected
-                                    ? Colors.white
+                                    ? InstColors.ink
                                     : const Color(0xFF27272A),
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -85,20 +88,20 @@ class CourseHubSubSidebar extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Colors.white24
+                                    ? Colors.white
                                     : (item['badgeColor'] as Color? ??
                                           const Color(0xFFF4F4F5)),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 item['badge'] as String,
-                                style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
+                                style: jakarta(
+                                  size: 9.5,
+                                  weight: FontWeight.w700,
                                   color: isSelected
-                                      ? Colors.white
+                                      ? InstColors.ink
                                       : (item['badgeTextColor'] as Color? ??
-                                            const Color(0xFF71717A)),
+                                            InstColors.muted),
                                 ),
                               ),
                             ),
@@ -117,95 +120,95 @@ class CourseHubSubSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFFBFBFC),
+              color: InstColors.stone,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE4E4E7)),
+              border: Border.all(color: InstColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Text(
                         'PAINEL DA TURMA',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF71717A),
+                        style: jakarta(
+                          size: 10,
+                          weight: FontWeight.w700,
+                          color: InstColors.muted,
                           letterSpacing: 0.4,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Icon(Icons.insights, size: 13, color: Color(0xFF16A34A)),
+                    const Icon(Icons.insights, size: 13, color: InstColors.success),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Text(
                         'Assiduidade:',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF71717A),
+                        style: jakarta(
+                          size: 11,
+                          color: InstColors.muted,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       '94.8%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF16A34A),
+                      style: jakarta(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: InstColors.success,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Text(
                         'Média:',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF71717A),
+                        style: jakarta(
+                          size: 11,
+                          color: InstColors.muted,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       '7.8',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF09090B),
+                      style: jakarta(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: InstColors.ink,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Text(
                         'Envios:',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF71717A),
+                        style: jakarta(
+                          size: 11,
+                          color: InstColors.muted,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       '6 pend.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFD97706),
+                      style: jakarta(
+                        size: 11,
+                        weight: FontWeight.w700,
+                        color: InstColors.warning,
                       ),
                     ),
                   ],
