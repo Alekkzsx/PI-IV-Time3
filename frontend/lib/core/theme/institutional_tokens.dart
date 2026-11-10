@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 // Design tokens compartilhados (cores, medidas e tipografia) dos portais institucionais
 
 import 'package:flutter/material.dart';
@@ -17,8 +17,10 @@ class InstColors {
   static const Color stone = Color(0xFFFAF9F6);
   static const Color stoneActive = Color(0xFFF2F0EB);
   static const Color headerBg = Color(0xFFF5F5F5);
+  static const Color subtle = Color(0xFFF5F5F5);
   static const Color hoverSurface = Color(0xFFFAFAFA);
   static const Color toggleIcon = Color(0xFF525252);
+  static const Color body = Color(0xFF525252);
   static const Color danger = Color(0xFFB91C1C);
   static const Color dangerBg = Color(0xFFFEF2F2);
   static const Color live = Color(0xFF16A34A);
