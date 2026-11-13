@@ -339,5 +339,22 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
     response.json(reads);
   });
 
+  router.patch("/protocols/:protocolId/decide", async (request, response) => {
+    const body = parse(
+      z.object({
+        status: z.enum(["deferido", "indeferido"]),
+        officialResponse: z.string().trim().max(2000).optional(),
+      }).strict(),
+      request.body,
+    );
+    const updated = await service.decideProtocol(
+      response.locals.userId,
+      response.locals.user,
+      request.params.protocolId!,
+      body,
+    );
+    response.json({ success: true, protocol: updated });
+  });
+
   return router;
 }

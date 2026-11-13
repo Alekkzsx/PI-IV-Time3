@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Componente compartilhado e desacoplado da Barra Lateral (Sidebar) Institucional
 
 import 'package:flutter/material.dart';
@@ -170,6 +170,7 @@ class InstitutionalSidebar<T> extends StatelessWidget {
             right: -15.5,
             top: 0,
             bottom: 0,
+            width: 31,
             child: Center(
               child: _SidebarFloatingToggleButton(
                 isCollapsed: isCollapsed,
@@ -273,12 +274,17 @@ class _InstitutionalNavItemTileState<T> extends State<_InstitutionalNavItemTile<
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      opaque: true,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         key: widget.item.key,
+        behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
-        child: content,
+        child: SizedBox(
+          width: double.infinity,
+          child: Center(child: content),
+        ),
       ),
     );
   }
@@ -309,10 +315,12 @@ class _SidebarFloatingToggleButtonState extends State<_SidebarFloatingToggleButt
       message: widget.isCollapsed ? 'Expandir barra lateral' : 'Recolher barra lateral',
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
+        opaque: true,
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: GestureDetector(
           key: const Key('sidebar_toggle_collapse_btn'),
+          behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
           child: AnimatedScale(
           scale: _isHovered ? 1.05 : 1.0, // hover:scale-105

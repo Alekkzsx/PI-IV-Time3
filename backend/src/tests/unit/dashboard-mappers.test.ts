@@ -8,7 +8,10 @@ import {
 } from "../../modules/student/application/dashboard/index.js";
 import {
   mapTeacherAssignments,
+  mapTeacherCourses,
+  mapTeacherDashboardOverview,
   mapTeacherGrades,
+  mapTeacherProtocols,
 } from "../../modules/teacher/application/dashboard/index.js";
 
 const documents = (records: Record<string, unknown>[]) => records as Document[];
@@ -77,5 +80,181 @@ describe("dashboard mappers", () => {
     assert.equal(grade?.p1Score, 8);
     assert.equal(grade?.attendanceRate, 90);
     assert.equal(grade?.absences, 4);
+  });
+
+  it("maps teacher protocols with normalized status, description, and requestType", () => {
+    const [deferido, pendente] = mapTeacherProtocols(
+      documents([
+        {
+          _id: "p1",
+          code: "PROT - 2026/0541",
+          studentName: "Camila Duarte Fagundes",
+          studentRa: "2024.1.00982",
+          requestType: "Atestado Médico",
+          targetComponent: "218131 - APS-II",
+          description: "APS-II e BD-II (Afastamento 29 a 30/09)",
+          status: "deferido",
+        },
+        {
+          _id: "p2",
+          code: "PROT - 2026/0850",
+          studentName: "Rodrigo Antunes Nogueira",
+          studentRa: "2024.1.00938",
+          requestType: "Segunda Chamada",
+          targetComponent: "218131 - APS-II",
+          justification: "APS-II - Prova Substitutiva",
+          status: "pendente",
+        },
+      ]),
+    );
+
+    assert.equal(deferido?.status, "deferido");
+    assert.equal(deferido?.statusLabel, "DEFERIDO");
+    assert.equal(deferido?.description, "APS-II e BD-II (Afastamento 29 a 30/09)");
+    assert.equal(pendente?.status, "pendente");
+    assert.equal(pendente?.statusLabel, "PENDENTE");
+    assert.equal(pendente?.description, "APS-II - Prova Substitutiva");
+  });
+
+  it("computes teacher dashboard overview KPIs, today class, deadlines, and notices in backend", () => {
+    const overview = mapTeacherDashboardOverview({
+      user: {
+        displayName: "Profa. Dra. Helena Bittencourt",
+        greetingPrefix: "Bem-vinda,",
+        department: "Departamento de Computação",
+        semester: "Docência 2026/2",
+        officeHours: {
+          title: "Atendimento Docente",
+          subtitle: "Plantão de dúvidas e orientação às 17:30",
+          location: "Lab 04 • Sala Virtual Teams",
+        },
+      } as unknown as Document,
+      courses: [
+        {
+          id: "218131 - APS-II",
+          code: "218131 - APS-II",
+          roomCode: "218131-APS-II",
+          title: "Análise e Projeto de Sistemas II",
+          schedule: "Segundas e Quartas, 19:10 - 20:50",
+          room: "Lab 04",
+          virtualRoomLabel: "Sala Virtual Teams",
+          enrolledCount: 34,
+          connectedStudentsCount: 43,
+          completedHours: 54,
+          totalHours: 80,
+          isLive: true,
+        },
+        {
+          id: "218131 - BD-II",
+          code: "218131 - BD-II",
+          roomCode: "218131-BD-II",
+          title: "Estudos de Banco de Dados II",
+          schedule: "Terças e Quintas, 19:10 - 20:50",
+          room: "Lab 02",
+          enrolledCount: 31,
+          completedHours: 60,
+          totalHours: 80,
+          isLive: false,
+        },
+        {
+          id: "218131 - FSO",
+          code: "218131 - FSO",
+          roomCode: "218131-FSO",
+          title: "Fundamentos de Sistemas Operacionais",
+          schedule: "Sextas, 19:10 - 20:50",
+          room: "Lab 01",
+          enrolledCount: 36,
+          completedHours: 44,
+          totalHours: 80,
+          isLive: false,
+        },
+      ],
+      sessions: [
+        {
+          attendanceList: [
+            { attendanceRate: 94.8 },
+            { attendanceRate: 94.8 },
+          ],
+        },
+      ],
+      assignments: [
+        {
+          id: "asg-1",
+          courseId: "218131 - APS-II",
+          typeLabel: "Entrega",
+          title: "Diagrama de Classes e Sequência",
+          dueDateFormatted: "Hoje, 20/09",
+          dueHour: "23:59",
+          isUrgent: true,
+        },
+      ],
+      notices: [
+        {
+          id: "n-1",
+          author: "Profa. Dra. Helena Bittencourt",
+          targetCourse: "218131 - APS-II",
+          publishedAt: "Hoje, 14:10",
+          title: "Feedback da Sprint 1 e Orientações para o Diagrama UML",
+          message: "Prezados alunos...",
+          isFromSecretaria: false,
+        },
+      ],
+      now: new Date(2026, 8, 20, 14, 10, 0),
+    });
+
+    assert.equal(overview.hero.greetingPrefix, "Bem-vinda,");
+    assert.equal(overview.hero.firstName, "Helena");
+    assert.equal(overview.stats.activeClasses.valueFormatted, "03");
+    assert.equal(overview.stats.activeClasses.footerValue, "101 alunos");
+    assert.equal(overview.stats.workload.valueFormatted, "158h");
+    assert.equal(overview.stats.workload.unitLabel, "/ 240h");
+    assert.equal(overview.stats.workload.footerValue, "65.8%");
+    assert.equal(overview.stats.averageAttendance.valueFormatted, "94.8%");
+    assert.equal(overview.todayClass.todayBadge, "HOJE, 20 SET");
+    assert.equal(overview.todayClass.session?.title, "Análise e Projeto de Sistemas II");
+    assert.equal(overview.todayClass.session?.connectedLabel, "43 alunos conectados no AVA");
+    assert.equal(overview.upcomingDeadlines.items[0]?.displayTitle, "Entrega: Diagrama de Classes e Sequência");
+    assert.equal(overview.recentNotices[0]?.authorLabel, "Você (Helena Bittencourt - APS-II)");
+  });
+
+  it("computes teacher course card progress and formatted workload/enrollment labels in backend", () => {
+    const [course] = mapTeacherCourses({
+      classes: documents([
+        {
+          _id: "c1",
+          code: "218131 - APS-II",
+          subjectName: "Análise e Projeto de Sistemas II",
+          semester: "2026/2 - 4º Semestre",
+          shift: "Noturno",
+          location: "Lab Informática 04 - Bloco C",
+          schedule: "Segundas e Quartas, 19:10 - 20:50",
+          completedHours: 54,
+          totalHours: 80,
+          enrolledCount: 34,
+        },
+      ]),
+      enrollmentsByClass: new Map(),
+      materialsByClass: new Map(),
+      forumByClass: new Map(),
+      liveSessions: [],
+      adminSettings: null,
+      user: { identity: "DOC-88410" } as unknown as Document,
+      defaultSyllabusUnits: () => [],
+    });
+
+    assert.equal(course?.code, "218131 - APS-II");
+    assert.equal(course?.enrolledCount, 34);
+    assert.equal(course?.enrolledStudentsLabel, "34 discentes matriculados");
+    assert.equal(course?.completedHours, 54);
+    assert.equal(course?.totalHours, 80);
+    assert.equal(course?.progress, 0.675);
+    assert.equal(course?.progressPercentage, 68);
+    assert.equal(course?.progressPercentageFormatted, "68%");
+    assert.equal(course?.workloadCompletedLabel, "54h");
+    assert.equal(course?.workloadTotalLabel, " de 80h");
+    assert.equal(
+      course?.progressCaption,
+      "Este percentual reflete diretamente o progresso visto pelos discentes.",
+    );
   });
 });

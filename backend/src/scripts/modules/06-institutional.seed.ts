@@ -53,11 +53,16 @@ export async function seedInstitutional(
   for (let i = 0; i < announcementTemplates.length; i++) {
     const ann = announcementTemplates[i]!;
     const teacher = teachers[i % teachers.length] ?? defaultTeacher;
+    const authorRole = ann.isInst
+      ? (ann.category === "Secretaria" || ann.category === "Calendário" ? "secretaria" : "coordenacao")
+      : "docente";
     const authorName = ann.isInst
-      ? (adminActor?.displayName ?? "Coordenação Geral AGMRM")
+      ? (authorRole === "secretaria"
+          ? "Secretaria Acadêmica AGMRM"
+          : "Coordenação de Curso (Sistemas de Informação)")
       : teacher.displayName;
 
-    await upsertOnInsert(
+    await upsertSync(
       "academic_announcements",
       { seedKey: `ann-eco-${i + 1}` },
       {
@@ -69,10 +74,11 @@ export async function seedInstitutional(
         category: ann.category,
         priority: ann.priority,
         isInstitutional: ann.isInst,
+        authorRole,
         createdBy: ann.isInst ? adminId : String(teacher._id),
         authorName,
         readBy: [],
-        createdAt: now,
+        createdAt: new Date(now.getTime() - i * 18 * 3600 * 1000),
         seedTag: SEED_TAG,
       },
     );

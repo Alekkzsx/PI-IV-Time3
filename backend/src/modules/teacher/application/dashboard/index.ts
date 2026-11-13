@@ -2,6 +2,7 @@ export { TeacherDashboardRepository } from "../teacher-dashboard.repository.js";
 export {
   mapTeacherAssignments,
   mapTeacherCourses,
+  mapTeacherDashboardOverview,
   mapTeacherEvents,
   mapTeacherGrades,
   mapTeacherNotices,

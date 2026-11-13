@@ -1,23 +1,36 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-// Modal institucional de visualização e análise de requerimentos discentes
+// Modal institucional de visualização e decisão de requerimentos discentes no backend/MongoDB
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_protocol.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
 
-/// Modal para exibição detalhada de um requerimento acadêmico protocolado por discente.
+/// Modal para exibição detalhada e decisão de um requerimento acadêmico protocolado por discente.
 class DocenteProtocolDetailsModal extends StatelessWidget {
   final TeacherProtocol protocol;
+  final DocenteController? controller;
 
-  const DocenteProtocolDetailsModal({super.key, required this.protocol});
+  const DocenteProtocolDetailsModal({
+    super.key,
+    required this.protocol,
+    this.controller,
+  });
 
-  static Future<void> show(BuildContext context, TeacherProtocol protocol) {
+  static Future<void> show(
+    BuildContext context,
+    TeacherProtocol protocol, {
+    DocenteController? controller,
+  }) {
     return AcademicModalDialog.show<void>(
       context: context,
-      builder: (_) => DocenteProtocolDetailsModal(protocol: protocol),
+      builder: (_) => DocenteProtocolDetailsModal(
+        protocol: protocol,
+        controller: controller,
+      ),
     );
   }
 
@@ -34,15 +47,26 @@ class DocenteProtocolDetailsModal extends StatelessWidget {
       subtitle: '${protocol.code} • Análise e Parecer do Docente',
       icon: Icons.description_outlined,
       maxWidth: 620,
-      confirmLabel: 'Concluído',
+      confirmLabel: protocol.status == TeacherProtocolStatus.pendente &&
+              controller != null
+          ? 'Deferir Requerimento'
+          : 'Concluído',
       cancelLabel: 'Fechar',
-      onConfirm: () => Navigator.of(context).pop(),
+      onConfirm: () async {
+        if (protocol.status == TeacherProtocolStatus.pendente &&
+            controller != null) {
+          await controller!.decideProtocol(
+            protocolId: protocol.id,
+            decision: TeacherProtocolStatus.deferido,
+          );
+        }
+        if (context.mounted) Navigator.of(context).pop();
+      },
       onCancel: () => Navigator.of(context).pop(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Identificação do Discente
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -84,12 +108,13 @@ class DocenteProtocolDetailsModal extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-
-          // Metadados do Requerimento
           Row(
             children: [
               Expanded(
-                child: _buildMetaItem('TIPO DE REQUERIMENTO', protocol.requestType),
+                child: _buildMetaItem(
+                  'TIPO DE REQUERIMENTO',
+                  protocol.requestType,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -98,8 +123,6 @@ class DocenteProtocolDetailsModal extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Justificativa e Objeto
           Text(
             'Objeto e Justificativa Apresentada',
             style: jakarta(
@@ -128,11 +151,9 @@ class DocenteProtocolDetailsModal extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Despacho Oficial / Observações
           if (protocol.officialResponse != null &&
               protocol.officialResponse!.isNotEmpty) ...[
+            const SizedBox(height: 16),
             Text(
               'Despacho da Secretaria Acadêmica',
               style: jakarta(

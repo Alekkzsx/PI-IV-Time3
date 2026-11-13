@@ -37,6 +37,7 @@ class DocenteShellPage extends StatefulWidget {
 class _DocenteShellPageState extends State<DocenteShellPage> {
   late final DocenteController _controller;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final Map<DocenteNavTab, Widget> _tabsCache = {};
 
   @override
   void initState() {
@@ -79,31 +80,33 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   }
 
   Widget _buildCurrentTab(DocenteNavTab tab) {
-    switch (tab) {
-      case DocenteNavTab.painel:
-        return DocenteDashboardTab(
-          controller: _controller,
-          onOpenVideoCall: _openVideoCall,
-          onOpenCourseHub: _openCourseHub,
-        );
-      case DocenteNavTab.turmas:
-        return DocenteCoursesTab(
-          controller: _controller,
-          onOpenCourseHub: _openCourseHub,
-        );
-      case DocenteNavTab.diario:
-        return DocenteDiaryTab(controller: _controller);
-      case DocenteNavTab.atividades:
-        return DocenteAssignmentsTab(controller: _controller);
-      case DocenteNavTab.notas:
-        return DocenteGradesTab(controller: _controller);
-      case DocenteNavTab.agenda:
-        return DocenteCalendarTab(controller: _controller);
-      case DocenteNavTab.comunicados:
-        return DocenteMessagesTab(controller: _controller);
-      case DocenteNavTab.configuracoes:
-        return DocenteSettingsTab(controller: _controller);
-    }
+    return _tabsCache.putIfAbsent(tab, () {
+      switch (tab) {
+        case DocenteNavTab.painel:
+          return DocenteDashboardTab(
+            controller: _controller,
+            onOpenVideoCall: _openVideoCall,
+            onOpenCourseHub: _openCourseHub,
+          );
+        case DocenteNavTab.turmas:
+          return DocenteCoursesTab(
+            controller: _controller,
+            onOpenCourseHub: _openCourseHub,
+          );
+        case DocenteNavTab.diario:
+          return DocenteDiaryTab(controller: _controller);
+        case DocenteNavTab.atividades:
+          return DocenteAssignmentsTab(controller: _controller);
+        case DocenteNavTab.notas:
+          return DocenteGradesTab(controller: _controller);
+        case DocenteNavTab.agenda:
+          return DocenteCalendarTab(controller: _controller);
+        case DocenteNavTab.comunicados:
+          return DocenteMessagesTab(controller: _controller);
+        case DocenteNavTab.configuracoes:
+          return DocenteSettingsTab(controller: _controller);
+      }
+    });
   }
 
   @override
@@ -203,31 +206,51 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
                       backgroundColor: Colors.white,
                       child: DocenteSidebar(
                         controller: _controller,
+                        onTabSelected: (_) => Navigator.of(context).pop(),
                         onLogout: () {
                           Navigator.of(context).pop();
                           _logout();
                         },
                       ),
                     ),
-              body: Row(
+              body: Stack(
                 children: [
-                  if (isDesktop)
-                    DocenteSidebar(controller: _controller, onLogout: _logout),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        DocenteHeader(
-                          controller: _controller,
-                          onOpenDrawer: isDesktop
-                              ? null
-                              : () => _scaffoldKey.currentState?.openDrawer(),
+                  Row(
+                    children: [
+                      if (isDesktop)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: _controller.isSidebarCollapsed ? 76.0 : 280.0,
                         ),
-                        Expanded(
-                          child: _buildCurrentTab(_controller.activeTab),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            DocenteHeader(
+                              controller: _controller,
+                              onOpenDrawer: isDesktop
+                                  ? null
+                                  : () =>
+                                      _scaffoldKey.currentState?.openDrawer(),
+                            ),
+                            Expanded(
+                              child: _buildCurrentTab(_controller.activeTab),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  if (isDesktop)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: DocenteSidebar(
+                        controller: _controller,
+                        onLogout: _logout,
+                      ),
+                    ),
                 ],
               ),
             );

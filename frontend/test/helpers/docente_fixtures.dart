@@ -8,6 +8,7 @@ import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_profile.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/grade_record.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_dashboard_overview.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_protocol.dart';
 
 /// Test data for the docente portal.
@@ -937,4 +938,118 @@ class DocenteFixtures {
       officialResponse: 'Em análise pelo corpo docente da disciplina.',
     ),
   ];
+
+  static TeacherDashboardOverview get initialDashboard =>
+      const TeacherDashboardOverview(
+        hero: TeacherHeroInfo(
+          greetingPrefix: 'Bem-vinda,',
+          firstName: 'Helena',
+          department: 'Departamento de Computação',
+          semester: 'Docência 2026/2',
+        ),
+        stats: TeacherDashboardStats(
+          activeClasses: TeacherDashboardKpiItem(
+            label: 'TURMAS ATIVAS',
+            valueFormatted: '03',
+            unitLabel: 'no Semestre',
+            footerLabel: 'Discentes Matriculados',
+            footerValue: '101 alunos',
+            progress: 1.0,
+          ),
+          monthlyAssignments: TeacherDashboardKpiItem(
+            label: 'ENTREGAS DO MÊS',
+            valueFormatted: '04',
+            unitLabel: 'Cadastradas',
+            footerLabel: 'Próximo Vencimento',
+            footerValue: 'Hoje, 23:59',
+            progress: 0.45,
+          ),
+          workload: TeacherDashboardKpiItem(
+            label: 'CARGA HORÁRIA TOTAL',
+            valueFormatted: '158h',
+            unitLabel: '/ 240h',
+            footerLabel: 'Cumprimento do Plano',
+            footerValue: '65.8%',
+            progress: 0.658,
+          ),
+          averageAttendance: TeacherDashboardKpiItem(
+            label: 'FREQUÊNCIA MÉDIA',
+            valueFormatted: '94.8%',
+            unitLabel: 'das Turmas',
+            footerLabel: 'Situação Geral',
+            footerValue: 'Regular',
+            progress: 0.948,
+          ),
+        ),
+        todayClass: TeacherTodayClassInfo(
+          todayBadge: 'HOJE, 20 SET',
+          session: TeacherLiveSessionPreview(
+            courseId: 'course-aps2',
+            code: '218131 - APS-II',
+            roomCode: '218131-APS-II',
+            title: 'Análise e Projeto de Sistemas II',
+            timeRange: '19:10  -  20:50',
+            isLive: true,
+            statusLabel: 'AO VIVO • TRANSMITINDO',
+            connectedCount: 43,
+            connectedLabel: '43 alunos conectados no AVA',
+            locationLabel: 'Lab 04 • Sala Virtual Teams',
+            buttonLabel: 'Iniciar Transmissão',
+          ),
+          officeHours: TeacherOfficeHoursInfo(
+            title: 'Atendimento Docente',
+            subtitle: 'Plantão de dúvidas e orientação às 17:30',
+            location: 'Lab 04 • Sala Virtual Teams',
+          ),
+        ),
+        upcomingDeadlines: TeacherUpcomingDeadlines(
+          totalCountFormatted: '04',
+          items: [
+            TeacherDeadlinePreviewItem(
+              id: 'asg-1',
+              courseId: 'course-aps2',
+              typeLabel: 'Entrega',
+              displayTitle: 'Entrega: Diagrama de Classes e Sequência',
+              courseName: 'Análise e Projeto de Sistemas II',
+              dueLabel: 'Hoje, 20/09 às 23:59',
+              isUrgent: true,
+            ),
+            TeacherDeadlinePreviewItem(
+              id: 'asg-2',
+              courseId: 'course-bd2',
+              typeLabel: 'Atividade Prática',
+              displayTitle: 'Atividade Prática: Modelagem Relacional e Normalização',
+              courseName: 'Estudos de Banco de Dados II',
+              dueLabel: 'Quinta, 24/09 às 23:59',
+              isUrgent: false,
+            ),
+          ],
+        ),
+        recentNotices: [
+          TeacherNoticePreviewItem(
+            id: 'not-doc-1',
+            authorLabel: 'Você (Helena Bittencourt - APS-II)',
+            timeLabel: 'Hoje, 14:10',
+            title: 'Feedback da Sprint 1 e Orientações para o Diagrama UML',
+            message:
+                'Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já constam no ambiente de entrega.',
+          ),
+          TeacherNoticePreviewItem(
+            id: 'not-sec-1',
+            authorLabel: 'Coordenação de Curso (Sistemas de Informação)',
+            timeLabel: 'Ontem, 17:45',
+            title: 'Homologação de Diários de Classe - Fechamento 1º Bimestre',
+            message:
+                'Lembramos aos docentes que a consolidação das notas parciais e faltas deve ser realizada até sexta-feira.',
+          ),
+          TeacherNoticePreviewItem(
+            id: 'not-sec-2',
+            authorLabel: 'Secretaria Acadêmica AGMRM',
+            timeLabel: '18 de set',
+            title: 'Calendário de Provas Regimentais 2026/2 Homologado',
+            message:
+                'O cronograma definitivo de avaliações institucionais encontra-se disponível no sistema.',
+          ),
+        ],
+      );
 }

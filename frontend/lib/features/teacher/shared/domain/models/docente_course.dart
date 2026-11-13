@@ -76,8 +76,15 @@ class DocenteCourse {
   final String room;
   final String schedule;
   final int enrolledCount;
+  final String? enrolledStudentsLabelValue;
   final int completedHours;
   final int totalHours;
+  final double? progressValue;
+  final double? progressPercentageValue;
+  final String? progressPercentageFormattedValue;
+  final String? workloadCompletedLabelValue;
+  final String? workloadTotalLabelValue;
+  final String? progressCaptionValue;
   final List<SyllabusUnit> syllabusUnits;
   final List<CourseMaterial> materials;
   final bool gradeLocked;
@@ -85,6 +92,7 @@ class DocenteCourse {
   final String? chancelaCode;
   final List<Map<String, dynamic>> forumTopics;
   final List<Map<String, dynamic>> squads;
+  final bool isLive;
 
   static const DocenteCourse empty = DocenteCourse(
     id: '',
@@ -100,6 +108,7 @@ class DocenteCourse {
     totalHours: 0,
     syllabusUnits: [],
     materials: [],
+    isLive: false,
   );
 
   const DocenteCourse({
@@ -112,8 +121,15 @@ class DocenteCourse {
     required this.room,
     required this.schedule,
     required this.enrolledCount,
+    this.enrolledStudentsLabelValue,
     required this.completedHours,
     required this.totalHours,
+    this.progressValue,
+    this.progressPercentageValue,
+    this.progressPercentageFormattedValue,
+    this.workloadCompletedLabelValue,
+    this.workloadTotalLabelValue,
+    this.progressCaptionValue,
     required this.syllabusUnits,
     required this.materials,
     this.gradeLocked = false,
@@ -121,14 +137,28 @@ class DocenteCourse {
     this.chancelaCode,
     this.forumTopics = const [],
     this.squads = const [],
+    this.isLive = false,
   });
 
   String get name => title;
   String get semester => term;
   int get workloadHours => totalHours;
-  double get progress => totalHours == 0 ? 0.0 : completedHours / totalHours;
+  double get progress =>
+      progressValue ?? (totalHours == 0 ? 0.0 : completedHours / totalHours);
   double get progressPercentage =>
-      totalHours == 0 ? 0.0 : (completedHours / totalHours) * 100;
+      progressPercentageValue ??
+      (totalHours == 0 ? 0.0 : (completedHours / totalHours) * 100);
+  String get progressPercentageFormatted =>
+      progressPercentageFormattedValue ?? '${progressPercentage.round()}%';
+  String get enrolledStudentsLabel =>
+      enrolledStudentsLabelValue ?? '$enrolledCount discentes matriculados';
+  String get workloadCompletedLabel =>
+      workloadCompletedLabelValue ?? '${completedHours}h';
+  String get workloadTotalLabel =>
+      workloadTotalLabelValue ?? ' de ${totalHours}h';
+  String get progressCaption =>
+      progressCaptionValue ??
+      'Este percentual reflete diretamente o progresso visto pelos discentes.';
 
   List<int> get classWeekdays {
     final lower = schedule.toLowerCase();
@@ -176,8 +206,15 @@ class DocenteCourse {
     String? room,
     String? schedule,
     int? enrolledCount,
+    String? enrolledStudentsLabelValue,
     int? completedHours,
     int? totalHours,
+    double? progressValue,
+    double? progressPercentageValue,
+    String? progressPercentageFormattedValue,
+    String? workloadCompletedLabelValue,
+    String? workloadTotalLabelValue,
+    String? progressCaptionValue,
     List<SyllabusUnit>? syllabusUnits,
     List<CourseMaterial>? materials,
     bool? gradeLocked,
@@ -185,6 +222,7 @@ class DocenteCourse {
     String? chancelaCode,
     List<Map<String, dynamic>>? forumTopics,
     List<Map<String, dynamic>>? squads,
+    bool? isLive,
   }) {
     return DocenteCourse(
       id: id ?? this.id,
@@ -196,8 +234,21 @@ class DocenteCourse {
       room: room ?? this.room,
       schedule: schedule ?? this.schedule,
       enrolledCount: enrolledCount ?? this.enrolledCount,
+      enrolledStudentsLabelValue:
+          enrolledStudentsLabelValue ?? this.enrolledStudentsLabelValue,
       completedHours: completedHours ?? this.completedHours,
       totalHours: totalHours ?? this.totalHours,
+      progressValue: progressValue ?? this.progressValue,
+      progressPercentageValue:
+          progressPercentageValue ?? this.progressPercentageValue,
+      progressPercentageFormattedValue:
+          progressPercentageFormattedValue ??
+          this.progressPercentageFormattedValue,
+      workloadCompletedLabelValue:
+          workloadCompletedLabelValue ?? this.workloadCompletedLabelValue,
+      workloadTotalLabelValue:
+          workloadTotalLabelValue ?? this.workloadTotalLabelValue,
+      progressCaptionValue: progressCaptionValue ?? this.progressCaptionValue,
       syllabusUnits: syllabusUnits ?? this.syllabusUnits,
       materials: materials ?? this.materials,
       gradeLocked: gradeLocked ?? this.gradeLocked,
@@ -205,6 +256,7 @@ class DocenteCourse {
       chancelaCode: chancelaCode ?? this.chancelaCode,
       forumTopics: forumTopics ?? this.forumTopics,
       squads: squads ?? this.squads,
+      isLive: isLive ?? this.isLive,
     );
   }
 }

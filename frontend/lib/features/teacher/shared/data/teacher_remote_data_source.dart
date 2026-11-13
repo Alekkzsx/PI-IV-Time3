@@ -9,10 +9,12 @@ import '../domain/models/docente_course.dart';
 import '../domain/models/docente_profile.dart';
 import '../domain/models/grade_record.dart';
 import '../domain/models/rubric_model.dart';
+import '../domain/models/teacher_dashboard_overview.dart';
 import '../domain/models/teacher_protocol.dart';
 
 class TeacherDashboardSnapshot {
   final DocenteProfile profile;
+  final TeacherDashboardOverview dashboard;
   final bool regimentalLockActive;
   final List<DocenteCourse> courses;
   final List<ClassSession> sessions;
@@ -24,6 +26,7 @@ class TeacherDashboardSnapshot {
 
   const TeacherDashboardSnapshot({
     required this.profile,
+    this.dashboard = TeacherDashboardOverview.empty,
     required this.regimentalLockActive,
     required this.courses,
     required this.sessions,
@@ -37,6 +40,7 @@ class TeacherDashboardSnapshot {
   factory TeacherDashboardSnapshot.fromJson(Map<String, dynamic> json) {
     return TeacherDashboardSnapshot(
       profile: _profile(_map(json['profile'])),
+      dashboard: _dashboardOverview(_map(json['dashboard'])),
       regimentalLockActive: json['regimentalLockActive'] == true,
       courses: _maps(json['courses']).map(_course).toList(),
       sessions: _maps(json['sessions']).map(_session).toList(),
@@ -256,6 +260,18 @@ class TeacherRemoteDataSource {
 
   Future<Map<String, dynamic>> noticeReads(String id) =>
       _api.getMap('/api/teacher/notices/${Uri.encodeComponent(id)}/reads');
+
+  Future<Map<String, dynamic>> decideProtocol({
+    required String protocolId,
+    required String status,
+    String? officialResponse,
+  }) => _api.patchMap(
+    '/api/teacher/protocols/${Uri.encodeComponent(protocolId)}/decide',
+    {
+      'status': status,
+      if (officialResponse != null) 'officialResponse': officialResponse,
+    },
+  );
 }
 
 Map<String, dynamic> _map(dynamic value) =>
@@ -333,14 +349,25 @@ DocenteCourse _course(Map<String, dynamic> json) {
     room: _string(json['room']),
     schedule: _string(json['schedule']),
     enrolledCount: _int(json['enrolledCount']),
+    enrolledStudentsLabelValue: json['enrolledStudentsLabel']?.toString(),
     completedHours: _int(json['completedHours']),
     totalHours: _int(json['totalHours']),
+    progressValue: json['progress'] != null ? _double(json['progress']) : null,
+    progressPercentageValue: json['progressPercentage'] != null
+        ? _double(json['progressPercentage'])
+        : null,
+    progressPercentageFormattedValue: json['progressPercentageFormatted']
+        ?.toString(),
+    workloadCompletedLabelValue: json['workloadCompletedLabel']?.toString(),
+    workloadTotalLabelValue: json['workloadTotalLabel']?.toString(),
+    progressCaptionValue: json['progressCaption']?.toString(),
     gradeLocked:
         json['classGradeLocked'] == true || json['gradeLocked'] == true,
     pautaHomologated: json['pautaHomologated'] == true,
     chancelaCode: json['chancelaCode']?.toString(),
     forumTopics: _maps(json['forumTopics']),
     squads: _maps(json['squads']),
+    isLive: json['isLive'] == true,
     syllabusUnits: syllabus
         .map(
           (unit) => SyllabusUnit(
@@ -543,5 +570,91 @@ TeacherProtocol _protocol(Map<String, dynamic> json) {
     createdAt: _string(json['createdAt']),
     documentUrl: json['documentUrl']?.toString(),
     officialResponse: json['officialResponse']?.toString(),
+  );
+}
+
+TeacherDashboardKpiItem _kpiItem(Map<String, dynamic> json) {
+  return TeacherDashboardKpiItem(
+    label: _string(json['label']),
+    valueFormatted: _string(json['valueFormatted'], '00'),
+    unitLabel: _string(json['unitLabel']),
+    footerLabel: _string(json['footerLabel']),
+    footerValue: _string(json['footerValue']),
+    progress: _double(json['progress']),
+  );
+}
+
+TeacherDashboardOverview _dashboardOverview(Map<String, dynamic> json) {
+  final hero = _map(json['hero']);
+  final stats = _map(json['stats']);
+  final todayClass = _map(json['todayClass']);
+  final sessionRaw = todayClass['session'];
+  final sessionMap = sessionRaw is Map ? _map(sessionRaw) : null;
+  final officeHours = _map(todayClass['officeHours']);
+  final upcoming = _map(json['upcomingDeadlines']);
+
+  return TeacherDashboardOverview(
+    hero: TeacherHeroInfo(
+      greetingPrefix: _string(hero['greetingPrefix']),
+      firstName: _string(hero['firstName']),
+      department: _string(hero['department']),
+      semester: _string(hero['semester']),
+    ),
+    stats: TeacherDashboardStats(
+      activeClasses: _kpiItem(_map(stats['activeClasses'])),
+      monthlyAssignments: _kpiItem(_map(stats['monthlyAssignments'])),
+      workload: _kpiItem(_map(stats['workload'])),
+      averageAttendance: _kpiItem(_map(stats['averageAttendance'])),
+    ),
+    todayClass: TeacherTodayClassInfo(
+      todayBadge: _string(todayClass['todayBadge']),
+      session: sessionMap == null
+          ? null
+          : TeacherLiveSessionPreview(
+              courseId: _string(sessionMap['courseId']),
+              code: _string(sessionMap['code']),
+              roomCode: _string(sessionMap['roomCode']),
+              title: _string(sessionMap['title']),
+              timeRange: _string(sessionMap['timeRange']),
+              isLive: sessionMap['isLive'] == true,
+              statusLabel: _string(sessionMap['statusLabel']),
+              connectedCount: _int(sessionMap['connectedCount']),
+              connectedLabel: _string(sessionMap['connectedLabel']),
+              locationLabel: _string(sessionMap['locationLabel']),
+              buttonLabel: _string(sessionMap['buttonLabel']),
+            ),
+      officeHours: TeacherOfficeHoursInfo(
+        title: _string(officeHours['title']),
+        subtitle: _string(officeHours['subtitle']),
+        location: _string(officeHours['location']),
+      ),
+    ),
+    upcomingDeadlines: TeacherUpcomingDeadlines(
+      totalCountFormatted: _string(upcoming['totalCountFormatted'], '00'),
+      items: _maps(upcoming['items'])
+          .map(
+            (item) => TeacherDeadlinePreviewItem(
+              id: _string(item['id']),
+              courseId: _string(item['courseId']),
+              typeLabel: _string(item['typeLabel']),
+              displayTitle: _string(item['displayTitle']),
+              courseName: _string(item['courseName']),
+              dueLabel: _string(item['dueLabel']),
+              isUrgent: item['isUrgent'] == true,
+            ),
+          )
+          .toList(),
+    ),
+    recentNotices: _maps(json['recentNotices'])
+        .map(
+          (item) => TeacherNoticePreviewItem(
+            id: _string(item['id']),
+            authorLabel: _string(item['authorLabel']),
+            timeLabel: _string(item['timeLabel']),
+            title: _string(item['title']),
+            message: _string(item['message']),
+          ),
+        )
+        .toList(),
   );
 }

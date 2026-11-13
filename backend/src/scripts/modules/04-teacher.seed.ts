@@ -207,6 +207,23 @@ export async function seedTeacher(
     const teacher = teachers[i % teachers.length] ?? defaultTeacher;
 
     const dueDate = new Date(Date.UTC(2026, 8 + Math.floor(i / 15), 15 + (i % 15), 23, 59, 0));
+    const lowerTitle = asg.title.toLowerCase();
+    const activityType = lowerTitle.includes("fórum") || lowerTitle.includes("forum")
+      ? "forum"
+      : lowerTitle.includes("atividade prática") || lowerTitle.includes("laboratório") || lowerTitle.includes("protótipo")
+        ? "atividade_pratica"
+        : lowerTitle.includes("lista") || lowerTitle.includes("avaliação") || lowerTitle.includes("tuning")
+          ? "avaliacao_parcial"
+          : "entrega";
+    const typeLabel = activityType === "forum"
+      ? "Fórum Temático"
+      : activityType === "atividade_pratica"
+        ? "Atividade Prática"
+        : activityType === "avaliacao_parcial"
+          ? "Avaliação Parcial"
+          : "Entrega";
+    const dueHour = i % 4 === 1 ? "18:00" : i % 4 === 3 ? "20:40" : "23:59";
+    const isUrgent = i % 4 < 2;
 
     await upsertSync(
       "academic_assignments",
@@ -215,11 +232,14 @@ export async function seedTeacher(
         seedKey: asg.key,
         classCode,
         moduleTag: `MÓDULO ${(i % 4) + 1}`,
+        activityType,
+        typeLabel,
         title: asg.title,
         description: `Submeter atividade avaliativa sobre ${asg.title} conforme rubrica técnica.`,
         dueDate,
         dueDateFormatted: dueDate.toLocaleDateString("pt-BR"),
-        dueHour: "23:59",
+        dueHour,
+        isUrgent,
         weight: asg.weight,
         stage: asg.stage,
         modality: i % 3 === 0 ? "Equipe" : "Individual",

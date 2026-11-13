@@ -495,6 +495,19 @@ void main() {
         // Verify Header and Sidebar render Painel Geral
         expect(find.text('Painel Geral'), findsWidgets);
 
+        // Verify Hero Header and KPI Cards from Backend Dashboard Overview
+        expect(find.text('Bem-vinda, Helena.'), findsOneWidget);
+        expect(find.text('Departamento de Computação'), findsOneWidget);
+        expect(find.text('Docência 2026/2'), findsOneWidget);
+        expect(find.text('TURMAS ATIVAS'), findsOneWidget);
+        expect(find.text('ENTREGAS DO MÊS'), findsOneWidget);
+        expect(find.text('CARGA HORÁRIA TOTAL'), findsOneWidget);
+        expect(find.text('FREQUÊNCIA MÉDIA'), findsOneWidget);
+
+        // Verify Aula do Dia & Atendimento Docente
+        expect(find.text('Aula do Dia'), findsOneWidget);
+        expect(find.text('Atendimento Docente'), findsOneWidget);
+
         // Verify Dashboard Course Cards matching reference UI
         expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
         expect(find.text('Sala de Aula AVA'), findsWidgets);
@@ -505,14 +518,48 @@ void main() {
         expect(find.text('Requerimentos Acadêmicos das Turmas'), findsOneWidget);
         expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
         expect(find.text('Rodrigo Antunes Nogueira'), findsOneWidget);
+        expect(find.text('PROT - 2026/0541'), findsOneWidget);
+        expect(find.text('PROT - 2026/0650'), findsOneWidget);
 
         // Verify Right Column Cards (Assessment preview & Notices preview)
-        expect(find.text('Avaliação Parcial: Gerenciamento de Memória'), findsOneWidget);
+        expect(find.text('Prazos e Entregas'), findsOneWidget);
         expect(find.text('Mensagens e Avisos'), findsOneWidget);
+        expect(find.text('Ver todos'), findsOneWidget);
 
         // Verify DocenteFooter is present
         expect(find.byType(DocenteFooter), findsOneWidget);
         expect(find.text('© 2026 AGMRM'), findsOneWidget);
+
+        // Navigate to Turmas tab and verify 3-column Disciplinas view
+        await tester.tap(find.byKey(const Key('docente_sidebar_item_turmas')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Disciplinas'), findsOneWidget);
+        expect(
+          find.text('Minhas Turmas e Componentes Curriculares'),
+          findsOneWidget,
+        );
+        expect(find.text('Análise e Projeto de Sistemas II'), findsOneWidget);
+        expect(find.text('Estudos de Banco de Dados II'), findsOneWidget);
+        expect(
+          find.text('Fundamentos de Sistemas Operacionais'),
+          findsOneWidget,
+        );
+        expect(find.text('Lab Informática 04 - Bloco C'), findsOneWidget);
+        expect(find.text('Lab Banco de Dados 02 - Bloco B'), findsOneWidget);
+        expect(find.text('Anfiteatro 101 - Bloco Central'), findsOneWidget);
+        expect(find.text('34 discentes matriculados'), findsOneWidget);
+        expect(find.text('31 discentes matriculados'), findsOneWidget);
+        expect(find.text('36 discentes matriculados'), findsOneWidget);
+        expect(find.text('68%'), findsOneWidget);
+        expect(find.text('75%'), findsOneWidget);
+        expect(find.text('55%'), findsOneWidget);
+        expect(
+          find.text('Acessar Sala de Aula Virtual (AVA)'),
+          findsNWidgets(3),
+        );
+        expect(find.text('Plano de Ensino & Materiais'), findsNWidgets(3));
+        expect(tester.takeException(), isNull);
       },
     );
 
@@ -779,5 +826,65 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Identidade Visual & Foto'), findsOneWidget);
     });
+
+    testWidgets(
+      'Sidebar edge-to-edge hit test, toggle collapse and drawer auto-close',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final controller = await _createLoadedTeacherController();
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(home: DocenteShellPage(controller: controller)),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Edge-to-edge row hit-test: tap with horizontal offset away from center
+        final turmasTile = find.byKey(const Key('docente_sidebar_item_turmas'));
+        expect(turmasTile, findsOneWidget);
+        await tester.tapAt(tester.getCenter(turmasTile) + const Offset(-60, 0));
+        await tester.pumpAndSettle();
+        expect(controller.activeTab, DocenteNavTab.turmas);
+        expect(find.text('Disciplinas'), findsOneWidget);
+
+        // 2. Floating toggle collapse button works seamlessly without getting swallowed
+        final toggleBtn = find.byKey(const Key('sidebar_toggle_collapse_btn'));
+        expect(toggleBtn, findsOneWidget);
+        await tester.tap(toggleBtn);
+        await tester.pumpAndSettle();
+        expect(controller.isSidebarCollapsed, isTrue);
+
+        // Tap again to expand
+        await tester.tap(toggleBtn);
+        await tester.pumpAndSettle();
+        expect(controller.isSidebarCollapsed, isFalse);
+
+        // 3. Narrow viewport: Drawer opens and auto-closes on item selection
+        tester.view.physicalSize = const Size(900, 900);
+        await tester.pumpAndSettle();
+
+        final openDrawerBtn = find.byTooltip('Abrir Menu');
+        expect(openDrawerBtn, findsOneWidget);
+        await tester.tap(openDrawerBtn);
+        await tester.pumpAndSettle();
+
+        // Verify drawer opened with sidebar items and tapping closes drawer
+        final configTile = find.byKey(
+          const Key('docente_sidebar_item_configuracoes'),
+        );
+        expect(configTile, findsOneWidget);
+        await tester.tap(configTile);
+        await tester.pumpAndSettle();
+
+        // Drawer must be closed and activeTab switched to configuracoes
+        expect(controller.activeTab, DocenteNavTab.configuracoes);
+        expect(find.text('Configurações da Conta Docente'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }

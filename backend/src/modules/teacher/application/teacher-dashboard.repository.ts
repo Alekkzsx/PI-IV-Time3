@@ -67,7 +67,16 @@ export class TeacherDashboardRepository {
       classCodes.length > 0
         ? this.database
             .collection("academic_protocols")
-            .find({ targetComponent: { $in: classCodes } }, { projection: { attachmentBase64: 0 } })
+            .find(
+              {
+                $or: [
+                  { targetComponent: { $in: classCodes } },
+                  { classCode: { $in: classCodes } },
+                  { classCodes: { $in: classCodes } },
+                ],
+              },
+              { projection: { attachmentBase64: 0 } },
+            )
             .sort({ createdAt: -1 })
             .limit(50)
             .toArray()

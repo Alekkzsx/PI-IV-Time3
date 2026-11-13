@@ -1,5 +1,6 @@
 // Desenvolvido por Guilherme Henrique Moreira e Alex Gabriel Soares Sousa - RA: 24802449
 // Aba de Turmas e Componentes Curriculares da Visão do Docente
+// Dados 100% tratados e entregues pelo backend/MongoDB
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
@@ -33,91 +34,156 @@ class DocenteCoursesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 1000;
+    return ColoredBox(
+      color: InstColors.surface,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 1000;
 
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1400),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isDesktop ? 40 : 20,
-                        vertical: isDesktop ? 32 : 20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header da Aba
-                          Text(
-                            'Minhas Turmas e Componentes Curriculares',
-                            style: jakarta(
-                              size: 24,
-                              weight: FontWeight.w700,
-                              color: InstColors.ink,
-                              letterSpacing: -0.4,
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1400),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isDesktop ? 48 : 20,
+                          vertical: isDesktop ? 36 : 20,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header da Aba
+                            Text(
+                              'Minhas Turmas e Componentes Curriculares',
+                              style: jakarta(
+                                size: 20,
+                                weight: FontWeight.w700,
+                                color: const Color(0xFF0F172A),
+                                letterSpacing: -0.3,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Gerencie o plano de ensino, acompanhe a carga horária ministrada e disponibilize materiais didáticos.',
-                            style: jakarta(
-                              size: 13.5,
-                              color: InstColors.muted,
+                            const SizedBox(height: 4),
+                            Text(
+                              'Gerencie o plano de ensino, acompanhe a carga horária ministrada e disponibilize materiais didáticos.',
+                              style: jakarta(
+                                size: 13,
+                                color: const Color(0xFF64748B),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 28),
+                            const SizedBox(height: 24),
 
-                          // Lista dos Cards Detalhados de Turma
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: controller.courses.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 20),
-                            itemBuilder: (context, index) {
-                              final course = controller.courses[index];
-                              return _buildDetailedCourseCard(context, course);
-                            },
-                          ),
-                        ],
+                            // Grade Responsiva de 3 Colunas dos Cards de Turma
+                            _buildResponsiveCoursesGrid(context),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                DocenteFooter(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 40 : 20,
-                    vertical: 16,
+                  DocenteFooter(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 48 : 20,
+                      vertical: 16,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildResponsiveCoursesGrid(BuildContext context) {
+    final courses = controller.courses;
+    if (courses.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: InstColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: InstColors.border),
+        ),
+        child: Center(
+          child: Text(
+            'Nenhuma turma vinculada à sua matrícula docente.',
+            style: jakarta(size: 13, color: InstColors.muted),
           ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, gridConstraints) {
+        final width = gridConstraints.maxWidth;
+        final columns = width >= 980
+            ? 3
+            : width >= 640
+                ? 2
+                : 1;
+
+        if (columns == 1) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < courses.length; i++) ...[
+                if (i > 0) const SizedBox(height: 16),
+                _buildDetailedCourseCard(context, courses[i]),
+              ],
+            ],
+          );
+        }
+
+        final rows = <Widget>[];
+        for (int i = 0; i < courses.length; i += columns) {
+          if (i > 0) rows.add(const SizedBox(height: 20));
+          final rowChildren = <Widget>[];
+          for (int col = 0; col < columns; col++) {
+            if (col > 0) rowChildren.add(const SizedBox(width: 20));
+            final idx = i + col;
+            if (idx < courses.length) {
+              rowChildren.add(
+                Expanded(
+                  child: _buildDetailedCourseCard(context, courses[idx]),
+                ),
+              );
+            } else {
+              rowChildren.add(const Expanded(child: SizedBox.shrink()));
+            }
+          }
+          rows.add(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: rowChildren,
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: rows,
         );
       },
     );
   }
 
   Widget _buildDetailedCourseCard(BuildContext context, DocenteCourse course) {
-    final pct = course.progressPercentage.round();
-
     return Container(
-      padding: const EdgeInsets.all(26),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: InstColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: InstColors.border),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x06000000),
+            color: Color(0x04000000),
             blurRadius: 6,
             offset: Offset(0, 2),
           ),
@@ -126,7 +192,7 @@ class DocenteCoursesTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Linha Superior: Código e Período
+          // 1. Linha Superior: Código (badge com borda) + Semestre à direita
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -136,203 +202,276 @@ class DocenteCoursesTab extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F5),
+                  color: const Color(0xFFFAFAFA),
                   borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFE4E4E7)),
                 ),
                 child: Text(
                   course.code,
                   style: jakarta(
-                    size: 11.5,
-                    weight: FontWeight.w700,
-                    color: InstColors.ink,
-                  ),
-                ),
-              ),
-              Text(
-                course.term,
-                style: jakarta(
-                  size: 12.5,
-                  weight: FontWeight.w500,
-                  color: InstColors.muted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Título da Disciplina
-          Text(
-            course.title,
-            style: jakarta(
-              size: 20,
-              weight: FontWeight.w700,
-              color: InstColors.ink,
-            ),
-          ),
-          const SizedBox(height: 6),
-
-          // Turno, Sala e Horário
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: InstColors.stone,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  course.shift,
-                  style: jakarta(
                     size: 11,
                     weight: FontWeight.w700,
-                    color: InstColors.ink,
+                    color: const Color(0xFF0F172A),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                '${course.room} • ${course.schedule}',
-                style: jakarta(
-                  size: 12.5,
-                  color: InstColors.muted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Discentes Matriculados
-          Row(
-            children: [
-              const Icon(
-                Icons.people_outline_rounded,
-                size: 18,
-                color: InstColors.muted,
-              ),
               const SizedBox(width: 8),
-              Text(
-                '${course.enrolledCount} discentes matriculados',
-                style: jakarta(
-                  size: 13.5,
-                  weight: FontWeight.w600,
-                  color: InstColors.ink,
+              Flexible(
+                child: Text(
+                  course.term,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 11.5,
+                    weight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Barra de Progresso
+          // 2. Título da Disciplina + Turno abaixo
+          Text(
+            course.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: jakarta(
+              size: 16.5,
+              weight: FontWeight.w700,
+              color: const Color(0xFF0F172A),
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            course.shift,
+            style: jakarta(
+              size: 12.5,
+              weight: FontWeight.w400,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 14),
+
+          // 3. Metadados Empilhados (Sala, Horário e Discentes Matriculados)
+          _buildMetadataRow(
+            icon: Icons.location_on_outlined,
+            text: course.room,
+          ),
+          const SizedBox(height: 8),
+          _buildMetadataRow(
+            icon: Icons.access_time_rounded,
+            text: course.schedule,
+          ),
+          const SizedBox(height: 8),
+          _buildMetadataRow(
+            icon: Icons.people_outline_rounded,
+            text: course.enrolledStudentsLabel,
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 14),
+
+          // 4. Barra de Progresso de Carga Horária (tratada no backend)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Carga Horária: ${course.completedHours}h de ${course.totalHours}h',
-                style: jakarta(
-                  size: 12.5,
-                  color: InstColors.muted,
+              Flexible(
+                child: RichText(
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                    style: jakarta(
+                      size: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                    children: [
+                      const TextSpan(text: 'Carga Horária: '),
+                      TextSpan(
+                        text: course.workloadCompletedLabel,
+                        style: jakarta(
+                          size: 12,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      TextSpan(text: course.workloadTotalLabel),
+                    ],
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
-                '$pct%',
+                course.progressPercentageFormatted,
                 style: jakarta(
-                  size: 13,
+                  size: 12,
                   weight: FontWeight.w700,
-                  color: InstColors.ink,
+                  color: const Color(0xFF0F172A),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: (course.progressPercentage / 100).clamp(0.0, 1.0),
+              value: course.progress.clamp(0.0, 1.0),
               minHeight: 6,
-              backgroundColor: const Color(0xFFF4F4F5),
-              valueColor: const AlwaysStoppedAnimation<Color>(InstColors.ink),
+              backgroundColor: const Color(0xFFF1F5F9),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF0F172A),
+              ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'Este percentual reflete diretamente o progresso visto pelos discentes no portal acadêmico.',
-            style: jakarta(size: 11.5, color: InstColors.faint),
+            course.progressCaption,
+            style: jakarta(
+              size: 11,
+              color: const Color(0xFF94A3B8),
+            ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
 
-          // Botões de Ação
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
+          // 5. Pilha Vertical de Botões de Ação
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              key: Key('btn_ava_course_${course.id}'),
+              onPressed: () => onOpenCourseHub(course.id),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F172A),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 15,
+                    color: Color(0xFF10B981),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Acessar Sala de Aula Virtual (AVA)',
+                      overflow: TextOverflow.ellipsis,
+                      style: jakarta(
+                        size: 12,
+                        weight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 38,
+            child: OutlinedButton.icon(
+              key: Key('btn_syllabus_course_${course.id}'),
+              onPressed: () => _showSyllabusModal(context, course),
+              icon: const Icon(
+                Icons.menu_book_outlined,
+                size: 15,
+                color: Color(0xFF0F172A),
+              ),
+              label: Text(
+                'Plano de Ensino & Materiais',
+                overflow: TextOverflow.ellipsis,
+                style: jakarta(
+                  size: 12,
+                  weight: FontWeight.w600,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF0F172A),
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFE4E4E7)),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
             children: [
-              ElevatedButton.icon(
-                onPressed: () => onOpenCourseHub(course.id),
-                icon: const Icon(Icons.school_rounded, size: 16),
-                label: const Text('Acessar Sala de Aula Virtual (AVA)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: InstColors.ink,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _showSyllabusModal(context, course),
-                icon: const Icon(Icons.menu_book_outlined, size: 16),
-                label: const Text('Plano de Ensino & Materiais'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: InstColors.ink,
-                  side: const BorderSide(color: InstColors.border),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton(
+                    key: Key('btn_diario_course_${course.id}'),
+                    onPressed: () {
+                      controller.selectCourse(course.id);
+                      controller.navigateToTab(DocenteNavTab.diario);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0F172A),
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFE4E4E7)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'Diário',
+                      style: jakarta(
+                        size: 12,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
                   ),
                 ),
               ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  controller.selectCourse(course.id);
-                  controller.navigateToTab(DocenteNavTab.diario);
-                },
-                icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
-                label: const Text('Diário'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: InstColors.ink,
-                  side: const BorderSide(color: InstColors.border),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  controller.selectCourse(course.id);
-                  controller.navigateToTab(DocenteNavTab.notas);
-                },
-                icon: const Icon(Icons.fact_check_outlined, size: 16),
-                label: const Text('Notas'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: InstColors.ink,
-                  side: const BorderSide(color: InstColors.border),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton(
+                    key: Key('btn_notas_course_${course.id}'),
+                    onPressed: () {
+                      controller.selectCourse(course.id);
+                      controller.navigateToTab(DocenteNavTab.notas);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0F172A),
+                      backgroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFE4E4E7)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'Notas',
+                      style: jakarta(
+                        size: 12,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -340,6 +479,34 @@ class DocenteCoursesTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMetadataRow({
+    required IconData icon,
+    required String text,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 15,
+          color: const Color(0xFF64748B),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: jakarta(
+              size: 12.5,
+              weight: FontWeight.w400,
+              color: const Color(0xFF475569),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

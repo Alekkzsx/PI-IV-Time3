@@ -22,15 +22,41 @@ export class TeacherSyllabusService {
       const current = Number(unit.completedClasses ?? 0);
       return { ...unit, completedClasses: current < total ? current + 1 : total };
     });
+    const totalHours = Number(classroom.totalHours ?? 80);
     const completedHours = Math.min(
-      Number(classroom.totalHours ?? 80),
+      totalHours,
       updatedUnits.reduce((total, unit) => total + Number(unit.completedClasses ?? 0) * 2, 0),
     );
+    const rawProgress = totalHours > 0 ? Math.min(1, Math.max(0, completedHours / totalHours)) : 0;
+    const progress = Number(rawProgress.toFixed(4));
+    const progressPercentage = Math.round(rawProgress * 100);
+    const progressPercentageFormatted = `${progressPercentage}%`;
+    const workloadCompletedLabel = `${completedHours}h`;
+    const workloadTotalLabel = ` de ${totalHours}h`;
 
     await this.database.collection("academic_classes").updateOne(
       { _id: classroom._id },
-      { $set: { syllabusUnits: updatedUnits, completedHours, updatedAt: new Date() } },
+      {
+        $set: {
+          syllabusUnits: updatedUnits,
+          completedHours,
+          progress,
+          progressPercentage,
+          progressPercentageFormatted,
+          workloadCompletedLabel,
+          workloadTotalLabel,
+          updatedAt: new Date(),
+        },
+      },
     );
-    return { syllabusUnits: updatedUnits, completedHours };
+    return {
+      syllabusUnits: updatedUnits,
+      completedHours,
+      progress,
+      progressPercentage,
+      progressPercentageFormatted,
+      workloadCompletedLabel,
+      workloadTotalLabel,
+    };
   }
 }

@@ -92,23 +92,28 @@ export async function seedStudent(
 
   // 3. PELO MENOS 30 PROTOCOLOS NA SECRETARIA ACADÊMICA (academic_protocols)
   const protocolTypes = [
+    { type: "Atestado Médico", desc: "APS-II e BD-II (Afastamento 29 a 30/09)" },
+    { type: "Segunda Chamada", desc: "APS-II - Prova Substitutiva" },
+    { type: "Revisão de Avaliação A1", desc: "Solicitação de revisão técnica de nota e critério da avaliação teórica." },
     { type: "Aproveitamento de Estudos", desc: "Análise de certificação em nuvem AWS/Azure para horas complementares." },
     { type: "Declaração de Matrícula com Histórico", desc: "Comprovação acadêmica oficial para processo seletivo de estágio." },
-    { type: "Revisão de Avaliação A1", desc: "Solicitação de revisão técnica de nota e critério da avaliação teórica." },
-    { type: "Atestado Médico / Justificativa", desc: "Comprovante médico para abono e segunda chamada de atividade avaliativa." },
     { type: "Trancamento Parcial de Disciplina", desc: "Requerimento regimental de desmatrícula tempestiva de componente optativo." },
-    { type: "Declaração de Conclusão de Módulo", desc: "Emissão de certificado intermediário de Desenvolvedor Back-End Júnior." },
   ];
+
+  const allClassCodes = classes.length > 0
+    ? classes.map((c) => String(c.code))
+    : ["218131 - APS-II", "PI4-2026-4N", "BD2-2026-4N", "ARQ-2026-4N", "FIS-2026-4N", "MAT-2026-4N"];
 
   for (let i = 0; i < 30; i++) {
     const protoType = protocolTypes[i % protocolTypes.length]!;
     const st = students[i % students.length] ?? defaultStudent;
-    const protoCode = `PROT-2026-${String(1001 + i).padStart(4, "0")}`;
-    const status = i % 3 === 0 ? "concluido" : (i % 3 === 1 ? "em_analise" : "pendente");
+    const targetClassCode = allClassCodes[i % allClassCodes.length]!;
+    const protoCode = `PROT - 2026/${String(541 + i).padStart(4, "0")}`;
+    const status = i % 2 === 0 ? "deferido" : "pendente";
 
-    await upsertOnInsert(
+    await upsertSync(
       "academic_protocols",
-      { code: protoCode },
+      { seedKey: `prot-eco-${i + 1}` },
       {
         seedKey: `prot-eco-${i + 1}`,
         code: protoCode,
@@ -117,11 +122,14 @@ export async function seedStudent(
         studentRa: st.identity,
         studentName: st.displayName,
         requestType: protoType.type,
-        targetComponent: "ES-2026",
+        targetComponent: targetClassCode,
+        classCode: targetClassCode,
+        classCodes: allClassCodes,
+        description: protoType.desc,
         justification: protoType.desc,
         status,
         slaDays: 5,
-        resolution: status === "concluido" ? "Requerimento deferido e emitido eletronicamente pela secretaria." : undefined,
+        resolution: status === "deferido" ? "Requerimento deferido e homologado eletronicamente pela secretaria." : undefined,
         createdBy: String(st._id),
         createdAt: now,
         updatedAt: now,

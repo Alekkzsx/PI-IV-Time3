@@ -2,7 +2,6 @@
 // Atualizado com padronização institucional oficial (AGMRM AVA)
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_top_header.dart';
 
@@ -18,7 +17,7 @@ class DocenteHeader extends StatelessWidget {
       case DocenteNavTab.painel:
         return 'Painel Geral';
       case DocenteNavTab.turmas:
-        return 'Turmas';
+        return 'Disciplinas';
       case DocenteNavTab.diario:
         return 'Diário';
       case DocenteNavTab.atividades:
@@ -77,14 +76,14 @@ class DocenteHeader extends StatelessWidget {
                 color: Color(0xFF52525B),
               ),
               Positioned(
-                right: -5,
-                top: -4,
-                child: Text(
-                  '0',
-                  style: jakarta(
-                    size: 10,
-                    weight: FontWeight.w700,
-                    color: const Color(0xFF52525B),
+                right: 1,
+                top: 1,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF18181B),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ),

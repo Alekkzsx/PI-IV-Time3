@@ -19,6 +19,7 @@ import '../domain/models/docente_course.dart';
 import '../domain/models/docente_profile.dart';
 import '../domain/models/grade_record.dart';
 import '../domain/models/rubric_model.dart';
+import '../domain/models/teacher_dashboard_overview.dart';
 import '../domain/models/teacher_protocol.dart';
 import '../domain/repositories/docente_repository.dart';
 
@@ -67,6 +68,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   List<AcademicNotice> _notices = [];
   List<TeacherProtocol> _protocols = [];
   DocenteProfile _profile = DocenteProfile.empty;
+  TeacherDashboardOverview _dashboard = TeacherDashboardOverview.empty;
   String _ownerIdentity = '';
 
   String _settingsSubtab = 'perfil';
@@ -106,34 +108,10 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   String get selectedAssignmentId => _selectedAssignmentId;
   List<AcademicEvent> get events => List.unmodifiable(_events);
   List<AcademicNotice> get notices => List.unmodifiable(_notices);
-  List<TeacherProtocol> get protocols => List.unmodifiable(_protocols.isNotEmpty ? _protocols : _fallbackProtocols);
+  List<TeacherProtocol> get protocols => List.unmodifiable(_protocols);
   DocenteProfile get profile => _profile;
+  TeacherDashboardOverview get dashboard => _dashboard;
   String get settingsSubtab => _settingsSubtab;
-
-  static final List<TeacherProtocol> _fallbackProtocols = [
-    const TeacherProtocol(
-      id: 'proto-1',
-      code: 'PROT - 2026/0541',
-      studentName: 'Camila Duarte Fagundes',
-      studentRa: '2024.1.00982',
-      requestType: 'Atestado Médico',
-      targetComponent: 'APS-II e BD-II',
-      description: 'Atestado Médico APS-II e BD-II (Afastamento 29 a 30/09)',
-      status: TeacherProtocolStatus.deferido,
-      createdAt: '29/09/2026',
-    ),
-    const TeacherProtocol(
-      id: 'proto-2',
-      code: 'PROT - 2026/0650',
-      studentName: 'Rodrigo Antunes Nogueira',
-      studentRa: '2024.1.08934',
-      requestType: 'Segunda Chamada',
-      targetComponent: 'APS-II',
-      description: 'Segunda Chamada APS-II - Prova Substitutiva',
-      status: TeacherProtocolStatus.pendente,
-      createdAt: '30/09/2026',
-    ),
-  ];
 
   DocenteCourse get selectedCourse => _courses.firstWhere(
         (course) => course.id == _selectedCourseId,
@@ -209,6 +187,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
       if (AppUserSession.instance.accessToken != token) return;
       _ownerIdentity = snapshot.profile.registrationId;
       _profile = snapshot.profile;
+      _dashboard = snapshot.dashboard;
       _courses = snapshot.courses;
       _selectedCourseId = _courses.isEmpty ? '' : _courses.first.id;
       _sessions = snapshot.sessions;
@@ -280,12 +259,35 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
     _notices = [];
     _protocols = [];
     _profile = _emptyProfile;
+    _dashboard = TeacherDashboardOverview.empty;
     _currentSession = _emptySession;
     _selectedCourseId = '';
     _selectedAssignmentId = '';
     _pautaHomologada.clear();
     _pautaChancelaCodes.clear();
     _forumTopicsByCourse.clear();
+  }
+
+  Future<bool> decideProtocol({
+    required String protocolId,
+    required TeacherProtocolStatus decision,
+    String? officialResponse,
+  }) async {
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty || !_hasActiveTeacherAccess) {
+      return false;
+    }
+    try {
+      await _remote.decideProtocol(
+        protocolId: protocolId,
+        status: decision.name,
+        officialResponse: officialResponse,
+      );
+      await loadRemote(force: true);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _persistCurrentSession() async {

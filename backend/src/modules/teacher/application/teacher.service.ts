@@ -1,5 +1,6 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 import { ObjectId, type Db, type Document } from "mongodb";
+import { AuthError } from "../../../shared/auth-error.js";
 import { TeacherClassAccess } from "./teacher-class-access.js";
 import { TeacherCommunicationService } from "./teacher-communication.service.js";
 import { TeacherDashboardRepository } from "./teacher-dashboard.repository.js";
@@ -7,6 +8,7 @@ import { formatPtBrLongDate, formatShortDate } from "../../../shared/formatting/
 import {
   mapTeacherEvents,
   mapTeacherCourses,
+  mapTeacherDashboardOverview,
   mapTeacherNotices,
   mapTeacherProfile,
   mapTeacherProtocols,
@@ -203,9 +205,19 @@ export class TeacherService {
     const mappedEvents = mapTeacherEvents(teacherEvents, calendarEvents);
     const mappedNotices = mapTeacherNotices(announcements, enrollments, enrollmentsByClass, user);
     const profile = mapTeacherProfile(userId, user, activeSessions, auditLogs, currentSessionId);
+    const mappedProtocols = mapTeacherProtocols(protocols);
+    const dashboard = mapTeacherDashboardOverview({
+      user,
+      courses: mappedCourses,
+      sessions: mappedSessions,
+      assignments: mappedAssignments,
+      notices: mappedNotices,
+      rawAnnouncements: announcements,
+    });
 
     return {
       profile,
+      dashboard,
       regimentalLockActive: adminSettings?.regimentalLockActive === true,
       courses: mappedCourses,
       sessions: mappedSessions,
@@ -213,8 +225,50 @@ export class TeacherService {
       grades: mappedGrades,
       events: mappedEvents,
       notices: mappedNotices,
-      protocols: mapTeacherProtocols(protocols),
+      protocols: mappedProtocols,
     };
+  }
+
+  async decideProtocol(
+    userId: string,
+    user: Document,
+    protocolId: string,
+    input: { status: "deferido" | "indeferido"; officialResponse?: string },
+  ) {
+    if (!ObjectId.isValid(protocolId)) {
+      throw new AuthError(400, "invalid_protocol_id", "Identificador de protocolo inválido.");
+    }
+    const existing = await this.database
+      .collection("academic_protocols")
+      .findOne({ _id: new ObjectId(protocolId) });
+    if (!existing) {
+      throw new AuthError(404, "protocol_not_found", "Protocolo não encontrado.");
+    }
+    const resolutionText =
+      input.officialResponse?.trim() ||
+      (input.status === "deferido"
+        ? "Requerimento deferido pelo docente responsável."
+        : "Requerimento indeferido pelo docente responsável.");
+    const now = new Date();
+    await this.database.collection("academic_protocols").updateOne(
+      { _id: new ObjectId(protocolId) },
+      {
+        $set: {
+          status: input.status,
+          resolution: resolutionText,
+          officialResponse: resolutionText,
+          decisionNote: resolutionText,
+          signedBy: String(user.displayName ?? user.identity ?? userId),
+          decidedBy: userId,
+          decidedAt: now,
+          updatedAt: now,
+        },
+      },
+    );
+    const updated = await this.database
+      .collection("academic_protocols")
+      .findOne({ _id: new ObjectId(protocolId) });
+    return mapTeacherProtocols(updated ? [updated] : [])[0] ?? null;
   }
 
   async createOrSelectSessionByDate(

@@ -134,6 +134,7 @@ export async function seedUsers(
 
   // 2. DOCENTES (10 professores reais + testes)
   for (const t of teacherAccounts) {
+    const isFemale = t.name.toLowerCase().includes("profa.") || t.name.toLowerCase().includes("dra.");
     const doc = await upsertOnInsert(
       "auth_users",
       { normalizedIdentity: t.identity },
@@ -144,7 +145,17 @@ export async function seedUsers(
         email: t.email,
         normalizedEmail: t.email,
         profile: "docente",
+        greetingPrefix: isFemale ? "Bem-vinda," : "Bem-vindo,",
+        department: "Departamento de Computação",
         departmentOrCourse: t.dept,
+        semester: "Docência 2026/2",
+        officeHours: {
+          title: "Atendimento Docente",
+          subtitle: "Plantão de dúvidas e orientação às 17:30",
+          startTime: "17:30",
+          endTime: "18:30",
+          location: "Lab 04 • Sala Virtual Teams",
+        },
         campus: "Unidade Sede",
         passwordHash,
         active: true,
@@ -153,6 +164,23 @@ export async function seedUsers(
         createdAt: now,
         updatedAt: now,
         seedTag: SEED_TAG,
+      },
+    );
+    await database.collection("auth_users").updateOne(
+      { normalizedIdentity: t.identity },
+      {
+        $set: {
+          greetingPrefix: isFemale ? "Bem-vinda," : "Bem-vindo,",
+          department: "Departamento de Computação",
+          semester: "Docência 2026/2",
+          officeHours: {
+            title: "Atendimento Docente",
+            subtitle: "Plantão de dúvidas e orientação às 17:30",
+            startTime: "17:30",
+            endTime: "18:30",
+            location: "Lab 04 • Sala Virtual Teams",
+          },
+        },
       },
     );
     usersMap.set(t.identity, doc);
@@ -175,7 +203,17 @@ export async function seedUsers(
         email: t.email,
         normalizedEmail: t.email,
         profile: "docente",
+        greetingPrefix: "Bem-vindo,",
+        department: "Departamento de Computação",
         departmentOrCourse: "Engenharia de Software",
+        semester: "Docência 2026/2",
+        officeHours: {
+          title: "Atendimento Docente",
+          subtitle: "Plantão de dúvidas e orientação às 17:30",
+          startTime: "17:30",
+          endTime: "18:30",
+          location: "Lab 04 • Sala Virtual Teams",
+        },
         campus: "Unidade Sede",
         passwordHash,
         active: true,
@@ -184,6 +222,23 @@ export async function seedUsers(
         createdAt: now,
         updatedAt: now,
         seedTag: SEED_TAG,
+      },
+    );
+    await database.collection("auth_users").updateOne(
+      { normalizedIdentity: t.identity },
+      {
+        $set: {
+          greetingPrefix: "Bem-vindo,",
+          department: "Departamento de Computação",
+          semester: "Docência 2026/2",
+          officeHours: {
+            title: "Atendimento Docente",
+            subtitle: "Plantão de dúvidas e orientação às 17:30",
+            startTime: "17:30",
+            endTime: "18:30",
+            location: "Lab 04 • Sala Virtual Teams",
+          },
+        },
       },
     );
     usersMap.set(t.identity, doc);

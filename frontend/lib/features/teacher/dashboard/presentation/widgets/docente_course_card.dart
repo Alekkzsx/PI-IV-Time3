@@ -1,5 +1,6 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
-// Card individual de disciplina na visão docente com fidelidade ao mockup da imagem
+// Card individual de disciplina na visão docente - Pixel-perfect fiel ao PDF
+// Chip código + "Sala de Aula AVA" + progresso + "Autoria & Edição habilitadas"
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
@@ -7,6 +8,13 @@ import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
 
 /// Card institucional representando uma turma ativa do docente no Painel Geral.
+/// Fiel ao PDF:
+/// - Chip com código da turma (ex: 218131-APS-II)
+/// - Link "Sala de Aula AVA" com ícone sparkle
+/// - Nome da disciplina
+/// - Turno + discentes
+/// - "Progresso do Plano" + barra de progresso
+/// - "Autoria & Edição habilitadas" + "Acessar →"
 class DocenteCourseCard extends StatefulWidget {
   final DocenteCourse course;
   final VoidCallback onOpenCourseHub;
@@ -28,7 +36,7 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
   Widget build(BuildContext context) {
     final course = widget.course;
     final progress = (course.progressPercentage / 100).clamp(0.0, 1.0);
-    final progressPct = (course.progressPercentage).round();
+    final progressPct = course.progressPercentage.round();
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -54,16 +62,16 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Linha Superior: Código/Tag da Turma à esquerda e link da Sala AVA à direita
+            // ═══════════════════════════════════════════
+            // Linha 1: Chip código + "Sala de Aula AVA"
+            // ═══════════════════════════════════════════
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Chip código da turma
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF4F4F5),
                     borderRadius: BorderRadius.circular(6),
@@ -77,6 +85,8 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
                     ),
                   ),
                 ),
+
+                // Link "Sala de Aula AVA"
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
@@ -106,13 +116,15 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
             ),
             const SizedBox(height: 14),
 
+            // ═══════════════════════════════════════════
             // Título da Disciplina
+            // ═══════════════════════════════════════════
             Text(
               course.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: jakarta(
-                size: 16.5,
+                size: 15.5,
                 weight: FontWeight.w700,
                 color: InstColors.ink,
                 height: 1.25,
@@ -124,20 +136,22 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
             Text(
               '${course.shift} • ${course.enrolledCount} discentes',
               style: jakarta(
-                size: 12.5,
+                size: 12,
                 color: InstColors.muted,
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
 
+            // ═══════════════════════════════════════════
             // Progresso do Plano
+            // ═══════════════════════════════════════════
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Progresso do Plano',
                   style: jakarta(
-                    size: 12,
+                    size: 11.5,
                     color: InstColors.muted,
                   ),
                 ),
@@ -161,9 +175,11 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
                 valueColor: const AlwaysStoppedAnimation<Color>(InstColors.ink),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            // Rodapé do Card
+            // ═══════════════════════════════════════════
+            // Rodapé: "Autoria & Edição" + "Acessar →"
+            // ═══════════════════════════════════════════
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -173,7 +189,7 @@ class _DocenteCourseCardState extends State<DocenteCourseCard> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: jakarta(
-                      size: 11.5,
+                      size: 11,
                       weight: FontWeight.w600,
                       color: InstColors.success,
                     ),

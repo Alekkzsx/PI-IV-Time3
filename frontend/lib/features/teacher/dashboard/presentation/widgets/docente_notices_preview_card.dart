@@ -1,12 +1,14 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-// Card "Mensagens e Avisos" da coluna direita do Painel Geral do Docente
+// Card "Mensagens e Avisos" do Painel Geral - Padrão estético fiel às referências
+// Dados 100% tratados no backend/MongoDB
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_dashboard_overview.dart';
 
-/// Card de exibição das últimas mensagens e comunicados acadêmicos.
+/// Card de exibição das últimas mensagens e comunicados acadêmicos na coluna direita.
+/// Segue exatamente o design limpo das referências (sem avatares circulares).
 class DocenteNoticesPreviewCard extends StatelessWidget {
   final DocenteController controller;
 
@@ -14,140 +16,131 @@ class DocenteNoticesPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notices = controller.dashboard.recentNotices;
+
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: InstColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: InstColors.border),
-        boxShadow: const [
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x06000000),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 4,
-            offset: Offset(0, 1),
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Cabeçalho com Título e "Ver todos"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Mensagens e Avisos',
                 style: jakarta(
-                  size: 16.5,
+                  size: 16,
                   weight: FontWeight.w700,
-                  color: InstColors.ink,
+                  color: const Color(0xFF18181B),
                 ),
               ),
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
-                  onTap: () => controller.navigateToTab(DocenteNavTab.comunicados),
+                  onTap: () =>
+                      controller.navigateToTab(DocenteNavTab.comunicados),
                   child: Text(
                     'Ver todos',
                     style: jakarta(
-                      size: 12,
-                      weight: FontWeight.w600,
-                      color: InstColors.muted,
+                      size: 11.5,
+                      weight: FontWeight.w500,
+                      color: const Color(0xFF71717A),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-
-          // 1. Mensagem Helena Bittencourt
-          _buildNoticeItem(
-            author: 'Você (Helena Bittencourt - APS-II)',
-            time: 'Hoje, 14:10',
-            title: 'Feedback da Sprint 1 e Orientações para o Diagrama UML',
-            body:
-                'Prezados alunos, os apontamentos da primeira etapa do projeto de sistemas já constam no ambiente de entrega.',
-          ),
-          const Divider(height: 28, thickness: 1, color: Color(0xFFF4F4F5)),
-
-          // 2. Mensagem Coordenação de Curso
-          _buildNoticeItem(
-            author: 'Coordenação de Curso (Sistemas de Informação)',
-            time: 'Ontem, 17:45',
-            title: 'Homologação de Diários de Classe - Fechamento 1º Bimestre',
-            body:
-                'Lembramos aos docentes que a consolidação das notas parciais e faltas deve ser realizada até sexta-feira.',
-          ),
-          const Divider(height: 28, thickness: 1, color: Color(0xFFF4F4F5)),
-
-          // 3. Mensagem Secretaria Acadêmica
-          _buildNoticeItem(
-            author: 'Secretaria Acadêmica AGMRM',
-            time: '18 de set',
-            title: 'Calendário de Provas Regimentais 2026/2 Homologado',
-            body:
-                'O cronograma definitivo de avaliações institucionais encontra-se disponível no sistema.',
-          ),
+          const Divider(height: 28, color: Color(0xFFF4F4F5)),
+          if (notices.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text(
+                  'Nenhuma mensagem ou aviso no momento.',
+                  style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
+                ),
+              ),
+            )
+          else
+            for (int i = 0; i < notices.length; i++) ...[
+              if (i > 0)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Divider(height: 1, color: Color(0xFFF4F4F5)),
+                ),
+              _buildNoticeItem(notices[i]),
+            ],
         ],
       ),
     );
   }
 
-  Widget _buildNoticeItem({
-    required String author,
-    required String time,
-    required String title,
-    required String body,
-  }) {
+  Widget _buildNoticeItem(TeacherNoticePreviewItem notice) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Text(
-                author,
-                maxLines: 1,
+                notice.authorLabel,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: jakarta(
-                  size: 11.5,
-                  weight: FontWeight.w600,
-                  color: InstColors.muted,
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: const Color(0xFF18181B),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              time,
+              notice.timeLabel,
               style: jakarta(
                 size: 11,
-                color: InstColors.faint,
+                weight: FontWeight.w400,
+                color: const Color(0xFFA1A1AA),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 5),
         Text(
-          title,
+          notice.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: jakarta(
-            size: 13,
+            size: 12.5,
             weight: FontWeight.w700,
-            color: InstColors.ink,
+            color: const Color(0xFF18181B),
+            height: 1.3,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          body,
-          style: jakarta(
-            size: 12,
-            color: const Color(0xFF52525B),
-            height: 1.35,
-          ),
+          notice.message,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          style: jakarta(
+            size: 11.5,
+            color: const Color(0xFF71717A),
+            height: 1.4,
+          ),
         ),
       ],
     );

@@ -26,6 +26,12 @@ export async function seedClasses(
     const teacher = teachers[idx % teachers.length] ?? defaultTeacher;
     const isCurrentSemester = comp.semester === 4;
 
+    const totalHours = comp.workloadHours;
+    const completedHours = isCurrentSemester ? Math.round(comp.workloadHours * 0.68) : comp.workloadHours;
+    const rawProgress = totalHours > 0 ? Math.min(1, Math.max(0, completedHours / totalHours)) : 0;
+    const progress = Number(rawProgress.toFixed(4));
+    const progressPercentage = Math.round(rawProgress * 100);
+
     return {
       code: comp.code === "PI-IV" ? "PI4-2026-4N" : comp.code,
       subjectName: comp.name,
@@ -37,12 +43,23 @@ export async function seedClasses(
       semester: `2026/${comp.semester % 2 === 0 ? "2" : "1"} - ${comp.semester}º Semestre`,
       shift: "Noturno",
       schedule: isCurrentSemester
-        ? (idx % 2 === 0 ? "Segundas e Quartas (19:10 - 22:40)" : "Terças e Quintas (19:10 - 22:40)")
-        : "Segundas a Sextas (19:00 - 22:30)",
-      location: `Sala ${100 + idx} - Bloco ${String.fromCharCode(65 + (idx % 4))}`,
-      totalHours: comp.workloadHours,
-      credits: Math.round(comp.workloadHours / 20),
-      completedHours: isCurrentSemester ? Math.round(comp.workloadHours * 0.6) : comp.workloadHours,
+        ? (idx % 2 === 0 ? "Segundas e Quartas, 19:10 - 20:50" : "Terças e Quintas, 19:10 - 20:50")
+        : "Segundas e Quartas, 19:10 - 20:50",
+      scheduleStartTime: "19:10",
+      scheduleEndTime: "20:50",
+      scheduleDays: isCurrentSemester ? (idx % 2 === 0 ? [1, 3] : [2, 4]) : [1, 2, 3, 4, 5],
+      location: `Lab Informática ${String((idx % 6) + 1).padStart(2, "0")} - Bloco C`,
+      virtualRoomLabel: "Sala Virtual Teams",
+      connectedStudentsCount: 34 + (idx % 12),
+      totalHours,
+      credits: Math.round(totalHours / 20),
+      completedHours,
+      progress,
+      progressPercentage,
+      progressPercentageFormatted: `${progressPercentage}%`,
+      workloadCompletedLabel: `${completedHours}h`,
+      workloadTotalLabel: ` de ${totalHours}h`,
+      progressCaption: "Este percentual reflete diretamente o progresso visto pelos discentes.",
       active: true,
       maxCapacity: 50,
       formulaRegime: "autonomia_docente",
