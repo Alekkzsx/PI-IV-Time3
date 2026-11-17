@@ -4,7 +4,6 @@ import nodemailer, { type Transporter } from "nodemailer";
 import type { Db } from "mongodb";
 import { AuthError } from "../../../shared/auth-error.js";
 import type { Environment } from "../../../config/environment.js";
-import type { RecoveryEmailSender } from "../../auth/domain/auth.types.js";
 import type {
   AuthOtpEmailInput,
   WelcomeUserEmailInput,
@@ -25,10 +24,9 @@ export type CircuitBreakerState = "CLOSED" | "OPEN" | "HALF_OPEN";
 
 /**
  * Disparador de e-mails resiliente e independente de redes e firewalls.
- * Implementa RecoveryEmailSender (para 100% de retrocompatibilidade com o módulo de autenticação)
- * e UnifiedEmailService (para abranger todos os serviços acadêmicos do portal).
+ * Implementa UnifiedEmailService para comunicações acadêmicas e operacionais do portal.
  */
-export class ResilientEmailSender implements RecoveryEmailSender, UnifiedEmailService {
+export class ResilientEmailSender implements UnifiedEmailService {
   private readonly smtpTransporter?: Transporter;
   private readonly senderAddress: string;
   private readonly httpProvider: HttpEmailProvider;

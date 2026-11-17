@@ -39,7 +39,7 @@ public class TwoFactorHandler implements ManipuladorHttp {
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -83,53 +83,65 @@ public class TwoFactorHandler implements ManipuladorHttp {
 
             RepositorioUsuarios repo = this.repositorio;
 
+            // Buscar usuario alvo primeiro (para suporte tambem a backup codes)
+            UsuarioAutenticado usuarioAlvo = repo.buscarPorIdentidade(normalizedIdentity);
+            boolean usadoBackupCode = false;
+
             // Buscar OTP do tipo 2FA_LOGIN para esta identidade
             Document otpDoc = repo.buscarOtp(normalizedIdentity, "2FA_LOGIN");
             if (otpDoc == null) {
-                repo.fechar();
-                aplicarLatenciaPadronizada(inicioProcessamento);
-                enviarErro(resposta, 401, "Codigo de verificacao expirado ou nao encontrado. Solicite um novo login.");
-                return;
+                if (usuarioAlvo != null && repo.consumirCodigoBackup(usuarioAlvo.getUserId(), code)) {
+                    usadoBackupCode = true;
+                } else {
+                    aplicarLatenciaPadronizada(inicioProcessamento);
+                    enviarErro(resposta, 401, "Codigo de verificacao expirado ou nao encontrado. Solicite um novo login.");
+                    return;
+                }
             }
 
-            // Verificar tentativas
-            int tentativas = otpDoc.getInteger("tentativas", 0);
-            if (OtpService.tentativasExcedidas(tentativas)) {
-                repo.removerOtp(normalizedIdentity, "2FA_LOGIN");
-                repo.fechar();
-                aplicarLatenciaPadronizada(inicioProcessamento);
-                enviarErro(resposta, 429, "Numero maximo de tentativas excedido. Solicite um novo codigo.");
-                return;
+            if (!usadoBackupCode) {
+                // Verificar tentativas
+                int tentativas = otpDoc.getInteger("tentativas", 0);
+                if (OtpService.tentativasExcedidas(tentativas)) {
+                    repo.removerOtp(normalizedIdentity, "2FA_LOGIN");
+                    aplicarLatenciaPadronizada(inicioProcessamento);
+                    enviarErro(resposta, 429, "Numero maximo de tentativas excedido. Solicite um novo codigo.");
+                    return;
+                }
+
+                // Verificar expiracao
+                java.util.Date expiresAt = otpDoc.getDate("expiresAt");
+                if (expiresAt != null && expiresAt.getTime() < System.currentTimeMillis()) {
+                    repo.removerOtp(normalizedIdentity, "2FA_LOGIN");
+                    aplicarLatenciaPadronizada(inicioProcessamento);
+                    enviarErro(resposta, 401, "Codigo de verificacao expirado. Solicite um novo login.");
+                    return;
+                }
+
+                // Validar codigo OTP ou fallback de backup code
+                String hashArmazenado = otpDoc.getString("otpHash");
+                boolean valido = OtpService.validar(code, hashArmazenado, otpSecret);
+
+                if (!valido) {
+                    if (usuarioAlvo != null && repo.consumirCodigoBackup(usuarioAlvo.getUserId(), code)) {
+                        usadoBackupCode = true;
+                    } else {
+                        repo.incrementarTentativasOtp(normalizedIdentity, "2FA_LOGIN");
+                        aplicarLatenciaPadronizada(inicioProcessamento);
+                        enviarErro(resposta, 401, "Codigo de verificacao invalido.");
+                        return;
+                    }
+                }
             }
 
-            // Verificar expiracao
-            java.util.Date expiresAt = otpDoc.getDate("expiresAt");
-            if (expiresAt != null && expiresAt.getTime() < System.currentTimeMillis()) {
-                repo.removerOtp(normalizedIdentity, "2FA_LOGIN");
-                repo.fechar();
-                aplicarLatenciaPadronizada(inicioProcessamento);
-                enviarErro(resposta, 401, "Codigo de verificacao expirado. Solicite um novo login.");
-                return;
-            }
-
-            // Validar codigo OTP
-            String hashArmazenado = otpDoc.getString("otpHash");
-            boolean valido = OtpService.validar(code, hashArmazenado, otpSecret);
-
-            if (!valido) {
-                repo.incrementarTentativasOtp(normalizedIdentity, "2FA_LOGIN");
-                repo.fechar();
-                aplicarLatenciaPadronizada(inicioProcessamento);
-                enviarErro(resposta, 401, "Codigo de verificacao invalido.");
-                return;
-            }
-
-            // OTP valido! Remover e gerar tokens
+            // OTP / Backup valido! Remover desafios e gerar tokens
             repo.removerOtp(normalizedIdentity, "2FA_LOGIN");
+            if (challengeToken != null && !challengeToken.trim().isEmpty()) {
+                repo.removerOtp(challengeToken.trim(), "2FA_CHALLENGE");
+            }
 
-            UsuarioAutenticado usuario = repo.buscarPorIdentidade(normalizedIdentity);
+            UsuarioAutenticado usuario = usuarioAlvo != null ? usuarioAlvo : repo.buscarPorIdentidade(normalizedIdentity);
             if (usuario == null) {
-                repo.fechar();
                 enviarErro(resposta, 401, "Usuario nao encontrado.");
                 return;
             }
@@ -141,11 +153,14 @@ public class TwoFactorHandler implements ManipuladorHttp {
             // Persistir sessao
             String jti = JwtGerador.extrairJti(parTokens.getAccessToken());
             long expira = JwtGerador.extrairExpiracaoMillis(parTokens.getAccessToken());
+            String userAgent = requisicao.getCabecalho("user-agent");
+            String ipCliente = extrairIp(requisicao);
             if (jti != null) {
-                repo.criarSessao(usuario.getUserId(), jti, expira);
+                repo.criarSessao(usuario.getUserId(), jti, expira, userAgent, ipCliente);
             }
-
-            repo.fechar();
+            Map<String, Object> det = new LinkedHashMap<String, Object>();
+            det.put("method", usadoBackupCode ? "backup_code" : "email_otp");
+            repo.registrarAuditoria(usuario.getUserId(), "two_factor_verified", usuario.getUserId(), det, ipCliente);
 
             // Construir resposta com dados reais do MongoDB
             Map<String, Object> payloadUsuario = new LinkedHashMap<String, Object>();
@@ -174,6 +189,8 @@ public class TwoFactorHandler implements ManipuladorHttp {
             if (!usuario.getShift().isEmpty()) {
                 payloadUsuario.put("shift", usuario.getShift());
             }
+            payloadUsuario.put("twoFactorRequired", usuario.isTwoFactorEnabled());
+            payloadUsuario.put("requirePasswordChange", usuario.isRequirePasswordChange());
 
             Map<String, Object> resp = new LinkedHashMap<String, Object>();
             resp.put("status", 200);
@@ -188,6 +205,8 @@ public class TwoFactorHandler implements ManipuladorHttp {
 
             resposta.enviarJson(200, Json.escrever(resp));
 
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (IllegalArgumentException e) {
             enviarErro(resposta, 400, "Corpo da requisicao invalido: " + e.getMessage());
         } catch (Exception e) {
@@ -212,9 +231,21 @@ public class TwoFactorHandler implements ManipuladorHttp {
         }
     }
 
+    private String extrairIp(RequisicaoHttp requisicao) {
+        String fwd = requisicao.getCabecalho("x-forwarded-for");
+        if (fwd != null && !fwd.trim().isEmpty()) {
+            int idx = fwd.indexOf(',');
+            return idx > 0 ? fwd.substring(0, idx).trim() : fwd.trim();
+        }
+        String realIp = requisicao.getCabecalho("x-real-ip");
+        return realIp != null && !realIp.trim().isEmpty() ? realIp.trim() : "127.0.0.1";
+    }
+
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", status == 401 ? "invalid_two_factor" : status == 429 ? "too_many_attempts" : "invalid_request");
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

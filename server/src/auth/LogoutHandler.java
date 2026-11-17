@@ -25,10 +25,19 @@ import java.util.Map;
  * Response 401: { "erro": "..." }
  */
 public class LogoutHandler implements ManipuladorHttp {
+    private final RepositorioUsuarios repositorio;
+
+    public LogoutHandler() {
+        this(RepositorioUsuarios.getInstance());
+    }
+
+    public LogoutHandler(RepositorioUsuarios repositorio) {
+        this.repositorio = repositorio != null ? repositorio : RepositorioUsuarios.getInstance();
+    }
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -76,10 +85,11 @@ public class LogoutHandler implements ManipuladorHttp {
                 RevogacaoTokens.getInstance().revogar(jtiAccess, expiraAccessMillis);
             }
 
-            // Revogar sessao persistida no MongoDB
+            // Revogar sessao persistida no MongoDB e auditar
             if (jtiAccess != null) {
                 try {
-                    RepositorioUsuarios.getInstance().revogarSessao(jtiAccess);
+                    repositorio.revogarSessao(jtiAccess);
+                    repositorio.registrarAuditoria(usuario.getUserId(), "logout", usuario.getUserId(), null);
                 } catch (Exception e) {
                     System.err.println("[LOGOUT] Erro ao revogar sessao no MongoDB: " + e.getMessage());
                 }
@@ -112,6 +122,8 @@ public class LogoutHandler implements ManipuladorHttp {
             resp.put("message", "Logout realizado com sucesso.");
             resposta.enviarJson(200, Json.escrever(resp));
 
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (SecurityException e) {
             enviarErro(resposta, 401, e.getMessage());
         } catch (Exception e) {
@@ -124,6 +136,8 @@ public class LogoutHandler implements ManipuladorHttp {
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", status == 401 ? "unauthorized" : "invalid_request");
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

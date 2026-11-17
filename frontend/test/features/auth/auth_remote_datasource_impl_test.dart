@@ -231,4 +231,37 @@ void main() {
       expect(sessionResult.campus, 'Unidade Sede');
     },
   );
+
+  test(
+    'propaga mensagem diagnostica HTTP 503 quando rede corporativa bloqueia MongoDB',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'status': 503,
+              'code': 'database_network_blocked',
+              'message':
+                  'Banco de dados inacessivel a partir desta rede (verifique se a porta 27017 ou VPN esta bloqueada no Wi-Fi).',
+            }),
+            503,
+            headers: {'content-type': 'application/json'},
+          ),
+        ),
+      );
+
+      await expectLater(
+        source.authenticateUser(
+          identity: '2024.1.00001',
+          password: 'valid-password',
+          profile: 'aluno',
+        ),
+        throwsA(
+          isA<AuthApiException>()
+              .having((e) => e.statusCode, 'statusCode', 503)
+              .having((e) => e.message, 'message', contains('porta 27017')),
+        ),
+      );
+    },
+  );
 }

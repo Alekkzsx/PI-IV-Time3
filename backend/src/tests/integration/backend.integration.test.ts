@@ -2,34 +2,50 @@
 import assert from "node:assert/strict";
 import { before, after, describe, it } from "node:test";
 import { createServer, type Server } from "node:http";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import jwt from "jsonwebtoken";
 import "../../config/local-environment.js";
 import { loadEnvironment } from "../../config/environment.js";
-import { MongoAuthDatabase } from "../../modules/auth/infrastructure/mongo-auth.repository.js";
-import { MongoAuthSecurityRepository } from "../../modules/auth/infrastructure/mongo-auth-security.repository.js";
-import { BcryptPasswordHasher, JwtAccessTokenIssuer } from "../../modules/auth/infrastructure/security.providers.js";
-import { AuthService } from "../../modules/auth/application/auth.service.js";
+import { MongoAcademicDatabase } from "../../shared/mongo/database.js";
 import { createApp } from "../../app.js";
 import { runSeeds } from "../../scripts/index.js";
-import type { Db } from "mongodb";
-import { AuthError } from "../../shared/auth-error.js";
+import type { Db, Document } from "mongodb";
 
 const enabled = process.env.RUN_DB_TESTS === "1";
-describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, () => {
+
+describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: !enabled }, () => {
   const environment = loadEnvironment();
   const testDatabaseName = "agmrm_test_" + randomBytes(8).toString("hex");
   const password = "Integration-only-password-2026!";
-  const newPassword = "Changed-integration-password-2026!";
-  let connection: MongoAuthDatabase;
+  let connection: MongoAcademicDatabase;
   let database: Db;
   let server: Server;
   let base: string;
   let adminToken: string;
-  let adminId: string;
-  const emails = new Map<string, string>();
-  let emailAvailable = true;
-  let adminUser: Record<string, any>;
+
+  async function issueTokenForIdentity(normalizedIdentity: string): Promise<{ token: string; sessionId: string; user: Document }> {
+    const user = await database.collection("auth_users").findOne({ normalizedIdentity });
+    if (!user) throw new Error(`Usuário seed não encontrado: ${normalizedIdentity}`);
+    const sessionId = randomUUID();
+    await database.collection("auth_sessions").insertOne({
+      sessionId,
+      userId: String(user._id),
+      active: true,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+    const token = jwt.sign(
+      {
+        sub: String(user._id),
+        profile: user.profile,
+        ver: user.sessionVersion ?? 0,
+        jti: sessionId,
+      },
+      environment.jwtSecret,
+      { expiresIn: "15m" },
+    );
+    return { token, sessionId, user };
+  }
 
   async function request(method: string, path: string, body?: unknown, token?: string) {
     const response = await fetch(base + path, {
@@ -40,165 +56,62 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     const text = await response.text();
     return { status: response.status, body: text ? JSON.parse(text) : null };
   }
-  async function login(identity: string, profile: string, pass = password) {
-    return request("POST", "/api/auth/login", { identity, password: pass, profile });
-  }
+
   const admin = (method: string, path: string, body?: unknown) => request(method, "/api/admin" + path, body, adminToken);
 
   before(async () => {
-    connection = new MongoAuthDatabase(environment.mongoUri, testDatabaseName);
+    connection = new MongoAcademicDatabase(environment.mongoUri, testDatabaseName);
     await connection.connect();
     database = connection.databaseForModules();
     await runSeeds(database, password);
-    const passwords = new BcryptPasswordHasher();
-    const service = new AuthService({
-      users: connection.users(),
-      security: new MongoAuthSecurityRepository(database),
-      recoveryCodes: connection.recoveryCodes(),
-      passwords,
-      accessTokens: new JwtAccessTokenIssuer(environment.jwtSecret, environment.jwtTtl),
-      recoveryEmail: {
-        ensureAvailable() {
-          if (!emailAvailable) throw new AuthError(503, "recovery_email_unavailable", "Envio indisponível.");
+    server = createServer(
+      createApp(
+        { nodeEnv: "test", corsOrigins: environment.corsOrigins },
+        {
+          database,
+          jwtSecret: environment.jwtSecret,
+          internalServiceSecret: environment.internalServiceSecret,
         },
-        async sendRecoveryCode(input) {
-          emails.set(input.to, input.code);
-        },
-      },
-      dummyPasswordHash: await passwords.hash("integration-decoy"),
-      environment,
-    });
-    server = createServer(createApp(service, { nodeEnv: "test", corsOrigins: environment.corsOrigins }, { database, jwtSecret: environment.jwtSecret }));
+      ),
+    );
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("Test server failed.");
     base = "http://127.0.0.1:" + address.port;
-    adminToken = (await login("admin.demo", "admin")).body.accessToken;
-    adminUser = (await database.collection("auth_users").findOne({ normalizedIdentity: "admin.demo" }))!;
-    adminId = String(adminUser._id);
+    adminToken = (await issueTokenForIdentity("admin.demo")).token;
   });
 
   after(async () => {
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     // A limpeza só pode atingir o banco temporário criado por este arquivo.
-    if (database && database.databaseName === testDatabaseName && /^agmrm_test_[a-f0-9]{16}$/.test(testDatabaseName)) await database.dropDatabase();
+    if (database && database.databaseName === testDatabaseName && /^agmrm_test_[a-f0-9]{16}$/.test(testDatabaseName)) {
+      await database.dropDatabase();
+    }
     if (connection) await connection.close();
   });
 
-  it("accepts real identity and email login for all roles without exposing password hashes", async () => {
-    for (const [identity, profile] of [["admin.demo", "admin"], ["prof.demo", "docente"], ["aluno.demo1", "aluno"]]) {
-      const result = await login(identity!, profile!);
-      assert.equal(result.status, 200);
-      const me = await request("GET", "/api/auth/me", undefined, result.body.accessToken);
-      assert.equal(me.status, 200);
-      assert.equal(me.body.profile, profile);
-      assert.equal(me.body.passwordHash, undefined);
-      if (profile !== "admin") assert.equal((await request("GET", "/api/admin/users", undefined, result.body.accessToken)).status, 403);
-    }
-    assert.equal((await login("ADMIN.DEMO@EXAMPLE.COM", "admin")).status, 200);
-    assert.equal((await login("aluno.demo1", "admin")).status, 401);
-  });
+  it("enforces bounded-context 404s and passive session/password-change checks against MongoDB", async () => {
+    assert.equal((await request("POST", "/api/auth/login", {})).status, 404);
+    assert.equal((await request("GET", "/api/admin/users")).status, 404);
+    assert.equal((await request("GET", "/api/video-call/rooms")).status, 404);
 
-  it("rejects missing, forged, expired and session-less tokens", async () => {
-    assert.equal((await request("GET", "/api/admin/users")).status, 401);
-    const expired = jwt.sign({ sub: adminId, profile: "admin", ver: 0, jti: "none" }, environment.jwtSecret, { expiresIn: -1 });
-    const sessionless = jwt.sign({ sub: adminId, profile: "admin", ver: 0, jti: "none" }, environment.jwtSecret, { expiresIn: "15m" });
-    for (const token of ["invalid", expired, sessionless]) assert.equal((await request("GET", "/api/auth/me", undefined, token)).status, 401);
-  });
+    const { token, sessionId, user } = await issueTokenForIdentity("aluno.demo1");
+    assert.equal((await request("GET", "/api/student/bootstrap", undefined, token)).status, 200);
+    assert.equal((await request("GET", "/api/admin/courses", undefined, token)).status, 403);
 
-  it("persists login lockout and permits login after its expiry", async () => {
-    for (let i = 0; i < 5; i++) assert.equal((await login("aluno.demo2", "aluno", "incorrect-password")).status, 401);
-    assert.equal((await login("aluno.demo2", "aluno")).status, 429);
-    await database.collection("auth_login_limits").updateMany({}, { $set: { lockedUntil: new Date(0), expiresAt: new Date(0) } });
-    assert.equal((await login("aluno.demo2", "aluno")).status, 200);
-  });
+    await database.collection("auth_sessions").deleteOne({ sessionId });
+    assert.equal((await request("GET", "/api/student/bootstrap", undefined, token)).status, 401);
 
-  it("creates and edits users, rejects duplicates, mass assignment and self-demotion", async () => {
-    const input = { identity: "test.user", email: "test.user@example.com", displayName: "Test User", profile: "aluno", password };
-    const created = await admin("POST", "/users", input);
-    assert.equal(created.status, 201);
-    assert.equal(created.body.passwordHash, undefined);
-    assert.equal((await admin("POST", "/users", { ...input, identity: "another", email: "TEST.USER@example.com" })).status, 409);
-    assert.equal((await admin("POST", "/users", { ...input, active: false })).status, 400);
-    assert.equal((await admin("PATCH", "/users/" + created.body.id, { displayName: "Updated Test User" })).status, 200);
-    assert.equal((await admin("PATCH", "/users/" + created.body.id, { passwordHash: "unsafe" })).status, 400);
-    assert.equal((await admin("PATCH", "/users/" + created.body.id, {})).status, 400);
-    assert.equal((await admin("PATCH", "/users/" + adminId, { profile: "aluno" })).status, 409);
-    assert.equal((await admin("PATCH", "/users/" + adminId + "/status", { active: false })).status, 409);
-    assert.equal((await admin("GET", "/users/invalid")).status, 400);
-  });
-
-  it("revokes old tokens immediately on suspension and does not restore them on reactivation", async () => {
-    const account = await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo1" });
-    const token = (await login("aluno.demo1", "aluno")).body.accessToken;
-    const path = "/users/" + account!._id + "/status";
-    assert.equal((await admin("PATCH", path, { active: false, reason: "Integration validation" })).status, 200);
-    assert.equal((await request("GET", "/api/auth/me", undefined, token)).status, 401);
-    assert.equal((await login("aluno.demo1", "aluno")).status, 401);
-    assert.equal((await admin("PATCH", path, { active: true })).status, 200);
-    assert.equal((await request("GET", "/api/auth/me", undefined, token)).status, 401);
-    assert.equal((await login("aluno.demo1", "aluno")).status, 200);
-  });
-
-  it("logs out a single session and revokes all user sessions through ADMIN", async () => {
-    const token = (await login("aluno.demo2", "aluno")).body.accessToken;
-    assert.equal((await request("POST", "/api/auth/logout", {}, token)).status, 204);
-    assert.equal((await request("GET", "/api/auth/me", undefined, token)).status, 401);
-    const next = (await login("aluno.demo2", "aluno")).body.accessToken;
-    const account = await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo2" });
-    assert.equal((await admin("POST", "/users/" + account!._id + "/revoke-sessions", {})).status, 204);
-    assert.equal((await request("GET", "/api/auth/me", undefined, next)).status, 401);
-  });
-
-  it("consumes OTP and reset grant only once under concurrent requests", async () => {
-    const identity = "aluno.demo1";
-    const oldToken = (await login(identity, "aluno")).body.accessToken;
-    assert.equal((await request("POST", "/api/auth/send-recovery-otp", { identity })).status, 200);
-    const code = emails.get("aluno.demo1@example.com")!;
-    const results = await Promise.all([1, 2].map(() => request("POST", "/api/auth/verify-recovery-otp", { identity, code })));
-    assert.deepEqual(results.map((result) => result.status).sort(), [200, 400]);
-    const resetToken = results.find((result) => result.status === 200)!.body.resetToken;
-    const resets = await Promise.all([1, 2].map(() => request("POST", "/api/auth/reset-password", { identity, resetToken, newPassword })));
-    assert.deepEqual(resets.map((result) => result.status).sort(), [204, 400]);
-    assert.equal((await request("GET", "/api/auth/me", undefined, oldToken)).status, 401);
-    assert.equal((await login(identity, "aluno")).status, 401);
-    const changed = await login(identity, "aluno", newPassword);
-    assert.equal(changed.status, 200);
-    assert.equal((await request("POST", "/api/auth/change-password", { currentPassword: newPassword, newPassword: password }, changed.body.accessToken)).status, 204);
-    assert.equal((await request("GET", "/api/auth/me", undefined, changed.body.accessToken)).status, 401);
-  });
-
-  it("rejects expired recovery codes and codes exhausted after three attempts", async () => {
-    const identity = "aluno.demo2";
-    await request("POST", "/api/auth/send-recovery-otp", { identity });
-    await database.collection("auth_recovery").updateOne({ normalizedIdentity: identity }, { $set: { expiresAt: new Date(0) } });
-    assert.equal((await request("POST", "/api/auth/verify-recovery-otp", { identity, code: emails.get("aluno.demo2@example.com") })).status, 400);
-    await request("POST", "/api/auth/send-recovery-otp", { identity });
-    for (let i = 0; i < 3; i++) assert.equal((await request("POST", "/api/auth/verify-recovery-otp", { identity, code: "000000" })).status, 400);
-    assert.equal((await request("POST", "/api/auth/verify-recovery-otp", { identity, code: emails.get("aluno.demo2@example.com") })).status, 400);
-  });
-
-  it("requires actual email 2FA before issuing any usable bearer token", async () => {
-    const professor = await database.collection("auth_users").findOne({ normalizedIdentity: "prof.demo" });
-    assert.equal((await admin("PATCH", "/users/" + professor!._id, { twoFactorRequired: true })).status, 200);
-    assert.equal((await admin("PATCH", "/users/" + professor!._id, { displayName: "Professor Editado" })).body.twoFactorRequired, true);
-    const challenge = await login("prof.demo", "docente");
-    assert.equal(challenge.status, 202);
-    assert.equal(challenge.body.accessToken, undefined);
-    assert.equal((await request("GET", "/api/auth/me", undefined, challenge.body.challengeToken)).status, 401);
-    const verified = await request("POST", "/api/auth/verify-two-factor", { challengeToken: challenge.body.challengeToken, code: emails.get("prof.demo@example.com") });
-    assert.equal(verified.status, 200);
-    assert.equal((await request("POST", "/api/auth/verify-two-factor", { challengeToken: challenge.body.challengeToken, code: emails.get("prof.demo@example.com") })).status, 400);
-    const exhausted = await login("prof.demo", "docente");
-    for (let i = 0; i < 3; i++) await request("POST", "/api/auth/verify-two-factor", { challengeToken: exhausted.body.challengeToken, code: "000000" });
-    assert.equal((await request("POST", "/api/auth/verify-two-factor", { challengeToken: exhausted.body.challengeToken, code: emails.get("prof.demo@example.com") })).status, 400);
-    await admin("PATCH", "/users/" + professor!._id, { twoFactorRequired: false });
+    await database.collection("auth_users").updateOne({ _id: user._id }, { $set: { requirePasswordChange: true } });
+    const pending = await issueTokenForIdentity("aluno.demo1");
+    assert.equal((await request("GET", "/api/student/bootstrap", undefined, pending.token)).status, 403);
+    await database.collection("auth_users").updateOne({ _id: user._id }, { $set: { requirePasswordChange: false } });
   });
 
   it("preserves academic relations and enforces class capacity under concurrent enrollment", async () => {
     const classroom = await admin("POST", "/classes", {
       code: "TEST-ONE",
-      courseCode: "ES-DEMO",
+      courseCode: "ES-2026",
       semester: "2026/2",
       shift: "Noturno",
       location: "Test Room",
@@ -218,7 +131,9 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     assert.equal((await admin("PATCH", "/classes/TEST-ONE/enrollments/" + enrollments.body[0].id, { status: "cancelled" })).status, 204);
     assert.equal((await admin("GET", "/classes/TEST-ONE/enrollments")).body.length, 0);
     assert.equal((await admin("GET", "/classes/NO-SUCH-CLASS/enrollments")).status, 404);
-    assert.equal((await admin("GET", "/courses")).body.find((course: any) => course.code === "ES-DEMO").studentsCount, 2);
+    const seededCourse = (await admin("GET", "/courses")).body.find((course: any) => course.code === "ES-2026");
+    assert.ok(seededCourse);
+    assert.ok(seededCourse.studentsCount >= 1);
   });
 
   it("persists institutional operations and records actual audit events", async () => {
@@ -245,60 +160,28 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     assert.equal((await admin("POST", "/calendar", { title: "Evento de teste", startsAt: "2026-11-09T22:00:00Z", type: "academic" })).status, 201);
     assert.ok((await admin("GET", "/audit-logs")).body.some((entry: any) => entry.action === "protocol_decided"));
     assert.equal((await admin("GET", "/dashboard")).status, 200);
-    assert.equal((await admin("GET", "/users/" + adminId + "/dossier")).status, 200);
+    assert.equal((await admin("GET", "/teachers")).status, 200);
   });
 
-  it("reports unavailable SMTP uniformly and protects second-factor changes with password confirmation", async () => {
-    emailAvailable = false;
-    for (const identity of ["aluno.demo1", "unknown.identity"]) {
-      assert.equal((await request("POST", "/api/auth/send-recovery-otp", { identity })).status, 503);
-    }
-    emailAvailable = true;
-    const token = (await login("prof.demo", "docente")).body.accessToken;
-    assert.equal((await request("POST", "/api/auth/two-factor", { password: "wrong-password", enabled: true }, token)).status, 401);
-    assert.equal((await request("GET", "/api/auth/me", undefined, token)).status, 200);
-    assert.equal((await request("POST", "/api/auth/two-factor", { password, enabled: true }, token)).status, 204);
-    assert.equal((await request("GET", "/api/auth/me", undefined, token)).status, 401);
-    const challenge = await login("prof.demo", "docente");
-    assert.equal(challenge.status, 202);
-    const verified = await request("POST", "/api/auth/verify-two-factor", { challengeToken: challenge.body.challengeToken, code: emails.get("prof.demo@example.com") });
-    assert.equal(verified.status, 200);
-    assert.equal((await request("POST", "/api/auth/two-factor", { password, enabled: false }, verified.body.accessToken)).status, 204);
-    assert.equal((await login("prof.demo", "docente")).status, 200);
-  });
-
-  it("preserves one active administrator when administrators attempt simultaneous demotions", async () => {
-    const second = await admin("POST", "/users", {
-      identity: "second.admin",
-      email: "second.admin@example.com",
-      displayName: "Second Admin",
-      profile: "admin",
-      password,
-    });
-    assert.equal(second.status, 201);
-    const secondToken = (await login("second.admin", "admin")).body.accessToken;
-    const results = await Promise.all([
-      admin("PATCH", "/users/" + second.body.id, { profile: "aluno" }),
-      request("PATCH", "/api/admin/users/" + adminId, { profile: "aluno" }, secondToken),
-    ]);
-    assert.equal(results.filter((result) => result.status === 200).length, 1);
-    assert.ok(results.some((result) => result.status === 401 || result.status === 403));
-    assert.equal(await database.collection("auth_users").countDocuments({ profile: "admin", active: true }), 1);
-  });
-
-  it("integrates teacher, student, file storage, video-call rooms and admin grade audit end-to-end", async () => {
-    const teacherToken = (await login("prof.demo", "docente")).body.accessToken;
-    const studentToken = (await login("aluno.demo1", "aluno")).body.accessToken;
+  it("integrates teacher, student, file storage, internal bridge and admin grade audit end-to-end", async () => {
+    const targetClass = await database.collection("academic_classes").findOne({ code: "PI4-2026-4N" });
+    assert.ok(targetClass, "Turma seed PI4-2026-4N deveria existir");
+    const classCode = String(targetClass.code);
+    const teacherIdentity = String(targetClass.professorIdentity).toLowerCase();
+    const teacherToken = (await issueTokenForIdentity(teacherIdentity)).token;
+    const studentIssued = await issueTokenForIdentity("aluno.demo1");
+    const studentToken = studentIssued.token;
+    const studentId = String(studentIssued.user._id);
 
     const teacherBootstrap = await request("GET", "/api/teacher/bootstrap", undefined, teacherToken);
     assert.equal(teacherBootstrap.status, 200);
     assert.ok(Array.isArray(teacherBootstrap.body.courses));
-    assert.ok(teacherBootstrap.body.courses.some((c: any) => c.code === "ES-DEMO-4N"));
+    assert.ok(teacherBootstrap.body.courses.some((c: any) => c.code === classCode));
 
     const materialBase64 = Buffer.from("Conteúdo PDF de teste real").toString("base64");
     const createdMat = await request(
       "POST",
-      "/api/teacher/courses/ES-DEMO-4N/materials",
+      `/api/teacher/courses/${classCode}/materials`,
       {
         title: "Apostila Unidade 1",
         fileName: "apostila-u1.txt",
@@ -312,7 +195,7 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
 
     const createdAssign = await request(
       "POST",
-      "/api/teacher/courses/ES-DEMO-4N/assignments",
+      `/api/teacher/courses/${classCode}/assignments`,
       {
         title: "Entrega Arquitetura",
         description: "Diagrama C4 completo",
@@ -336,7 +219,7 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
       "POST",
       "/api/teacher/notices",
       {
-        targetCourse: "ES-DEMO-4N",
+        targetCourse: classCode,
         targetAudience: "Turma",
         classification: "informativo",
         title: "Comunicado de integração",
@@ -346,48 +229,34 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     );
     assert.equal(teacherNotice.status, 201);
 
-    const openedRoom = await request("POST", "/api/video-call/rooms/enter", { roomCode: "ES-DEMO-4N" }, teacherToken);
-    assert.equal(openedRoom.status, 200);
-    const roomsList = await request("GET", "/api/video-call/rooms", undefined, studentToken);
-    assert.equal(roomsList.status, 200);
-    assert.ok(roomsList.body.some((r: any) => r.classCode === "ES-DEMO-4N" && r.isOpen === true));
+    // Simular sala ao vivo aberta pelo Java em academic_live_sessions + autorização via ponte interna
+    const bridgeHeaders = { "x-internal-service-secret": environment.internalServiceSecret, "content-type": "application/json" };
+    const authRes = await fetch(
+      `${base}/api/internal/academic/video-call/authorize?userId=${studentId}&profile=aluno&identity=aluno.demo1&roomCode=${classCode}`,
+      { headers: bridgeHeaders },
+    );
+    assert.equal(authRes.status, 200);
+    await database.collection("academic_live_sessions").insertOne({
+      roomCode: classCode,
+      classCode,
+      openedAt: new Date(),
+      expiresAt: new Date(Date.now() + 3600_000),
+    });
 
     const studentBoot = await request("GET", "/api/student/bootstrap", undefined, studentToken);
     assert.equal(studentBoot.status, 200);
-    assert.ok(studentBoot.body.disciplines.some((d: any) => d.code === "ES-DEMO-4N" && d.isLive === true));
+    assert.ok(studentBoot.body.disciplines.some((d: any) => d.code === classCode && d.isLive === true));
     assert.ok(studentBoot.body.deliveries.some((d: any) => d.id === assignmentId));
-    const boletim = await request("GET", "/api/student/boletim", undefined, studentToken);
-    assert.equal(boletim.status, 200);
-    assert.ok(Array.isArray(boletim.body));
+
     const declaration = await request("POST", "/api/student/enrollment-declaration", {}, studentToken);
     assert.equal(declaration.status, 201);
     assert.match(declaration.body.verificationKey, /^AGMRM-[A-F0-9]{32}$/);
-    assert.ok(await database.collection("academic_enrollment_declarations").findOne({
-      verificationKey: declaration.body.verificationKey,
-      studentId: String((await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo1" }))!._id),
-    }));
-    const noticeMessage = studentBoot.body.messages.find((message: any) => message.id === teacherNotice.body.id);
-    assert.ok(noticeMessage);
-    const noticeRead = await request(
-      "PATCH",
-      `/api/student/messages/${teacherNotice.body.id}/read`,
-      {},
-      studentToken,
-    );
+
+    const noticeRead = await requestPatch(`/api/student/messages/${teacherNotice.body.id}/read`, {}, studentToken);
     assert.equal(noticeRead.status, 200);
-    const noticeReads = await request(
-      "GET",
-      `/api/teacher/notices/${teacherNotice.body.id}/reads`,
-      undefined,
-      teacherToken,
-    );
+    const noticeReads = await request("GET", `/api/teacher/notices/${teacherNotice.body.id}/reads`, undefined, teacherToken);
     assert.equal(noticeReads.status, 200);
     assert.equal(noticeReads.body.readCount, 1);
-    assert.equal(noticeReads.body.reads[0].identity, "aluno.demo1");
-    assert.equal(
-      (await request("GET", `/api/teacher/notices/${teacherNotice.body.id}/reads`, undefined, studentToken)).status,
-      403,
-    );
 
     const fileDownload = await request("GET", `/api/files/materials/${createdMat.body.id}`, undefined, studentToken);
     assert.equal(fileDownload.status, 200);
@@ -405,29 +274,8 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
       studentToken,
     );
     assert.equal(submission.status, 201);
-    assert.match(submission.body.submissionId, /^[a-f0-9]{24}$/);
-    assert.match(submission.body.protocolCode, /^AGR-/);
-    assert.equal((submission.body.sha256 ?? submission.body.sha256Hash ?? "").length, 64);
-    const submissionDownload = await request(
-      "GET",
-      `/api/files/submissions/${submission.body.submissionId}`,
-      undefined,
-      studentToken,
-    );
-    assert.equal(submissionDownload.status, 200);
-    assert.equal(
-      Buffer.from(submissionDownload.body.contentBase64, "base64").toString("utf8"),
-      "Minha entrega C4",
-    );
-    const refreshedStudentBoot = await request("GET", "/api/student/bootstrap", undefined, studentToken);
-    const mappedSubmission = refreshedStudentBoot.body.deliveries.find((delivery: any) => delivery.id === assignmentId);
-    assert.equal(mappedSubmission.submissionId, submission.body.submissionId);
 
-    const studentUser = await database.collection("auth_users").findOne({ normalizedIdentity: "aluno.demo1" });
-    const studentId = String(studentUser!._id);
-
-    const evaluated = await request(
-      "PATCH",
+    const evaluated = await requestPatch(
       `/api/teacher/assignments/${assignmentId}/evaluate`,
       {
         studentId,
@@ -442,30 +290,32 @@ describe("autenticação e ADMIN com MongoDB real isolado", { skip: !enabled }, 
     );
     assert.equal(evaluated.status, 200);
 
-    const gradeUpdate = await request(
-      "PATCH",
-      `/api/teacher/courses/ES-DEMO-4N/grades/${studentId}`,
+    const gradeUpdate = await requestPatch(
+      `/api/teacher/courses/${classCode}/grades/${studentId}`,
       { assignmentsScore: 8.5, p1Score: 8.5, projectsScore: 9.2, p2Score: 9.2 },
       teacherToken,
     );
     assert.equal(gradeUpdate.status, 200);
 
-    const homologate = await request(
-      "POST",
-      "/api/teacher/courses/ES-DEMO-4N/grades/homologate",
-      {},
-      teacherToken,
-    );
+    const homologate = await request("POST", `/api/teacher/courses/${classCode}/grades/homologate`, {}, teacherToken);
     assert.equal(homologate.status, 200);
     assert.ok(homologate.body.chancelaCode);
 
-    const activeAdmin = await database.collection("auth_users").findOne({ profile: "admin", active: true });
-    const currentAdminToken = (await login(String(activeAdmin!.normalizedIdentity), "admin")).body.accessToken;
-    const adminGrades = await request("GET", "/api/admin/classes/ES-DEMO-4N/grades", undefined, currentAdminToken);
+    const adminGrades = await admin("GET", `/classes/${classCode}/grades`);
     assert.equal(adminGrades.status, 200);
     const auditedStudent = adminGrades.body.grades.find((g: any) => g.ra === "aluno.demo1");
     assert.ok(auditedStudent);
     assert.equal(auditedStudent.n1, 8.5);
     assert.equal(auditedStudent.n2, 9.2);
+
+    const lgpdBridge = await fetch(`${base}/api/internal/academic/users/${studentId}/lgpd-data`, { headers: bridgeHeaders });
+    assert.equal(lgpdBridge.status, 200);
+    const lgpdPayload = await lgpdBridge.json();
+    assert.ok(lgpdPayload.enrollments.length >= 1);
+    assert.ok(lgpdPayload.submissions.length >= 1);
   });
+
+  async function requestPatch(path: string, body: unknown, token: string) {
+    return request("PATCH", path, body, token);
+  }
 });

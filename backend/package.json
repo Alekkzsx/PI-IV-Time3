@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "create-user": "tsx src/scripts/create-auth-user.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "node -e \"import('node:fs').then(m => m.rmSync('dist', { recursive: true, force: true }))\" && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "npm run build && node --test dist/tests/unit/*.test.js dist/tests/integration/*.test.js",
     "test:unit": "npm run build && node --test dist/tests/unit/*.test.js",

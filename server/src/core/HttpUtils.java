@@ -7,22 +7,112 @@ import utils.Json;
 
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 // Metodos utilitarios compartilhados pelo servidor HTTP nativo.
 public final class HttpUtils {
+    private static final Pattern LOOPBACK_ORIGIN_PATTERN = Pattern.compile(
+            "^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\])(:\\d{1,5})?$",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern LAN_ORIGIN_PATTERN = Pattern.compile(
+            "^https?://(10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3}|172\\.(1[6-9]|2\\d|3[0-1])\\.\\d{1,3}\\.\\d{1,3})(:\\d{1,5})?$",
+            Pattern.CASE_INSENSITIVE
+    );
+
     private HttpUtils() { }
 
     public static void aplicarHeadersCors(RespostaHttp resposta) {
-        String originPermitido = ConfigEnv.obter("ALLOWED_ORIGINS", "*");
-        resposta.adicionarCabecalho("Access-Control-Allow-Origin", originPermitido);
+        aplicarHeadersCors(null, resposta);
+    }
+
+    public static void aplicarHeadersCors(RequisicaoHttp requisicao, RespostaHttp resposta) {
+        String originHeader = requisicao != null ? requisicao.getCabecalho("origin") : null;
+        String originPermitido = resolverOriginCors(originHeader);
+        if (originPermitido != null && !originPermitido.isEmpty()) {
+            resposta.adicionarCabecalho("Access-Control-Allow-Origin", originPermitido);
+            if (!"*".equals(originPermitido)) {
+                resposta.adicionarCabecalho("Vary", "Origin");
+            }
+        }
         resposta.adicionarCabecalho("Access-Control-Allow-Methods",
                 ConfigEnv.obter("CORS_ALLOWED_METHODS", "GET, POST, PUT, PATCH, DELETE, OPTIONS"));
         resposta.adicionarCabecalho("Access-Control-Allow-Headers",
-                ConfigEnv.obter("CORS_ALLOWED_HEADERS", "Content-Type, Authorization, X-Requested-With"));
+                ConfigEnv.obter("CORS_ALLOWED_HEADERS", "Content-Type, Authorization, X-Requested-With, Accept, Origin"));
+        if (requisicao != null
+                && "true".equalsIgnoreCase(requisicao.getCabecalho("access-control-request-private-network"))
+                && originPermitido != null && !originPermitido.isEmpty()) {
+            resposta.adicionarCabecalho("Access-Control-Allow-Private-Network", "true");
+        }
         String maxAge = ConfigEnv.obter("CORS_MAX_AGE_SECONDS", "86400");
         resposta.adicionarCabecalho("Access-Control-Max-Age", maxAge);
+    }
+
+    /**
+     * Resolve uma unica origem valida para Access-Control-Allow-Origin, evitando cabecalhos multi-valorados.
+     */
+    public static String resolverOriginCors(String originHeader) {
+        String configured = ConfigEnv.obter("ALLOWED_ORIGINS", null);
+        if (configured == null || configured.isEmpty()) {
+            configured = ConfigEnv.obter("CORS_ORIGIN", null);
+        }
+        if (configured == null || configured.isEmpty()) {
+            configured = ConfigEnv.obter("ALLOWED_ORIGIN", "*");
+        }
+        boolean production = "production".equalsIgnoreCase(ConfigEnv.obter("NODE_ENV", "development"));
+        boolean allowLan = "true".equalsIgnoreCase(ConfigEnv.obter("ALLOW_LAN_CORS", "false"));
+        return resolverOriginCors(originHeader, configured, production, allowLan);
+    }
+
+    public static String resolverOriginCors(String originHeader, String configuredOrigins, boolean production, boolean allowLan) {
+        List<String> allowed = new ArrayList<String>();
+        boolean hasWildcard = false;
+        if (configuredOrigins != null) {
+            for (String item : configuredOrigins.split(",")) {
+                String clean = removerBarraFinal(item);
+                if (clean.isEmpty()) continue;
+                if ("*".equals(clean)) {
+                    hasWildcard = true;
+                } else {
+                    allowed.add(clean);
+                }
+            }
+        }
+        if (hasWildcard) {
+            return "*";
+        }
+        if (originHeader == null || originHeader.trim().isEmpty()) {
+            return null;
+        }
+        String cleanOrigin = removerBarraFinal(originHeader);
+        for (String item : allowed) {
+            if (item.equalsIgnoreCase(cleanOrigin)) {
+                return cleanOrigin;
+            }
+        }
+        if (!production) {
+            if (LOOPBACK_ORIGIN_PATTERN.matcher(cleanOrigin).matches()) {
+                return cleanOrigin;
+            }
+            if (allowLan && LAN_ORIGIN_PATTERN.matcher(cleanOrigin).matches()) {
+                return cleanOrigin;
+            }
+        }
+        return null;
+    }
+
+    private static String removerBarraFinal(String value) {
+        if (value == null) return "";
+        String v = value.trim();
+        while (v.endsWith("/")) {
+            v = v.substring(0, v.length() - 1);
+        }
+        return v;
     }
 
     /**
@@ -141,5 +231,14 @@ public final class HttpUtils {
 
     public static void enviarResposta(RespostaHttp resposta, int status, String conteudo) throws IOException {
         resposta.enviar(status, conteudo);
+    }
+
+    public static void enviarErroJson(RespostaHttp resposta, int status, String codigo, String mensagem) throws IOException {
+        Map<String, Object> erro = new java.util.LinkedHashMap<String, Object>();
+        erro.put("status", Integer.valueOf(status));
+        erro.put("code", codigo != null ? codigo : "error");
+        erro.put("message", mensagem != null ? mensagem : "Erro interno.");
+        erro.put("erro", mensagem != null ? mensagem : "Erro interno.");
+        resposta.enviarJson(status, Json.escrever(erro));
     }
 }

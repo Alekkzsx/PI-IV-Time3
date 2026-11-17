@@ -1,8 +1,8 @@
 {
-  "_description": "Configuração dos serviços Java nativos (server/) e da API modular TypeScript (backend/).",
+  "_description": "Configuração dos serviços por contexto delimitado: Identidade/Videochamada Java (server/) e Núcleo Acadêmico TypeScript (backend/).",
   "environment": {
     "profile": "development",
-    "orchestrator": "java_frontend_launcher_and_manual_typescript_auth"
+    "orchestrator": "java_identity_videocall_and_typescript_academic_core"
   },
   "modules": {
     "server": {
@@ -11,9 +11,14 @@
       "port": 8080,
       "protocol": "HTTP/1.1",
       "auto_start": true,
-      "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
+      "healthcheck": "http://127.0.0.1:8080/health",
       "features": [
+        "institutional_login",
+        "two_factor_totp",
         "jwt_hs256_session_validation",
+        "password_recovery_otp",
+        "admin_user_lifecycle",
+        "videocall_room_tickets",
         "videocall_webrtc_signaling",
         "videocall_chat_hub_sync",
         "academic_boletim_calculation",
@@ -21,7 +26,7 @@
         "academic_task_grading"
       ]
     },
-    "auth_api": {
+    "academic_api": {
       "path": ".",
       "entrypoint": "npm run dev",
       "port": 3001,
@@ -29,14 +34,13 @@
       "auto_start": false,
       "healthcheck": "http://127.0.0.1:3001/health",
       "features": [
-        "institutional_login",
-        "two_factor_totp",
-        "jwt_access_tokens",
-        "password_recovery_otp",
-        "admin_management",
+        "passive_jwt_session_check",
+        "academic_admin_operations",
         "student_dashboard",
-        "videocall_room_tickets",
-        "mongodb_user_persistence"
+        "teacher_dashboard",
+        "academic_files",
+        "internal_academic_bridge",
+        "mongodb_academic_persistence"
       ]
     },
     "security": {

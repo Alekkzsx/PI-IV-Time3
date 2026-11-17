@@ -29,7 +29,7 @@ $$\text{Presentation Layer (Widgets \& Controllers)} \longleftrightarrow \text{D
    - Ordered FIFO doubt queue (Raised Hands) and real-time session chat.
    - Screen sharing and session recording with institutional audit logging.
    - Regimental room opening access restricted strictly to Teacher or Admin.
-   - WebSocket signaling through the Java server after a single-use room ticket is issued by the TypeScript API; audio/video remain peer-to-peer.
+   - Room entry, single-use ticket issuance, and WebSocket signaling run on the Java server (`:8080`); audio/video media remain peer-to-peer via WebRTC.
 6. **`multiperfil`**: Academic interoperability bridge (*Academic Bridge*) orchestrating synchronized cross-role events between Student, Teacher, and Admin.
 
 ---
@@ -83,13 +83,14 @@ flutter run
 
 When executing `flutter run`:
 - Flutter compiles and launches the desktop/web client.
-- The Java academic/WebSocket server in `server/` is started automatically when needed.
-- The TypeScript auth, room authorization, and ticket API in `backend/` must be started separately with `npm run dev`.
+- The Java Identity, Admin Users & Video-Call WebSocket server in `server/` (`:8080`) is started automatically when needed.
+- The TypeScript Academic Core & File API in `backend/` (`:3001`) must be running (`npm run dev` or desktop auto-launcher).
 - The enterprise security package (`security/`) is declared as a local dependency in `pubspec.yaml`.
 
-For a non-local Web deployment, configure `AUTH_API_BASE_URL` for the TypeScript
-API and `VIDEO_CALL_WS_BASE_URL` for the Java WebSocket endpoint using
-`--dart-define`; use `wss://` for secure deployments.
+For a non-local Web deployment, configure:
+- `AUTH_API_BASE_URL` for the Java Identity & Video-Call server (default `http://127.0.0.1:8080`)
+- `ACADEMIC_API_BASE_URL` (or fallback `API_BASE_URL`) for the TypeScript Academic Core (default `http://127.0.0.1:3001`)
+- `VIDEO_CALL_WS_BASE_URL` for the Java WebSocket endpoint (default `ws://127.0.0.1:8080`, use `wss://` in production)
 
 ---
 

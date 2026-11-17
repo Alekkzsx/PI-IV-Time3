@@ -4,7 +4,7 @@ import type { Db } from "mongodb";
 import { z } from "zod";
 import { AuthError } from "../../../shared/auth-error.js";
 import { parse } from "../../../shared/validation.js";
-import { authenticated } from "../../auth/infrastructure/session.middleware.js";
+import { authenticated } from "../../../shared/auth/jwt-session.middleware.js";
 import { TeacherService } from "../application/index.js";
 
 function teacherOrAdmin(): RequestHandler {

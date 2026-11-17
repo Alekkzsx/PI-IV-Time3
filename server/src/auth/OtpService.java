@@ -97,4 +97,21 @@ public final class OtpService {
         int maxTentativas = ConfigEnv.obterInteiro("AUTH_OTP_MAX_ATTEMPTS", 3);
         return tentativas >= maxTentativas;
     }
+
+    /**
+     * Calcula digest SHA-256 em hexadecimal minusculo (compativel com Node crypto createHash('sha256').digest('hex')).
+     */
+    public static String sha256Hex(String valor) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest((valor != null ? valor : "").getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                hex.append(String.format("%02x", b & 0xff));
+            }
+            return hex.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("Falha ao calcular SHA-256: " + e.getMessage(), e);
+        }
+    }
 }

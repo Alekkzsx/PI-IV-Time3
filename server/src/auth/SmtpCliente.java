@@ -133,6 +133,21 @@ public final class SmtpCliente {
     }
 
     /**
+     * Envia um email de boas-vindas ao usuario recem-cadastrado pelo Admin (assincrono).
+     */
+    public static void enviarBoasVindas(
+            String destinatarioEmail,
+            String nomeUsuario,
+            String identidade,
+            String perfil,
+            String senhaTemporaria) {
+        if (destinatarioEmail == null || destinatarioEmail.trim().isEmpty()) return;
+        String assunto = "Bem-vindo ao Portal AGMRM — Credenciais de Acesso";
+        String corpoHtml = construirHtmlBoasVindas(nomeUsuario, identidade, perfil, senhaTemporaria);
+        enviarAsync(destinatarioEmail.trim(), assunto, corpoHtml, "WELCOME");
+    }
+
+    /**
      * Envia um email de recuperacao de senha (assincrono, nao bloqueia).
      *
      * @param destinatarioEmail Email do destinatario.
@@ -361,7 +376,29 @@ public final class SmtpCliente {
                 + "└════════════════════════════════════════════════════════════════════┘\n";
 
         System.out.println(moldura);
+        persistirOutboxMongo(destinatario, assunto, html, codigoOtp, tipo);
         log("INFO", "[OUTBOX REGISTRADO] Email retido em outbox local para " + destinatario + " | OTP=" + otpFormatado);
+    }
+
+    private static void persistirOutboxMongo(String destinatario, String assunto, String html, String codigoOtp, String tipo) {
+        try {
+            RepositorioUsuarios repo = RepositorioUsuarios.getInstanciaSeInicializada();
+            if (repo == null || repo.getEmailOutboxCollection() == null) return;
+            java.util.Date agora = new java.util.Date();
+            java.util.Date expira = new java.util.Date(System.currentTimeMillis() + 86_400_000L);
+            org.bson.Document doc = new org.bson.Document()
+                    .append("id", "java_outbox_" + System.currentTimeMillis())
+                    .append("to", destinatario)
+                    .append("subject", assunto)
+                    .append("html", html)
+                    .append("text", assunto + (codigoOtp != null ? " | Codigo: " + codigoOtp : ""))
+                    .append("provider", "outbox")
+                    .append("purpose", tipo)
+                    .append("createdAt", agora)
+                    .append("expiresAt", expira);
+            if (codigoOtp != null) doc.append("code", codigoOtp);
+            repo.getEmailOutboxCollection().insertOne(doc);
+        } catch (Exception ignored) { }
     }
 
     private static String extrairCodigoOtp(String html) {
@@ -649,6 +686,22 @@ public final class SmtpCliente {
                 + escaparHtml(codigo) + "</span></div>"
                 + "<p style=\"color: #666; font-size: 14px;\">Este código expira em 5 minutos.</p>"
                 + "<p style=\"color: #999; font-size: 12px;\">Se você não solicitou, ignore este email com segurança.</p>"
+                + "<hr style=\"border: none; border-top: 1px solid #eee;\">"
+                + "<p style=\"color: #999; font-size: 12px;\">AGMRM - Plataforma Educacional Integrada</p>"
+                + "</div></body></html>";
+    }
+
+    private static String construirHtmlBoasVindas(String nome, String identidade, String perfil, String senhaTemporaria) {
+        return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head>"
+                + "<body style=\"font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px;\">"
+                + "<div style=\"max-width: 500px; margin: 0 auto; background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);\">"
+                + "<h2 style=\"color: #0f172a; margin-top: 0;\">Bem-vindo ao Portal AGMRM</h2>"
+                + "<p>Olá" + (nome != null && !nome.isEmpty() ? ", " + escaparHtml(nome) : "") + "!</p>"
+                + "<p>Sua conta institucional (" + escaparHtml(perfil != null ? perfil : "") + ") foi criada.</p>"
+                + "<p><strong>Identidade:</strong> " + escaparHtml(identidade != null ? identidade : "") + "</p>"
+                + (senhaTemporaria != null && !senhaTemporaria.isEmpty()
+                        ? "<p><strong>Senha temporária:</strong> <code>" + escaparHtml(senhaTemporaria) + "</code></p>"
+                        : "")
                 + "<hr style=\"border: none; border-top: 1px solid #eee;\">"
                 + "<p style=\"color: #999; font-size: 12px;\">AGMRM - Plataforma Educacional Integrada</p>"
                 + "</div></body></html>";

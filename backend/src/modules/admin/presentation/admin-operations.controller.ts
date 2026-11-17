@@ -1,11 +1,10 @@
 // Desenvolvido por Guilherme Henrique Moreira
 import { Router } from "express";
-import { ObjectId, type Db, type Document } from "mongodb";
+import { ObjectId, type Db } from "mongodb";
 import { z } from "zod";
 import { adminOnly } from "../infrastructure/admin-auth.middleware.js";
-import { adminWrite, audit, publicRecord, publicUser } from "../infrastructure/admin-support.js";
-import { parse, objectId } from "../../../shared/validation.js";
-import { AuthError } from "../../../shared/auth-error.js";
+import { publicRecord } from "../infrastructure/admin-support.js";
+import { parse } from "../../../shared/validation.js";
 import { registerAdminCalendarRoutes } from "./operations/calendar/routes.js";
 import { registerAdminProtocolRoutes } from "./operations/protocols/routes.js";
 import { registerAdminAnnouncementRoutes } from "./operations/announcements/routes.js";
@@ -135,33 +134,6 @@ export function createAdminOperationsRouter(
         };
       }),
     );
-  });
-
-  router.get("/users/:id/dossier", async (request, response) => {
-    const id = objectId(request.params.id);
-    const user = await database.collection("auth_users").findOne({ _id: id });
-    if (!user) throw new AuthError(404, "user_not_found", "Usuário não encontrado.");
-    const [classes, enrollments, logs, protocolsList, gradesList] = await Promise.all([
-      database.collection("academic_classes").find({ professorId: String(id) }).toArray(),
-      database.collection("academic_enrollments").find({ studentId: String(id) }).toArray(),
-      database
-        .collection("admin_audit_logs")
-        .find({ $or: [{ target: String(id) }, { actorId: String(id) }] })
-        .sort({ createdAt: -1 })
-        .limit(100)
-        .toArray(),
-      protocols.find({ studentId: String(id) }, { projection: { attachmentBase64: 0 } }).sort({ createdAt: -1 }).toArray(),
-      database.collection("academic_grades").find({ studentId: String(id) }).toArray(),
-    ]);
-    await audit(database, response.locals.adminId, "dossier_viewed", String(id));
-    response.json({
-      user: publicUser(user),
-      classes: classes.map(publicRecord),
-      enrollments: enrollments.map(publicRecord),
-      protocols: protocolsList.map(publicRecord),
-      grades: gradesList.map(publicRecord),
-      auditLogs: logs.map(publicRecord),
-    });
   });
 
   return router;

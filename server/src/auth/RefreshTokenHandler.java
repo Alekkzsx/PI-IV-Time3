@@ -25,10 +25,19 @@ import java.util.Map;
  * Response 401: { "erro": "..." }
  */
 public class RefreshTokenHandler implements ManipuladorHttp {
+    private final RepositorioUsuarios repositorio;
+
+    public RefreshTokenHandler() {
+        this(RepositorioUsuarios.getInstance());
+    }
+
+    public RefreshTokenHandler(RepositorioUsuarios repositorio) {
+        this.repositorio = repositorio != null ? repositorio : RepositorioUsuarios.getInstance();
+    }
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -77,18 +86,16 @@ public class RefreshTokenHandler implements ManipuladorHttp {
             // Validar o refresh token (tipo deve ser "refresh")
             UsuarioAutenticado usuario = JwtAuthValidator.validarToken(refreshToken, segredo, "refresh");
 
-            // Verificar versao da sessao contra o MongoDB
-            RepositorioUsuarios repo = new RepositorioUsuarios();
+            // Verificar versao da sessao contra o MongoDB utilizando o singleton compartilhado
+            RepositorioUsuarios repo = this.repositorio;
             UsuarioAutenticado usuarioAtualizado = repo.buscarPorId(usuario.getUserId());
             if (usuarioAtualizado == null) {
-                repo.fechar();
                 enviarErro(resposta, 401, "Usuario nao encontrado ou desativado.");
                 return;
             }
 
-            // Verificar versao da sessao (ver)
-            if (usuario.getSessionVersion() < usuarioAtualizado.getSessionVersion()) {
-                repo.fechar();
+            // Verificar versao da sessao (ver) exata
+            if (usuario.getSessionVersion() != usuarioAtualizado.getSessionVersion()) {
                 enviarErro(resposta, 401, "Sessao invalidada. Todas as sessoes foram revogadas. Realize login novamente.");
                 return;
             }
@@ -104,34 +111,48 @@ public class RefreshTokenHandler implements ManipuladorHttp {
             int sessionVersion = usuarioAtualizado.getSessionVersion();
             JwtGerador.ParTokens novosTokens = JwtGerador.gerarParTokens(usuarioAtualizado, sessionVersion);
 
-            // Persistir nova sessao
+            // Persistir nova sessao com metadados
             String novoJti = JwtGerador.extrairJti(novosTokens.getAccessToken());
             long novaExpiracao = JwtGerador.extrairExpiracaoMillis(novosTokens.getAccessToken());
             if (novoJti != null) {
-                repo.criarSessao(usuarioAtualizado.getUserId(), novoJti, novaExpiracao);
+                repo.criarSessao(
+                        usuarioAtualizado.getUserId(),
+                        novoJti,
+                        novaExpiracao,
+                        requisicao.getCabecalho("user-agent"),
+                        requisicao.getCabecalho("x-forwarded-for")
+                );
             }
-            repo.fechar();
 
             // Construir resposta
             Map<String, Object> payloadUsuario = new LinkedHashMap<String, Object>();
             payloadUsuario.put("id", usuarioAtualizado.getUserId());
             payloadUsuario.put("identidade", usuarioAtualizado.getIdentity());
+            payloadUsuario.put("identity", usuarioAtualizado.getIdentity());
             payloadUsuario.put("perfil", usuarioAtualizado.getProfile());
+            payloadUsuario.put("profile", usuarioAtualizado.getProfile());
             if (!usuarioAtualizado.getDisplayName().isEmpty()) {
                 payloadUsuario.put("nome", usuarioAtualizado.getDisplayName());
+                payloadUsuario.put("displayName", usuarioAtualizado.getDisplayName());
             }
             if (!usuarioAtualizado.getEmail().isEmpty()) {
                 payloadUsuario.put("email", usuarioAtualizado.getEmail());
             }
+            payloadUsuario.put("requirePasswordChange", usuarioAtualizado.isRequirePasswordChange());
+            payloadUsuario.put("twoFactorRequired", usuarioAtualizado.isTwoFactorEnabled());
 
             Map<String, Object> resp = new LinkedHashMap<String, Object>();
             resp.put("status", 200);
+            resp.put("accessToken", novosTokens.getAccessToken());
             resp.put("token", novosTokens.getAccessToken());
             resp.put("refreshToken", novosTokens.getRefreshToken());
             resp.put("usuario", payloadUsuario);
+            resp.put("user", payloadUsuario);
 
             resposta.enviarJson(200, Json.escrever(resp));
 
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (SecurityException e) {
             enviarErro(resposta, 401, e.getMessage());
         } catch (IllegalArgumentException e) {
@@ -146,6 +167,8 @@ public class RefreshTokenHandler implements ManipuladorHttp {
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", status == 401 ? "invalid_refresh_token" : "invalid_request");
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

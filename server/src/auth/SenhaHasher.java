@@ -144,42 +144,56 @@ public final class SenhaHasher {
      * Le as regras do arquivo .env: PASSWORD_MIN_LENGTH, REQUIRE_UPPERCASE, etc.
      */
     public static ResultadoValidacao validarComplexidade(String senha) {
+        int minLength = utils.ConfigEnv.obterInteiro("PASSWORD_MIN_LENGTH", 8);
+        int maxLength = utils.ConfigEnv.obterInteiro("PASSWORD_MAX_LENGTH", 128);
+        boolean requireUpper = "true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_UPPERCASE", "true"));
+        boolean requireLower = "true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_LOWERCASE", "true"));
+        boolean requireDigit = "true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_DIGIT", "true"));
+        boolean requireSpecial = "true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_SPECIAL_CHAR", "true"));
+        return validarComplexidade(senha, minLength, maxLength, requireUpper, requireLower, requireDigit, requireSpecial);
+    }
+
+    /**
+     * Valida complexidade de senha contra politica explicita (deterministico para testes unitarios).
+     */
+    public static ResultadoValidacao validarComplexidade(
+            String senha,
+            int minLength,
+            int maxLength,
+            boolean requireUpper,
+            boolean requireLower,
+            boolean requireDigit,
+            boolean requireSpecial) {
         if (senha == null || senha.isEmpty()) {
             return new ResultadoValidacao(false, "Senha nao pode ser vazia.");
         }
 
-        int minLength = utils.ConfigEnv.obterInteiro("PASSWORD_MIN_LENGTH", 8);
         if (senha.length() < minLength) {
             return new ResultadoValidacao(false,
                     "Senha deve ter pelo menos " + minLength + " caracteres.");
         }
 
-        int maxLength = utils.ConfigEnv.obterInteiro("PASSWORD_MAX_LENGTH", 128);
         if (senha.length() > maxLength) {
             return new ResultadoValidacao(false,
                     "Senha excede o tamanho maximo de " + maxLength + " caracteres.");
         }
 
-        if ("true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_UPPERCASE", "true"))
-                && !contemMaiuscula(senha)) {
+        if (requireUpper && !contemMaiuscula(senha)) {
             return new ResultadoValidacao(false,
                     "Senha deve conter pelo menos uma letra maiuscula.");
         }
 
-        if ("true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_LOWERCASE", "true"))
-                && !contemMinuscula(senha)) {
+        if (requireLower && !contemMinuscula(senha)) {
             return new ResultadoValidacao(false,
                     "Senha deve conter pelo menos uma letra minuscula.");
         }
 
-        if ("true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_DIGIT", "true"))
-                && !contemDigito(senha)) {
+        if (requireDigit && !contemDigito(senha)) {
             return new ResultadoValidacao(false,
                     "Senha deve conter pelo menos um digito numerico.");
         }
 
-        if ("true".equalsIgnoreCase(utils.ConfigEnv.obter("REQUIRE_SPECIAL_CHAR", "true"))
-                && !contemCaractereEspecial(senha)) {
+        if (requireSpecial && !contemCaractereEspecial(senha)) {
             return new ResultadoValidacao(false,
                     "Senha deve conter pelo menos um caractere especial (!@#$%^&*...).");
         }

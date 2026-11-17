@@ -5,7 +5,7 @@ class AuthProfileRemoteDataSource {
   final AuthenticatedApiClient _api;
 
   AuthProfileRemoteDataSource({AuthenticatedApiClient? api})
-    : _api = api ?? AuthenticatedApiClient();
+    : _api = api ?? AuthenticatedApiClient.auth();
 
   Future<Map<String, dynamic>> me() async {
     final profile = await _api.getMap('/api/auth/me');

@@ -1,10 +1,12 @@
 import "../config/local-environment.js";
+import bcrypt from "bcryptjs";
 import { createInterface } from "node:readline/promises";
 import { MongoClient } from "mongodb";
 import { loadEnvironment } from "../config/environment.js";
-import { BcryptPasswordHasher } from "../modules/auth/infrastructure/security.providers.js";
-import { authProfiles, type AuthProfile } from "../modules/auth/domain/auth.types.js";
 import { passwordSchema, emailSchema, identitySchema } from "../shared/validation.js";
+
+const authProfiles = ["aluno", "docente", "admin"] as const;
+type AuthProfile = (typeof authProfiles)[number];
 
 async function prompt(question: string): Promise<string> {
   const interfaceInstance = createInterface({
@@ -118,7 +120,7 @@ async function main(): Promise<void> {
 
     await users.createIndex({ normalizedIdentity: 1 }, { unique: true });
     await users.createIndex({ email: 1 }, { unique: true, collation: { locale: "en", strength: 2 }, partialFilterExpression: { email: { $type: "string" } } });
-    const passwordHash = await new BcryptPasswordHasher().hash(password);
+    const passwordHash = await bcrypt.hash(password, 12);
     await users.insertOne({
       identity: identity.trim(),
       normalizedIdentity,

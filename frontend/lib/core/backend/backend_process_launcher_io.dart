@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import '../network/resilient_http_client_io.dart';
 
 /// Orquestrador de inicialização automática dos serviços locais (`backend/` :3001 e `server/` :8080)
 /// em execução Desktop (`flutter run -d windows`).
@@ -63,7 +64,8 @@ class BackendProcessLauncher {
 
   static Future<void> _ensureJavaServerRunning(Directory projectRoot) async {
     try {
-      if (await _pingUrl('http://127.0.0.1:8080/api/videocall/rooms')) {
+      if (await _pingUrl('http://127.0.0.1:8080/health') ||
+          await _pingUrl('http://127.0.0.1:8080/api/videocall/rooms')) {
         debugPrint('[BackendLauncher] Servidor Java já ativo na porta 8080.');
         return;
       }
@@ -93,9 +95,10 @@ class BackendProcessLauncher {
           '${serverDir.path}${Platform.pathSeparator}bin',
         );
         if (binDir.existsSync()) {
+          final classpath = Platform.isWindows ? 'bin;lib/*' : 'bin:lib/*';
           await Process.start(
             'java',
-            ['-cp', 'bin', 'main.Main'],
+            ['-cp', classpath, 'Main'],
             workingDirectory: serverDir.path,
             mode: ProcessStartMode.detached,
           );
@@ -108,8 +111,9 @@ class BackendProcessLauncher {
 
   static Future<bool> _pingUrl(String url) async {
     try {
-      final client = HttpClient()
-        ..connectionTimeout = const Duration(milliseconds: 350);
+      final client = createLoopbackBypassHttpClient(
+        connectionTimeout: const Duration(milliseconds: 350),
+      );
       final request = await client.getUrl(Uri.parse(url));
       final response = await request.close();
       client.close(force: true);

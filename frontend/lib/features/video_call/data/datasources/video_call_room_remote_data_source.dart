@@ -7,8 +7,10 @@ import '../../../../core/network/authenticated_api_client.dart';
 class VideoCallRoomRemoteDataSource {
   final AuthenticatedApiClient _api;
 
-  VideoCallRoomRemoteDataSource({http.Client? client})
-    : _api = AuthenticatedApiClient(client: client);
+  VideoCallRoomRemoteDataSource({
+    http.Client? client,
+    AuthenticatedApiClient? api,
+  }) : _api = api ?? AuthenticatedApiClient.auth(client: client);
 
   Future<List<VideoCallRoomSummary>> listRooms() async => (await _api.getList(
     '/api/video-call/rooms',

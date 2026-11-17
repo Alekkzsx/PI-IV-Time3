@@ -5,85 +5,97 @@ import express, {
   type Express,
 } from "express";
 import helmet from "helmet";
-import { rateLimit } from "express-rate-limit";
 import type { Db } from "mongodb";
 import type { Environment } from "./config/environment.js";
-import type { AuthService } from "./modules/auth/application/index.js";
-import { createAuthRouter } from "./modules/auth/presentation/auth.controller.js";
-import { createSessionRouter } from "./modules/auth/presentation/session.controller.js";
 import { createAdminAcademicRouter } from "./modules/admin/presentation/academic/index.js";
 import { createAdminOperationsRouter } from "./modules/admin/presentation/operations/index.js";
-import { createAdminUsersRouter } from "./modules/admin/presentation/users/index.js";
+import { createInternalAcademicRouter } from "./modules/internal/internal-academic.controller.js";
 import { createStudentDashboardRouter } from "./modules/student/presentation/dashboard/index.js";
 import { createFilesRouter } from "./modules/student/presentation/files/index.js";
 import { createTeacherRouter } from "./modules/teacher/presentation/index.js";
-import { createVideoCallRouter } from "./modules/video-call/presentation/index.js";
 import { AuthError } from "./shared/auth-error.js";
 import type { UnifiedEmailService } from "./modules/notifications/domain/notification.types.js";
 
-/** Monta middlewares e rotas; recebe dependências prontas para facilitar testes. */
+const DEV_LOOPBACK_ORIGIN_REGEX = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/i;
+const LAN_IPV4_ORIGIN_REGEX =
+  /^https?:\/\/(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d{1,5})?$/i;
+
+function isAllowedCorsOrigin(
+  origin: string,
+  environment: Pick<Environment, "nodeEnv" | "corsOrigins"> & { allowLanCors?: boolean },
+): boolean {
+  if (environment.corsOrigins.includes(origin)) {
+    return true;
+  }
+  if (environment.nodeEnv !== "production") {
+    if (DEV_LOOPBACK_ORIGIN_REGEX.test(origin)) {
+      return true;
+    }
+    if (environment.allowLanCors && LAN_IPV4_ORIGIN_REGEX.test(origin)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Monta middlewares e rotas exclusivas do núcleo acadêmico e ponte interna. */
 export function createApp(
-  service: AuthService,
-  environment: Pick<Environment, "nodeEnv" | "corsOrigins">,
-  adminOptions?: { database: Db; jwtSecret: string; emailSender?: UnifiedEmailService },
+  environment: Pick<Environment, "nodeEnv" | "corsOrigins"> & { allowLanCors?: boolean },
+  options: {
+    database: Db;
+    jwtSecret: string;
+    internalServiceSecret?: string;
+    emailSender?: UnifiedEmailService;
+  },
 ): Express {
   const app = express();
 
   app.disable("x-powered-by");
   app.use(helmet());
+  app.use((request, response, next) => {
+    const origin = request.header("origin");
+    if (
+      request.header("access-control-request-private-network") === "true" &&
+      (!origin || isAllowedCorsOrigin(origin, environment))
+    ) {
+      response.setHeader("Access-Control-Allow-Private-Network", "true");
+    }
+    next();
+  });
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin) {
-          callback(null, true);
-          return;
-        }
-        if (environment.corsOrigins.includes(origin)) {
-          callback(null, true);
-          return;
-        }
-        if (
-          environment.nodeEnv !== "production" &&
-          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
-        ) {
+        if (!origin || isAllowedCorsOrigin(origin, environment)) {
           callback(null, true);
           return;
         }
         callback(null, false);
       },
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Internal-Service-Secret"],
       exposedHeaders: ["X-Total-Count"],
     }),
   );
   app.use(express.json({ limit: "10mb", strict: true }));
 
   app.get("/health", (_request, response) => {
-    response.status(200).json({ status: "ok" });
+    response.status(200).json({ status: "ok", service: "agmrm-academic-api" });
   });
 
-  const authRateLimit = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 200,
-    standardHeaders: "draft-8",
-    legacyHeaders: false,
-    message: {
-      code: "rate_limit_exceeded",
-      message: "Muitas tentativas. Aguarde antes de tentar novamente.",
-    },
-  });
-  app.use("/api/auth", authRateLimit, createAuthRouter(service));
-
-  if (adminOptions) {
-    app.use("/api/auth", createSessionRouter(adminOptions.database, adminOptions.jwtSecret, service));
-    app.use("/api/admin/users", createAdminUsersRouter(adminOptions.database, adminOptions.jwtSecret, service, adminOptions.emailSender));
-    app.use("/api/admin", createAdminOperationsRouter(adminOptions.database, adminOptions.jwtSecret, adminOptions.emailSender));
-    app.use("/api/admin", createAdminAcademicRouter(adminOptions.database, adminOptions.jwtSecret));
-    app.use("/api/student", createStudentDashboardRouter(adminOptions.database, adminOptions.jwtSecret, adminOptions.emailSender));
-    app.use("/api/teacher", createTeacherRouter(adminOptions.database, adminOptions.jwtSecret));
-    app.use("/api/files", createFilesRouter(adminOptions.database, adminOptions.jwtSecret));
-    app.use("/api/video-call", createVideoCallRouter(adminOptions.database, adminOptions.jwtSecret));
+  if (options.internalServiceSecret) {
+    app.use(
+      "/api/internal/academic",
+      createInternalAcademicRouter(options.database, options.internalServiceSecret),
+    );
   }
+
+  app.use("/api/admin/users", notFoundHandler);
+  app.post("/api/admin/teachers", notFoundHandler);
+  app.use("/api/admin", createAdminOperationsRouter(options.database, options.jwtSecret, options.emailSender));
+  app.use("/api/admin", createAdminAcademicRouter(options.database, options.jwtSecret));
+  app.use("/api/student", createStudentDashboardRouter(options.database, options.jwtSecret, options.emailSender));
+  app.use("/api/teacher", createTeacherRouter(options.database, options.jwtSecret));
+  app.use("/api/files", createFilesRouter(options.database, options.jwtSecret));
 
   app.use(notFoundHandler);
   app.use(errorHandler(environment.nodeEnv));

@@ -1,85 +1,54 @@
 <!-- Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 -->
 
-# Backend Institucional (TypeScript + Express + MongoDB)
+# Backend Acadêmico (TypeScript + Express + MongoDB)
 
-Serviço modular em TypeScript para autenticação institucional (login, 2FA/TOTP, sessões persistentes e recuperação de senha por OTP), gestão administrativa (`admin`), portal do aluno (`student`) e autorização/emissão de tickets de salas de videochamada (`video-call`).
+Serviço modular em TypeScript dedicado ao núcleo acadêmico (`student`, `teacher`, operações acadêmicas de `admin`, download de arquivos `/api/files/*`) e à ponte HTTP interna (`/api/internal/academic/*`).
 
-Roda na porta `3001` por padrão e opera em conjunto com o servidor Java SE nativo em `../server` (porta `8080`), que atende os cálculos acadêmicos, sinalização WebRTC via WebSocket e validação nativa de tokens JWT HS256. A configuração de variáveis de ambiente é carregada exclusivamente a partir do arquivo mestre `.env` na raiz do projeto (`../.env`).
+Roda na porta `3001` por padrão e opera em conjunto com o servidor Java SE em `../server` (porta `8080`), que detém a autoridade exclusiva sobre autenticação, sessão, gestão de usuários (`/api/admin/users*`, `POST /api/admin/teachers`) e sinalização/persistência de videochamada (`/api/video-call/*`, `/ws/video-call/*`). Este serviço realiza apenas validação passiva de JWT HS256 contra `auth_users` e `auth_sessions` no MongoDB e carrega a configuração exclusivamente do `.env` na raiz (`../.env`).
 
 ## Organização
 
 ```text
 backend/
 ├── src/
-│   ├── app.ts                        # Composição da aplicação Express e middlewares globais
+│   ├── app.ts                        # Composição das rotas acadêmicas, ponte interna e 404 explícitos
 │   ├── server.ts                     # Bootstrap HTTP e conexão com MongoDB
 │   ├── config/                       # Carregamento e validação estrita de variáveis de ambiente
 │   ├── shared/
-│   │   ├── formatting/               # Formatação reutilizável de datas
+│   │   ├── auth/                     # Middleware passivo JWT + auth_users / auth_sessions
+│   │   ├── formatting/               # Formatação reutilizável de datas e sanitizeRoomCode
+│   │   ├── mongo/                    # MongoAcademicDatabase e criação de índices por domínio
 │   │   └── ...                       # Erros HTTP, transações e validação compartilhada
 │   ├── modules/
-│   │   ├── auth/
-│   │   │   ├── application/          # Fachada de autenticação e fluxos de recuperação
-│   │   │   │   └── recovery/         # Entry point do domínio de recuperação e digests
-│   │   │   ├── domain/               # Entidades, perfis institucionais e portas de repositório
-│   │   │   ├── infrastructure/       # MongoDB, bcrypt, JWT HS256, TOTP e SMTP
-│   │   │   │   └── mongo/indexes/    # Índices por domínio (auth, admin, acadêmico, video-call)
-│   │   │   └── presentation/         # Contratos de validação e rotas HTTP (/api/auth/*)
-│   │   │       ├── profile/          # Dados e atualização do perfil autenticado
-│   │   │       ├── sessions/         # Consulta e revogação de sessões
-│   │   │       ├── security/         # 2FA, códigos de backup e senha
-│   │   │       └── privacy/          # Exportação LGPD
+│   │   ├── internal/                 # Ponte HTTP interna (/api/internal/academic/*)
+│   │   ├── notifications/            # ResilientEmailSender (SMTP / outbox local / banco)
 │   │   ├── admin/
 │   │   │   ├── infrastructure/       # Middleware adminOnly, auditoria e sanitização de registros
 │   │   │   └── presentation/
-│   │   │       ├── users/            # Rotas administrativas de usuários
-│   │   │       ├── academic/         # Rotas de cursos, turmas e vínculos
+│   │   │       ├── academic/         # Rotas de cursos, turmas, matrículas e GET /teachers
 │   │   │       └── operations/
 │   │   │           ├── calendar/     # Calendário institucional
 │   │   │           ├── protocols/    # Requerimentos e decisões da secretaria
 │   │   │           ├── announcements/ # Comunicados institucionais
-│   │   │           └── settings/     # Configurações institucionais
+│   │   │           ├── settings/     # Configurações institucionais
+│   │   │           └── system/       # Diagnóstico de e-mail / sistema
 │   │   ├── student/
-│   │   │   ├── application/
-│   │   │   │   ├── dashboard/        # Repositório e mapeadores do painel
-│   │   │   │   ├── deliveries/       # Submissões e dúvidas de atividades
-│   │   │   │   ├── calendar/         # Lembretes pessoais
-│   │   │   │   ├── communications/  # Ciência de comunicados
-│   │   │   │   ├── protocols/       # Requerimentos estudantis
-│   │   │   │   ├── notes/           # Anotações pessoais
-│   │   │   │   ├── forum/           # Tópicos e respostas discentes
-│   │   │   │   └── operations/      # Fachada compatível para os casos de uso
+│   │   │   ├── application/          # Casos de uso discentes (painel, entregas, notas, fórum, protocolos)
 │   │   │   └── presentation/
-│   │   │       ├── dashboard/        # Rotas de painel e operações do aluno
-│   │   │       └── files/            # Downloads de materiais, entregas e protocolos
-│   │   ├── teacher/
-│   │   │   ├── application/
-│   │   │   │   ├── dashboard/        # Repositório e mapeadores do painel
-│   │   │   │   ├── sessions/         # Aulas e frequência
-│   │   │   │   ├── materials/        # Materiais de turma
-│   │   │   │   ├── assignments/      # Atividades, avaliações e dúvidas
-│   │   │   │   ├── gradebook/        # Notas, homologação e retificações
-│   │   │   │   ├── syllabus/         # Ementa e avanço de unidades
-│   │   │   │   └── communications/   # Fórum, grupos, agenda e comunicados
-│   │   │   └── presentation/         # Rotas docentes (/api/teacher/*)
-│   │   └── video-call/
-│   │       ├── application/          # Autorização de salas ao vivo e tickets efêmeros SHA-256
-│   │       └── presentation/         # Controller de salas e consumo de ticket (/api/video-call/*)
+│   │   │       ├── dashboard/        # Rotas /api/student/*
+│   │   │       └── files/            # Downloads (/api/files/*)
+│   │   └── teacher/
+│   │       ├── application/          # Casos de uso docentes (diário, materiais, notas, homologação)
+│   │       └── presentation/         # Rotas docentes (/api/teacher/*)
 │   ├── scripts/
 │   │   ├── index.ts                  # Orquestrador mestre das seeds do ecossistema
-│   │   ├── modules/                  # Módulos especializados de seeds por domínio
-│   │   │   ├── 01-users.seed.ts      # Contas de usuários reais (Admin, Docentes, Alunos)
-│   │   │   ├── 02-courses.seed.ts    # Curso real de Engenharia de Software e matriz
-│   │   │   ├── 03-classes.seed.ts    # Turmas e matrículas ativas
-│   │   │   ├── 04-teacher.seed.ts    # Diário de aulas, materiais didáticos, tarefas e fóruns
-│   │   │   ├── 05-student.seed.ts    # Entregas de atividades, notas, protocolos e anotações
-│   │   │   └── 06-institutional.seed.ts # Calendário, comunicados e parâmetros do sistema
+│   │   ├── modules/                  # Seeds 01-users .. 06-institutional
 │   │   ├── shared/                   # Runner e tipagens compartilhadas de seeds
 │   │   ├── create-auth-user.ts       # Provisionamento seguro de contas via CLI
 │   │   └── test-email-resilience.ts  # Teste de envio e resiliência de e-mail (outbox)
 │   └── tests/
-│       ├── unit/                     # Testes unitários isolados (env, auth service, seed)
-│       └── integration/              # Testes de integração HTTP ponta a ponta
+│       ├── unit/                     # Testes unitários isolados
+│       └── integration/              # Testes de integração HTTP (incluindo ponte interna e fronteira)
 ├── .env.example
 ├── backend-config.json
 ├── package.json
@@ -138,24 +107,15 @@ Base local: `http://127.0.0.1:3001`
 
 | Método | Caminho | Descrição |
 |---|---|---|
-| `GET` | `/health` | Health check do serviço |
-| `POST` | `/api/auth/login` | Valida identidade, senha e perfil; retorna JWT curto (ou desafio 2FA) |
-| `POST` | `/api/auth/2fa/verify-login` | Conclui login com código TOTP ou código reserva |
-| `GET` | `/api/auth/me` | Retorna dados e validade da sessão autenticada atual |
-| `POST` | `/api/auth/logout` / `/logout-all` | Revoga a sessão atual ou todas as sessões do usuário |
-| `POST` | `/api/auth/send-recovery-otp` | Solicita OTP sem revelar se a identidade existe |
-| `POST` | `/api/auth/verify-recovery-otp` | Valida OTP e retorna grant temporário de redefinição |
-| `POST` | `/api/auth/reset-password` | Consome o grant de uso único e redefine a senha |
-| `GET` | `/api/student/dashboard` | Painel consolidado do discente autenticado |
-| `GET` | `/api/student/boletim` | Histórico de notas do discente autenticado, agrupado por período |
-| `POST` | `/api/student/enrollment-declaration` | Emite e persiste uma declaração de matrícula com chave de verificação |
-| `GET` | `/api/teacher/notices/:id/reads` | Consulta leituras de comunicado de uma turma vinculada ao docente |
-| `GET` / `POST` | `/api/admin/users` e `/api/admin/teachers` | Gestão administrativa de identidades e docentes (`adminOnly`) |
-| `PATCH` | `/api/admin/announcements/:id` | Atualiza campos permitidos de um comunicado e registra auditoria (`adminOnly`) |
-| `GET` / `POST` | `/api/admin/courses` e `/api/admin/classes` | Gestão de cursos, turmas, matrículas, sessões e calendário (`adminOnly`) |
-| `POST` | `/api/video-call/rooms/enter` | Docente atribuído abre a sala; aluno matriculado entra e recebe ticket WS |
-| `POST` | `/api/video-call/rooms/close` | Docente responsável encerra a sala ao vivo |
-| `POST` | `/api/video-call/rooms/consume-ticket` | Consome uma única vez o ticket de 60s durante o handshake WebSocket Java |
+| `GET` | `/health` | Health check do serviço acadêmico (`agmrm-academic-api`) |
+| `GET` / `POST` | `/api/student/*` | Painel, boletim, entregas, fórum, anotações e protocolos do discente |
+| `GET` | `/api/files/*` | Downloads autenticados de materiais, entregas e protocolos |
+| `GET` / `POST` / `PATCH` | `/api/teacher/*` | Diário de aula, materiais, tarefas, avaliação, notas e homologação |
+| `GET` | `/api/admin/teachers` | Listagem somente leitura de docentes para alocação de turmas (`adminOnly`) |
+| `GET` / `POST` / `PATCH` | `/api/admin/courses`, `/classes`, `/protocols`, `/announcements`, `/calendar`, `/settings`, `/audit-logs`, `/system/*` | Operações acadêmicas e institucionais administrativas (`adminOnly`) |
+| `GET` / `POST` / `PATCH` | `/api/internal/academic/*` | Ponte interna autenticada via `X-Internal-Service-Secret` para o servidor Java |
+
+Rotas públicas de `/api/auth/*`, `/api/admin/users*`, `POST /api/admin/teachers` e `/api/video-call/*` pertencem exclusivamente ao servidor Java (`:8080`) e retornam `404` nesta API.
 
 ## Seeds do Ecossistema Acadêmico
 

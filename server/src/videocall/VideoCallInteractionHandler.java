@@ -22,7 +22,7 @@ public class VideoCallInteractionHandler implements ManipuladorHttp {
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         UsuarioAutenticado usuario;
         try {

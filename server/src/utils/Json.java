@@ -2,7 +2,9 @@
 
 package utils;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,14 @@ public final class Json {
     private static void escrever(Object valor, StringBuilder texto) {
         if (valor == null) { texto.append("null"); return; }
         if (valor instanceof String) { texto.append(JsonSimples.escapar((String) valor)); return; }
+        if (valor instanceof Date) {
+            texto.append(JsonSimples.escapar(Instant.ofEpochMilli(((Date) valor).getTime()).toString()));
+            return;
+        }
+        if (valor instanceof Instant) {
+            texto.append(JsonSimples.escapar(valor.toString()));
+            return;
+        }
         if (valor instanceof Boolean || valor instanceof Integer || valor instanceof Long) { texto.append(valor); return; }
         if (valor instanceof Double || valor instanceof Float) {
             double numero = ((Number) valor).doubleValue();

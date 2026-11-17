@@ -1,6 +1,6 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 import type { Document } from "mongodb";
-import { sanitizeRoomCode } from "../../video-call/application/video-call-room.service.js";
+import { sanitizeRoomCode } from "../../../shared/formatting/room-code.js";
 import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
 
 export function mapTeacherCourses(input: {

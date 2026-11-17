@@ -131,7 +131,7 @@ void main() {
       repoA.peerRepo = repoB;
       repoB.peerRepo = repoA;
 
-      final pA = Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449');
+      final pA = Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449', role: 'docente');
       final pB = Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122');
 
       controllerA = VideoCallController(

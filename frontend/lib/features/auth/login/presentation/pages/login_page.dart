@@ -149,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
     }
     if (success) {
       try {
-        final account = await AuthenticatedApiClient().request(
+        final account = await AuthenticatedApiClient.auth().request(
           'GET',
           '/api/auth/me',
         );

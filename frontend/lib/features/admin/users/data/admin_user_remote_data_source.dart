@@ -2,19 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
+import 'package:pi_iv_time3/core/network/resilient_http_client.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 class AdminUserRemoteDataSource {
-  static const String _baseUrl = String.fromEnvironment(
-    'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
-  );
-
   final http.Client _client;
 
   AdminUserRemoteDataSource({http.Client? client})
-    : _client = client ?? http.Client();
+    : _client = client ?? createResilientHttpClient();
 
   Future<List<AdminUserModel>> getTeachers() async {
     final response = await _getTeachers();
@@ -51,51 +48,14 @@ class AdminUserRemoteDataSource {
     required String email,
     required String department,
   }) async {
-    final token = AppUserSession.instance.accessToken;
-    if (token == null || token.isEmpty) {
-      throw const AdminUserApiException(
-        'Entre como administrador para cadastrar um docente.',
-      );
-    }
-
-    final uri = Uri.parse('$_baseUrl/api/admin/teachers');
-    late final http.Response response;
-    try {
-      response = await _client
-          .post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({
-              'name': name,
-              'email': email,
-              'department': department,
-            }),
-          )
-          .timeout(const Duration(seconds: 8));
-    } on http.ClientException {
-      throw const AdminUserApiException('Não foi possível conectar à API.');
-    } on TimeoutException {
-      throw const AdminUserApiException('A API demorou para responder.');
-    }
-
-    dynamic decoded;
-    if (response.body.isNotEmpty) {
-      try {
-        decoded = jsonDecode(response.body);
-      } on FormatException {
-        throw const AdminUserApiException('Resposta inválida da API.');
-      }
-    }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message =
-          decoded is Map<String, dynamic> && decoded['message'] is String
-          ? decoded['message'] as String
-          : 'A API não conseguiu cadastrar o docente.';
-      throw AdminUserApiException(message);
-    }
+    final decoded = await _sendJsonRequest(
+      method: 'POST',
+      uri: Uri.parse('${AuthenticatedApiClient.authBaseUrl}/api/admin/teachers'),
+      unauthenticatedMessage:
+          'Entre como administrador para cadastrar um docente.',
+      fallbackErrorMessage: 'A API não conseguiu cadastrar o docente.',
+      body: {'name': name, 'email': email, 'department': department},
+    );
     if (decoded is! Map<String, dynamic> ||
         decoded['identity'] is! String ||
         (decoded['identity'] as String).isEmpty) {
@@ -106,22 +66,41 @@ class AdminUserRemoteDataSource {
     return decoded['identity'] as String;
   }
 
-  Future<dynamic> _getTeachers() async {
+  Future<dynamic> _getTeachers() => _sendJsonRequest(
+    method: 'GET',
+    uri: Uri.parse(
+      '${AuthenticatedApiClient.academicBaseUrl}/api/admin/teachers',
+    ),
+    unauthenticatedMessage:
+        'Entre como administrador para consultar os docentes.',
+    fallbackErrorMessage: 'A API não conseguiu consultar os docentes.',
+  );
+
+  Future<dynamic> _sendJsonRequest({
+    required String method,
+    required Uri uri,
+    required String unauthenticatedMessage,
+    required String fallbackErrorMessage,
+    Map<String, Object?>? body,
+  }) async {
     final token = AppUserSession.instance.accessToken;
     if (token == null || token.isEmpty) {
-      throw const AdminUserApiException(
-        'Entre como administrador para consultar os docentes.',
-      );
+      throw AdminUserApiException(unauthenticatedMessage);
     }
 
     late final http.Response response;
     try {
-      response = await _client
-          .get(
-            Uri.parse('$_baseUrl/api/admin/teachers'),
-            headers: {'Authorization': 'Bearer $token'},
-          )
-          .timeout(const Duration(seconds: 8));
+      final headers = <String, String>{'Authorization': 'Bearer $token'};
+      if (method == 'POST') {
+        headers['Content-Type'] = 'application/json';
+        response = await _client
+            .post(uri, headers: headers, body: jsonEncode(body))
+            .timeout(const Duration(seconds: 8));
+      } else {
+        response = await _client
+            .get(uri, headers: headers)
+            .timeout(const Duration(seconds: 8));
+      }
     } on http.ClientException {
       throw const AdminUserApiException('Não foi possível conectar à API.');
     } on TimeoutException {
@@ -140,7 +119,7 @@ class AdminUserRemoteDataSource {
       final message =
           decoded is Map<String, dynamic> && decoded['message'] is String
           ? decoded['message'] as String
-          : 'A API não conseguiu consultar os docentes.';
+          : fallbackErrorMessage;
       throw AdminUserApiException(message);
     }
     return decoded;

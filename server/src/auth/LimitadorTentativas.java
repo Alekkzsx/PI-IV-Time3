@@ -1,8 +1,14 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package auth;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.Updates;
+import org.bson.Document;
 import utils.ConfigEnv;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,13 +58,18 @@ public final class LimitadorTentativas {
         String chaveUsuario = "user:" + normalizar(identidade);
         String chaveIp = "ip:" + normalizar(ip);
 
-        // Verificar bloqueio por usuario
+        // Verificar bloqueio persistido no MongoDB se inicializado
+        if (estaBloqueadoNoBanco(chaveUsuario) || estaBloqueadoNoBanco(chaveIp)) {
+            return false;
+        }
+
+        // Verificar bloqueio por usuario em memoria
         RegistroTentativas regUsuario = tentativas.get(chaveUsuario);
         if (regUsuario != null && regUsuario.estaBloqueado()) {
             return false;
         }
 
-        // Verificar bloqueio por IP
+        // Verificar bloqueio por IP em memoria
         RegistroTentativas regIp = tentativas.get(chaveIp);
         if (regIp != null && regIp.estaBloqueado()) {
             return false;
@@ -89,23 +100,28 @@ public final class LimitadorTentativas {
         int falhasUsuario = regUsuario.registrarFalha(maxTentativas, lockoutMs);
         regIp.registrarFalha(maxTentativas * 3, lockoutMs * 5); // IP tolera mais falhas
 
+        long bloqueioEfetivoMs = 0L;
+        String mensagem;
         // Bloqueio progressivo
         if (falhasUsuario >= maxTentativas * 6) {
-            // Nivel 3: bloqueio longo
-            regUsuario.aplicarBloqueio(lockoutMs * 60); // 30x o lockout base
-            return "Bloqueado por 30 minutos devido a excesso de tentativas.";
+            bloqueioEfetivoMs = lockoutMs * 60;
+            regUsuario.aplicarBloqueio(bloqueioEfetivoMs);
+            mensagem = "Bloqueado por 30 minutos devido a excesso de tentativas.";
         } else if (falhasUsuario >= maxTentativas * 3) {
-            // Nivel 2: bloqueio medio
-            regUsuario.aplicarBloqueio(lockoutMs * 10); // 5x o lockout base
-            return "Bloqueado por 5 minutos devido a excesso de tentativas.";
+            bloqueioEfetivoMs = lockoutMs * 10;
+            regUsuario.aplicarBloqueio(bloqueioEfetivoMs);
+            mensagem = "Bloqueado por 5 minutos devido a excesso de tentativas.";
         } else if (falhasUsuario >= maxTentativas) {
-            // Nivel 1: bloqueio curto
-            regUsuario.aplicarBloqueio(lockoutMs);
+            bloqueioEfetivoMs = lockoutMs;
+            regUsuario.aplicarBloqueio(bloqueioEfetivoMs);
             long segundosRestantes = lockoutMs / 1000;
-            return "Bloqueado por " + segundosRestantes + " segundos. Tente novamente depois.";
+            mensagem = "Bloqueado por " + segundosRestantes + " segundos. Tente novamente depois.";
+        } else {
+            mensagem = "Credenciais invalidas. Tentativa " + falhasUsuario + " de " + maxTentativas + ".";
         }
 
-        return "Credenciais invalidas. Tentativa " + falhasUsuario + " de " + maxTentativas + ".";
+        persistirFalhaNoBanco(chaveUsuario, falhasUsuario, bloqueioEfetivoMs);
+        return mensagem;
     }
 
     /**
@@ -120,6 +136,7 @@ public final class LimitadorTentativas {
         if (regUsuario != null) {
             regUsuario.resetar();
         }
+        limparBanco(chaveUsuario);
     }
 
     /**
@@ -127,10 +144,85 @@ public final class LimitadorTentativas {
      */
     public long segundosRestantesBloqueio(String identidade) {
         String chave = "user:" + normalizar(identidade);
+        long msBanco = segundosRestantesBanco(chave);
         RegistroTentativas reg = tentativas.get(chave);
-        if (reg == null) return 0;
-        long ms = reg.milissegundosRestantesBloqueio();
-        return ms > 0 ? (ms / 1000) + 1 : 0;
+        long msMem = reg != null ? reg.milissegundosRestantesBloqueio() : 0;
+        long ms = Math.max(msBanco * 1000L, msMem);
+        return ms > 0 ? (ms / 1000) + (ms % 1000 > 0 ? 1 : 0) : 0;
+    }
+
+    private MongoCollection<Document> colecaoLimites() {
+        RepositorioUsuarios repo = RepositorioUsuarios.getInstanciaSeInicializada();
+        return repo != null ? repo.getLoginLimitsCollection() : null;
+    }
+
+    private boolean estaBloqueadoNoBanco(String chave) {
+        MongoCollection<Document> col = colecaoLimites();
+        if (col == null) return false;
+        try {
+            Document doc = col.find(Filters.eq("key", chave)).first();
+            if (doc == null) return false;
+            Date lockedUntil = doc.getDate("lockedUntil");
+            return lockedUntil != null && lockedUntil.getTime() > System.currentTimeMillis();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private long segundosRestantesBanco(String chave) {
+        MongoCollection<Document> col = colecaoLimites();
+        if (col == null) return 0;
+        try {
+            Document doc = col.find(Filters.eq("key", chave)).first();
+            if (doc == null) return 0;
+            Date lockedUntil = doc.getDate("lockedUntil");
+            if (lockedUntil == null) return 0;
+            long diff = lockedUntil.getTime() - System.currentTimeMillis();
+            return diff > 0 ? (diff / 1000L) + 1L : 0L;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private void persistirFalhaNoBanco(String chave, int falhas, long bloqueioMs) {
+        MongoCollection<Document> col = colecaoLimites();
+        if (col == null) return;
+        try {
+            Date agora = new Date();
+            Date expiresAt = new Date(System.currentTimeMillis() + Math.max(bloqueioMs, 600_000L));
+            if (bloqueioMs > 0) {
+                col.updateOne(
+                        Filters.eq("key", chave),
+                        Updates.combine(
+                                Updates.set("key", chave),
+                                Updates.set("failedAttempts", falhas),
+                                Updates.set("lockedUntil", new Date(System.currentTimeMillis() + bloqueioMs)),
+                                Updates.set("expiresAt", expiresAt),
+                                Updates.set("updatedAt", agora)
+                        ),
+                        new UpdateOptions().upsert(true)
+                );
+            } else {
+                col.updateOne(
+                        Filters.eq("key", chave),
+                        Updates.combine(
+                                Updates.set("key", chave),
+                                Updates.set("failedAttempts", falhas),
+                                Updates.set("expiresAt", expiresAt),
+                                Updates.set("updatedAt", agora)
+                        ),
+                        new UpdateOptions().upsert(true)
+                );
+            }
+        } catch (Exception ignored) { }
+    }
+
+    private void limparBanco(String chave) {
+        MongoCollection<Document> col = colecaoLimites();
+        if (col == null) return;
+        try {
+            col.deleteOne(Filters.eq("key", chave));
+        } catch (Exception ignored) { }
     }
 
     private void limparExpiradosSeNecessario() {

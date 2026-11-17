@@ -27,6 +27,28 @@ import 'package:pi_iv_time3/features/video_call/presentation/widgets/screen_shar
 
 class FakeVideoCallRoomRemoteDataSource
     extends VideoCallRoomRemoteDataSource {
+  final List<VideoCallRoomSummary> _rooms;
+
+  FakeVideoCallRoomRemoteDataSource({
+    List<VideoCallRoomSummary> rooms = const [
+      VideoCallRoomSummary(
+        roomCode: 'APS-II',
+        classCode: 'APS-II',
+        title: 'APS-II',
+        isOpen: true,
+      ),
+      VideoCallRoomSummary(
+        roomCode: 'SALA-101',
+        classCode: 'SALA-101',
+        title: 'Sala 101',
+        isOpen: true,
+      ),
+    ],
+  }) : _rooms = rooms;
+
+  @override
+  Future<List<VideoCallRoomSummary>> listRooms() async => _rooms;
+
   @override
   Future<VideoCallRoomAccess> enterRoom(String roomCode) async =>
       const VideoCallRoomAccess(
@@ -162,17 +184,21 @@ void main() {
 
     setUp(() {
       fakeRepo = FakeDomainVideoCallRepository();
-      controller = VideoCallLobbyController(repository: fakeRepo);
+      controller = VideoCallLobbyController(
+        repository: fakeRepo,
+        roomDataSource: FakeVideoCallRoomRemoteDataSource(rooms: const []),
+      );
     });
 
     tearDown(() async {
+      controller.dispose();
       await fakeRepo.dispose();
     });
 
     test('Initial state values and setters', () {
       expect(controller.name, isEmpty);
       expect(controller.ra, isEmpty);
-      expect(controller.roomCode, 'SALA-101');
+      expect(controller.roomCode, isEmpty);
       expect(controller.isAudioMuted, isFalse);
       expect(controller.isVideoOff, isFalse);
       expect(controller.audioLevel, 0.05);
@@ -213,7 +239,7 @@ void main() {
 
       expect(controller.validateRoomCode(null), 'Informe o código da sala');
       expect(controller.validateRoomCode(''), 'Informe o código da sala');
-      expect(controller.validateRoomCode('AB'), 'Código da sala inválido');
+      expect(controller.validateRoomCode('A'), 'Código da sala inválido');
       expect(
         controller.validateRoomCode('SALA_INVALID@'),
         'Código da sala inválido',
@@ -249,6 +275,7 @@ void main() {
         id: 'peer_1',
         name: 'Alex Sousa',
         ra: '24802449',
+        role: 'docente',
         isLocal: true,
       );
       controller = VideoCallController(
@@ -729,6 +756,7 @@ void main() {
           id: 'peer_local',
           name: 'Alex Sousa',
           ra: '24802449',
+          role: 'docente',
           isLocal: true,
         );
         final controller = VideoCallController(

@@ -267,7 +267,8 @@ start_server() {
     for _ in {1..15}; do
         sleep 0.3
         if command -v curl >/dev/null 2>&1; then
-            if curl -s -f -o /dev/null "http://127.0.0.1:8080/api/videocall/rooms"; then
+            if curl --noproxy '*' -s -f -o /dev/null "http://127.0.0.1:8080/health" || \
+               curl --noproxy '*' -s -f -o /dev/null "http://127.0.0.1:8080/api/videocall/rooms"; then
                 running=true
                 break
             fi
@@ -301,7 +302,8 @@ get_server_status() {
 
     if command -v curl >/dev/null 2>&1; then
         local start_ts=$(date +%s%N 2>/dev/null || date +%s)
-        if curl -s -f -o /dev/null --connect-timeout 2 "http://127.0.0.1:8080/api/videocall/rooms"; then
+        if curl --noproxy '*' -s -f -o /dev/null --connect-timeout 2 "http://127.0.0.1:8080/health" || \
+           curl --noproxy '*' -s -f -o /dev/null --connect-timeout 2 "http://127.0.0.1:8080/api/videocall/rooms"; then
             local end_ts=$(date +%s%N 2>/dev/null || date +%s)
             online=true
             latency=$(( (end_ts - start_ts) / 1000000 )) 2>/dev/null || latency=1
@@ -390,7 +392,7 @@ show_master_env() {
         while IFS= read -r line || [[ -n "$line" ]]; do
             line="$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
             [[ -z "$line" || "$line" =~ ^# ]] && continue
-            if [[ "$line" =~ ^(AUTH_JWT_SECRET|JWT_SECRET|SMTP_PASSWORD) ]]; then
+            if [[ "$line" =~ ^(AUTH_JWT_SECRET|JWT_SECRET|AUTH_OTP_SECRET|INTERNAL_SERVICE_SECRET|TOKEN_ENCRYPTION_KEY|SMTP_PASSWORD|MONGODB_URI|MONGODB_DIRECT_URI|SEED_DEMO_PASSWORD|RESEND_API_KEY|BREVO_API_KEY|GMAIL_WEBHOOK_URL|DATABASE_URL|DATABASE_PASSWORD)= ]]; then
                 local key="${line%%=*}"
                 echo -e "  ${CLR_YELLOW}${key} = ******** (oculto por seguranca)${CLR_RESET}"
             else
@@ -429,9 +431,9 @@ while true; do
     echo -e "${CLR_WHITE} [3] Status e Diagnostico em Tempo Real (Testa endpoints)${CLR_RESET}"
     echo -e "${CLR_WHITE} [4] Visualizar Logs do Servidor (server.log)${CLR_RESET}"
     echo -e "${CLR_WHITE} [5] Recompilar Fontes Java (Sem reiniciar processo atual)${CLR_RESET}"
-    echo -e "${CLR_WHITE} [6] Executar Suite de Testes Nativos (11 suites sem JUnit)${CLR_RESET}"
+    echo -e "${CLR_WHITE} [6] Executar Suite de Testes Nativos (15 suites sem JUnit)${CLR_RESET}"
     echo -e "${CLR_WHITE} [7] Exibir Variaveis Carregadas do .env Mestre${CLR_RESET}"
-    echo -e "${CLR_WHITE} [8] Abrir Endpoint no Navegador (Healthcheck: /api/videocall/rooms)${CLR_RESET}"
+    echo -e "${CLR_WHITE} [8] Abrir Endpoint no Navegador (Healthcheck: /health)${CLR_RESET}"
     echo -e "${CLR_WHITE} [9] Limpar Tela do Console${CLR_RESET}"
     echo -e "${CLR_YELLOW} [0] Encerrar Servidor e Fechar Console${CLR_RESET}"
     echo -e "${CLR_CYAN}================================================================================${CLR_RESET}"
@@ -442,9 +444,9 @@ while true; do
         2) stop_server ;;
         3)
             echo -e "\n${CLR_CYAN}>>> Diagnostico de Endpoints:${CLR_RESET}"
-            for ep in "/api/videocall/rooms" "/api/auth/session" "/api/auth/login"; do
+            for ep in "/health" "/health/ready" "/api/video-call/rooms" "/api/videocall/rooms" "/api/auth/session" "/api/auth/login"; do
                 if command -v curl >/dev/null 2>&1; then
-                    code="$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "http://127.0.0.1:8080${ep}" 2>/dev/null || echo "000")"
+                    code="$(curl --noproxy '*' -s -o /dev/null -w "%{http_code}" --connect-timeout 2 "http://127.0.0.1:8080${ep}" 2>/dev/null || echo "000")"
                     if [[ "$code" == "200" ]]; then
                         echo -e "  ${CLR_GREEN}[OK 200] http://127.0.0.1:8080${ep}${CLR_RESET}"
                     elif [[ "$code" != "000" ]]; then
@@ -454,6 +456,12 @@ while true; do
                     fi
                 fi
             done
+            if command -v curl >/dev/null 2>&1; then
+                health_body="$(curl --noproxy '*' -s --connect-timeout 2 "http://127.0.0.1:8080/health" 2>/dev/null || true)"
+                if [[ -n "$health_body" ]]; then
+                    echo -e "  ${CLR_GRAY}Saude atual: ${health_body}${CLR_RESET}"
+                fi
+            fi
             ;;
         4) show_logs ;;
         5) invoke_compilation ;;
@@ -461,15 +469,15 @@ while true; do
         7) show_master_env ;;
         8)
             if command -v xdg-open >/dev/null 2>&1; then
-                xdg-open "http://127.0.0.1:8080/api/videocall/rooms" >/dev/null 2>&1 &
+                xdg-open "http://127.0.0.1:8080/health" >/dev/null 2>&1 &
                 echo -e "${CLR_GREEN}[OK] Endpoint aberto no navegador padrao.${CLR_RESET}"
             elif command -v open >/dev/null 2>&1; then
-                open "http://127.0.0.1:8080/api/videocall/rooms" >/dev/null 2>&1 &
+                open "http://127.0.0.1:8080/health" >/dev/null 2>&1 &
                 echo -e "${CLR_GREEN}[OK] Endpoint aberto no navegador padrao.${CLR_RESET}"
             elif command -v sensible-browser >/dev/null 2>&1; then
-                sensible-browser "http://127.0.0.1:8080/api/videocall/rooms" >/dev/null 2>&1 &
+                sensible-browser "http://127.0.0.1:8080/health" >/dev/null 2>&1 &
             else
-                echo -e "${CLR_YELLOW}[AVISO] xdg-open nao encontrado. Acesse: http://127.0.0.1:8080/api/videocall/rooms${CLR_RESET}"
+                echo -e "${CLR_YELLOW}[AVISO] xdg-open nao encontrado. Acesse: http://127.0.0.1:8080/health${CLR_RESET}"
             fi
             ;;
         9) clear 2>/dev/null || true ;;

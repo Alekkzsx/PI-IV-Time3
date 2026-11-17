@@ -67,6 +67,50 @@ describe("loadEnvironment", () => {
     });
     assert.equal(environment.smtp?.from, "staff@example.com");
   });
+
+  it("derives internalServiceSecret outside production when omitted and requires it in production", () => {
+    const devEnv = loadEnvironment(minimalEnvironment);
+    assert.ok(devEnv.internalServiceSecret.length >= 32);
+    assert.notEqual(devEnv.internalServiceSecret, devEnv.jwtSecret);
+
+    assert.throws(
+      () =>
+        loadEnvironment({
+          ...minimalEnvironment,
+          NODE_ENV: "production",
+        }),
+      /INTERNAL_SERVICE_SECRET é obrigatório em produção/,
+    );
+
+    assert.throws(
+      () =>
+        loadEnvironment({
+          ...minimalEnvironment,
+          INTERNAL_SERVICE_SECRET: minimalEnvironment.AUTH_JWT_SECRET,
+        }),
+      /INTERNAL_SERVICE_SECRET e AUTH_JWT_SECRET devem ser diferentes/,
+    );
+  });
+
+  it("reads optional MONGODB_DIRECT_URI and ALLOW_LAN_CORS flags", () => {
+    const env = loadEnvironment({
+      ...minimalEnvironment,
+      MONGODB_DIRECT_URI: "mongodb://shard0:27017,shard1:27017/agmrm?ssl=true",
+      ALLOW_LAN_CORS: "true",
+    });
+    assert.equal(env.mongoDirectUri, "mongodb://shard0:27017,shard1:27017/agmrm?ssl=true");
+    assert.equal(env.allowLanCors, true);
+
+    const blankOptionalEnv = loadEnvironment({
+      ...minimalEnvironment,
+      MONGODB_DIRECT_URI: "  ",
+      ALLOW_LAN_CORS: "",
+      EMAIL_FALLBACK_MODE: "",
+    });
+    assert.equal(blankOptionalEnv.mongoDirectUri, undefined);
+    assert.equal(blankOptionalEnv.allowLanCors, false);
+    assert.equal(blankOptionalEnv.emailProviders.fallbackMode, "outbox");
+  });
 });
 
 describe("resolveRootEnvPath", () => {

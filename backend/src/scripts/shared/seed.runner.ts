@@ -59,7 +59,8 @@ export function createSeedHelpers(database: Db, summary: SeedSummary) {
       recordStat(collection, false);
       return existing;
     }
-    const toInsert: Document = { _id: new ObjectId(), ...doc };
+    const { _id: _ignoreId, ...docWithoutId } = doc;
+    const toInsert: Document = "_id" in filter ? docWithoutId : { _id: new ObjectId(), ...doc };
     const res = await database
       .collection(collection)
       .updateOne(filter, { $setOnInsert: toInsert }, { upsert: true });
@@ -69,13 +70,17 @@ export function createSeedHelpers(database: Db, summary: SeedSummary) {
 
   const upsertSync = async (collection: string, filter: Document, doc: Document): Promise<Document> => {
     const { _id: _ignoreId, createdAt, ...mutableFields } = doc;
+    const insertDefaults: Document = { createdAt: createdAt ?? now };
+    if (!("_id" in filter)) {
+      insertDefaults._id = new ObjectId();
+    }
     const res = await database
       .collection(collection)
       .updateOne(
         filter,
         {
           $set: mutableFields,
-          $setOnInsert: { _id: new ObjectId(), createdAt: createdAt ?? now },
+          $setOnInsert: insertDefaults,
         },
         { upsert: true },
       );

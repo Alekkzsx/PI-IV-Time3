@@ -1,11 +1,15 @@
 // Desenvolvido por Alex Gabriel Soares Sousa, Marcelo Zarpelon e Guilherme Henrique Moreira
 // Atualizado com suites de teste de autenticacao institucional
 
+import auth.HandlerLifecycleTeste;
 import auth.JwtAuthValidatorTeste;
 import auth.LimitadorTentativasTeste;
 import auth.OtpServiceTeste;
+import auth.RecoveryHandlerTeste;
+import auth.ResilientNetworkTeste;
 import auth.RevogacaoTokensTeste;
 import auth.SenhaHasherTeste;
+import core.HttpUtilsCorsTeste;
 import utils.ConfigEnvTeste;
 import utils.JsonTeste;
 import videocall.hub.HubTeste;
@@ -64,14 +68,26 @@ public class SuiteTestesServidor {
         System.out.println("\n=== 10/11 LimitadorTentativas (rate limiting) ===");
         totalFalhas += LimitadorTentativasTeste.executar();
 
-        System.out.println("\n=== 11/11 OtpService (2FA e recuperacao) ===");
+        System.out.println("\n=== 11/13 OtpService (2FA e recuperacao) ===");
         totalFalhas += OtpServiceTeste.executar();
+
+        System.out.println("\n=== 12/13 RecoveryHandler (reset token de uso unico) ===");
+        totalFalhas += RecoveryHandlerTeste.executar();
+
+        System.out.println("\n=== 13/15 HandlerLifecycle (preservacao do pool DB) ===");
+        totalFalhas += HandlerLifecycleTeste.executar();
+
+        System.out.println("\n=== 14/15 HttpUtilsCors (origem unica, porta dinamica e PNA) ===");
+        totalFalhas += HttpUtilsCorsTeste.executar();
+
+        System.out.println("\n=== 15/15 ResilientNetwork (DoH fallback e 503 rede bloqueada) ===");
+        totalFalhas += ResilientNetworkTeste.executar();
 
         System.out.println("\n==========================================");
         if (totalFalhas > 0) {
             System.out.println("[RESULTADO] FALHOU com " + totalFalhas + " erro(s).");
             System.exit(1);
         }
-        System.out.println("[RESULTADO] TODAS AS 11 SUITES NATIVAS PASSARAM COM SUCESSO!");
+        System.out.println("[RESULTADO] TODAS AS 15 SUITES NATIVAS PASSARAM COM SUCESSO!");
     }
 }

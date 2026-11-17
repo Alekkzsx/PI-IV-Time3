@@ -6,7 +6,6 @@ import { ObjectId, type Db, type Document, type ClientSession } from "mongodb";
 import { z } from "zod";
 import { AuthError } from "../../../shared/auth-error.js";
 import { parse, objectId } from "../../../shared/validation.js";
-import { BcryptPasswordHasher } from "../../auth/infrastructure/security.providers.js";
 import { adminOnly } from "../infrastructure/admin-auth.middleware.js";
 import { adminWrite, audit, publicRecord } from "../infrastructure/admin-support.js";
 
@@ -21,12 +20,6 @@ const courseSchema = z.object({
   modality: z.string().trim().min(1).max(60),
   components: z.array(z.record(z.string(), z.unknown())).max(100),
 }).strict();
-
-const teacherSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  email: z.string().trim().email().max(254),
-  department: z.string().trim().min(2).max(120),
-});
 
 const professorAssignmentSchema = z.object({
   professorIdentity: z.string().trim().min(1).max(254),
@@ -178,61 +171,6 @@ export function createAdminAcademicRouter(database: Db, jwtSecret: string): Rout
         profile: "docente",
       })),
     );
-  });
-
-  router.post("/teachers", async (request, response) => {
-    const parsed = teacherSchema.safeParse(request.body);
-    if (!parsed.success) {
-      throw new AuthError(400, "invalid_request", "Dados do docente inválidos.");
-    }
-
-    const users = database.collection("auth_users");
-    const email = parsed.data.email.toLowerCase();
-    const existingEmail = await users.findOne({
-      email: { $regex: `^${escapeRegExp(email)}$`, $options: "i" },
-    });
-    if (existingEmail) {
-      throw new AuthError(409, "email_exists", "Já existe uma conta com esse e-mail.");
-    }
-
-    const identity = `DOC-${randomBytes(5).toString("hex").toUpperCase()}`;
-    const passwordHash = await new BcryptPasswordHasher().hash(
-      randomBytes(32).toString("base64url"),
-    );
-    const teacher = {
-      identity,
-      normalizedIdentity: identity.toLowerCase(),
-      email,
-      displayName: parsed.data.name,
-      profile: "docente",
-      passwordHash,
-      active: true,
-      department: parsed.data.department,
-      departmentOrCourse: parsed.data.department,
-      createdBy: actor(response),
-      createdAt: new Date(),
-    };
-
-    try {
-      await users.insertOne(teacher);
-    } catch (error) {
-      if (error && typeof error === "object" && "code" in error && error.code === 11000) {
-        throw new AuthError(
-          409,
-          "identity_exists",
-          "Não foi possível gerar uma identidade única. Tente novamente.",
-        );
-      }
-      throw error;
-    }
-
-    response.status(201).json({
-      identity,
-      name: teacher.displayName,
-      email: teacher.email,
-      department: teacher.department,
-      profile: teacher.profile,
-    });
   });
 
   router.get("/courses", async (_request, response) => {

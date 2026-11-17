@@ -7,10 +7,6 @@ import utils.Json;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
@@ -23,23 +19,29 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Validador JWT HS256 implementado 100% na unha com a biblioteca padrao do JDK (zero dependencias externas).
- *
- * Confere:
- * - Assinatura HMAC-SHA256 em tempo constante (MessageDigest.isEqual)
- * - Expiracao (exp)
- * - Perfil institucional valido (aluno, docente, admin)
- * - Revogacao via blacklist (RevogacaoTokens)
- * - Tipo de token (access vs refresh)
- * - Versao da sessao (ver) contra repositorio
- *
- * Opcionalmente consulta o backend TypeScript (/api/auth/me) para validacao remota.
+ * Validador JWT HS256 implementado com a biblioteca padrao do JDK + conferencia autoritativa no MongoDB.
  */
 public final class JwtAuthValidator {
     private static final String ALGORITMO_HMAC = "HmacSHA256";
-    private static final int TIMEOUT_REMOTO_MS = 2500;
     private static final Set<String> PERFIS_VALIDOS = Collections.unmodifiableSet(
             new HashSet<String>(Arrays.asList("aluno", "docente", "admin")));
+
+    /**
+     * Excecao de seguranca com status HTTP e codigo semantico (401/403).
+     */
+    public static final class HttpSecurityException extends SecurityException {
+        private final int statusHttp;
+        private final String codigo;
+
+        public HttpSecurityException(int statusHttp, String codigo, String message) {
+            super(message);
+            this.statusHttp = statusHttp;
+            this.codigo = codigo;
+        }
+
+        public int getStatusHttp() { return statusHttp; }
+        public String getCodigo() { return codigo; }
+    }
 
     private JwtAuthValidator() {}
 
@@ -228,67 +230,39 @@ public final class JwtAuthValidator {
     }
 
     /**
-     * Consulta o endpoint /api/auth/me no backend TypeScript para validar sessao ativa e nao revogada.
+     * Exige que a requisicao HTTP possua um access token valido no MongoDB (sessao ativa, versao e conta).
      */
-    public static UsuarioAutenticado consultarSessaoRemota(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            throw new SecurityException("Token ausente para verificacao remota.");
-        }
-        HttpURLConnection connection = null;
-        try {
-            String baseUrl = ConfigEnv.obter("AUTH_API_BASE_URL", "http://127.0.0.1:3001");
-            while (baseUrl.endsWith("/")) {
-                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
-            }
-            URL url = new URL(baseUrl + "/api/auth/me");
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("Authorization", "Bearer " + token.trim());
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setConnectTimeout(TIMEOUT_REMOTO_MS);
-            connection.setReadTimeout(TIMEOUT_REMOTO_MS);
-
-            int status = connection.getResponseCode();
-            if (status != HttpURLConnection.HTTP_OK) {
-                throw new SecurityException("Sessao recusada ou revogada pelo servico de autenticacao.");
-            }
-
-            InputStream in = connection.getInputStream();
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            byte[] bloco = new byte[1024];
-            int lido;
-            while ((lido = in.read(bloco)) != -1) {
-                buffer.write(bloco, 0, lido);
-            }
-            Map<String, Object> dados = Json.analisarObjeto(new String(buffer.toByteArray(), StandardCharsets.UTF_8));
-            String id = dados.get("id") instanceof String ? (String) dados.get("id") : "";
-            String profile = dados.get("profile") instanceof String ? (String) dados.get("profile") : "";
-            String identity = dados.get("identity") instanceof String ? (String) dados.get("identity") : "";
-            String displayName = dados.get("displayName") instanceof String ? (String) dados.get("displayName") : "";
-            if (id.isEmpty() || !PERFIS_VALIDOS.contains(profile.toLowerCase(Locale.ROOT))) {
-                throw new SecurityException("Resposta de sessao remota invalida.");
-            }
-            return new UsuarioAutenticado(id, profile, "", 0, identity, displayName);
-        } catch (SecurityException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new SecurityException("Nao foi possivel validar a sessao no servico de autenticacao.");
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
+    public static UsuarioAutenticado autenticarObrigatorio(RequisicaoHttp requisicao) {
+        return autenticarObrigatorio(requisicao, RepositorioUsuarios.getInstance(), false);
     }
 
     /**
-     * Exige que a requisicao HTTP possua um token de login valido (local HS256 ou sessao remota).
+     * Exige access token valido permitindo opcionalmente rotas de troca obrigatoria de senha (/me, /logout, /change-password).
      */
-    public static UsuarioAutenticado autenticarObrigatorio(RequisicaoHttp requisicao) {
+    public static UsuarioAutenticado autenticarObrigatorio(
+            RequisicaoHttp requisicao,
+            RepositorioUsuarios repositorio,
+            boolean permitirTrocaSenhaPendente) {
         String token = extrairBearerToken(requisicao);
         if (token == null) {
-            throw new SecurityException("Autenticacao necessaria. Informe o token Bearer do login.");
+            throw new HttpSecurityException(401, "authentication_required",
+                    "Autenticacao necessaria. Informe o token Bearer do login.");
         }
-        return validarComConfiguracaoAmbiente(token, "access");
+        return validarComRepositorio(token, "access", repositorio, permitirTrocaSenhaPendente);
+    }
+
+    /**
+     * Exige sessao administrativa valida (perfil "admin", sessao ativa no MongoDB e senha regularizada).
+     */
+    public static UsuarioAutenticado autenticarAdminObrigatorio(
+            RequisicaoHttp requisicao,
+            RepositorioUsuarios repositorio) {
+        UsuarioAutenticado usuario = autenticarObrigatorio(requisicao, repositorio, false);
+        if (!usuario.isAdmin()) {
+            throw new HttpSecurityException(403, "forbidden",
+                    "Acesso permitido somente ao administrador.");
+        }
+        return usuario;
     }
 
     /**
@@ -297,9 +271,10 @@ public final class JwtAuthValidator {
     public static UsuarioAutenticado autenticarRefreshToken(RequisicaoHttp requisicao) {
         String token = extrairBearerToken(requisicao);
         if (token == null) {
-            throw new SecurityException("Refresh token necessario.");
+            throw new HttpSecurityException(401, "authentication_required", "Refresh token necessario.");
         }
-        return validarComConfiguracaoAmbiente(token, "refresh");
+        String segredo = ConfigEnv.obter("AUTH_JWT_SECRET", null);
+        return validarToken(token, segredo, "refresh");
     }
 
     /**
@@ -307,26 +282,45 @@ public final class JwtAuthValidator {
      * Se REQUIRE_HTTP_JWT=true estiver definido no ambiente, passa a exigir o token em todas as chamadas.
      */
     public static UsuarioAutenticado autenticarOpcional(RequisicaoHttp requisicao) {
+        return autenticarOpcional(requisicao, RepositorioUsuarios.getInstanciaSeInicializada());
+    }
+
+    public static UsuarioAutenticado autenticarOpcional(RequisicaoHttp requisicao, RepositorioUsuarios repositorio) {
         String token = extrairBearerToken(requisicao);
         if (token == null) {
             if ("true".equalsIgnoreCase(ConfigEnv.obter("REQUIRE_HTTP_JWT", "false"))) {
-                throw new SecurityException("Autenticacao necessaria.");
+                throw new HttpSecurityException(401, "authentication_required", "Autenticacao necessaria.");
             }
             return null;
         }
-        return validarComConfiguracaoAmbiente(token, "access");
+        return validarComRepositorio(token, "access", repositorio, false);
     }
 
-    private static UsuarioAutenticado validarComConfiguracaoAmbiente(String token, String tipoEsperado) {
+    private static UsuarioAutenticado validarComRepositorio(
+            String token,
+            String tipoEsperado,
+            RepositorioUsuarios repositorio,
+            boolean permitirTrocaSenhaPendente) {
         String segredo = ConfigEnv.obter("AUTH_JWT_SECRET", null);
-        if (segredo != null && segredo.length() >= 16) {
-            UsuarioAutenticado local = validarToken(token, segredo, tipoEsperado);
-            if ("true".equalsIgnoreCase(ConfigEnv.obter("VERIFY_REMOTE_SESSION", "false"))) {
-                return consultarSessaoRemota(token);
-            }
-            return local;
+        if (segredo == null || segredo.length() < 16) {
+            throw new HttpSecurityException(500, "jwt_config_error", "Segredo JWT nao configurado.");
         }
-        return consultarSessaoRemota(token);
+        UsuarioAutenticado local = validarToken(token, segredo, tipoEsperado);
+        if (repositorio == null) {
+            throw new HttpSecurityException(503, "auth_store_unavailable",
+                    "Repositorio de sessoes indisponivel para validar token.");
+        }
+        RepositorioUsuarios.ResultadoValidacaoSessao res = repositorio.validarSessaoCompleta(
+                local.getUserId(),
+                local.getSessionId(),
+                local.getSessionVersion(),
+                local.getProfile(),
+                permitirTrocaSenhaPendente
+        );
+        if (!res.valida) {
+            throw new HttpSecurityException(res.statusHttp, res.codigo, res.mensagem);
+        }
+        return res.usuario;
     }
 
     private static byte[] calcularHmacSha256(String dados, String segredo) {

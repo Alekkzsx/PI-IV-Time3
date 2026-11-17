@@ -445,6 +445,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                   // Salas disponíveis para o perfil autenticado
                   DropdownButtonFormField<String>(
                     key: const Key('lobby_room_code_field'),
+                    isExpanded: true,
                     value:
                         _lobbyController.rooms.any(
                           (room) => room.roomCode == _lobbyController.roomCode,
@@ -461,8 +462,9 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                           (room) => DropdownMenuItem(
                             value: room.roomCode,
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Expanded(
+                                Flexible(
                                   child: Text(
                                     '${room.title} (${room.classCode})',
                                     overflow: TextOverflow.ellipsis,

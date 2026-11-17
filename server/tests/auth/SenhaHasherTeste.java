@@ -56,20 +56,20 @@ public class SenhaHasherTeste {
         esperar(SenhaHasher.verificar("Agmrm@2026", hashBcrypt), "BCrypt: SenhaHasher.verificar() valida hash $2b$12$");
         esperar(!SenhaHasher.verificar("SenhaErrada", hashBcrypt), "BCrypt: SenhaHasher.verificar() rejeita senha errada em hash $2b$12$");
 
-        // 7. Validacao de complexidade
-        SenhaHasher.ResultadoValidacao r1 = SenhaHasher.validarComplexidade("Fraca");
+        // 7. Validacao de complexidade (limites explicitos para independencia do .env local)
+        SenhaHasher.ResultadoValidacao r1 = SenhaHasher.validarComplexidade("Fraca", 8, 128, true, true, true, true);
         esperar(!r1.isValido(), "Complexidade: rejeita senha muito curta e fraca");
 
-        SenhaHasher.ResultadoValidacao r2 = SenhaHasher.validarComplexidade("senha123");
+        SenhaHasher.ResultadoValidacao r2 = SenhaHasher.validarComplexidade("senha123", 8, 128, true, true, true, true);
         esperar(!r2.isValido(), "Complexidade: rejeita senha sem maiuscula e sem especial");
 
-        SenhaHasher.ResultadoValidacao r3 = SenhaHasher.validarComplexidade("SenhaForte@2026");
+        SenhaHasher.ResultadoValidacao r3 = SenhaHasher.validarComplexidade("SenhaForte@2026", 8, 128, true, true, true, true);
         esperar(r3.isValido(), "Complexidade: aceita senha forte com todos os criterios");
 
-        SenhaHasher.ResultadoValidacao r4 = SenhaHasher.validarComplexidade(null);
+        SenhaHasher.ResultadoValidacao r4 = SenhaHasher.validarComplexidade(null, 8, 128, true, true, true, true);
         esperar(!r4.isValido(), "Complexidade: rejeita senha null");
 
-        SenhaHasher.ResultadoValidacao r5 = SenhaHasher.validarComplexidade("");
+        SenhaHasher.ResultadoValidacao r5 = SenhaHasher.validarComplexidade("", 8, 128, true, true, true, true);
         esperar(!r5.isValido(), "Complexidade: rejeita senha vazia");
 
         return falhas;

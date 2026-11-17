@@ -1,4 +1,5 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 const environmentSchema = z
@@ -6,10 +7,13 @@ const environmentSchema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     AUTH_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
     AUTH_CORS_ORIGINS: z.string().default("http://localhost:5000"),
+    ALLOW_LAN_CORS: z.stringbool().default(false),
     MONGODB_URI: z.string().min(1),
+    MONGODB_DIRECT_URI: z.string().min(1).optional(),
     MONGODB_DATABASE: z.string().min(1).default("pi_iv_time3"),
     AUTH_JWT_SECRET: z.string().min(32),
-    AUTH_OTP_SECRET: z.string().min(32),
+    INTERNAL_SERVICE_SECRET: z.string().min(32).optional(),
+    AUTH_OTP_SECRET: z.string().min(32).optional(),
     AUTH_JWT_TTL: z.string().regex(/^[1-9]\d{0,3}[smhd]$/).default("15m"),
     AUTH_OTP_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(300),
     AUTH_OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(3),
@@ -32,10 +36,22 @@ const environmentSchema = z
     EMAIL_FALLBACK_MODE: z.enum(["outbox", "strict"]).default("outbox"),
   })
   .superRefine((env, context) => {
-    if (env.AUTH_JWT_SECRET === env.AUTH_OTP_SECRET) {
+    if (env.AUTH_OTP_SECRET && env.AUTH_JWT_SECRET === env.AUTH_OTP_SECRET) {
       context.addIssue({
         code: "custom",
         message: "AUTH_JWT_SECRET e AUTH_OTP_SECRET devem ser diferentes.",
+      });
+    }
+    if (env.NODE_ENV === "production" && !env.INTERNAL_SERVICE_SECRET) {
+      context.addIssue({
+        code: "custom",
+        message: "INTERNAL_SERVICE_SECRET é obrigatório em produção.",
+      });
+    }
+    if (env.INTERNAL_SERVICE_SECRET && env.INTERNAL_SERVICE_SECRET === env.AUTH_JWT_SECRET) {
+      context.addIssue({
+        code: "custom",
+        message: "INTERNAL_SERVICE_SECRET e AUTH_JWT_SECRET devem ser diferentes.",
       });
     }
 
@@ -60,9 +76,12 @@ export type Environment = {
   nodeEnv: "development" | "test" | "production";
   port: number;
   corsOrigins: string[];
+  allowLanCors: boolean;
   mongoUri: string;
+  mongoDirectUri?: string;
   mongoDatabase: string;
   jwtSecret: string;
+  internalServiceSecret: string;
   otpSecret: string;
   jwtTtl: string;
   otpTtlSeconds: number;
@@ -92,8 +111,24 @@ export function loadEnvironment(
   const normalizedSource: NodeJS.ProcessEnv = { ...source };
 
   // Fallback interoperável com chaves equivalentes da raiz (.env)
+  if (!normalizedSource.AUTH_PORT && normalizedSource.ACADEMIC_PORT) {
+    normalizedSource.AUTH_PORT = normalizedSource.ACADEMIC_PORT;
+  }
   if (!normalizedSource.AUTH_JWT_SECRET && normalizedSource.JWT_SECRET) {
     normalizedSource.AUTH_JWT_SECRET = normalizedSource.JWT_SECRET;
+  }
+  for (const key of [
+    "INTERNAL_SERVICE_SECRET",
+    "AUTH_OTP_SECRET",
+    "MONGODB_DIRECT_URI",
+    "ALLOW_LAN_CORS",
+    "SMTP_SECURE",
+    "SMTP_SSL",
+    "EMAIL_FALLBACK_MODE",
+  ] as const) {
+    if (typeof normalizedSource[key] === "string" && normalizedSource[key].trim() === "") {
+      delete normalizedSource[key];
+    }
   }
   if (!normalizedSource.SMTP_SECURE && normalizedSource.SMTP_SSL) {
     normalizedSource.SMTP_SECURE = normalizedSource.SMTP_SSL;
@@ -108,6 +143,16 @@ export function loadEnvironment(
   }
 
   const values = parsed.data;
+  const internalServiceSecret =
+    values.INTERNAL_SERVICE_SECRET ??
+    createHash("sha256")
+      .update(`agmrm-internal-bridge:${values.AUTH_JWT_SECRET}`)
+      .digest("hex");
+  const otpSecret =
+    values.AUTH_OTP_SECRET ??
+    createHash("sha256")
+      .update(`agmrm-otp-fallback:${values.AUTH_JWT_SECRET}`)
+      .digest("hex");
   const smtpConfigured = Boolean(
     values.SMTP_HOST &&
       values.SMTP_USER &&
@@ -121,10 +166,13 @@ export function loadEnvironment(
     corsOrigins: values.AUTH_CORS_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
+    allowLanCors: values.ALLOW_LAN_CORS,
     mongoUri: values.MONGODB_URI,
+    mongoDirectUri: values.MONGODB_DIRECT_URI,
     mongoDatabase: values.MONGODB_DATABASE,
     jwtSecret: values.AUTH_JWT_SECRET,
-    otpSecret: values.AUTH_OTP_SECRET,
+    internalServiceSecret,
+    otpSecret,
     jwtTtl: values.AUTH_JWT_TTL,
     otpTtlSeconds: values.AUTH_OTP_TTL_SECONDS,
     otpMaxAttempts: values.AUTH_OTP_MAX_ATTEMPTS,

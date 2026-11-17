@@ -39,7 +39,7 @@ public class ChangePasswordHandler implements ManipuladorHttp {
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -52,8 +52,8 @@ public class ChangePasswordHandler implements ManipuladorHttp {
         }
 
         try {
-            // Autenticar o usuario (exige token valido)
-            UsuarioAutenticado usuario = JwtAuthValidator.autenticarObrigatorio(requisicao);
+            // Autenticar o usuario (exige sessao ativa, permitindo troca quando requirePasswordChange=true)
+            UsuarioAutenticado usuario = JwtAuthValidator.autenticarObrigatorio(requisicao, this.repositorio, true);
 
             // Parsear body
             Map<String, Object> corpo = Json.analisarObjeto(requisicao.getCorpo());
@@ -104,8 +104,9 @@ public class ChangePasswordHandler implements ManipuladorHttp {
             boolean atualizado = repo.atualizarSenha(usuario.getUserId(), novaSenha);
 
             if (atualizado) {
-                // Revogar todas as sessoes (logout global)
+                // Revogar todas as sessoes (logout global) e registrar auditoria
                 repo.revogarTodasSessoes(usuario.getUserId());
+                repo.registrarAuditoria(usuario.getUserId(), "password_changed", usuario.getUserId(), null);
                 System.out.println("[AUTH] Senha alterada para usuario: " + usuario.getUserId() + " (todas as sessoes revogadas)");
             }
 
@@ -119,6 +120,10 @@ public class ChangePasswordHandler implements ManipuladorHttp {
             resp.put("message", "Senha alterada com sucesso. Todas as sessoes foram encerradas. Realize login novamente.");
             resposta.enviarJson(200, Json.escrever(resp));
 
+        } catch (DatabaseUnavailableException e) {
+            enviarErro(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
+        } catch (JwtAuthValidator.HttpSecurityException e) {
+            enviarErro(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (SecurityException e) {
             enviarErro(resposta, 401, e.getMessage());
         } catch (IllegalArgumentException e) {
@@ -137,8 +142,14 @@ public class ChangePasswordHandler implements ManipuladorHttp {
     }
 
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
+        enviarErro(resposta, status, status == 401 ? "invalid_password" : "invalid_request", mensagem);
+    }
+
+    private void enviarErro(RespostaHttp resposta, int status, String codigo, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", codigo);
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

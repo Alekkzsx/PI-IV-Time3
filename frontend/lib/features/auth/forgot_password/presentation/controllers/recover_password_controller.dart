@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../../../../../core/utils/input_validators.dart';
+import '../../../shared/external/auth_remote_datasource_impl.dart';
 import '../../domain/usecases/recover_password_usecase.dart';
 
 /// Controller de apresentação responsável por gerenciar o estado reativo da tela
@@ -93,6 +94,15 @@ class RecoverPasswordController extends ChangeNotifier {
       _isSuccess = true;
       notifyListeners();
       return true;
+    } on AuthApiException catch (error) {
+      if (operationId != _operationId) return false;
+      _isLoading = false;
+      _errorMessage = error.statusCode == 503 || error.statusCode == 504
+          ? error.message
+          : 'Não foi possível solicitar a recuperação agora. Tente novamente.';
+      _isSuccess = false;
+      notifyListeners();
+      return false;
     } catch (_) {
       try {
         await recoverPasswordUseCase(identity: identity);
@@ -101,6 +111,15 @@ class RecoverPasswordController extends ChangeNotifier {
         _isSuccess = true;
         notifyListeners();
         return true;
+      } on AuthApiException catch (error) {
+        if (operationId != _operationId) return false;
+        _isLoading = false;
+        _errorMessage = error.statusCode == 503 || error.statusCode == 504
+            ? error.message
+            : 'Não foi possível solicitar a recuperação agora. Tente novamente.';
+        _isSuccess = false;
+        notifyListeners();
+        return false;
       } catch (_) {
         if (operationId != _operationId) return false;
         _isLoading = false;

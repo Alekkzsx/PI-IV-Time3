@@ -1,23 +1,35 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 // Atualizado com modulo completo de autenticacao institucional
 
+import auth.AdminUsersHandler;
 import auth.AuthSessionHandler;
 import auth.ChangePasswordHandler;
 import auth.EmailDiagnosticHandler;
 import auth.LoginHandler;
 import auth.LogoutHandler;
+import auth.ProfileAccountHandler;
 import auth.RecoveryHandler;
 import auth.RefreshTokenHandler;
 import auth.RepositorioUsuarios;
 import auth.TwoFactorHandler;
+import bridge.ClientePonteAcademica;
+import core.HttpUtils;
+import core.ManipuladorHttp;
+import core.RequisicaoHttp;
+import core.RespostaHttp;
 import core.ServidorHttpNativo;
 import utils.ConfigEnv;
+import utils.Json;
+import videocall.RepositorioVideoCall;
 import videocall.VideoCallAttendanceHandler;
 import videocall.VideoCallInteractionHandler;
+import videocall.VideoCallMongoHandler;
 import videocall.VideoCallRoomHandler;
 import videocall.VideoCallSignalingHandler;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Ponto de entrada central do servidor HTTP nativo da plataforma AGMRM.
@@ -52,9 +64,11 @@ public class Main {
         }
 
         // =========================================================================
-        // 1. MODULO DE AUTENTICACAO COMPLETO (PBKDF2, JWT HS256, 2FA, Recovery)
+        // 1. MODULO DE AUTENTICACAO, CONTA E USUARIOS ADMIN (MONGODB)
         // =========================================================================
         final RepositorioUsuarios repositorio = RepositorioUsuarios.getInstance();
+        final RepositorioVideoCall repositorioVideoCall = RepositorioVideoCall.getInstance();
+        final ClientePonteAcademica ponte = new ClientePonteAcademica();
 
         // Shutdown hook para encerrar pool de emails e conexoes do MongoDB
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -70,13 +84,66 @@ public class Main {
 
         ServidorHttpNativo servidor = new ServidorHttpNativo(porta);
 
+        // Healthcheck explicito do contexto Identidade + Videochamada
+        servidor.registrarRota("/health", new ManipuladorHttp() {
+            @Override
+            public void handle(RequisicaoHttp req, RespostaHttp resp) throws IOException {
+                HttpUtils.aplicarHeadersCors(req, resp);
+                if ("OPTIONS".equalsIgnoreCase(req.getMetodo())) {
+                    resp.enviar(204, "");
+                    return;
+                }
+                RepositorioUsuarios.EstadoSaudeBanco saude = repositorio.verificarSaudeBanco();
+                Map<String, Object> payload = new LinkedHashMap<String, Object>();
+                payload.put("status", "ok");
+                payload.put("service", "agmrm-identity-videocall");
+                payload.put("database", saude.disponivel ? "connected" : "unreachable");
+                if (!saude.disponivel) {
+                    payload.put("databaseCode", saude.codigo);
+                    payload.put("databaseDetail", saude.detalhe);
+                }
+                resp.enviarJson(200, Json.escrever(payload));
+            }
+        });
+
+        servidor.registrarRota("/health/ready", new ManipuladorHttp() {
+            @Override
+            public void handle(RequisicaoHttp req, RespostaHttp resp) throws IOException {
+                HttpUtils.aplicarHeadersCors(req, resp);
+                if ("OPTIONS".equalsIgnoreCase(req.getMetodo())) {
+                    resp.enviar(204, "");
+                    return;
+                }
+                RepositorioUsuarios.EstadoSaudeBanco saude = repositorio.verificarSaudeBanco();
+                Map<String, Object> payload = new LinkedHashMap<String, Object>();
+                payload.put("status", saude.disponivel ? "ready" : "degraded");
+                payload.put("service", "agmrm-identity-videocall");
+                payload.put("database", saude.disponivel ? "connected" : "unreachable");
+                if (!saude.disponivel) {
+                    payload.put("code", saude.codigo);
+                    payload.put("message", saude.detalhe);
+                }
+                resp.enviarJson(saude.disponivel ? 200 : 503, Json.escrever(payload));
+            }
+        });
+
         // Login e sessao
         servidor.registrarRota("/api/auth/login", new LoginHandler(repositorio));
-        servidor.registrarRota("/api/auth/logout", new LogoutHandler());
+        servidor.registrarRota("/api/auth/logout", new LogoutHandler(repositorio));
         AuthSessionHandler sessionHandler = new AuthSessionHandler(repositorio);
         servidor.registrarRota("/api/auth/session", sessionHandler);
         servidor.registrarRota("/api/auth/me", sessionHandler);
-        servidor.registrarRota("/api/auth/refresh", new RefreshTokenHandler());
+        servidor.registrarRota("/api/auth/refresh", new RefreshTokenHandler(repositorio));
+
+        // Conta, Perfil, Sessoes Ativas, 2FA Settings, Backup Codes, Logs e LGPD
+        ProfileAccountHandler accountHandler = new ProfileAccountHandler(repositorio, ponte);
+        servidor.registrarRota("/api/auth/profile", accountHandler);
+        servidor.registrarRota("/api/auth/sessions", accountHandler);
+        servidor.registrarRota("/api/auth/logout-others", accountHandler);
+        servidor.registrarRota("/api/auth/two-factor", accountHandler);
+        servidor.registrarRota("/api/auth/backup-codes", accountHandler);
+        servidor.registrarRota("/api/auth/security-logs", accountHandler);
+        servidor.registrarRota("/api/auth/lgpd-export", accountHandler);
 
         // 2FA (Two-Factor Authentication)
         servidor.registrarRota("/api/auth/verify-two-factor", new TwoFactorHandler(repositorio));
@@ -93,9 +160,18 @@ public class Main {
         // Diagnostico de email (apenas admin)
         servidor.registrarRota("/api/auth/email-diagnostic", new EmailDiagnosticHandler());
 
+        // Administracao de contas e usuarios (apenas admin)
+        AdminUsersHandler adminUsersHandler = new AdminUsersHandler(repositorio, ponte);
+        servidor.registrarRota("/api/admin/users", adminUsersHandler);
+        servidor.registrarRota("/api/admin/teachers", adminUsersHandler);
+
         // =========================================================================
-        // 2. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
+        // 2. MODULO DE VIDEOCHAMADA PERSISTIDA & SINALIZACAO WEBRTC
         // =========================================================================
+        VideoCallMongoHandler videoCallMongoHandler = new VideoCallMongoHandler(repositorio, repositorioVideoCall, ponte);
+        servidor.registrarRota("/api/video-call", videoCallMongoHandler);
+
+        // Rotas legadas/compatibilidade (sinalizacao HTTP opcional + alias de healthcheck)
         VideoCallRoomHandler roomHandler = new VideoCallRoomHandler();
         servidor.registrarRota("/api/videocall/rooms", roomHandler);
         servidor.registrarRota("/api/videocall/open", roomHandler);

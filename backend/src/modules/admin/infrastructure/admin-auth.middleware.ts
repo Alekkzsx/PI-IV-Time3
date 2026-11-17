@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import type { Db } from "mongodb";
 import { AuthError } from "../../../shared/auth-error.js";
-import { authenticated } from "../../auth/infrastructure/session.middleware.js";
+import { authenticated } from "../../../shared/auth/jwt-session.middleware.js";
 
 /**
  * Garante acesso exclusivo a administradores autenticados.

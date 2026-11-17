@@ -26,6 +26,16 @@ import 'package:pi_iv_time3/features/video_call/presentation/widgets/participant
 
 class _FakeRoomRemoteDataSource extends VideoCallRoomRemoteDataSource {
   @override
+  Future<List<VideoCallRoomSummary>> listRooms() async => const [
+    VideoCallRoomSummary(
+      roomCode: 'APS-II',
+      classCode: 'APS-II',
+      title: 'APS-II',
+      isOpen: true,
+    ),
+  ];
+
+  @override
   Future<VideoCallRoomAccess> enterRoom(String roomCode) async =>
       const VideoCallRoomAccess(
         opened: false,
@@ -202,7 +212,9 @@ void main() {
 
         setUp(() {
           AppUserSession.instance.signOut();
-          lobbyController = VideoCallLobbyController();
+          lobbyController = VideoCallLobbyController(
+            roomDataSource: _FakeRoomRemoteDataSource(),
+          );
         });
 
         tearDown(() {
@@ -273,38 +285,22 @@ void main() {
               'Informe o código da sala',
             );
 
-            // Length boundaries (< 3 chars or > 32 chars)
+            // Length boundaries (< 2 chars or > 60 chars)
             expect(
               lobbyController.validateRoomCode('A'),
               'Código da sala inválido',
             );
+            expect(lobbyController.validateRoomCode('AB'), isNull);
             expect(
-              lobbyController.validateRoomCode('AB'),
-              'Código da sala inválido',
-            );
-            expect(lobbyController.validateRoomCode('ABC'), isNull);
-            expect(
-              lobbyController.validateRoomCode(
-                '12345678901234567890123456789012',
-              ),
+              lobbyController.validateRoomCode('A' * 60),
               isNull,
-            ); // 32 chars
+            ); // 60 chars
             expect(
-              lobbyController.validateRoomCode(
-                '123456789012345678901234567890123',
-              ),
+              lobbyController.validateRoomCode('A' * 61),
               'Código da sala inválido',
-            ); // 33 chars
+            ); // 61 chars
 
-            // Illegal characters (spaces, underscores, special characters)
-            expect(
-              lobbyController.validateRoomCode('SALA 101'),
-              'Código da sala inválido',
-            );
-            expect(
-              lobbyController.validateRoomCode('SALA_101'),
-              'Código da sala inválido',
-            );
+            // Illegal characters (punctuation outside alphanumeric, dot, underscore and hyphen)
             expect(
               lobbyController.validateRoomCode('SALA@101'),
               'Código da sala inválido',
@@ -314,11 +310,13 @@ void main() {
               'Código da sala inválido',
             );
             expect(
-              lobbyController.validateRoomCode('SALA.101'),
+              lobbyController.validateRoomCode('SALA\$101'),
               'Código da sala inválido',
             );
 
-            // Valid patterns (alphanumeric and hyphens, case-insensitive)
+            // Valid patterns (alphanumeric, dots, underscores and hyphens)
+            expect(lobbyController.validateRoomCode('SALA_101'), isNull);
+            expect(lobbyController.validateRoomCode('SALA.101'), isNull);
             expect(lobbyController.validateRoomCode('SALA-101'), isNull);
             expect(lobbyController.validateRoomCode('sala-101'), isNull);
             expect(lobbyController.validateRoomCode('ROOM-LAB-01'), isNull);
@@ -1173,7 +1171,9 @@ void main() {
         test(
           'Adversarial room codes: Rejects emojis, unicode accents and punctuation',
           () {
-            final lobbyCtrl = VideoCallLobbyController();
+            final lobbyCtrl = VideoCallLobbyController(
+              roomDataSource: _FakeRoomRemoteDataSource(),
+            );
 
             expect(
               lobbyCtrl.validateRoomCode('SALA-101-🔥'),
@@ -1207,7 +1207,9 @@ void main() {
         test(
           'Hardware Rapid Toggle Stress: 10 consecutive toggles preserve state integrity',
           () {
-            final lobbyCtrl = VideoCallLobbyController();
+            final lobbyCtrl = VideoCallLobbyController(
+              roomDataSource: _FakeRoomRemoteDataSource(),
+            );
 
             for (int i = 0; i < 10; i++) {
               lobbyCtrl.toggleAudio();

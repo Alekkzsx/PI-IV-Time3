@@ -5,6 +5,8 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
+import '../../../../core/network/resilient_http_client.dart';
+import '../../../../core/network/service_endpoints.dart';
 import '../data/auth_remote_datasource.dart';
 
 /// Datasource HTTP para o serviço de autenticação nativo Java (porta 8080).
@@ -12,16 +14,15 @@ import '../data/auth_remote_datasource.dart';
 /// A URL pode ser substituída em builds com
 /// `--dart-define=AUTH_API_BASE_URL=https://...`.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  static const String _baseUrl = String.fromEnvironment(
-    'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8080',
-  );
-  static const Duration _requestTimeout = Duration(seconds: 8);
+  static String get _baseUrl => ServiceEndpoints.authBaseUrl;
+  static const Duration _requestTimeout = Duration(seconds: 12);
 
   final http.Client _client;
+  final String? _baseUrlOverride;
 
-  AuthRemoteDataSourceImpl({http.Client? client})
-    : _client = client ?? http.Client();
+  AuthRemoteDataSourceImpl({http.Client? client, String? baseUrl})
+    : _client = client ?? createResilientHttpClient(),
+      _baseUrlOverride = baseUrl;
 
   @override
   Future<String> authenticateUser({
@@ -150,7 +151,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   Future<http.Response> _post(String path, Map<String, Object?> body) async {
-    final uri = Uri.parse('$_baseUrl$path');
+    final targetBase = _baseUrlOverride ?? _baseUrl;
+    final uri = Uri.parse('$targetBase$path');
 
     try {
       return await _client
@@ -162,11 +164,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .timeout(_requestTimeout);
     } on TimeoutException {
       throw const AuthApiException(
-        'O serviço demorou para responder. Tente novamente.',
+        'O serviço de autenticação demorou para responder. Verifique se a rede atual não está bloqueando o acesso.',
+        statusCode: 504,
       );
     } on http.ClientException {
-      throw const AuthApiException(
-        'Não foi possível conectar ao serviço de autenticação.',
+      throw AuthApiException(
+        'Não foi possível conectar ao serviço de autenticação ($targetBase). Verifique se o servidor (porta 8080) está ativo e se não há bloqueio de rede/CORS.',
       );
     } on FormatException {
       throw const AuthApiException(

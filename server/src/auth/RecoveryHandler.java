@@ -46,7 +46,7 @@ public class RecoveryHandler implements ManipuladorHttp {
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -70,6 +70,8 @@ public class RecoveryHandler implements ManipuladorHttp {
             } else {
                 enviarErro(resposta, 404, "Endpoint de recuperacao nao encontrado.");
             }
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (IllegalArgumentException e) {
             enviarErro(resposta, 400, "Corpo da requisicao invalido: " + e.getMessage());
         } catch (Exception e) {
@@ -136,7 +138,7 @@ public class RecoveryHandler implements ManipuladorHttp {
             repo.salvarOtp(usuario.getEmail().toLowerCase(), otpHash, "RECOVERY", expiraEmMillis);
         }
 
-        // Enviar email
+        // Enviar email e registrar auditoria
         if (!usuario.getEmail().isEmpty()) {
             try {
                 SmtpCliente.enviarRecuperacao(usuario.getEmail(), otpCode, usuario.getDisplayName());
@@ -144,6 +146,7 @@ public class RecoveryHandler implements ManipuladorHttp {
                 System.err.println("[RECOVERY] Falha ao enviar OTP por email: " + e.getMessage());
             }
         }
+        repo.registrarAuditoria(usuario.getUserId(), "password_recovery_requested", usuario.getUserId(), null);
 
         aplicarLatenciaPadronizada();
 
@@ -245,8 +248,13 @@ public class RecoveryHandler implements ManipuladorHttp {
             return;
         }
 
-        // Gerar recovery token (tipo especial com TTL curto)
+        // Gerar recovery token (tipo especial com TTL curto e grant single-use persistido no MongoDB)
         String recoveryToken = gerarRecoveryToken(usuario);
+        String jti = JwtGerador.extrairJti(recoveryToken);
+        if (jti != null && !jti.isEmpty()) {
+            repo.emitirGrantRecuperacao(usuario.getIdentity(), OtpService.sha256Hex(jti),
+                    System.currentTimeMillis() + 900_000L);
+        }
 
         Map<String, Object> resp = new LinkedHashMap<String, Object>();
         resp.put("status", 200);
@@ -305,20 +313,29 @@ public class RecoveryHandler implements ManipuladorHttp {
             return;
         }
 
-        // Validar complexidade da nova senha
+        // Validar complexidade da nova senha antes de consumir o token de uso unico
         SenhaHasher.ResultadoValidacao validacao = SenhaHasher.validarComplexidade(novaSenha);
         if (!validacao.isValido()) {
             enviarErro(resposta, 400, validacao.getMensagem());
             return;
         }
 
-        // Atualizar senha no MongoDB
         RepositorioUsuarios repo = this.repositorio;
+        String jti = JwtGerador.extrairJti(recoveryToken);
+        String jtiHash = jti != null && !jti.isEmpty() ? OtpService.sha256Hex(jti) : "";
+        if (jtiHash.isEmpty() || !repo.consumirGrantRecuperacao(jtiHash)) {
+            enviarErro(resposta, 401, "Token de recuperacao ja utilizado ou expirado.");
+            return;
+        }
+        RevogacaoTokens.getInstance().revogar(jti, JwtGerador.extrairExpiracaoMillis(recoveryToken));
+
+        // Atualizar senha no MongoDB (tambem limpa requirePasswordChange e incrementa sessionVersion)
         boolean atualizado = repo.atualizarSenha(usuario.getUserId(), novaSenha);
 
         if (atualizado) {
-            // Revogar todas as sessoes existentes do usuario
+            // Revogar todas as sessoes existentes do usuario e auditar
             repo.revogarTodasSessoes(usuario.getUserId());
+            repo.registrarAuditoria(usuario.getUserId(), "password_reset", usuario.getUserId(), null);
         }
 
         if (!atualizado) {
@@ -405,6 +422,8 @@ public class RecoveryHandler implements ManipuladorHttp {
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", status == 401 ? "invalid_or_expired_code" : status == 429 ? "recovery_attempts_exceeded" : "invalid_request");
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

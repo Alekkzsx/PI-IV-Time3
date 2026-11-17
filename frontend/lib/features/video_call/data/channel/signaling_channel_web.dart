@@ -3,6 +3,7 @@
 
 import 'dart:async';
 import 'dart:html' as html;
+import '../../../../core/network/service_endpoints.dart';
 import 'signaling_channel.dart';
 
 /// Conecta a sinalizacao WebRTC ao servidor Java por WebSocket.
@@ -11,11 +12,6 @@ ISignalingChannel createSignalingChannel(String channelName, {String? ticket}) {
 }
 
 class WebSocketSignalingChannel implements ISignalingChannel {
-  static const String _baseUrl = String.fromEnvironment(
-    'VIDEO_CALL_WS_BASE_URL',
-    defaultValue: 'ws://127.0.0.1:8080',
-  );
-
   final String channelName;
   late final html.WebSocket _channel;
   final StreamController<String> _controller =
@@ -29,11 +25,10 @@ class WebSocketSignalingChannel implements ISignalingChannel {
     final roomCode = channelName.startsWith(prefix)
         ? channelName.substring(prefix.length)
         : channelName;
-    final baseUri = Uri.parse(_baseUrl);
-    final socketUri = baseUri
-        .replace(scheme: baseUri.scheme == 'https' ? 'wss' : 'ws')
-        .resolve('/ws/video-call/${Uri.encodeComponent(roomCode)}')
-        .replace(queryParameters: ticket == null ? null : {'ticket': ticket});
+    final socketUri = ServiceEndpoints.resolveVideoCallWebSocketUri(
+      roomCode: roomCode,
+      ticket: ticket,
+    );
     _channel = html.WebSocket(socketUri.toString());
 
     _subscriptions.add(

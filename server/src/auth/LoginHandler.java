@@ -40,7 +40,7 @@ public class LoginHandler implements ManipuladorHttp {
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
         aplicarHeadersSeguranca(resposta);
 
         // Aceitar OPTIONS para pre-flight CORS
@@ -92,9 +92,12 @@ public class LoginHandler implements ManipuladorHttp {
             if (!limitador.permitirTentativa(identidade, ipCliente)) {
                 long segundosRestantes = limitador.segundosRestantesBloqueio(identidade);
                 resposta.adicionarCabecalho("Retry-After", String.valueOf(segundosRestantes));
+                String msgBloqueio = "Muitas tentativas de login. Tente novamente em " + segundosRestantes + " segundos.";
                 Map<String, Object> erro = new LinkedHashMap<String, Object>();
                 erro.put("status", 429);
-                erro.put("erro", "Muitas tentativas de login. Tente novamente em " + segundosRestantes + " segundos.");
+                erro.put("code", "too_many_attempts");
+                erro.put("erro", msgBloqueio);
+                erro.put("message", msgBloqueio);
                 erro.put("retryAfter", segundosRestantes);
                 resposta.enviarJson(429, Json.escrever(erro));
                 return;
@@ -106,12 +109,17 @@ public class LoginHandler implements ManipuladorHttp {
             if (usuario == null) {
                 // Registrar falha no rate limiter
                 String mensagem = limitador.registrarFalha(identidade, ipCliente);
+                Map<String, Object> det = new LinkedHashMap<String, Object>();
+                det.put("identity", identidade);
+                det.put("reason", "invalid_credentials");
+                repositorio.registrarAuditoria("anonymous", "login_failed", identidade, det, ipCliente);
 
                 // Latencia padronizada contra timing attacks
                 aplicarLatenciaPadronizada(inicioProcessamento);
 
                 Map<String, Object> erro = new LinkedHashMap<String, Object>();
                 erro.put("status", 401);
+                erro.put("code", "invalid_credentials");
                 erro.put("erro", mensagem);
                 erro.put("message", mensagem);
                 int maxTentativas = utils.ConfigEnv.obterInteiro("MAX_FAILED_LOGIN_ATTEMPTS", 5);
@@ -122,10 +130,16 @@ public class LoginHandler implements ManipuladorHttp {
 
             if (perfilSolicitado != null && !perfilSolicitado.trim().isEmpty()
                     && !perfilSolicitado.trim().equalsIgnoreCase(usuario.getProfile())) {
+                limitador.registrarFalha(identidade, ipCliente);
+                Map<String, Object> det = new LinkedHashMap<String, Object>();
+                det.put("requestedProfile", perfilSolicitado.trim());
+                det.put("actualProfile", usuario.getProfile());
+                repositorio.registrarAuditoria(usuario.getUserId(), "login_failed", usuario.getUserId(), det, ipCliente);
                 aplicarLatenciaPadronizada(inicioProcessamento);
                 String msgPerfil = "Credenciais invalidas para o perfil selecionado.";
                 Map<String, Object> erro = new LinkedHashMap<String, Object>();
                 erro.put("status", 401);
+                erro.put("code", "invalid_profile");
                 erro.put("erro", msgPerfil);
                 erro.put("message", msgPerfil);
                 resposta.enviarJson(401, Json.escrever(erro));
@@ -181,12 +195,17 @@ public class LoginHandler implements ManipuladorHttp {
             // 5. Persistir sessao no MongoDB
             long expiraAccessMillis = JwtGerador.extrairExpiracaoMillis(parTokens.getAccessToken());
             String jtiAccess = JwtGerador.extrairJti(parTokens.getAccessToken());
+            String userAgent = requisicao.getCabecalho("user-agent");
             if (jtiAccess != null) {
-                repositorio.criarSessao(usuario.getUserId(), jtiAccess, expiraAccessMillis);
+                repositorio.criarSessao(usuario.getUserId(), jtiAccess, expiraAccessMillis, userAgent, ipCliente);
             }
 
-            // 6. Reseta contador de falhas no rate limiter
+            // 6. Reseta contador de falhas no rate limiter e audita login
             limitador.registrarSucesso(identidade, ipCliente);
+            Map<String, Object> detSucesso = new LinkedHashMap<String, Object>();
+            detSucesso.put("profile", usuarioParaResposta.getProfile());
+            repositorio.registrarAuditoria(usuarioParaResposta.getUserId(), "login_succeeded",
+                    usuarioParaResposta.getUserId(), detSucesso, ipCliente);
 
             // Construir resposta de sucesso com dados reais do MongoDB
             Map<String, Object> payloadUsuario = new LinkedHashMap<String, Object>();
@@ -215,6 +234,8 @@ public class LoginHandler implements ManipuladorHttp {
             if (!usuarioParaResposta.getShift().isEmpty()) {
                 payloadUsuario.put("shift", usuarioParaResposta.getShift());
             }
+            payloadUsuario.put("twoFactorRequired", usuarioParaResposta.isTwoFactorEnabled());
+            payloadUsuario.put("requirePasswordChange", usuarioParaResposta.isRequirePasswordChange());
 
             Map<String, Object> respostaSucesso = new LinkedHashMap<String, Object>();
             respostaSucesso.put("status", 200);
@@ -229,6 +250,8 @@ public class LoginHandler implements ManipuladorHttp {
 
             resposta.enviarJson(200, Json.escrever(respostaSucesso));
 
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (IllegalArgumentException e) {
             enviarErro(resposta, 400, "Corpo da requisicao invalido: " + e.getMessage());
         } catch (SecurityException e) {
@@ -305,6 +328,8 @@ public class LoginHandler implements ManipuladorHttp {
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", status == 401 ? "unauthorized" : status == 400 ? "invalid_request" : "error");
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

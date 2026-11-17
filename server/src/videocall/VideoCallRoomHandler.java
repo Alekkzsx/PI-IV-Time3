@@ -1,7 +1,9 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package videocall;
 
+import auth.DatabaseUnavailableException;
 import auth.JwtAuthValidator;
+import auth.RepositorioUsuarios;
 import auth.UsuarioAutenticado;
 import core.HttpUtils;
 import core.ManipuladorHttp;
@@ -19,14 +21,29 @@ import java.util.Map;
 public class VideoCallRoomHandler implements ManipuladorHttp {
 
     private final VideoCallService service = VideoCallService.getInstance();
+    private final RepositorioUsuarios repositorio;
+
+    public VideoCallRoomHandler() {
+        this(null);
+    }
+
+    public VideoCallRoomHandler(RepositorioUsuarios repositorio) {
+        this.repositorio = repositorio;
+    }
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         UsuarioAutenticado usuario;
         try {
-            usuario = JwtAuthValidator.autenticarOpcional(requisicao);
+            RepositorioUsuarios repo = this.repositorio != null
+                    ? this.repositorio
+                    : RepositorioUsuarios.getInstanciaSeInicializada();
+            usuario = JwtAuthValidator.autenticarOpcional(requisicao, repo);
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
+            return;
         } catch (SecurityException e) {
             resposta.enviarJson(401, "{\"status\":401,\"erro\":" + JsonSimples.escapar(e.getMessage()) + "}");
             return;

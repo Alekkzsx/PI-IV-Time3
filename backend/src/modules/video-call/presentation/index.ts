@@ -1,1 +1,0 @@
-export { createVideoCallRouter } from "./video-call.controller.js";

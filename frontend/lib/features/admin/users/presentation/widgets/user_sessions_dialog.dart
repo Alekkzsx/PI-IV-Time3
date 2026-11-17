@@ -28,7 +28,7 @@ class UserSessionsDialog extends StatelessWidget {
     if (AppUserSession.instance.accessToken != null) {
       try {
         sessions =
-            (await AuthenticatedApiClient().request(
+            (await AuthenticatedApiClient.auth().request(
                       "GET",
                       "/api/admin/users/${user.id}/sessions",
                     )

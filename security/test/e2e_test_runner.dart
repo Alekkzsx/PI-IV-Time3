@@ -27,30 +27,30 @@ void main() async {
     final cwd = Directory.current;
     if (File('${cwd.path}/pubspec.yaml').existsSync() && cwd.path.endsWith('security')) {
       securityDir = cwd;
-      testsDir = Directory('${securityDir.path}/tests');
+      testsDir = Directory('${securityDir.path}/test');
     } else if (Directory('${cwd.path}/security').existsSync()) {
       securityDir = Directory('${cwd.path}/security');
-      testsDir = Directory('${securityDir.path}/tests');
+      testsDir = Directory('${securityDir.path}/test');
     } else {
       securityDir = Directory('/home/alekkzsx/Documents/Github/PI-IV-Time3/security');
-      testsDir = Directory('${securityDir.path}/tests');
+      testsDir = Directory('${securityDir.path}/test');
     }
   }
 
   // Dynamic absolute path to SecurityServerTestSuite.java
-  final File javaSuiteFile = File('${testsDir.path}/SecurityServerTestSuite.java');
+  final File javaSuiteFile = File('${securityDir.path}/server/test/SecurityServerTestSuite.java');
   final String javaSuitePath = javaSuiteFile.existsSync()
       ? javaSuiteFile.path
-      : (File('security/tests/SecurityServerTestSuite.java').existsSync()
-          ? File('security/tests/SecurityServerTestSuite.java').absolute.path
-          : (File('tests/SecurityServerTestSuite.java').existsSync()
-              ? File('tests/SecurityServerTestSuite.java').absolute.path
-              : 'tests/SecurityServerTestSuite.java'));
+      : (File('security/server/test/SecurityServerTestSuite.java').existsSync()
+          ? File('security/server/test/SecurityServerTestSuite.java').absolute.path
+          : (File('server/test/SecurityServerTestSuite.java').existsSync()
+              ? File('server/test/SecurityServerTestSuite.java').absolute.path
+              : 'server/test/SecurityServerTestSuite.java'));
 
   print('╔══════════════════════════════════════════════════════════════════════════╗');
   print('║ AGMRM Educational Platform — Unified E2E Security Test Suite Runner       ║');
   print('║ Author: Alex Gabriel Soares Sousa — RA: 24802449                         ║');
-  print('║ Target Module: security/tests/                                           ║');
+  print('║ Target Module: security/test/                                            ║');
   print('╚══════════════════════════════════════════════════════════════════════════╝');
   print('');
 
@@ -100,7 +100,7 @@ void main() async {
   await runSuite('Anti-Enumeration & Generic Feedback Suite (Features 16, 18)', () async {
     final res = await Process.run(
       'flutter',
-      ['test', 'tests/generic_feedback_test.dart'],
+      ['test', 'test/generic_feedback_test.dart'],
       workingDirectory: securityDir.path,
     );
     stdout.write(res.stdout);
@@ -113,7 +113,7 @@ void main() async {
   await runSuite('Security Constants & Invariants Suite (Features 1-3)', () async {
     final res = await Process.run(
       'flutter',
-      ['test', 'tests/security_constants_test.dart'],
+      ['test', 'test/security_constants_test.dart'],
       workingDirectory: securityDir.path,
     );
     stdout.write(res.stdout);

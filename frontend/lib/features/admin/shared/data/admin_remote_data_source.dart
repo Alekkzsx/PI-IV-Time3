@@ -6,13 +6,24 @@ import '../models/admin_models.dart';
 
 class AdminRemoteDataSource {
   final AuthenticatedApiClient api;
-  AdminRemoteDataSource({AuthenticatedApiClient? api})
-    : api = api ?? AuthenticatedApiClient();
+  final AuthenticatedApiClient authApi;
+  AdminRemoteDataSource({
+    AuthenticatedApiClient? api,
+    AuthenticatedApiClient? authApi,
+  }) : api = api ?? AuthenticatedApiClient.academic(),
+       authApi = authApi ?? api ?? AuthenticatedApiClient.auth();
+
   Future<dynamic> request(
     String method,
     String path, [
     Map<String, Object?>? body,
-  ]) => api.request(method, '/api/admin$path', body: body);
+  ]) {
+    final cleanPath = path.split('?').first;
+    final client = cleanPath == '/users' || cleanPath.startsWith('/users/')
+        ? authApi
+        : api;
+    return client.request(method, '/api/admin$path', body: body);
+  }
 
   Future<Map<String, dynamic>> dashboard() async =>
       await request('GET', '/dashboard') as Map<String, dynamic>;

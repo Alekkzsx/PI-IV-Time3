@@ -5,6 +5,7 @@ import core.HttpUtils;
 import core.ManipuladorHttp;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
+import org.bson.Document;
 import utils.Json;
 
 import java.io.IOException;
@@ -25,12 +26,12 @@ public class AuthSessionHandler implements ManipuladorHttp {
     }
 
     public AuthSessionHandler(RepositorioUsuarios repositorio) {
-        this.repositorio = repositorio;
+        this.repositorio = repositorio != null ? repositorio : RepositorioUsuarios.getInstance();
     }
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -38,59 +39,65 @@ public class AuthSessionHandler implements ManipuladorHttp {
         }
 
         if (!"GET".equalsIgnoreCase(requisicao.getMetodo()) && !"POST".equalsIgnoreCase(requisicao.getMetodo())) {
-            resposta.enviarJson(405, "{\"status\":405,\"erro\":\"Utilize GET ou POST para verificar sessao.\"}");
+            resposta.enviarJson(405, "{\"status\":405,\"code\":\"method_not_allowed\",\"message\":\"Utilize GET ou POST para verificar sessao.\",\"erro\":\"Utilize GET ou POST para verificar sessao.\"}");
             return;
         }
 
         try {
-            UsuarioAutenticado usuario = JwtAuthValidator.autenticarObrigatorio(requisicao);
+            // /api/auth/me e /api/auth/session sao permitidos mesmo com requirePasswordChange=true para acionar troca obrigatoria na UI.
+            UsuarioAutenticado u = JwtAuthValidator.autenticarObrigatorio(requisicao, this.repositorio, true);
+            Document doc = this.repositorio.buscarDocumentoAtivoPorId(u.getUserId());
 
-            // Buscar dados mais atualizados diretamente do MongoDB se disponivel
-            UsuarioAutenticado usuarioFinal = null;
-            if (repositorio != null && usuario.getUserId() != null && !usuario.getUserId().isEmpty()) {
-                usuarioFinal = repositorio.buscarPorId(usuario.getUserId());
-            }
-            if (usuarioFinal == null && repositorio != null && usuario.getIdentity() != null && !usuario.getIdentity().isEmpty()) {
-                usuarioFinal = repositorio.buscarPorIdentidade(usuario.getIdentity());
-            }
-            UsuarioAutenticado u = usuarioFinal != null ? usuarioFinal : usuario;
-
-            Map<String, Object> payload = new LinkedHashMap<String, Object>();
+            Map<String, Object> payload = montarPerfilPublico(u, doc);
             payload.put("status", 200);
             payload.put("authenticated", Boolean.TRUE);
-            payload.put("id", u.getUserId());
-            payload.put("userId", u.getUserId());
-            payload.put("profile", u.getProfile());
             if (!u.getSessionId().isEmpty()) {
                 payload.put("sessionId", u.getSessionId());
             }
-            if (!u.getIdentity().isEmpty()) {
-                payload.put("identity", u.getIdentity());
-            }
-            if (!u.getDisplayName().isEmpty()) {
-                payload.put("displayName", u.getDisplayName());
-            }
-            if (!u.getEmail().isEmpty()) {
-                payload.put("email", u.getEmail());
-            }
-            payload.put("departmentOrCourse", u.getDepartmentOrCourse());
-            payload.put("department", u.getDepartmentOrCourse());
-            payload.put("campus", !u.getCampus().isEmpty() ? u.getCampus() : "Campus Central");
-            payload.put("semester", !u.getSemester().isEmpty() ? u.getSemester() : "2026/2");
-            payload.put("shift", u.getShift());
-            payload.put("twoFactorRequired", u.isTwoFactorEnabled());
-            payload.put("requirePasswordChange", Boolean.FALSE);
-            payload.put("preferences", new LinkedHashMap<String, Object>());
 
             resposta.enviarJson(200, Json.escrever(payload));
+        } catch (DatabaseUnavailableException e) {
+            enviarErro(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
+        } catch (JwtAuthValidator.HttpSecurityException e) {
+            enviarErro(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (SecurityException e) {
-            Map<String, Object> erro = new LinkedHashMap<String, Object>();
-            erro.put("status", 401);
-            erro.put("authenticated", Boolean.FALSE);
-            erro.put("erro", e.getMessage());
-            erro.put("message", e.getMessage());
-            resposta.enviarJson(401, Json.escrever(erro));
+            enviarErro(resposta, 401, "unauthorized", e.getMessage());
         }
+    }
+
+    public static Map<String, Object> montarPerfilPublico(UsuarioAutenticado u, Document doc) {
+        Map<String, Object> payload = new LinkedHashMap<String, Object>();
+        payload.put("id", u.getUserId());
+        payload.put("userId", u.getUserId());
+        payload.put("identity", u.getIdentity());
+        payload.put("displayName", u.getDisplayName());
+        payload.put("socialName", u.getSocialName());
+        payload.put("email", u.getEmail());
+        payload.put("personalEmail", u.getPersonalEmail());
+        payload.put("phone", u.getPhone());
+        payload.put("biography", u.getBiography());
+        payload.put("profile", u.getProfile());
+        payload.put("departmentOrCourse", u.getDepartmentOrCourse());
+        payload.put("department", u.getDepartmentOrCourse());
+        payload.put("campus", !u.getCampus().isEmpty() ? u.getCampus() : "Campus Central");
+        payload.put("semester", !u.getSemester().isEmpty() ? u.getSemester() : "2026/2");
+        payload.put("shift", u.getShift());
+        payload.put("requirePasswordChange", Boolean.valueOf(u.isRequirePasswordChange()));
+        payload.put("twoFactorRequired", Boolean.valueOf(u.isTwoFactorEnabled()));
+        payload.put("twoFactorEnabled", Boolean.valueOf(u.isTwoFactorEnabled()));
+        payload.put("preferences", u.getPreferences() != null ? u.getPreferences() : new LinkedHashMap<String, Object>());
+        payload.put("lastLogin", doc != null ? (doc.getDate("lastLogin") != null ? doc.getDate("lastLogin") : doc.getDate("lastLoginAt")) : null);
+        return payload;
+    }
+
+    private static void enviarErro(RespostaHttp resposta, int status, String code, String message) throws IOException {
+        Map<String, Object> erro = new LinkedHashMap<String, Object>();
+        erro.put("status", status);
+        erro.put("authenticated", Boolean.FALSE);
+        erro.put("code", code);
+        erro.put("message", message);
+        erro.put("erro", message);
+        resposta.enviarJson(status, Json.escrever(erro));
     }
 }
 

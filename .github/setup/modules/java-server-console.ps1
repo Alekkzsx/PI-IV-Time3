@@ -196,7 +196,7 @@ function Start-JavaServer {
     for ($i = 0; $i -lt 15; $i++) {
         Start-Sleep -Milliseconds 300
         try {
-            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8080/api/videocall/rooms" -TimeoutSec 1 -UseBasicParsing -ErrorAction SilentlyContinue
+            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8080/health" -TimeoutSec 1 -UseBasicParsing -ErrorAction SilentlyContinue
             if ($resp -and $resp.StatusCode -eq 200) {
                 $running = $true
                 break
@@ -227,7 +227,7 @@ function Get-ServerStatus {
     $status = @{ Online = $false; Pid = $null; LatencyMs = 0; Details = "Inativo" }
     try {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8080/api/videocall/rooms" -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8080/health" -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
         $sw.Stop()
         if ($resp.StatusCode -eq 200) {
             $status.Online = $true
@@ -314,7 +314,7 @@ function Show-MasterEnv {
     if (Test-Path $EnvFile) {
         Get-Content $EnvFile | Where-Object { $_ -and -not $_.StartsWith("#") } | ForEach-Object {
             $line = $_.Trim()
-            if ($line.StartsWith("AUTH_JWT_SECRET") -or $line.StartsWith("JWT_SECRET") -or $line.StartsWith("SMTP_PASSWORD")) {
+            if ($line -match "^(AUTH_JWT_SECRET|JWT_SECRET|AUTH_OTP_SECRET|INTERNAL_SERVICE_SECRET|TOKEN_ENCRYPTION_KEY|SMTP_PASSWORD|MONGODB_URI|MONGODB_DIRECT_URI|SEED_DEMO_PASSWORD|RESEND_API_KEY|BREVO_API_KEY|GMAIL_WEBHOOK_URL|DATABASE_URL|DATABASE_PASSWORD)=") {
                 $parts = $line -split "=", 2
                 Write-Host "  $($parts[0]) = ******** (oculto por seguranca)" -ForegroundColor Yellow
             } else {
@@ -355,9 +355,9 @@ while ($true) {
     Write-Host " [3] Status e Diagnostico em Tempo Real (Testa endpoints)" -ForegroundColor White
     Write-Host " [4] Visualizar Logs do Servidor (server.log)" -ForegroundColor White
     Write-Host " [5] Recompilar Fontes Java (Sem reiniciar processo atual)" -ForegroundColor White
-    Write-Host " [6] Executar Suite de Testes Nativos (11 suites sem JUnit)" -ForegroundColor White
+    Write-Host " [6] Executar Suite de Testes Nativos (13 suites sem JUnit)" -ForegroundColor White
     Write-Host " [7] Exibir Variaveis Carregadas do .env Mestre" -ForegroundColor White
-    Write-Host " [8] Abrir Endpoint no Navegador (Healthcheck: /api/videocall/rooms)" -ForegroundColor White
+    Write-Host " [8] Abrir Endpoint no Navegador (Healthcheck: /health)" -ForegroundColor White
     Write-Host " [9] Limpar Tela do Console" -ForegroundColor White
     Write-Host " [0] Encerrar Servidor e Fechar Console" -ForegroundColor Yellow
     Write-Host "================================================================================" -ForegroundColor Cyan
@@ -370,6 +370,8 @@ while ($true) {
         "3" {
             Write-Host "`n>>> Diagnostico de Endpoints:" -ForegroundColor Cyan
             $endpoints = @(
+                "/health",
+                "/api/video-call/rooms",
                 "/api/videocall/rooms",
                 "/api/auth/session",
                 "/api/auth/login"
@@ -395,7 +397,7 @@ while ($true) {
         "6" { Run-NativeTests }
         "7" { Show-MasterEnv }
         "8" {
-            Start-Process "http://127.0.0.1:8080/api/videocall/rooms"
+            Start-Process "http://127.0.0.1:8080/health"
             Write-Host "[OK] Endpoint aberto no navegador padrao." -ForegroundColor Green
         }
         "9" { Clear-Host }

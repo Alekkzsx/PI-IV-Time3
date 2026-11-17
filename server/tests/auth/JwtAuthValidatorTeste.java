@@ -4,17 +4,59 @@ package auth;
 
 import core.RequisicaoHttp;
 import core.RespostaHttp;
+import org.bson.Document;
 import videocall.VideoCallRoomHandler;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashSet;
+import java.util.Set;
 
 // Teste sem bibliotecas do validador nativo JWT HS256 feito na unha.
 public class JwtAuthValidatorTeste {
     private static final String SEGREDO_TESTE = "segredo-institucional-teste-minimo-32-chars!";
     private static int falhas = 0;
+
+    private static final class RepoSessaoFake extends RepositorioUsuarios {
+        final Set<String> sessoesAtivas = new HashSet<String>();
+        final Set<String> trocaSenhaPendente = new HashSet<String>();
+        int sessionVersionAtual = 2;
+
+        RepoSessaoFake() {
+            super(false);
+        }
+
+        @Override
+        public ResultadoValidacaoSessao validarSessaoCompleta(
+                String userId,
+                String sessionId,
+                int tokenVersion,
+                String tokenProfile,
+                boolean permitirTrocaSenhaPendente) {
+            if (!sessoesAtivas.contains(sessionId) || tokenVersion != sessionVersionAtual) {
+                return ResultadoValidacaoSessao.erro(401, "session_revoked", "Sessao revogada.");
+            }
+            if (trocaSenhaPendente.contains(userId) && !permitirTrocaSenhaPendente) {
+                return ResultadoValidacaoSessao.erro(403, "password_change_required", "Troca de senha obrigatoria.");
+            }
+            UsuarioAutenticado u = new UsuarioAutenticado(
+                    userId, tokenProfile, sessionId, tokenVersion,
+                    "docente".equals(tokenProfile) ? "prof.helena" : "admin".equals(tokenProfile) ? "admin.demo" : "u-aluno",
+                    "Usuario Teste", "teste@example.edu", false, "ES", "", "", "",
+                    trocaSenhaPendente.contains(userId), "", "", "", "", null);
+            return ResultadoValidacaoSessao.ok(u);
+        }
+
+        @Override
+        public Document buscarDocumentoAtivoPorId(String userId) {
+            return new Document("identity", "prof.helena")
+                    .append("displayName", "Profa. Helena")
+                    .append("email", "helena@example.edu")
+                    .append("profile", "docente");
+        }
+    }
 
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
@@ -78,12 +120,16 @@ public class JwtAuthValidatorTeste {
         esperar(rejeita(tokenPerfilInvalido, SEGREDO_TESTE),
                 "JWT: rejeita perfil desconhecido");
 
-        // 7. Integracao HTTP nativa: AuthSessionHandler e VideoCallRoomHandler com Bearer JWT
+        // 7. Integracao HTTP nativa: AuthSessionHandler, VideoCallRoomHandler e sessao autoritativa
         String anterior = System.getProperty("AUTH_JWT_SECRET");
         try {
             System.setProperty("AUTH_JWT_SECRET", SEGREDO_TESTE);
-            AuthSessionHandler sessionHandler = new AuthSessionHandler();
-            VideoCallRoomHandler openHandler = new VideoCallRoomHandler();
+            RepoSessaoFake repoFake = new RepoSessaoFake();
+            repoFake.sessoesAtivas.add("sess-123");
+            repoFake.sessoesAtivas.add("sess-1");
+
+            AuthSessionHandler sessionHandler = new AuthSessionHandler(repoFake);
+            VideoCallRoomHandler openHandler = new VideoCallRoomHandler(repoFake);
 
             String respSemToken = executarHttp(sessionHandler, "GET /api/auth/session HTTP/1.1\r\nHost: localhost\r\n\r\n");
             esperar(respSemToken.startsWith("HTTP/1.1 401") && respSemToken.contains("\"authenticated\":false"),
@@ -97,10 +143,47 @@ public class JwtAuthValidatorTeste {
                     && respComToken.contains("\"profile\":\"docente\""),
                     "AuthSessionHandler: valida sessao autenticada (200)");
 
+            // Sessao revogada invalida JWT imediatamente
+            repoFake.sessoesAtivas.remove("sess-123");
+            String respRevogada = executarHttp(
+                    sessionHandler,
+                    "GET /api/auth/session HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer " + tokenDocente + "\r\n\r\n");
+            esperar(respRevogada.startsWith("HTTP/1.1 401"),
+                    "AuthSessionHandler: bloqueia sessao revogada antes do exp (401)");
+            repoFake.sessoesAtivas.add("sess-123");
+
+            // Token com requirePasswordChange=true: permitido em /api/auth/me mas bloqueado nas rotas comuns
+            String tokenTroca = JwtAuthValidator.gerarTokenHs256("507f1f77bcf86cd799439099", "admin", "sess-pwd", 2, 300L, SEGREDO_TESTE);
+            repoFake.sessoesAtivas.add("sess-pwd");
+            repoFake.trocaSenhaPendente.add("507f1f77bcf86cd799439099");
+            RequisicaoHttp reqTroca = RequisicaoHttp.ler(new ByteArrayInputStream(
+                    ("GET /api/admin/users HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer " + tokenTroca + "\r\n\r\n")
+                            .getBytes(StandardCharsets.UTF_8)));
+            try {
+                JwtAuthValidator.autenticarObrigatorio(reqTroca, repoFake, false);
+                esperar(false, "JwtAuthValidator: deveria bloquear requirePasswordChange=true (403)");
+            } catch (JwtAuthValidator.HttpSecurityException e) {
+                esperar(e.getStatusHttp() == 403 && "password_change_required".equals(e.getCodigo()),
+                        "JwtAuthValidator: bloqueia requirePasswordChange=true nas rotas protegidas (403)");
+            }
+
+            // autenticarAdminObrigatorio rejeita docente (403)
+            RequisicaoHttp reqDocenteAdmin = RequisicaoHttp.ler(new ByteArrayInputStream(
+                    ("GET /api/admin/users HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer " + tokenDocente + "\r\n\r\n")
+                            .getBytes(StandardCharsets.UTF_8)));
+            try {
+                JwtAuthValidator.autenticarAdminObrigatorio(reqDocenteAdmin, repoFake);
+                esperar(false, "JwtAuthValidator: deveria exigir perfil admin (403)");
+            } catch (JwtAuthValidator.HttpSecurityException e) {
+                esperar(e.getStatusHttp() == 403,
+                        "JwtAuthValidator: bloqueia nao-admin em autenticarAdminObrigatorio (403)");
+            }
+
+            String tokenAluno2 = JwtAuthValidator.gerarTokenHs256("u-aluno", "aluno", "sess-1", 2, 300L, SEGREDO_TESTE);
             String corpoFalsificado = "roomCode=SALA-JWT-1&role=docente&name=Aluno+Tentando+Burlar";
             String reqAlunoTentandoAbrir = "POST /api/videocall/open HTTP/1.1\r\n"
                     + "Host: localhost\r\n"
-                    + "Authorization: Bearer " + tokenAluno + "\r\n"
+                    + "Authorization: Bearer " + tokenAluno2 + "\r\n"
                     + "Content-Type: application/x-www-form-urlencoded\r\n"
                     + "Content-Length: " + corpoFalsificado.length() + "\r\n\r\n"
                     + corpoFalsificado;

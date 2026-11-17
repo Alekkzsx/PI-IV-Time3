@@ -39,8 +39,11 @@ public class RespostaHttp {
             case 403: descricao = "Forbidden"; break;
             case 404: descricao = "Not Found"; break;
             case 405: descricao = "Method Not Allowed"; break;
+            case 409: descricao = "Conflict"; break;
+            case 422: descricao = "Unprocessable Entity"; break;
             case 429: descricao = "Too Many Requests"; break;
             case 500: descricao = "Internal Server Error"; break;
+            case 502: descricao = "Bad Gateway"; break;
             case 503: descricao = "Service Unavailable"; break;
             default: descricao = status >= 400 ? "Error" : "OK";
         }

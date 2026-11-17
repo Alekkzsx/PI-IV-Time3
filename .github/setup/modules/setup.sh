@@ -608,8 +608,12 @@ if [[ -n "$TERMINAL_EMU" ]]; then
     sleep 1
 
     # 3. Frontend Flutter
-    echo -e "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TARGET_DEVICE com fallback em Chrome)"
-    launch_window "AGMRM - Frontend Flutter ($TARGET_DEVICE)" "$FRONTEND_DIR" "flutter run -d $TARGET_DEVICE || flutter run -d chrome"
+    local flutter_cmd="flutter run -d ${TARGET_DEVICE} || flutter run -d chrome --web-port 5000 || flutter run -d chrome"
+    if [[ "$TARGET_DEVICE" == "chrome" ]]; then
+        flutter_cmd="flutter run -d chrome --web-port 5000 || flutter run -d chrome"
+    fi
+    echo -e "  -> Abrindo Janela 3: Frontend Flutter (Executando ${flutter_cmd})"
+    launch_window "AGMRM - Frontend Flutter ($TARGET_DEVICE)" "$FRONTEND_DIR" "$flutter_cmd"
 
 # Fallback se estamos em modo headless / SSH / sem interface grafica direta
 elif command -v tmux >/dev/null 2>&1; then
@@ -633,12 +637,12 @@ fi
 # -----------------------------------------------------------------------------
 echo -e "\n${CLR_CYAN}[ETAPA 4/4] Resumo do Ecossistema AGMRM em Execucao:${CLR_RESET}"
 echo -e "${CLR_CYAN}================================================================================${CLR_RESET}"
-echo -e " ${CLR_GREEN}[JANELA 1] SERVIDOR JAVA SE (Porta 8080):${CLR_RESET}"
+echo -e " ${CLR_GREEN}[JANELA 1] SERVIDOR JAVA SE (Porta 8080 - Auth, Users, Video-Call/WS):${CLR_RESET}"
 echo -e "            - Console interativo aberto em janela dedicada."
 echo -e "            - Opcoes disponiveis: 1 = Reiniciar, 2 = Desligar, 3 = Status, 4 = Logs..."
-echo -e "            - Healthcheck: http://127.0.0.1:8080/api/videocall/rooms"
+echo -e "            - Healthcheck: http://127.0.0.1:8080/health"
 echo ""
-echo -e " ${CLR_GREEN}[JANELA 2] BACKEND API TYPESCRIPT (Porta 3001):${CLR_RESET}"
+echo -e " ${CLR_GREEN}[JANELA 2] BACKEND API TYPESCRIPT (Porta 3001 - Nucleo Academico & Ponte Interna):${CLR_RESET}"
 echo -e "            - Executando 'npm run dev' em janela separada."
 echo -e "            - Healthcheck: http://127.0.0.1:3001/health"
 echo ""

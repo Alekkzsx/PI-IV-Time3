@@ -12,8 +12,8 @@ Como compilar e executar o servidor HTTP/WebSocket:
 
   2. Ou manualmente no terminal:
      cd server
-     javac --release 8 -encoding UTF-8 -d bin src\Main.java src\core\*.java src\academic\*.java src\auth\*.java src\utils\*.java src\websocket\*.java src\videocall\*.java src\videocall\hub\*.java
-     java -Dfile.encoding=UTF-8 -cp bin Main
+     javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin src\Main.java src\core\*.java src\academic\*.java src\auth\*.java src\bridge\*.java src\utils\*.java src\websocket\*.java src\videocall\*.java src\videocall\hub\*.java
+     java -Dfile.encoding=UTF-8 -cp "bin;lib/*" Main
 
 --------------------------------------------------------------------
 A. MODULO ACADEMICO
@@ -32,20 +32,22 @@ curl.exe -X POST http://localhost:8080/api/tarefas/calcular-nota -d "diasAtraso=
 curl.exe -X POST http://localhost:8080/api/notas/boletim -d "p1=8.0&peso1=0.4&p2=6.0&peso2=0.4&trabalho=10.0&pesoTrabalho=0.2"
 
 --------------------------------------------------------------------
-B. MODULO DE SESSAO JWT NATIVA (INTEGRADO AO LOGIN DO BACKEND)
+B. MODULO DE IDENTIDADE & SESSAO JWT (SERVIDOR JAVA :8080)
 --------------------------------------------------------------------
 
 5. Verificacao sem token Bearer (Bloqueio 401):
 curl.exe http://localhost:8080/api/auth/session
 
-6. Verificacao com token Bearer emitido no login (POST http://localhost:3001/api/auth/login):
+6. Verificacao com token Bearer emitido no login (POST http://localhost:8080/api/auth/login):
 curl.exe -H "Authorization: Bearer SEU_TOKEN_JWT" http://localhost:8080/api/auth/session
 
 --------------------------------------------------------------------
-C. MODULO DE VIDEOCHAMADA & SINALIZACAO WEBRTC
+C. MODULO DE VIDEOCHAMADA PERSISTIDA (/api/video-call/rooms*) & LEGADO (/api/videocall/*)
 --------------------------------------------------------------------
 
-7. Listagem de Salas de Videochamada:
+7. Listagem de Salas Persistidas e Legadas de Videochamada:
+curl.exe http://localhost:8080/health
+curl.exe -H "Authorization: Bearer SEU_TOKEN_JWT" http://localhost:8080/api/video-call/rooms
 curl.exe http://localhost:8080/api/videocall/rooms
 
 8. Tentativa de Discente Abrir Sala de Turma Fechada (Bloqueio de Seguranca 403):

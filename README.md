@@ -16,8 +16,9 @@ The platform solves the fragmentation of educational tools by integrating presen
 - **Student Portal**: Academic history with weighted averages, absences, schedule, notices, and virtual desk.
 - **Teacher Portal**: Grade entry, digital attendance log, attendance approval, and virtual classroom management.
 - **Admin Portal**: User identity management, audit cockpit, academic registry, and CONSEPE official lock.
-- **Institutional Video Call (`video_call`)**: P2P WebRTC video conference integrated into the native Java server (`server/`). Active speaker detection, FIFO doubt queue (raised hands), real-time chat synchronized with WebSocket hub, and presence tracking by connected time.
-- **Native Java SE Server (`server/`)**: Zero-dependency HTTP and WebSocket server on port 8080. Handles academic calculations, relays WebRTC signaling, and validates HS256 JWT login sessions natively; user login, 2FA, OTP recovery, and room authorization run in the modular TypeScript API (`backend/`).
+- **Institutional Video Call (`video_call`)**: P2P WebRTC video conference hosted in the native Java server (`server/` on port `8080`) with persisted rooms/attendance (`academic_live_sessions`, `video_call_attendance_logs`), single-use WS tickets (`video_call_ws_tickets`), active speaker detection, FIFO doubt queue (raised hands), and real-time chat synchronized with the WebSocket hub.
+- **Native Java SE Server (`server/` on port `8080`)**: Authoritative Identity & Real-Time Communication boundary (Login, 2FA, OTP recovery, Profile/Sessions/LGPD export, Admin User Management, persisted `/api/video-call/rooms*` + `/ws/video-call/{roomCode}`, `/health`, and academic calculation endpoints). Communicates with `backend/` via `/api/internal/academic/*` (`X-Internal-Service-Secret`).
+- **Academic Core API (`backend/` on port `3001`)**: Modular TypeScript + Express + MongoDB academic service handling Student/Teacher portals, Academic Admin operations, File downloads (`/api/files/*`), passive HS256 JWT + `auth_sessions` validation, and the internal bridge `/api/internal/academic/*`.
 - **Cyber Defense in Depth (`security/`)**: Brute-force lockout (5 attempts $\rightarrow$ 30s lockout), side-channel timing attack mitigation, opaque anti-enumeration responses, input sanitization against XSS/SQLi, and OTP token lifecycle.
 
 ---
@@ -39,8 +40,8 @@ The platform solves the fragmentation of educational tools by integrating presen
 | Layer | Technology |
 |---|---|
 | **Application (Client)** | Flutter (Desktop: Windows / Mobile / Web) |
-| **Core Academic & WS Server** | Java SE — Pure Native HTTP & RFC 6455 WebSocket Server (Zero external libraries) |
-| **Auth, Admin & Room Ticket API** | TypeScript + Express + MongoDB (`backend/` on port `3001`) |
+| **Identity, Users & Video-Call WS Server** | Java SE (`server/` on port `8080`) — Pure Native HTTP + RFC 6455 WebSocket + MongoDB Sync Driver |
+| **Academic Core & Internal Bridge API** | TypeScript + Express + MongoDB (`backend/` on port `3001`) |
 | **Security & Defenses** | agmrm_security (Dart) + Native JWT/Rate-Limit Defense-in-Depth |
 | **Persistence Layer** | Document (MongoDB) |
 | **Version Control** | Git & GitHub |
@@ -58,25 +59,26 @@ The platform solves the fragmentation of educational tools by integrating presen
 │   │   ├── features/ # auth, student, teacher, admin, video_call, multiperfil
 │   │   └── main.dart # App entry point with automated parent modules startup
 │   └── test/         # Comprehensive test suite (396 tests)
-├── server/           # Native autonomous Java SE HTTP & WebSocket server (zero external libraries)
+├── server/           # Java SE server on port 8080 (Identity, Admin Users, Video-Call REST + WS)
 │   ├── src/
 │   │   ├── Main.java # Central orchestrator on port 8080
 │   │   ├── core/     # Low-level TCP sockets, HTTP handlers, and CORS
 │   │   ├── academic/ # Grades, Attendance, Tasks, and Data Types
-│   │   ├── auth/     # Native JDK HS256 JWT validator & /api/auth/session handler
+│   │   ├── auth/     # Auth, 2FA, Recovery, Profile, Sessions, Admin Users & JWT validation
+│   │   ├── bridge/   # Authenticated HTTP client to backend /api/internal/academic/*
 │   │   ├── utils/    # ConfigEnv, Json, and JsonSimples
 │   │   ├── websocket/# RFC 6455 WebSocket handshake, framing, and lifecycle
-│   │   └── videocall/# Virtual rooms, WebRTC signaling hub, RegistradorChat, Attendance
+│   │   └── videocall/# Persisted rooms (/api/video-call/rooms*), WebRTC hub & Attendance
 │   └── tests/        # Zero-dependency Java test suite (SuiteTestesServidor) & cURL guide
-├── security/         # Enterprise cyber defense module (37 tests)
+├── security/         # Enterprise cyber defense module (agmrm_security + Java tests)
 │   ├── lib/          # Client-side defenses (lockout, rate limiter, timing, entropy)
-│   ├── test/         # Security test suite (37 tests)
+│   ├── test/         # Security test suite
 │   └── server/       # Server-side security filters (rate limiter, headers, sanitizers)
-├── backend/          # Modular TypeScript + MongoDB API on port 3001 (Auth, Admin, Student, VideoCall)
+├── backend/          # TypeScript + Express + MongoDB Academic Core on port 3001
 │   ├── src/
 │   │   ├── config/   # Environment loading and strict validation
-│   │   ├── shared/   # MongoDB client, HTTP errors, rate limiting
-│   │   ├── modules/  # Layered modules: auth/, admin/, student/, video-call/
+│   │   ├── shared/   # MongoDB client, passive JWT+session middleware, indexes, errors
+│   │   ├── modules/  # Academic modules: admin/, student/, teacher/, notifications/, internal/
 │   │   ├── scripts/  # CLI user provisioning & idempotent demo seed
 │   │   └── tests/    # Centralized unit/ and integration/ test suites
 │   └── backend-config.json # Declarative configuration for parent modules
@@ -146,7 +148,7 @@ cd ..
 
 ### 4. Start the Backend Services
 
-Start the TypeScript Authentication & Academic API on port `3001`:
+Start the TypeScript Academic Core & Internal Bridge API on port `3001`:
 
 ```bash
 cd backend
@@ -164,8 +166,8 @@ cd server
 #### On Linux / macOS:
 ```bash
 cd server
-javac --release 8 -encoding UTF-8 -d bin $(find src -name "*.java")
-java -Dfile.encoding=UTF-8 -cp bin Main
+javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin $(find src -name "*.java")
+java -Dfile.encoding=UTF-8 -cp "bin:lib/*" Main
 ```
 
 #### Automated Full Build and Verification:
@@ -212,29 +214,25 @@ flutter devices
 
 ## API Endpoints
 
-The native Java server provides 14 HTTP endpoints on port `8080` (plus `/ws/video-call/{roomCode}`), working alongside the TypeScript API on port `3001`:
+The services follow a strict bounded-context separation between Identity/Video-Call (`server/` on `8080`) and Academic Core (`backend/` on `3001`):
 
 | Method | Endpoint | Service | Description |
 |---|---|---|---|
-| `GET` / `POST` | `/api/teste-tipos` | Java (`8080`) | Diagnostic and echo of primitive types (text, numeric, boolean) |
-| `POST` | `/api/presenca` | Java (`8080`) | Calculates presence percentage and excused absence allowance |
-| `POST` | `/api/tarefas/calcular-nota` | Java (`8080`) | Computes final task grade deducting penalty for late submissions |
-| `POST` | `/api/notas/boletim` | Java (`8080`) | Calculates semester weighted average and passing status |
-| `GET` | `/api/auth/session` | Java (`8080`) | Native JDK HS256 JWT & active session inspection |
-| `GET` | `/api/videocall/rooms` | Java (`8080`) | Lists active virtual classrooms and room health status |
-| `POST` | `/api/videocall/open` | Java (`8080`) | Opens virtual classroom (**Teacher or Admin only**) |
-| `POST` | `/api/videocall/close` | Java (`8080`) | Closes virtual classroom (**Teacher or Admin only**) |
-| `POST` | `/api/videocall/join` | Java (`8080`) | Joins session and records attendance telemetry |
-| `POST` | `/api/videocall/leave` | Java (`8080`) | Leaves session and logs connected duration |
-| `POST` | `/api/videocall/signal` | Java (`8080`) | P2P WebRTC signaling (SDP offer/answer, ICE candidates) |
-| `GET` / `POST` | `/api/videocall/hand-raise` | Java (`8080`) | Manages FIFO queue of raised hands and doubts |
-| `GET` / `POST` | `/api/videocall/chat` | Java (`8080`) | Real-time chat messages synchronized with WebSocket hub |
-| `GET` / `POST` | `/api/videocall/attendance` | Java (`8080`) | Homologates presence based on connected duration |
-| `POST` | `/api/auth/login` | TS (`3001`) | Institutional login issuing HS256 JWT (with 2FA support) |
-| `POST` | `/api/video-call/rooms/enter` | TS (`3001`) | Authorizes the room and issues a single-use WebSocket ticket |
-| `POST` | `/api/video-call/rooms/consume-ticket` | TS (`3001`) | Consumes the short-lived ticket during the Java WebSocket handshake |
+| `GET` | `/health` | Java (`8080`) | Identity & Video-Call server healthcheck |
+| `POST` | `/api/auth/login` | Java (`8080`) | Institutional login issuing HS256 JWT (with 2FA & `requirePasswordChange`) |
+| `POST` | `/api/auth/verify-two-factor` | Java (`8080`) | Verifies 2FA OTP or backup code and persists session |
+| `GET` / `PATCH` | `/api/auth/me` / `/profile` / `/lgpd-export` | Java (`8080`) | Session inspection, profile updates, and LGPD data export |
+| `GET` / `DELETE` | `/api/auth/sessions` / `/logout-others` | Java (`8080`) | Active session inspection and revocation |
+| `GET` / `POST` / `PATCH` | `/api/admin/users*` & `POST /api/admin/teachers` | Java (`8080`) | Admin user lifecycle management, dossier, and teacher provisioning |
+| `GET` / `POST` | `/api/video-call/rooms*` | Java (`8080`) | Persisted live classroom lookup, single-use WS ticket issuance, closing, and attendance |
+| `GET` / `POST` | `/api/videocall/*` | Java (`8080`) | Legacy live room/signaling/chat telemetry compatibility endpoints |
+| `POST` | `/api/presenca`, `/api/notas/boletim`, `/api/tarefas/calcular-nota` | Java (`8080`) | Native academic calculation endpoints |
+| `GET` | `/health` | TS (`3001`) | Academic API healthcheck (`agmrm-academic-api`) |
+| `GET` / `POST` / `PATCH` | `/api/student/*`, `/api/teacher/*`, `/api/files/*` | TS (`3001`) | Student AVA portal, Teacher cockpit, and academic file downloads |
+| `GET` / `POST` / `PATCH` | `/api/admin/courses*`, `/classes*`, `GET /teachers`, `/protocols*`, `/settings`, `/announcements*`, `/calendar*`, `/audit-logs`, `/system/*` | TS (`3001`) | Academic Admin management and institutional operations |
+| `GET` / `POST` | `/api/internal/academic/*` | TS (`3001`) | Service-to-service HTTP bridge guarded by `X-Internal-Service-Secret` |
 
-Authentication, 2FA, OTP recovery, Admin management, Student dashboard, and room authorization run in `backend/` on port `3001`. The Flutter client connects to `ws://localhost:8080/ws/video-call/{roomCode}?ticket=...`; the Java server relays signaling envelopes while camera and microphone media remain peer-to-peer through WebRTC.
+Public `/api/auth/*`, `/api/admin/users*`, `POST /api/admin/teachers`, and `/api/video-call/*` are no longer served on port `3001` (`404`). The Flutter client uses `AUTH_API_BASE_URL` (`http://127.0.0.1:8080`), `ACADEMIC_API_BASE_URL` (`http://127.0.0.1:3001`), and `VIDEO_CALL_WS_BASE_URL` (`ws://127.0.0.1:8080/ws/video-call/{roomCode}?ticket=...`).
 
 ---
 

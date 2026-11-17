@@ -8,9 +8,10 @@ The `server` module contains the native, autonomous, and high-performance HTTP &
 
 It operates 100% on the **Java SE standard library** (compatible with Java 8 through 21+) with zero third-party dependencies or heavy application containers (no Spring, Quarkus, Maven, JUnit, or Tomcat).
 
-**Primary Responsibilities**:
-- **Authentication**: Complete login system with PBKDF2 password hashing, JWT HS256 token generation/validation, 2FA, rate limiting, and session management
-- **Video Conferencing**: WebRTC signaling, room management, real-time chat, hand-raising, and attendance tracking
+**Primary Responsibilities (Bounded Context on Port `8080`)**:
+- **Authoritative Identity & Access Management**: Complete login system (PBKDF2/BCrypt verification, JWT HS256 access/refresh tokens, 2FA + backup codes, single-use OTP recovery, password change, profile/preferences/sessions/LGPD export, and admin user management + teacher provisioning)
+- **Video Conferencing & Real-Time Signaling**: Persisted rooms and single-use WebSocket tickets (`academic_live_sessions`, `video_call_ws_tickets`, `video_call_attendance_logs`) via `/api/video-call/rooms*`, RFC 6455 `/ws/video-call/{roomCode}`, chat sync, and legacy `/api/videocall/*` telemetry
+- **Internal Bridge Consumer**: Calls `backend/` (`:3001`) at `/api/internal/academic/*` with `X-Internal-Service-Secret` (`ClientePonteAcademica`) to authorize academic class membership, list allowed classrooms, and fetch LGPD/dossier academic summaries
 
 ---
 
@@ -29,15 +30,18 @@ The server is structured into cohesive packages with strict separation of concer
 │   │   ├── RequisicaoHttp.java
 │   │   ├── RespostaHttp.java
 │   │   └── ServidorHttpNativo.java
-│   ├── auth/                               # Complete authentication system (PBKDF2, JWT, 2FA, Recovery)
+│   ├── auth/                               # Identity, sessions, 2FA, recovery, profile, admin users
+│   │   ├── AdminUsersHandler.java
 │   │   ├── AuthSessionHandler.java
 │   │   ├── ChangePasswordHandler.java
+│   │   ├── EmailDiagnosticHandler.java
 │   │   ├── JwtAuthValidator.java
 │   │   ├── JwtGerador.java
 │   │   ├── LimitadorTentativas.java
 │   │   ├── LoginHandler.java
 │   │   ├── LogoutHandler.java
 │   │   ├── OtpService.java
+│   │   ├── ProfileAccountHandler.java
 │   │   ├── RecoveryHandler.java
 │   │   ├── RefreshTokenHandler.java
 │   │   ├── RepositorioUsuarios.java
@@ -46,6 +50,8 @@ The server is structured into cohesive packages with strict separation of concer
 │   │   ├── SmtpCliente.java
 │   │   ├── TwoFactorHandler.java
 │   │   └── UsuarioAutenticado.java
+│   ├── bridge/                             # Internal HTTP client to backend (/api/internal/academic/*)
+│   │   └── ClientePonteAcademica.java
 │   ├── websocket/                          # RFC 6455 handshake, frames, and socket lifecycle
 │   │   ├── AtendenteWebSocket.java
 │   │   ├── ConexaoWebSocket.java
@@ -56,23 +62,27 @@ The server is structured into cohesive packages with strict separation of concer
 │   │   ├── ConfigEnv.java
 │   │   ├── Json.java
 │   │   └── JsonSimples.java
-│   └── videocall/                          # Video Conference, WebRTC Signaling, Chat & Presence Telemetry
+│   └── videocall/                          # Video Conference REST + MongoDB persistence, WebRTC hub & Attendance
 │       ├── hub/
 │       │   ├── RegistradorChat.java
 │       │   ├── RegistradorEnvelope.java
 │       │   └── SalaVideoHub.java
+│       ├── RepositorioVideoCall.java
 │       ├── TicketWebSocketValidator.java
 │       ├── VideoCallAttendanceHandler.java
 │       ├── VideoCallInteractionHandler.java
+│       ├── VideoCallMongoHandler.java
 │       ├── VideoCallRoomHandler.java
 │       ├── VideoCallService.java
 │       └── VideoCallSignalingHandler.java
-├── tests/                                  # Zero-dependency Java test suites (11 suites, 109 tests)
+├── tests/                                  # Zero-dependency Java test suites (13 suites)
 │   ├── SuiteTestesServidor.java
 │   ├── auth/
+│   │   ├── HandlerLifecycleTeste.java
 │   │   ├── JwtAuthValidatorTeste.java
 │   │   ├── LimitadorTentativasTeste.java
 │   │   ├── OtpServiceTeste.java
+│   │   ├── RecoveryHandlerTeste.java
 │   │   ├── RevogacaoTokensTeste.java
 │   │   └── SenhaHasherTeste.java
 │   ├── utils/
@@ -95,7 +105,7 @@ The server is structured into cohesive packages with strict separation of concer
 
 ### **`Main.java` (`server/src/Main.java`)**
 - Unified application entry point reading `SERVER_PORT` (default `8080`) via `ConfigEnv`.
-- Registers 17 HTTP endpoints (9 auth + 8 videocall) and the `/ws/video-call/{roomCode}` WebSocket path.
+- Registers `/health`, all `/api/auth/*`, `/api/admin/users*`, `POST /api/admin/teachers`, `/api/video-call/rooms*`, legacy `/api/videocall/*`, `/api/admin/system/email-diagnostic`, academic calculation endpoints, and `/ws/video-call/{roomCode}`.
 
 ### **`core` (`server/src/core/`)**
 - Low-level network abstractions built over native TCP `ServerSocket` and `Socket`.
@@ -155,79 +165,91 @@ The server **does not require manual startup** during standard desktop developme
    flutter run
    ```
 2. Flutter triggers `BackendProcessLauncher`:
-   - Checks if port `8080` is already active.
+   - Checks if port `8080` is already active (`GET /health`).
    - Ensures `.java` sources are compiled into `server/bin/` targeting Java 8 (`--release 8`).
-   - Starts `java -cp bin Main` as an independent background process (*detached*).
+   - Starts `java -cp bin:lib/* Main` (`bin;lib/*` on Windows) as an independent background process (*detached*).
 
 *(Optional / Manual Execution)*:
 ```bash
 cd server
-javac -d bin/classes -cp "lib/*" $(find src -name "*.java")
-java -cp "bin/classes:lib/*" Main
+javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin $(find src -name "*.java")
+java -cp "bin:lib/*" Main
 ```
 
 ---
 
-## 📡 Registered API Endpoints Catalog (17 Routes + WebSocket)
+## 📡 Registered API Endpoints Catalog
 
 The server listens on `http://localhost:8080` with the following active endpoints:
 
-### Authentication Endpoints (9 routes)
+### Health, Authentication & Account Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/login` | Login with PBKDF2 password verification, rate limiting, and optional 2FA |
-| `POST` | `/api/auth/logout` | Revokes JWT token (adds to in-memory blacklist) |
-| `GET` | `/api/auth/session` | Validates Bearer HS256 JWT and returns user profile |
+| `GET` | `/health` | Native Java server healthcheck |
+| `POST` | `/api/auth/login` | Login with PBKDF2/BCrypt verification, rate limiting, and optional 2FA |
+| `POST` | `/api/auth/logout` | Revokes MongoDB session and blacklists JWT |
+| `GET` | `/api/auth/session` / `/api/auth/me` | Validates Bearer HS256 JWT + MongoDB session and returns user profile |
+| `PATCH` | `/api/auth/profile` | Updates profile fields and triggers internal sync on `backend/` |
+| `GET` / `DELETE` | `/api/auth/sessions` & `/api/auth/sessions/:id` | Lists or revokes persisted user sessions in `auth_sessions` |
+| `POST` | `/api/auth/logout-others` | Revokes all user sessions except the current one |
 | `POST` | `/api/auth/refresh` | Rotates refresh token and issues new access/refresh token pair |
-| `POST` | `/api/auth/verify-two-factor` | Verifies 2FA OTP code sent via email |
-| `POST` | `/api/auth/send-recovery-otp` | Sends OTP code for password recovery |
-| `POST` | `/api/auth/verify-recovery-otp` | Validates recovery OTP code |
-| `POST` | `/api/auth/reset-password` | Resets password using recovery token |
-| `POST` | `/api/auth/change-password` | Changes password for authenticated user |
+| `POST` | `/api/auth/verify-two-factor` | Verifies 2FA OTP or single-use backup code |
+| `POST` | `/api/auth/two-factor` & `/api/auth/backup-codes` | Toggles 2FA or regenerates backup codes |
+| `POST` | `/api/auth/send-recovery-otp` / `/verify-recovery-otp` / `/reset-password` | Sends OTP, issues single-use reset grant, and resets password without replay |
+| `POST` | `/api/auth/change-password` | Changes password for authenticated user (supports pending forced change) |
+| `GET` | `/api/auth/security-logs` & `/api/auth/lgpd-export` | Lists security audit events and exports identity + academic LGPD data via internal bridge |
 
-### Video Call Endpoints (8 routes)
+### Admin Identity Management Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/videocall/rooms` | Lists active virtual classrooms and room health status |
-| `POST` | `/api/videocall/open` | Opens virtual classroom (**Teacher or Admin only**) |
-| `POST` | `/api/videocall/close` | Closes virtual classroom (**Teacher or Admin only**) |
-| `POST` | `/api/videocall/join` | Joins session and records attendance telemetry |
-| `POST` | `/api/videocall/leave` | Leaves session and logs connected duration |
-| `POST` | `/api/videocall/signal` | P2P WebRTC signaling (SDP offer/answer, ICE candidates) |
-| `GET`/`POST` | `/api/videocall/hand-raise` | Manages FIFO queue of raised hands and doubts |
-| `GET`/`POST` | `/api/videocall/chat` | Real-time chat messages synchronized with WebSocket hub |
-| `GET`/`POST` | `/api/videocall/attendance` | Homologates presence based on connected duration |
+| `GET` / `POST` / `PATCH` | `/api/admin/users`, `/:id`, `/:id/status` | Manages institutional user accounts (`adminOnly`) |
+| `GET` / `POST` | `/api/admin/users/:id/sessions`, `/revoke-sessions`, `/reset-password` | Inspects sessions, revokes tokens, and resets temporary password (`adminOnly`) |
+| `GET` | `/api/admin/users/:id/dossier` | Returns user dossier combining identity logs and academic summary from `backend/` |
+| `POST` | `/api/admin/teachers` | Creates a new teacher account (`adminOnly`) |
+
+### Video Call Endpoints (Persisted `/api/video-call/rooms*` + Legacy `/api/videocall/*`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/video-call/rooms` | Lists authorized classrooms & live status for the logged-in user |
+| `POST` | `/api/video-call/rooms/enter` | Opens/joins room in MongoDB and issues single-use 60s WebSocket ticket |
+| `POST` | `/api/video-call/rooms/close` | Closes live classroom in `academic_live_sessions` |
+| `POST` | `/api/video-call/rooms/attendance` | Persists video-call attendance telemetry in MongoDB |
+| `GET` / `POST` | `/api/videocall/rooms`, `/open`, `/close`, `/join`, `/leave`, `/signal`, `/hand-raise`, `/chat`, `/attendance` | Legacy in-memory video-call & signaling endpoints |
 
 ### WebSocket Signaling
 
-The Flutter client connects to `ws://127.0.0.1:8080/ws/video-call/{roomCode}?ticket=...`. The single-use ticket comes from `POST /api/video-call/rooms/enter` on `backend/` (port `3001`), expires after 60 seconds, and is consumed by `TicketWebSocketValidator` before completing the RFC 6455 handshake.
+The Flutter client connects to `ws://127.0.0.1:8080/ws/video-call/{roomCode}?ticket=...`. The single-use ticket comes directly from `POST /api/video-call/rooms/enter` (stored in MongoDB `video_call_ws_tickets`) and is consumed atomically by `TicketWebSocketValidator` before completing the RFC 6455 handshake.
 
 ---
 
 ## 🧪 Automated Native Test Suite
 
-Run all 11 zero-dependency Java test suites (109 total tests):
+Run all 13 zero-dependency Java test suites:
 
 ```bash
 cd server
-javac -d bin/classes -cp "bin/classes:lib/*" $(find tests -name "*.java")
-java -cp "bin/classes:lib/*" SuiteTestesServidor
+find src tests -name "*.java" > /tmp/sources.txt
+javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin @/tmp/sources.txt
+java -cp "bin:lib/*" SuiteTestesServidor
 ```
 
 **Test Suites**:
-1. **ConfigEnv Master .env** (6 tests) — Environment variable loading and validation
-2. **Json & JsonSimples** (14 tests) — JSON parsing, serialization, and validation
-3. **WebSocket Handshake (RFC 6455)** (1 test) — Sec-WebSocket-Accept calculation
-4. **WebSocket Quadros (RFC 6455)** (9 tests) — Frame parsing, masking, and protocol compliance
-5. **VideoCall RegistradorChat** (5 tests) — Chat message recording and synchronization
-6. **VideoCall SalaVideoHub Integracao** (10 tests) — WebSocket hub message routing and room isolation
-7. **Autenticacao JWT HS256 Nativa** (10 tests) — JWT signature validation, expiration, and privilege escalation prevention
-8. **SenhaHasher PBKDF2** (18 tests) — Password hashing, verification, complexity validation, and dummy hash protection
-9. **RevogacaoTokens (blacklist)** (9 tests) — Token revocation and automatic expiration cleanup
-10. **LimitadorTentativas (rate limiting)** (11 tests) — Progressive lockout and attempt tracking
-11. **OtpService (2FA e recuperacao)** (16 tests) — OTP generation, HMAC storage, and validation
+1. **ConfigEnv Master .env** — Environment variable loading and validation
+2. **Json & JsonSimples** — JSON parsing, serialization, and validation
+3. **WebSocket Handshake (RFC 6455)** — Sec-WebSocket-Accept calculation
+4. **WebSocket Quadros (RFC 6455)** — Frame parsing, masking, and protocol compliance
+5. **VideoCall RegistradorChat** — Chat message recording and synchronization
+6. **VideoCall SalaVideoHub Integracao** — WebSocket hub message routing and room isolation
+7. **Autenticacao JWT HS256 Nativa** — JWT validation, session revocation, password-change guard, admin RBAC
+8. **SenhaHasher PBKDF2** — Password hashing, verification, complexity validation, and dummy hash protection
+9. **RevogacaoTokens (blacklist)** — Token revocation and automatic expiration cleanup
+10. **LimitadorTentativas (rate limiting)** — Progressive lockout and attempt tracking
+11. **OtpService (2FA e recuperacao)** — OTP generation, HMAC storage, and validation
+12. **RecoveryHandler** — Single-use recovery reset grant & anti-replay verification
+13. **HandlerLifecycle** — Shared MongoDB repository preservation across `TwoFactorHandler` and `RefreshTokenHandler`
 
 For manual HTTP endpoint validation via `curl`, see `server/tests/testeServidor.txt`.
 

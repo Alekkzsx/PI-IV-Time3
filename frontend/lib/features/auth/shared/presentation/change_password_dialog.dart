@@ -46,7 +46,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       _error = null;
     });
     try {
-      await AuthenticatedApiClient().request(
+      await AuthenticatedApiClient.auth().request(
         'POST',
         '/api/auth/change-password',
         body: {'currentPassword': _current.text, 'newPassword': _next.text},

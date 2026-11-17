@@ -44,7 +44,7 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
-        HttpUtils.aplicarHeadersCors(resposta);
+        HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
         if ("OPTIONS".equalsIgnoreCase(requisicao.getMetodo())) {
             resposta.enviar(204, "");
@@ -57,30 +57,15 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
         }
 
         try {
-            // Verificar autenticacao (admin apenas)
-            String token = extrairToken(requisicao);
-            if (token == null || token.isEmpty()) {
-                enviarErro(resposta, 401, "Token de autenticacao ausente. Header: Authorization: Bearer <token>");
-                return;
-            }
-
-            String segredo = ConfigEnv.obter("AUTH_JWT_SECRET", null);
-            if (segredo == null) {
-                enviarErro(resposta, 500, "Segredo JWT nao configurado no servidor.");
-                return;
-            }
-
+            // Verificar autenticacao administrativa persistida no MongoDB
             UsuarioAutenticado usuario;
             try {
-                usuario = JwtAuthValidator.validarToken(token, segredo);
-            } catch (SecurityException e) {
-                enviarErro(resposta, 401, "Token invalido ou expirado: " + e.getMessage());
+                usuario = JwtAuthValidator.autenticarAdminObrigatorio(requisicao, RepositorioUsuarios.getInstance());
+            } catch (JwtAuthValidator.HttpSecurityException e) {
+                enviarErro(resposta, e.getStatusHttp(), e.getMessage());
                 return;
-            }
-
-            // Apenas admins podem executar diagnostico
-            if (usuario == null || !"admin".equals(usuario.getProfile())) {
-                enviarErro(resposta, 403, "Acesso negado. Apenas administradores podem executar diagnostico de email.");
+            } catch (SecurityException e) {
+                enviarErro(resposta, 401, e.getMessage());
                 return;
             }
 
@@ -173,18 +158,12 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
 
             resposta.enviarJson(200, Json.escrever(relatorio));
 
+        } catch (DatabaseUnavailableException e) {
+            HttpUtils.enviarErroJson(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
         } catch (Exception e) {
             System.err.println("[EMAIL-DIAG] Erro inesperado: " + e.getMessage());
             enviarErro(resposta, 500, "Erro interno no servidor: " + e.getMessage());
         }
-    }
-
-    private String extrairToken(RequisicaoHttp requisicao) {
-        String auth = requisicao.getCabecalho("authorization");
-        if (auth != null && auth.toLowerCase().startsWith("bearer ")) {
-            return auth.substring(7).trim();
-        }
-        return null;
     }
 
     private String getString(Map<String, Object> mapa, String chave) {

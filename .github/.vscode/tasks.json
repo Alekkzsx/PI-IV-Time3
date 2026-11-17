@@ -5,13 +5,13 @@
       "label": "start-backend-server",
       "type": "shell",
       "windows": {
-        "command": "powershell -NoProfile -Command \"Start-Process -FilePath 'java' -ArgumentList '-cp bin Main' -WorkingDirectory '${workspaceFolder}/server' -WindowStyle Hidden\""
+        "command": "powershell -NoProfile -Command \"Start-Process -FilePath 'java' -ArgumentList '-cp \"bin;lib/*\" Main' -WorkingDirectory '${workspaceFolder}/server' -WindowStyle Hidden\""
       },
       "linux": {
-        "command": "java -cp bin Main &"
+        "command": "java -cp 'bin:lib/*' Main &"
       },
       "osx": {
-        "command": "java -cp bin Main &"
+        "command": "java -cp 'bin:lib/*' Main &"
       },
       "options": {
         "cwd": "${workspaceFolder}/server"

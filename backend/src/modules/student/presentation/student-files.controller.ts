@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { ObjectId, type Db } from "mongodb";
 import { AuthError } from "../../../shared/auth-error.js";
-import { authenticated } from "../../auth/infrastructure/session.middleware.js";
+import { authenticated } from "../../../shared/auth/jwt-session.middleware.js";
 
 export function createFilesRouter(database: Db, jwtSecret: string): Router {
   const router = Router();

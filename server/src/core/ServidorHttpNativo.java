@@ -40,6 +40,10 @@ public class ServidorHttpNativo {
         return Collections.unmodifiableMap(rotas);
     }
 
+    public static SalaVideoHub getHubVideo() {
+        return HUB_VIDEO;
+    }
+
     public void iniciar() throws IOException {
         threadPool = Executors.newFixedThreadPool(32);
         serverSocket = new ServerSocket(porta);
@@ -90,7 +94,7 @@ public class ServidorHttpNativo {
             RespostaHttp resposta = new RespostaHttp(cliente.getOutputStream());
             try {
                 RequisicaoHttp requisicao = RequisicaoHttp.ler(cliente.getInputStream());
-                HttpUtils.aplicarHeadersCors(resposta);
+                HttpUtils.aplicarHeadersCors(requisicao, resposta);
 
                 if (HandshakeWebSocket.pedeUpgrade(requisicao)) {
                     socketAssumido = abrirWebSocket(cliente, requisicao, resposta);
@@ -157,7 +161,8 @@ public class ServidorHttpNativo {
         try {
             HandshakeWebSocket.validar(requisicao);
         } catch (IllegalArgumentException e) {
-            return AtendenteWebSocket.assumir(cliente, requisicao, sala, HUB_VIDEO);
+            resposta.enviarJson(400, "{\"status\":400,\"erro\":\"Handshake WebSocket invalido.\"}");
+            return false;
         }
 
         Map<String, String> parametros = HttpUtils.parseFormUrlEncoded(requisicao.getQueryParams());

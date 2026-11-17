@@ -1,0 +1,191 @@
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+package auth;
+
+import core.RequisicaoHttp;
+import core.RespostaHttp;
+import org.bson.Document;
+import utils.Json;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Testes unitarios do RecoveryHandler (emissao e consumo single-use do resetToken sem replay).
+ */
+public class RecoveryHandlerTeste {
+    private static final String SEGREDO_TESTE = "segredo-institucional-teste-minimo-32-chars!";
+    private static final String OTP_SEGREDO = "agmrm-otp-secret-key-2026-recovery-verification-1a2b3c4d5e6f7890";
+    private static int falhas = 0;
+
+    static void esperar(boolean condicao, String nome) {
+        System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
+        if (!condicao) falhas++;
+    }
+
+    private static final class RepoResetFake extends RepositorioUsuarios {
+        final Set<String> grantsDisponiveis = new HashSet<String>();
+        final Map<String, String> senhasAtualizadas = new HashMap<String, String>();
+        int sessoesRevogadas = 0;
+        Document otpRecuperacao;
+
+        final UsuarioAutenticado usuario = new UsuarioAutenticado(
+                "507f1f77bcf86cd799439011",
+                "aluno",
+                "",
+                1,
+                "2024.1.00001",
+                "Aluno Teste",
+                "aluno@example.edu",
+                false,
+                "ES",
+                "",
+                "",
+                "");
+
+        RepoResetFake() {
+            super(false);
+        }
+
+        void prepararOtp(String codigo) {
+            otpRecuperacao = new Document("identity", "2024.1.00001")
+                    .append("type", "RECOVERY")
+                    .append("otpHash", OtpService.hashOtp(codigo, OTP_SEGREDO))
+                    .append("tentativas", 0)
+                    .append("expiresAt", new Date(System.currentTimeMillis() + 300_000L));
+        }
+
+        @Override
+        public UsuarioAutenticado buscarPorIdentidade(String identidade) {
+            return "2024.1.00001".equalsIgnoreCase(identidade) ? usuario : null;
+        }
+
+        @Override
+        public Document buscarOtp(String identity, String type) {
+            if ("RECOVERY".equals(type) && "2024.1.00001".equalsIgnoreCase(identity)) {
+                return otpRecuperacao;
+            }
+            return null;
+        }
+
+        @Override
+        public void removerOtp(String identity, String type) {
+            if ("RECOVERY".equals(type)) otpRecuperacao = null;
+        }
+
+        @Override
+        public void incrementarTentativasOtp(String identity, String type) {}
+
+        @Override
+        public void emitirGrantRecuperacao(String normalizedIdentity, String jtiHash, long expiresAtMillis) {
+            grantsDisponiveis.add(jtiHash);
+        }
+
+        @Override
+        public boolean consumirGrantRecuperacao(String jtiHash) {
+            return grantsDisponiveis.remove(jtiHash);
+        }
+
+        @Override
+        public boolean atualizarSenha(String userId, String novaSenha) {
+            senhasAtualizadas.put(userId, novaSenha);
+            return true;
+        }
+
+        @Override
+        public void revogarTodasSessoes(String userId) {
+            sessoesRevogadas++;
+        }
+
+        @Override
+        public void registrarAuditoria(String actorId, String action, String target, Map<String, Object> details) {
+            // Sem persistencia em teste offline
+        }
+    }
+
+    public static int executar() {
+        falhas = 0;
+        String anteriorJwt = System.getProperty("AUTH_JWT_SECRET");
+        String anteriorOtp = System.getProperty("AUTH_OTP_SECRET");
+        String anteriorMinLen = System.getProperty("PASSWORD_MIN_LENGTH");
+        try {
+            System.setProperty("AUTH_JWT_SECRET", SEGREDO_TESTE);
+            System.setProperty("AUTH_OTP_SECRET", OTP_SEGREDO);
+            System.setProperty("PASSWORD_MIN_LENGTH", "8");
+
+            RepoResetFake repo = new RepoResetFake();
+            RecoveryHandler handler = new RecoveryHandler(repo);
+
+            // 1. Verificar OTP gera resetToken e emite grant unico
+            repo.prepararOtp("654321");
+            String respVerify = postJson(handler, "/api/auth/verify-recovery-otp",
+                    "{\"identity\":\"2024.1.00001\",\"code\":\"654321\"}");
+            String resetToken = extrairResetToken(respVerify);
+            esperar(respVerify.startsWith("HTTP/1.1 200")
+                            && resetToken != null
+                            && repo.grantsDisponiveis.size() == 1,
+                    "RecoveryHandler: verify-recovery-otp emite resetToken e persiste grant de uso unico (200)");
+
+            // 2. Senha invalida (< 8 chars) retorna 400 sem consumir o grant antes da validacao
+            String respFraca = postJson(handler, "/api/auth/reset-password",
+                    "{\"resetToken\":\"" + resetToken + "\",\"newPassword\":\"ab\"}");
+            esperar(respFraca.startsWith("HTTP/1.1 400") && repo.grantsDisponiveis.size() == 1,
+                    "RecoveryHandler: senha curta retorna 400 mantendo grant ainda disponivel");
+
+            // 3. Primeiro uso valido redefine senha, revoga sessoes e consome grant
+            String corpoReset = "{\"resetToken\":\"" + resetToken + "\",\"newPassword\":\"NovaSenha@2026\"}";
+            String primeira = postJson(handler, "/api/auth/reset-password", corpoReset);
+            esperar(primeira.startsWith("HTTP/1.1 200")
+                            && "NovaSenha@2026".equals(repo.senhasAtualizadas.get("507f1f77bcf86cd799439011"))
+                            && repo.sessoesRevogadas == 1
+                            && repo.grantsDisponiveis.isEmpty(),
+                    "RecoveryHandler: primeiro uso de resetToken redefine senha e consome grant (200)");
+
+            // 4. Segunda tentativa com o mesmo resetToken falha com 401 (anti-replay)
+            String segundaReplay = postJson(handler, "/api/auth/reset-password", corpoReset);
+            esperar(segundaReplay.startsWith("HTTP/1.1 401"),
+                    "RecoveryHandler: segunda tentativa com mesmo resetToken sofre bloqueio anti-replay (401)");
+        } catch (Exception e) {
+            esperar(false, "RecoveryHandlerTeste sem excecoes: " + e.getMessage());
+        } finally {
+            restaurar("AUTH_JWT_SECRET", anteriorJwt);
+            restaurar("AUTH_OTP_SECRET", anteriorOtp);
+            restaurar("PASSWORD_MIN_LENGTH", anteriorMinLen);
+        }
+        return falhas;
+    }
+
+    private static void restaurar(String chave, String anterior) {
+        if (anterior == null) System.clearProperty(chave);
+        else System.setProperty(chave, anterior);
+    }
+
+    private static String extrairResetToken(String httpResp) {
+        int sep = httpResp.indexOf("\r\n\r\n");
+        if (sep < 0) return null;
+        String json = httpResp.substring(sep + 4);
+        Map<String, Object> parsed = Json.analisarObjeto(json);
+        if (parsed == null) return null;
+        Object token = parsed.get("resetToken");
+        return token instanceof String ? (String) token : null;
+    }
+
+    private static String postJson(RecoveryHandler handler, String path, String jsonBody) throws Exception {
+        byte[] bytes = jsonBody.getBytes(StandardCharsets.UTF_8);
+        String raw = "POST " + path + " HTTP/1.1\r\n"
+                + "Host: localhost\r\n"
+                + "Content-Type: application/json\r\n"
+                + "Content-Length: " + bytes.length + "\r\n\r\n"
+                + jsonBody;
+        RequisicaoHttp req = RequisicaoHttp.ler(new ByteArrayInputStream(raw.getBytes(StandardCharsets.UTF_8)));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        RespostaHttp resp = new RespostaHttp(out);
+        handler.handle(req, resp);
+        return new String(out.toByteArray(), StandardCharsets.UTF_8);
+    }
+}

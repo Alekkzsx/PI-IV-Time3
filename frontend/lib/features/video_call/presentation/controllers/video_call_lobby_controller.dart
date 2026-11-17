@@ -140,32 +140,40 @@ class VideoCallLobbyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String normalizeRoomCode(String value) =>
-      value.trim().replaceAll(RegExp(r'\s+'), '-');
+  String normalizeRoomCode(String value) => value
+      .trim()
+      .toUpperCase()
+      .replaceAll(RegExp(r'\s*-\s*'), '-')
+      .replaceAll(RegExp(r'\s+'), '-');
 
   void selectRoom(VideoCallRoomSummary room) => setRoomCode(room.roomCode);
 
   Future<void> loadRooms() async {
     isLoadingRooms = true;
     roomError = null;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
     try {
-      _rooms = await _roomDataSource.listRooms();
+      final fetched = await _roomDataSource.listRooms();
+      if (_isDisposed) return;
+      _rooms = fetched;
       if (_roomCode.isEmpty && _rooms.isNotEmpty) {
         _roomCode = _rooms.first.roomCode;
       }
     } on ApiException catch (error) {
+      if (_isDisposed) return;
       roomError = error.message;
       _rooms = [];
     } on VideoCallRoomApiException catch (error) {
+      if (_isDisposed) return;
       roomError = error.message;
       _rooms = [];
     } catch (_) {
+      if (_isDisposed) return;
       roomError = 'Não foi possível carregar as salas.';
       _rooms = [];
     } finally {
       isLoadingRooms = false;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 

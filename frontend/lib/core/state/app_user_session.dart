@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../network/resilient_http_client.dart';
+import '../network/service_endpoints.dart';
 import 'role_permission_policy.dart';
 import 'session_storage.dart';
 
@@ -260,11 +262,8 @@ class AppUserSession extends ChangeNotifier {
   Future<bool> refreshProfileFromServer({http.Client? client}) async {
     final token = _accessToken;
     if (token == null || token.isEmpty) return false;
-    const baseUrl = String.fromEnvironment(
-      'AUTH_API_BASE_URL',
-      defaultValue: 'http://127.0.0.1:3001',
-    );
-    final httpClient = client ?? http.Client();
+    final baseUrl = ServiceEndpoints.authBaseUrl;
+    final httpClient = client ?? createResilientHttpClient();
     try {
       final response = await httpClient
           .get(
@@ -348,16 +347,14 @@ class AppUserSession extends ChangeNotifier {
     onExpired?.call();
   }
 
-  Future<void> logout() async {
+  Future<void> logout({http.Client? client}) async {
     final token = _accessToken;
     signOut();
     if (token == null) return;
-    const baseUrl = String.fromEnvironment(
-      'AUTH_API_BASE_URL',
-      defaultValue: 'http://127.0.0.1:3001',
-    );
+    final baseUrl = ServiceEndpoints.authBaseUrl;
+    final httpClient = client ?? createResilientHttpClient();
     try {
-      await http
+      await httpClient
           .post(
             Uri.parse('$baseUrl/api/auth/logout'),
             headers: {'Authorization': 'Bearer $token'},
@@ -365,6 +362,10 @@ class AppUserSession extends ChangeNotifier {
           .timeout(const Duration(seconds: 8));
     } catch (_) {
       /* O estado local já foi encerrado; o JWT também possui expiração. */
+    } finally {
+      if (client == null) {
+        httpClient.close();
+      }
     }
   }
 

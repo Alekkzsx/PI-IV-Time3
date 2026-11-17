@@ -1,1 +1,0 @@
-export { createAdminUsersRouter } from "../admin-users.controller.js";

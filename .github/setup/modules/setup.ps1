@@ -540,8 +540,9 @@ if ($hasWt) {
     Start-Sleep -Milliseconds 700
 
     # Inicia Janela 3: Frontend Flutter
+    $flutterCmdLine = if ($TargetDevice -eq "chrome") { "flutter run -d chrome --web-port 5000 || flutter run -d chrome" } else { "flutter run -d $TargetDevice || flutter run -d chrome --web-port 5000 || flutter run -d chrome" }
     Start-Process "wt.exe" -ArgumentList @(
-        "-w", "0", "new-tab", "--title", "AGMRM - Frontend Flutter ($TargetDevice)", "-d", "`"$FrontendDir`"", "cmd.exe", "/k", "flutter run -d $TargetDevice || flutter run -d chrome"
+        "-w", "0", "new-tab", "--title", "AGMRM - Frontend Flutter ($TargetDevice)", "-d", "`"$FrontendDir`"", "cmd.exe", "/k", $flutterCmdLine
     )
 } else {
     # Fallback padrao: 3 janelas CMD / PowerShell independentes
@@ -561,7 +562,8 @@ if ($hasWt) {
 
     # 3. ABA/JANELA SEPARADA: Frontend Flutter App
     Write-Host "  -> Abrindo Janela 3: Frontend Flutter (Executando flutter run -d $TargetDevice)" -ForegroundColor Yellow
-    $frontendArgs = @('/k', "title AGMRM - Frontend Flutter ($TargetDevice) & cd /d `"$FrontendDir`" & flutter run -d $TargetDevice || flutter run -d chrome")
+    $flutterCmdLine = if ($TargetDevice -eq "chrome") { "flutter run -d chrome --web-port 5000 || flutter run -d chrome" } else { "flutter run -d $TargetDevice || flutter run -d chrome --web-port 5000 || flutter run -d chrome" }
+    $frontendArgs = @('/k', "title AGMRM - Frontend Flutter ($TargetDevice) & cd /d `"$FrontendDir`" & $flutterCmdLine")
     Start-Process "cmd.exe" -ArgumentList $frontendArgs
 }
 
@@ -570,12 +572,12 @@ if ($hasWt) {
 # -----------------------------------------------------------------------------
 Write-Host "`n[ETAPA 4/4] Resumo do Ecossistema AGMRM em Execucao:" -ForegroundColor Cyan
 Write-Host "================================================================================" -ForegroundColor Cyan
-Write-Host " [JANELA 1] SERVIDOR JAVA SE (Porta 8080):" -ForegroundColor Green
+Write-Host " [JANELA 1] SERVIDOR JAVA SE (Porta 8080 - Auth, Users, Video-Call/WS):" -ForegroundColor Green
 Write-Host "            - Console interativo aberto em janela dedicada." -ForegroundColor Gray
 Write-Host "            - Opcoes disponiveis: 1 = Reiniciar, 2 = Desligar, 3 = Status, 4 = Logs..." -ForegroundColor Gray
-Write-Host "            - Healthcheck: http://127.0.0.1:8080/api/videocall/rooms" -ForegroundColor Gray
+Write-Host "            - Healthcheck: http://127.0.0.1:8080/health" -ForegroundColor Gray
 Write-Host ""
-Write-Host " [JANELA 2] BACKEND API TYPESCRIPT (Porta 3001):" -ForegroundColor Green
+Write-Host " [JANELA 2] BACKEND API TYPESCRIPT (Porta 3001 - Nucleo Academico & Ponte Interna):" -ForegroundColor Green
 Write-Host "            - Executando 'npm run dev' em janela separada." -ForegroundColor Gray
 Write-Host "            - Healthcheck: http://127.0.0.1:3001/health" -ForegroundColor Gray
 Write-Host ""

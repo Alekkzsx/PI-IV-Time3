@@ -183,14 +183,14 @@ public class SecurityServerTestSuite {
         // FEATURE 4: Mandatory Author Attribution on All Files
         // -------------------------------------------------------------
         runTest("GOV-01 (Feature 4): Line 1 attribution verified on all Java and Dart files", () -> {
-            Path testsDir = Paths.get("/home/alekkzsx/Documents/Github/PI-IV-Time3/security/tests");
+            Path testsDir = Paths.get("/home/alekkzsx/Documents/Github/PI-IV-Time3/security/test");
             if (!Files.exists(testsDir)) {
-                testsDir = Paths.get("security/tests");
+                testsDir = Paths.get("security/test");
             }
             if (!Files.exists(testsDir)) {
-                testsDir = Paths.get("tests");
+                testsDir = Paths.get("test");
             }
-            assertTrue(Files.exists(testsDir), "security/tests must exist");
+            assertTrue(Files.exists(testsDir), "security/test must exist");
 
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(testsDir)) {
                 int inspected = 0;
@@ -205,7 +205,7 @@ public class SecurityServerTestSuite {
                         inspected++;
                     }
                 }
-                assertTrue(inspected >= 8, "Must inspect at least 8 test files in security/tests/");
+                assertTrue(inspected >= 8, "Must inspect at least 8 test files in security/test/");
             } catch (IOException e) {
                 throw new AssertionError("Failed reading test files: " + e.getMessage());
             }

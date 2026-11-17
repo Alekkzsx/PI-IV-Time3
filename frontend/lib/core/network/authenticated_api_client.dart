@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../state/app_user_session.dart';
+import 'resilient_http_client.dart';
+import 'service_endpoints.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -14,13 +16,24 @@ class ApiException implements Exception {
 }
 
 class AuthenticatedApiClient {
-  static const baseUrl = String.fromEnvironment(
-    'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
-  );
+  static String get authBaseUrl => ServiceEndpoints.authBaseUrl;
+
+  static String get academicBaseUrl => ServiceEndpoints.academicBaseUrl;
+
+  static String get baseUrl => academicBaseUrl;
+
   final http.Client _client;
-  AuthenticatedApiClient({http.Client? client})
-    : _client = client ?? http.Client();
+  final String _baseUrl;
+
+  AuthenticatedApiClient({http.Client? client, String? baseUrl})
+    : _client = client ?? createResilientHttpClient(),
+      _baseUrl = baseUrl ?? academicBaseUrl;
+
+  factory AuthenticatedApiClient.auth({http.Client? client}) =>
+      AuthenticatedApiClient(client: client, baseUrl: authBaseUrl);
+
+  factory AuthenticatedApiClient.academic({http.Client? client}) =>
+      AuthenticatedApiClient(client: client, baseUrl: academicBaseUrl);
 
   Future<dynamic> request(
     String method,
@@ -31,7 +44,7 @@ class AuthenticatedApiClient {
     if (token == null || token.isEmpty) {
       throw const ApiException('Entre novamente para continuar.');
     }
-    final request = http.Request(method, Uri.parse('$baseUrl$path'))
+    final request = http.Request(method, Uri.parse('$_baseUrl$path'))
       ..headers.addAll({
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -134,12 +147,10 @@ class AuthenticatedApiClient {
 /// Cliente HTTP dedicado ao servidor nativo Java (`server/` na porta 8080)
 /// para cálculo regimental de notas, frequência de telemetria e estado de salas.
 class JavaServerApiClient {
-  static const baseUrl = String.fromEnvironment(
-    'JAVA_SERVER_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8080',
-  );
+  static String get baseUrl => ServiceEndpoints.javaServerBaseUrl;
   final http.Client _client;
-  JavaServerApiClient({http.Client? client}) : _client = client ?? http.Client();
+  JavaServerApiClient({http.Client? client})
+    : _client = client ?? createResilientHttpClient();
 
   Future<Map<String, dynamic>?> getJson(String path) async {
     try {

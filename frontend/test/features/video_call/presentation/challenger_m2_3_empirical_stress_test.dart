@@ -135,7 +135,7 @@ void main() {
       rA.peerRepo = rB;
       rB.peerRepo = rA;
 
-      final pA = Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449');
+      final pA = Participant(id: 'peer_a', name: 'Alex Sousa', ra: '24802449', role: 'docente');
       final pB = Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122');
 
       final cA = VideoCallController(repository: rA, room: room, localParticipant: pA);
@@ -456,7 +456,7 @@ void main() {
         final repoA = VideoCallRepositoryImpl(dataSource: dsA);
         final repoB = VideoCallRepositoryImpl(dataSource: dsB);
 
-        final pA = Participant(id: 'peer_alex', name: 'Alex Sousa', ra: '24802449');
+        final pA = Participant(id: 'peer_alex', name: 'Alex Sousa', ra: '24802449', role: 'docente');
         final pB = Participant(id: 'peer_beatriz', name: 'Beatriz Lima', ra: '24801122');
 
         final controllerA = VideoCallController(
@@ -513,7 +513,7 @@ void main() {
         final repoA = VideoCallRepositoryImpl(dataSource: dsA);
         final repoB = VideoCallRepositoryImpl(dataSource: dsB);
 
-        final pA = Participant(id: 'peer_alex', name: 'Alex Sousa', ra: '24802449');
+        final pA = Participant(id: 'peer_alex', name: 'Alex Sousa', ra: '24802449', role: 'docente');
         final pB = Participant(id: 'peer_beatriz', name: 'Beatriz Lima', ra: '24801122');
 
         final controllerA = VideoCallController(
