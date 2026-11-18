@@ -186,12 +186,69 @@ describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: 
         title: "Apostila Unidade 1",
         fileName: "apostila-u1.txt",
         mimeType: "text/plain",
+        category: "Apostila",
         contentBase64: materialBase64,
       },
       teacherToken,
     );
     assert.equal(createdMat.status, 201);
     assert.ok(createdMat.body.id);
+
+    const syllabusPatch = await requestPatch(
+      `/api/teacher/courses/${classCode}/syllabus-plan`,
+      {
+        syllabus: "Ementa atualizada para integração docente-discente.",
+        objectives: "Validar sincronização da sala de aula.",
+        evaluationFormula: "N1 * 0.4 + N2 * 0.6",
+      },
+      teacherToken,
+    );
+    assert.equal(syllabusPatch.status, 200);
+
+    const forumTopic = await request(
+      "POST",
+      `/api/teacher/courses/${classCode}/forum`,
+      { title: "Dúvida P1", body: "Qual o peso da lista 1?", category: "Dúvidas" },
+      teacherToken,
+    );
+    assert.equal(forumTopic.status, 201);
+    const topicId = forumTopic.body.id;
+
+    const forumReply = await request(
+      "POST",
+      `/api/teacher/courses/${classCode}/forum/${topicId}/reply`,
+      { body: "A lista 1 compõe a N1 proporcionalmente ao peso." },
+      teacherToken,
+    );
+    assert.equal(forumReply.status, 201);
+
+    const forumResolve = await requestPatch(
+      `/api/teacher/courses/${classCode}/forum/${topicId}/resolve`,
+      { isResolved: true },
+      teacherToken,
+    );
+    assert.equal(forumResolve.status, 200);
+    assert.equal(forumResolve.body.isResolved, true);
+
+    const squadsRes = await request(
+      "PUT",
+      `/api/teacher/courses/${classCode}/squads`,
+      {
+        squads: [
+          {
+            name: "Squad Alpha",
+            projectTitle: "Portal Integrado AVA",
+            repoUrl: "https://github.com/agmrm/alpha",
+            sprintStatus: "Em andamento",
+            members: ["aluno.demo1"],
+          },
+        ],
+      },
+      teacherToken,
+    );
+    assert.equal(squadsRes.status, 200);
+    assert.ok(Array.isArray(squadsRes.body.squads));
+    assert.equal(squadsRes.body.squads.length, 1);
 
     const createdAssign = await request(
       "POST",
@@ -200,8 +257,9 @@ describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: 
         title: "Entrega Arquitetura",
         description: "Diagrama C4 completo",
         stage: "N2",
-        dueDate: "2026-12-15T23:59:00Z",
-        dueDateFormatted: "15/12/2026 às 23:59",
+        dueDate: "2026-12-15",
+        dueHour: "23:59",
+        dueDateFormatted: "15/12/2026",
         modality: "Individual",
         allowLateWithPenalty: true,
         weight: 4.0,
@@ -214,6 +272,79 @@ describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: 
     );
     assert.equal(createdAssign.status, 201);
     const assignmentId = createdAssign.body.id;
+
+    const n1AssignA = await request(
+      "POST",
+      `/api/teacher/courses/${classCode}/assignments`,
+      {
+        title: "Lista N1 - A",
+        description: "Parte A",
+        stage: "N1",
+        dueDate: "2026-11-20",
+        dueHour: "19:00",
+        dueDateFormatted: "20/11/2026",
+        modality: "Individual",
+        allowLateWithPenalty: false,
+        weight: 2.0,
+        rubricCriteria: [{ id: "n1a", title: "Correção", maxPoints: 10 }],
+      },
+      teacherToken,
+    );
+    assert.equal(n1AssignA.status, 201);
+    const n1AssignB = await request(
+      "POST",
+      `/api/teacher/courses/${classCode}/assignments`,
+      {
+        title: "Lista N1 - B",
+        description: "Parte B",
+        stage: "N1",
+        dueDate: "2026-11-25",
+        dueHour: "19:00",
+        dueDateFormatted: "25/11/2026",
+        modality: "Individual",
+        allowLateWithPenalty: false,
+        weight: 2.0,
+        rubricCriteria: [{ id: "n1b", title: "Correção", maxPoints: 10 }],
+      },
+      teacherToken,
+    );
+    assert.equal(n1AssignB.status, 201);
+
+    const tempAssign = await request(
+      "POST",
+      `/api/teacher/courses/${classCode}/assignments`,
+      {
+        title: "Atividade Temporária",
+        description: "Será removida",
+        stage: "N1",
+        dueDate: "2026-12-01",
+        dueHour: "20:00",
+        dueDateFormatted: "01/12/2026",
+        modality: "Individual",
+        allowLateWithPenalty: false,
+        weight: 1.0,
+        rubricCriteria: [],
+      },
+      teacherToken,
+    );
+    assert.equal(tempAssign.status, 201);
+    const deletedAssign = await request("DELETE", `/api/teacher/assignments/${tempAssign.body.id}`, undefined, teacherToken);
+    assert.equal(deletedAssign.status, 200);
+
+    const tempMat = await request(
+      "POST",
+      `/api/teacher/courses/${classCode}/materials`,
+      {
+        title: "Material Temporário",
+        fileName: "temp.txt",
+        mimeType: "text/plain",
+        contentBase64: materialBase64,
+      },
+      teacherToken,
+    );
+    assert.equal(tempMat.status, 201);
+    const deletedMat = await request("DELETE", `/api/teacher/courses/${classCode}/materials/${tempMat.body.id}`, undefined, teacherToken);
+    assert.equal(deletedMat.status, 200);
 
     const teacherNotice = await request(
       "POST",
@@ -245,8 +376,26 @@ describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: 
 
     const studentBoot = await request("GET", "/api/student/bootstrap", undefined, studentToken);
     assert.equal(studentBoot.status, 200);
-    assert.ok(studentBoot.body.disciplines.some((d: any) => d.code === classCode && d.isLive === true));
-    assert.ok(studentBoot.body.deliveries.some((d: any) => d.id === assignmentId));
+    const matchedDisc = studentBoot.body.disciplines.find((d: any) => d.code === classCode && d.isLive === true);
+    assert.ok(matchedDisc);
+    assert.equal(matchedDisc.ementa, "Ementa atualizada para integração docente-discente.");
+    assert.equal(matchedDisc.objectives, "Validar sincronização da sala de aula.");
+    assert.equal(matchedDisc.evaluationFormula, "N1 * 0.4 + N2 * 0.6");
+    assert.ok(Array.isArray(matchedDisc.squads) && matchedDisc.squads.some((s: any) => s.name === "Squad Alpha"));
+    assert.ok(!matchedDisc.materials.some((m: any) => m.id === tempMat.body.id));
+    assert.ok(matchedDisc.materials.some((m: any) => m.id === createdMat.body.id));
+
+    const matchedAssign = studentBoot.body.deliveries.find((d: any) => d.id === assignmentId);
+    assert.ok(matchedAssign);
+    assert.equal(matchedAssign.dueDate, "15/12/2026");
+    assert.equal(matchedAssign.dueHour, "23:59");
+    assert.equal(matchedAssign.maxScore, 10);
+    assert.ok(Array.isArray(matchedAssign.rubrics) && matchedAssign.rubrics.length === 2);
+    assert.ok(!studentBoot.body.deliveries.some((d: any) => d.id === tempAssign.body.id));
+    const resolvedTopic = (studentBoot.body.forumTopics ?? matchedDisc.forumTopics ?? []).find((t: any) => t.id === topicId);
+    if (resolvedTopic) {
+      assert.equal(resolvedTopic.isResolved, true);
+    }
 
     const declaration = await request("POST", "/api/student/enrollment-declaration", {}, studentToken);
     assert.equal(declaration.status, 201);
@@ -261,6 +410,38 @@ describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: 
     const fileDownload = await request("GET", `/api/files/materials/${createdMat.body.id}`, undefined, studentToken);
     assert.equal(fileDownload.status, 200);
     assert.equal(Buffer.from(fileDownload.body.contentBase64, "base64").toString("utf8"), "Conteúdo PDF de teste real");
+
+    // Multi-assignment N1 evaluation should compute weighted average without overwriting previous assignments
+    const evalN1A = await requestPatch(
+      `/api/teacher/assignments/${n1AssignA.body.id}/evaluate`,
+      {
+        studentId,
+        calculatedGrade: 6.0,
+        feedback: "N1 parte A",
+        evaluatedCriteria: [{ id: "n1a", title: "Correção", maxPoints: 10, assignedScore: 6.0 }],
+      },
+      teacherToken,
+    );
+    assert.equal(evalN1A.status, 200);
+    const evalN1B = await requestPatch(
+      `/api/teacher/assignments/${n1AssignB.body.id}/evaluate`,
+      {
+        studentId,
+        calculatedGrade: 9.0,
+        feedback: "N1 parte B",
+        evaluatedCriteria: [{ id: "n1b", title: "Correção", maxPoints: 10, assignedScore: 9.0 }],
+      },
+      teacherToken,
+    );
+    assert.equal(evalN1B.status, 200);
+    const teacherBootAfterN1 = await request("GET", "/api/teacher/bootstrap", undefined, teacherToken);
+    assert.equal(teacherBootAfterN1.status, 200);
+    const studentGradeAfterN1 = teacherBootAfterN1.body.grades.find(
+      (g: any) => g.classCode === classCode && g.ra === "aluno.demo1",
+    );
+    assert.ok(studentGradeAfterN1);
+    assert.equal(studentGradeAfterN1.assignmentsScore, 7.5);
+    assert.equal(studentGradeAfterN1.hasGrades, true);
 
     const submission = await request(
       "POST",

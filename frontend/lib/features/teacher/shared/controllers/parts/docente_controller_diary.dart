@@ -50,8 +50,15 @@ mixin _DocenteDiaryMixin on _DocenteControllerBase {
     notifyListeners();
   }
 
-  Future<void> selectSessionByDate(DateTime pickedDate) async {
-    if (!selectedCourse.classWeekdays.contains(pickedDate.weekday)) return;
+  Future<void> selectSessionByDate(
+    DateTime pickedDate, {
+    bool allowExtraDate = false,
+  }) async {
+    if (!allowExtraDate &&
+        selectedCourse.classWeekdays.isNotEmpty &&
+        !selectedCourse.classWeekdays.contains(pickedDate.weekday)) {
+      return;
+    }
 
     final normalizedDate = DateTime(
       pickedDate.year,

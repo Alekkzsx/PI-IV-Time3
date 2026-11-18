@@ -55,7 +55,9 @@ class SubmissionContextBanner extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Prazo: ${item.dueDate} às ${item.dueHour}',
+                      item.dueDate.contains('às') || item.dueHour.trim().isEmpty
+                          ? 'Prazo: ${item.dueDate}'
+                          : 'Prazo: ${item.dueDate} às ${item.dueHour}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,

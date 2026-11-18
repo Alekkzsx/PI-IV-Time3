@@ -100,6 +100,24 @@ class TeacherRemoteDataSource {
     );
   }
 
+  Future<Map<String, dynamic>> updateSyllabusPlan({
+    required String classCode,
+    String? syllabus,
+    String? objectives,
+    String? methodology,
+    String? evaluationFormula,
+    List<Map<String, Object?>>? bibliography,
+  }) => _api.patchMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/syllabus-plan',
+    {
+      if (syllabus != null) 'syllabus': syllabus,
+      if (objectives != null) 'objectives': objectives,
+      if (methodology != null) 'methodology': methodology,
+      if (evaluationFormula != null) 'evaluationFormula': evaluationFormula,
+      if (bibliography != null) 'bibliography': bibliography,
+    },
+  );
+
   Future<Map<String, dynamic>> publishMaterial({
     required String classCode,
     required String title,
@@ -108,6 +126,7 @@ class TeacherRemoteDataSource {
     required String size,
     required String contentBase64,
     String? unitAssociated,
+    String? category,
   }) => _api.postMap(
     '/api/teacher/courses/${Uri.encodeComponent(classCode)}/materials',
     {
@@ -118,8 +137,18 @@ class TeacherRemoteDataSource {
       'type': fileName.contains('.') ? fileName.split('.').last : 'arquivo',
       'contentBase64': contentBase64,
       if (unitAssociated != null) 'unitAssociated': unitAssociated,
+      if (category != null) 'category': category,
     },
   );
+
+  Future<void> deleteMaterial(String classCode, String materialId) async {
+    await _api.delete(
+      '/api/teacher/courses/${Uri.encodeComponent(classCode)}/materials/${Uri.encodeComponent(materialId)}',
+    );
+  }
+
+  Future<Map<String, dynamic>> downloadMaterial(String materialId) =>
+      _api.getMap('/api/files/materials/${Uri.encodeComponent(materialId)}');
 
   Future<Map<String, dynamic>> createAssignment({
     required String classCode,
@@ -128,6 +157,12 @@ class TeacherRemoteDataSource {
     '/api/teacher/courses/${Uri.encodeComponent(classCode)}/assignments',
     assignment,
   );
+
+  Future<void> deleteAssignment(String assignmentId) async {
+    await _api.delete(
+      '/api/teacher/assignments/${Uri.encodeComponent(assignmentId)}',
+    );
+  }
 
   Future<Map<String, dynamic>> evaluateSubmission({
     required String assignmentId,
@@ -208,6 +243,15 @@ class TeacherRemoteDataSource {
   }) => _api.postMap(
     '/api/teacher/courses/${Uri.encodeComponent(classCode)}/forum/${Uri.encodeComponent(topicId)}/reply',
     {'body': body},
+  );
+
+  Future<Map<String, dynamic>> resolveForumTopic({
+    required String classCode,
+    required String topicId,
+    required bool isResolved,
+  }) => _api.patchMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/forum/${Uri.encodeComponent(topicId)}/resolve',
+    {'isResolved': isResolved},
   );
 
   Future<List<Map<String, dynamic>>> saveSquads({
@@ -365,6 +409,15 @@ DocenteCourse _course(Map<String, dynamic> json) {
         json['classGradeLocked'] == true || json['gradeLocked'] == true,
     pautaHomologated: json['pautaHomologated'] == true,
     chancelaCode: json['chancelaCode']?.toString(),
+    syllabus: _string(json['syllabus'], _string(json['ementa'])),
+    objectives: _string(json['objectives']),
+    methodology: _string(json['methodology']),
+    evaluationFormula: _string(
+      json['evaluationFormula'],
+      '(N1 × 0.4) + (N2 × 0.6)',
+    ),
+    bibliography: _maps(json['bibliography']),
+    enrolledStudents: _maps(json['enrolledStudents']),
     forumTopics: _maps(json['forumTopics']),
     squads: _maps(json['squads']),
     isLive: json['isLive'] == true,
@@ -386,9 +439,13 @@ DocenteCourse _course(Map<String, dynamic> json) {
             id: _string(material['id']),
             courseId: _string(material['courseId']),
             title: _string(material['title']),
+            fileName: _string(material['fileName'], _string(material['title'])),
             date: _string(material['date']),
             size: _string(material['size']),
             type: _string(material['type']),
+            unitAssociated: _string(material['unitAssociated'], 'Unidade 1'),
+            category: _string(material['category'], 'Material Complementar'),
+            downloadUrl: material['downloadUrl']?.toString(),
           ),
         )
         .toList(),
@@ -505,6 +562,7 @@ StudentGrade _grade(Map<String, dynamic> json) => StudentGrade(
   projectsScore: _double(json['projectsScore']),
   p2Score: _double(json['p2Score']),
   attendanceRate: _double(json['attendanceRate'], 100),
+  hasGrades: json.containsKey('hasGrades') ? json['hasGrades'] == true : true,
 );
 
 AcademicEvent _event(Map<String, dynamic> json) {

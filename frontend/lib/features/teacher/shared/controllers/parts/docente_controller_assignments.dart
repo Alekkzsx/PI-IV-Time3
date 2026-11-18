@@ -20,9 +20,14 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
     String description = '',
     required double weight,
     required String stage,
+    DateTime? dueDate,
+    String? dueHour,
     required String dueDateFormatted,
     required String modality,
     required bool allowLateWithPenalty,
+    String? moduleTag,
+    String? activityType,
+    String? allowedFormats,
     required List<RubricCriterion> rubricCriteria,
   }) async {
     if (!_canManageCourse(courseId, 'manage_assignments') ||
@@ -49,9 +54,18 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
           'description': description.trim(),
           'weight': weight,
           'stage': stage,
+          if (dueDate != null) 'dueDate': dueDate.toIso8601String(),
+          if (dueHour != null && dueHour.trim().isNotEmpty)
+            'dueHour': dueHour.trim(),
           'dueDateFormatted': dueDateFormatted,
           'modality': modality,
           'allowLateWithPenalty': allowLateWithPenalty,
+          if (moduleTag != null && moduleTag.trim().isNotEmpty)
+            'moduleTag': moduleTag.trim(),
+          if (activityType != null && activityType.trim().isNotEmpty)
+            'activityType': activityType.trim(),
+          if (allowedFormats != null && allowedFormats.trim().isNotEmpty)
+            'allowedFormats': allowedFormats.trim(),
           'rubricCriteria': rubricCriteria
               .map(
                 (criterion) => {
@@ -70,6 +84,25 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
       remoteError = error.message;
     } catch (_) {
       remoteError = 'Não foi possível criar a atividade.';
+    }
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> deleteAssignment(String assignmentId) async {
+    final target = _assignments.where((a) => a.id == assignmentId).firstOrNull;
+    if (target == null ||
+        !_canManageCourse(target.courseId, 'manage_assignments')) {
+      return false;
+    }
+    try {
+      await _remote.deleteAssignment(assignmentId);
+      await loadRemote(force: true);
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível remover a atividade.';
     }
     notifyListeners();
     return false;
@@ -166,6 +199,38 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
     ];
   }
 
+  Future<bool> replyDoubtById({
+    required String assignmentId,
+    required String doubtId,
+    required String reply,
+  }) async {
+    final assignment = _assignments
+        .where((item) => item.id == assignmentId)
+        .firstOrNull;
+    if (!_hasActiveTeacherAccess ||
+        !AppUserSession.instance.hasPermission('manage_assignments') ||
+        assignment == null ||
+        !_courses.any((course) => course.id == assignment.courseId) ||
+        reply.trim().isEmpty) {
+      return false;
+    }
+    try {
+      await _remote.replyDoubt(
+        assignmentId: assignmentId,
+        doubtId: doubtId,
+        reply: reply.trim(),
+      );
+      await loadRemote(force: true);
+      return true;
+    } on ApiException catch (error) {
+      remoteError = error.message;
+    } catch (_) {
+      remoteError = 'Não foi possível responder à dúvida.';
+    }
+    notifyListeners();
+    return false;
+  }
+
   Future<void> enviarRespostaDuvida(
     String assignmentId,
     String studentRa,
@@ -189,7 +254,10 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
       return;
     }
     final doubt = assignment.doubts
-        .where((item) => item['ra']?.toString() == studentRa)
+        .where(
+          (item) =>
+              (item['ra'] ?? item['studentRa'])?.toString() == studentRa,
+        )
         .firstOrNull;
     if (doubt == null || doubt['id'] == null) {
       remoteError = 'A dúvida não está mais disponível.';

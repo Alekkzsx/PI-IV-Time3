@@ -45,6 +45,7 @@ export class TeacherGradebookService {
     const setFields: Record<string, unknown> = {
       ra: enrollment.studentIdentity,
       studentName: enrollment.displayName,
+      hasEnteredGrades: true,
       updatedAt: new Date(),
     };
     if (scores.assignmentsScore !== undefined) setFields.assignmentsScore = scores.assignmentsScore;

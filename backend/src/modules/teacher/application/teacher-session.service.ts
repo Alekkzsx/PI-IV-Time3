@@ -139,7 +139,7 @@ export class TeacherSessionService {
     const homologatedHours = allClassSessions
       .filter((s) => s.isHomologated === true)
       .reduce((acc, s) => acc + Number(s.hours ?? 2), 0);
-    if (homologatedHours > 0) {
+    if (homologatedHours > 0 || payload.isHomologated === false) {
       await this.database
         .collection("academic_classes")
         .updateOne({ _id: classroom._id }, { $set: { completedHours: homologatedHours } });

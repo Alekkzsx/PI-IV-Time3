@@ -4,6 +4,61 @@ import { ObjectId, type Db, type Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";
 import { TeacherClassAccess } from "../teacher-class-access.js";
 
+function resolveDueParts(
+  dueDateInput: string | undefined,
+  dueDateFormattedInput: string,
+  dueHourInput: string | undefined,
+  fallbackDate: Date,
+): { dueDate: Date; dueDateFormatted: string; dueHour: string } {
+  const parsed = dueDateInput ? new Date(dueDateInput) : null;
+  const hasValidDate = parsed !== null && !Number.isNaN(parsed.getTime());
+  const dueDate = hasValidDate ? parsed : fallbackDate;
+
+  let dueDateFormatted = dueDateFormattedInput.trim();
+  let dueHour = (dueHourInput ?? "").trim();
+
+  const matchWithHour = /^(.*?)\s+às\s+(\d{1,2}:\d{2})$/i.exec(dueDateFormatted);
+  if (matchWithHour) {
+    dueDateFormatted = matchWithHour[1]!.trim();
+    if (!dueHour) dueHour = matchWithHour[2]!;
+  }
+  if (!dueHour && hasValidDate) {
+    dueHour = `${String(dueDate.getHours()).padStart(2, "0")}:${String(dueDate.getMinutes()).padStart(2, "0")}`;
+  }
+  if (!dueHour) dueHour = "23:59";
+  if (!dueDateFormatted) {
+    dueDateFormatted = `${String(dueDate.getDate()).padStart(2, "0")}/${String(dueDate.getMonth() + 1).padStart(2, "0")}/${dueDate.getFullYear()}`;
+  }
+  return { dueDate, dueDateFormatted, dueHour };
+}
+
+function resolveActivityTypeLabel(
+  activityTypeInput: string | undefined,
+  title: string,
+): { activityType: string; typeLabel: string } {
+  const normalized = (activityTypeInput ?? "").trim().toLowerCase();
+  if (normalized === "forum") return { activityType: "forum", typeLabel: "Fórum Temático" };
+  if (normalized === "atividade_pratica") return { activityType: "atividade_pratica", typeLabel: "Atividade Prática" };
+  if (normalized === "avaliacao_parcial") return { activityType: "avaliacao_parcial", typeLabel: "Avaliação Parcial" };
+  if (normalized === "entrega") return { activityType: "entrega", typeLabel: "Entrega" };
+
+  const lowerTitle = title.toLowerCase();
+  if (lowerTitle.includes("fórum") || lowerTitle.includes("forum")) {
+    return { activityType: "forum", typeLabel: "Fórum Temático" };
+  }
+  if (
+    lowerTitle.includes("atividade prática") ||
+    lowerTitle.includes("atividade pratica") ||
+    lowerTitle.includes("laboratório")
+  ) {
+    return { activityType: "atividade_pratica", typeLabel: "Atividade Prática" };
+  }
+  if (lowerTitle.includes("avaliação parcial") || lowerTitle.includes("avaliacao parcial") || lowerTitle.includes("lista")) {
+    return { activityType: "avaliacao_parcial", typeLabel: "Avaliação Parcial" };
+  }
+  return { activityType: "entrega", typeLabel: "Entrega" };
+}
+
 export class TeacherAssignmentService {
   constructor(
     private readonly database: Db,
@@ -20,15 +75,27 @@ export class TeacherAssignmentService {
       weight: number;
       stage: string;
       dueDate?: string;
+      dueHour?: string;
       dueDateFormatted: string;
       modality: string;
       allowLateWithPenalty: boolean;
+      moduleTag?: string;
+      activityType?: string;
+      allowedFormats?: string;
       rubricCriteria: Array<{ id?: string; title: string; maxPoints: number; description?: string }>;
     },
   ) {
     const classroom = await this.classAccess.requireOwnedClass(userId, user, classCode);
     const now = new Date();
-    const parsedDue = input.dueDate ? new Date(input.dueDate) : null;
+    const fallbackDue = new Date(now.getTime() + 7 * 86_400_000);
+    const { dueDate, dueDateFormatted, dueHour } = resolveDueParts(
+      input.dueDate,
+      input.dueDateFormatted,
+      input.dueHour,
+      fallbackDue,
+    );
+    const { activityType, typeLabel } = resolveActivityTypeLabel(input.activityType, input.title);
+    const isUrgent = dueDate.getTime() - now.getTime() <= 48 * 3_600_000;
     const doc = {
       classCode: classroom.code,
       courseCode: classroom.courseCode,
@@ -37,10 +104,15 @@ export class TeacherAssignmentService {
       weight: input.weight,
       stage: input.stage,
       maxScore: 10.0,
-      dueDate: parsedDue && !Number.isNaN(parsedDue.getTime()) ? parsedDue : new Date(now.getTime() + 7 * 86_400_000),
-      dueDateFormatted: input.dueDateFormatted,
-      isUrgent: false,
+      dueDate,
+      dueHour,
+      dueDateFormatted,
+      isUrgent,
       modality: input.modality,
+      moduleTag: input.moduleTag?.trim() || `MÓDULO ${input.stage}`,
+      activityType,
+      typeLabel,
+      allowedFormats: input.allowedFormats?.trim() || "PDF / ZIP",
       allowLateWithPenalty: input.allowLateWithPenalty,
       rubricCriteria: input.rubricCriteria.map((criterion, index) => ({
         id: criterion.id ?? `rc-${index + 1}`,
@@ -64,6 +136,18 @@ export class TeacherAssignmentService {
       createdAt: now,
     });
     return { id: String(inserted.insertedId), ...doc };
+  }
+
+  async deleteAssignment(userId: string, user: Document, assignmentId: string) {
+    if (!ObjectId.isValid(assignmentId)) throw new AuthError(400, "invalid_id", "Atividade inválida.");
+    const assignment = await this.database
+      .collection("academic_assignments")
+      .findOne({ _id: new ObjectId(assignmentId) });
+    if (!assignment) throw new AuthError(404, "assignment_not_found", "Atividade não encontrada.");
+    await this.classAccess.requireOwnedClass(userId, user, String(assignment.classCode));
+    await this.database.collection("academic_assignments").deleteOne({ _id: new ObjectId(assignmentId) });
+    await this.database.collection("academic_submissions").deleteMany({ assignmentId });
+    return { ok: true, id: assignmentId };
   }
 
   async evaluateSubmission(
@@ -115,14 +199,48 @@ export class TeacherAssignmentService {
       { upsert: true },
     );
 
-    const gradeField = String(assignment.stage ?? "N1").toUpperCase() === "N2" ? "projectsScore" : "assignmentsScore";
+    const isN2Bucket = String(assignment.stage ?? "N1").toUpperCase() === "N2";
+    const gradeField = isN2Bucket ? "projectsScore" : "assignmentsScore";
+
+    // Consolida média ponderada de todas as atividades avaliadas dessa etapa nesta turma
+    const stageAssignments = await this.database
+      .collection("academic_assignments")
+      .find({ classCode: classroom.code })
+      .toArray();
+    const bucketAssignments = stageAssignments.filter(
+      (a) => (String(a.stage ?? "N1").toUpperCase() === "N2") === isN2Bucket,
+    );
+    const weightByAssignmentId = new Map(
+      bucketAssignments.map((a) => [String(a._id), Math.max(0.1, Number(a.weight ?? 1))]),
+    );
+    const evaluatedBucketSubmissions = await this.database
+      .collection("academic_submissions")
+      .find({
+        assignmentId: { $in: Array.from(weightByAssignmentId.keys()) },
+        studentId: input.studentId,
+        status: "avaliada",
+      })
+      .toArray();
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const sub of evaluatedBucketSubmissions) {
+      const score = Number(sub.score ?? sub.grade ?? 0);
+      const w = weightByAssignmentId.get(String(sub.assignmentId)) ?? 1;
+      weightedSum += score * w;
+      totalWeight += w;
+    }
+    const consolidatedStageGrade =
+      totalWeight > 0 ? Number((weightedSum / totalWeight).toFixed(1)) : input.calculatedGrade;
+
     await this.database.collection("academic_grades").updateOne(
       { classCode: classroom.code, studentId: input.studentId },
       {
         $set: {
           ra: enrollment.studentIdentity,
           studentName: enrollment.displayName,
-          [gradeField]: input.calculatedGrade,
+          [gradeField]: consolidatedStageGrade,
+          hasEnteredGrades: true,
           updatedAt: now,
         },
         $setOnInsert: {
@@ -144,10 +262,10 @@ export class TeacherAssignmentService {
       actorRole: user.profile,
       action: "submission_evaluated",
       target: classroom.code,
-      details: { assignmentId, studentId: input.studentId, score: input.calculatedGrade },
+      details: { assignmentId, studentId: input.studentId, score: input.calculatedGrade, consolidatedStageGrade },
       createdAt: now,
     });
-    return { ok: true, score: input.calculatedGrade };
+    return { ok: true, score: input.calculatedGrade, consolidatedStageGrade };
   }
 
   async replyAssignmentDoubt(userId: string, user: Document, assignmentId: string, doubtId: string, replyText: string) {

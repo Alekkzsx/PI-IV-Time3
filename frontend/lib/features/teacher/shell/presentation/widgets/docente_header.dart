@@ -9,8 +9,16 @@ import 'package:pi_iv_time3/shared/layout/institutional_top_header.dart';
 class DocenteHeader extends StatelessWidget {
   final DocenteController controller;
   final VoidCallback? onOpenDrawer;
+  final String? titleOverride;
+  final VoidCallback? onNavigateToCommunications;
 
-  const DocenteHeader({super.key, required this.controller, this.onOpenDrawer});
+  const DocenteHeader({
+    super.key,
+    required this.controller,
+    this.onOpenDrawer,
+    this.titleOverride,
+    this.onNavigateToCommunications,
+  });
 
   String _getPageTitle(DocenteNavTab tab) {
     switch (tab) {
@@ -35,7 +43,7 @@ class DocenteHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = _getPageTitle(controller.activeTab);
+    final title = titleOverride ?? _getPageTitle(controller.activeTab);
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1000;
 
@@ -45,6 +53,17 @@ class DocenteHeader extends StatelessWidget {
       onOpenDrawer: onOpenDrawer,
       horizontalPadding: isDesktop ? 40 : 20,
       actions: [
+        IconButton(
+          onPressed: () {
+            controller.loadRemote(force: true);
+          },
+          tooltip: 'Atualizar dados',
+          icon: const Icon(
+            Icons.refresh_rounded,
+            size: 19,
+            color: Color(0xFF52525B),
+          ),
+        ),
         IconButton(
           onPressed: () {
             ScaffoldMessenger.of(context)
@@ -65,7 +84,9 @@ class DocenteHeader extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         IconButton(
-          onPressed: () => controller.navigateToTab(DocenteNavTab.comunicados),
+          onPressed:
+              onNavigateToCommunications ??
+              () => controller.navigateToTab(DocenteNavTab.comunicados),
           tooltip: 'Comunicados e Notificações',
           icon: Stack(
             clipBehavior: Clip.none,

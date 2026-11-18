@@ -53,11 +53,36 @@ export class TeacherCommunicationService {
     return reply;
   }
 
+  async resolveForumTopic(
+    userId: string,
+    user: Document,
+    classCode: string,
+    topicId: string,
+    isResolved: boolean,
+  ) {
+    const classroom = await this.classAccess.requireOwnedClass(userId, user, classCode);
+    if (!ObjectId.isValid(topicId)) throw new AuthError(400, "invalid_id", "Tópico inválido.");
+    const res = await this.database.collection("academic_forum_topics").updateOne(
+      { _id: new ObjectId(topicId), classCode: classroom.code },
+      { $set: { isResolved, updatedAt: new Date() } },
+    );
+    if (res.matchedCount === 0) throw new AuthError(404, "topic_not_found", "Tópico não encontrado.");
+    return { ok: true, id: topicId, isResolved };
+  }
+
   async saveClassSquads(
     userId: string,
     user: Document,
     classCode: string,
-    squads: Array<{ id?: string; name: string; projectTitle: string; repoUrl?: string; members: string[] }>,
+    squads: Array<{
+      id?: string;
+      name: string;
+      projectTitle: string;
+      repoUrl?: string;
+      sprintStatus?: string;
+      status?: string;
+      members: string[];
+    }>,
   ) {
     const classroom = await this.classAccess.requireOwnedClass(userId, user, classCode);
     const normalized = squads.map((squad, index) => ({
@@ -65,6 +90,7 @@ export class TeacherCommunicationService {
       name: squad.name,
       projectTitle: squad.projectTitle,
       repoUrl: squad.repoUrl ?? "",
+      sprintStatus: squad.sprintStatus ?? squad.status ?? "Em andamento",
       members: squad.members,
     }));
     await this.database

@@ -49,6 +49,7 @@ abstract class _PortalControllerBase extends ChangeNotifier {
   String? remoteError;
 
   String? _loadedForToken;
+  DateTime? _lastSyncedAt;
 
   /// Lista de disciplinas ativas matriculadas pelo aluno no semestre corrente.
   List<StudentDisciplineModel> disciplines = [];
@@ -166,6 +167,21 @@ abstract class _PortalControllerBase extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// Requisita atualização remota apenas se o snapshot estiver obsoleto além de [maxAge].
+  Future<void> refreshIfStale({
+    Duration maxAge = const Duration(seconds: 8),
+  }) async {
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty || isLoadingRemote) return;
+    final last = _lastSyncedAt;
+    if (_loadedForToken == token &&
+        last != null &&
+        DateTime.now().difference(last) < maxAge) {
+      return;
+    }
+    await loadRemote(force: true);
+  }
+
   /// Carrega do servidor os dados consolidados do estudante via API.
   Future<void> loadRemote({bool force = false}) async {
     final token = AppUserSession.instance.accessToken;
@@ -180,6 +196,7 @@ abstract class _PortalControllerBase extends ChangeNotifier {
       remoteDashboard = null;
       timeline = null;
       _loadedForToken = null;
+      _lastSyncedAt = null;
       remoteError = 'Entre novamente para carregar seus dados acadêmicos.';
       disciplines = [];
       deliveries = [];
@@ -206,6 +223,7 @@ abstract class _PortalControllerBase extends ChangeNotifier {
         remoteDashboard = result;
         timeline = timelineResult;
         _loadedForToken = token;
+        _lastSyncedAt = DateTime.now();
         isTwoFactorEnabled = result.studentInfo['twoFactorRequired'] == true;
         AcademicBridgeService.instance.registerStudentEnrollments(
           result.studentInfo['ra']?.toString() ??

@@ -1,5 +1,6 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
-import type { Db, Document } from "mongodb";
+import { ObjectId, type Db, type Document } from "mongodb";
+import { AuthError } from "../../../shared/auth-error.js";
 import { TeacherClassAccess } from "./teacher-class-access.js";
 import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
 
@@ -19,6 +20,7 @@ export class TeacherMaterialService {
       size?: string;
       type?: string;
       unitAssociated?: string;
+      category?: string;
       contentBase64?: string;
     },
   ) {
@@ -33,6 +35,7 @@ export class TeacherMaterialService {
       size: input.size ?? "1.2 MB",
       type: input.type ?? (["PDF", "ZIP", "PPTX", "DOCX", "MD"].includes(ext) ? ext : "PDF"),
       unitAssociated: input.unitAssociated ?? "Unidade 1",
+      category: input.category?.trim() || "Material Complementar",
       contentBase64: input.contentBase64 ?? null,
       uploadedBy: userId,
       uploadedByName: user.displayName,
@@ -49,7 +52,19 @@ export class TeacherMaterialService {
       size: doc.size,
       type: doc.type,
       unitAssociated: doc.unitAssociated,
+      category: doc.category,
       downloadUrl: `/api/files/materials/${String(inserted.insertedId)}`,
     };
+  }
+
+  async deleteMaterial(userId: string, user: Document, classCode: string, materialId: string) {
+    if (!ObjectId.isValid(materialId)) throw new AuthError(400, "invalid_id", "Material inválido.");
+    const classroom = await this.classAccess.requireOwnedClass(userId, user, classCode);
+    const deleted = await this.database.collection("academic_materials").deleteOne({
+      _id: new ObjectId(materialId),
+      classCode: classroom.code,
+    });
+    if (deleted.deletedCount === 0) throw new AuthError(404, "not_found", "Material não encontrado.");
+    return { ok: true, id: materialId };
   }
 }

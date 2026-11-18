@@ -257,4 +257,83 @@ describe("dashboard mappers", () => {
       "Este percentual reflete diretamente o progresso visto pelos discentes.",
     );
   });
+
+  it("exposes planned rubricCriteria, maxScore, and deduplicated dueDate in student deliveries", () => {
+    const [pending, graded] = mapStudentDeliveries(
+      documents([
+        {
+          _id: "a1",
+          classCode: "IHC-305",
+          title: "Protótipo Figma",
+          dueDateFormatted: "25/11/2026 às 19:30",
+          maxScore: 10.0,
+          rubricCriteria: [
+            { id: "r1", title: "Usabilidade", maxPoints: 5, description: "Heurísticas" },
+            { id: "r2", title: "Fluxo", maxPoints: 5, description: "Clareza" },
+          ],
+        },
+        {
+          _id: "a2",
+          classCode: "IHC-305",
+          title: "Avaliação Heurística",
+          dueDateFormatted: "30/11/2026",
+          dueHour: "22:00",
+          maxScore: 10.0,
+          rubricCriteria: [{ id: "r1", title: "Critério", maxPoints: 10 }],
+        },
+      ]),
+      new Map([["IHC-305", { name: "IHC", professor: "Prof. Ricardo" }]]),
+      new Map([
+        [
+          "a2",
+          {
+            _id: "s2",
+            assignmentId: "a2",
+            status: "avaliada",
+            score: 9.0,
+            feedback: "Muito bom",
+            evaluatedCriteria: [{ id: "r1", title: "Critério", maxPoints: 10, assignedScore: 9 }],
+          } as unknown as Document,
+        ],
+      ]),
+    );
+
+    assert.equal(pending?.dueDate, "25/11/2026");
+    assert.equal(pending?.dueHour, "19:30");
+    assert.equal(pending?.maxScore, 10);
+    assert.equal(pending?.rubrics.length, 2);
+    assert.equal(pending?.rubrics[0]?.title, "Usabilidade");
+    assert.equal(pending?.rubrics[0]?.assignedScore, null);
+
+    assert.equal(graded?.dueDate, "30/11/2026");
+    assert.equal(graded?.dueHour, "22:00");
+    assert.equal(graded?.rubrics.length, 1);
+    assert.equal(graded?.rubrics[0]?.nota, 9);
+    assert.equal(graded?.evaluatedRubrics.length, 1);
+  });
+
+  it("distinguishes attendance-only gradebook records from actual entered grades", () => {
+    const [attendanceOnly, explicitZero] = mapTeacherGrades(
+      documents([
+        { code: "IHC-305", totalHours: 80 },
+      ]),
+      new Map([
+        [
+          "IHC-305",
+          documents([
+            { studentId: "st-1", studentIdentity: "RA-1", displayName: "Aluno Sem Nota" },
+            { studentId: "st-2", studentIdentity: "RA-2", displayName: "Aluno Nota Zero" },
+          ]),
+        ],
+      ]),
+      documents([
+        { _id: "g1", classCode: "IHC-305", studentId: "st-1", assignmentsScore: 0, p1Score: 0, projectsScore: 0, p2Score: 0, attendanceRate: 95 },
+        { _id: "g2", classCode: "IHC-305", studentId: "st-2", assignmentsScore: 0, p1Score: 0, projectsScore: 0, p2Score: 0, attendanceRate: 100, hasEnteredGrades: true },
+      ]),
+      new Map(),
+    );
+
+    assert.equal(attendanceOnly?.hasGrades, false);
+    assert.equal(explicitZero?.hasGrades, true);
+  });
 });

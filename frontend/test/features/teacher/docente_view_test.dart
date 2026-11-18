@@ -886,5 +886,144 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets(
+      'DocenteCourseHubPage AVA flows: EM CURSO badge, assignments, forum reply, syllabus edit, squads create, and mobile layout',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        AppUserSession.instance.signIn(
+          identity: 'DOC-88410',
+          profile: 'docente',
+          accessToken: 'test-teacher-token',
+        );
+        addTearDown(AppUserSession.instance.signOut);
+
+        final remote = FakeTeacherRemoteDataSource();
+        remote.grades[0] = remote.grades[0].copyWith(
+          hasGrades: false,
+          assignmentsScore: 0,
+          p1Score: 0,
+          projectsScore: 0,
+          p2Score: 0,
+        );
+        final controller = DocenteController(
+          remoteDataSource: remote,
+          profileRemoteDataSource: FakeTeacherProfileRemoteDataSource(remote),
+        );
+        addTearDown(controller.dispose);
+        await controller.loadRemote();
+
+        final course = controller.courses.first;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: DocenteCourseHubPage(course: course, controller: controller),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Livro de Notas exibe "EM CURSO" para aluno sem notas lancadas
+        await tester.tap(find.text('Livro de Notas (Gradebook)'));
+        await tester.pumpAndSettle();
+        expect(find.text('EM CURSO'), findsAtLeastNWidgets(1));
+
+        // 2. Tarefas & Submissoes lista atividades da turma e abre modal de criacao
+        await tester.tap(find.text('Tarefas & Submissões'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text(controller.assignmentsForSelectedCourse.first.title),
+          findsAtLeastNWidgets(1),
+        );
+        await tester.tap(find.text('Nova Atividade').first);
+        await tester.pumpAndSettle();
+        expect(find.text('Cadastrar Nova Atividade Avaliativa'), findsOneWidget);
+        await tester.tap(find.text('Cancelar'));
+        await tester.pumpAndSettle();
+
+        // 3. Forum da Turma cria topico e responde no thread
+        await tester.tap(find.text('Fórum da Turma'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Novo Tópico'));
+        await tester.pumpAndSettle();
+        final forumDialogFields = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(
+          forumDialogFields.at(0),
+          'Dúvida sobre Adapter',
+        );
+        await tester.enterText(
+          forumDialogFields.at(1),
+          'Como isolar a interface legada?',
+        );
+        await tester.tap(find.text('Publicar Tópico'));
+        await tester.pumpAndSettle();
+        expect(find.text('Dúvida sobre Adapter'), findsOneWidget);
+
+        await tester.tap(find.text('Participar').first);
+        await tester.pumpAndSettle();
+        final replyDialogField = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(
+          replyDialogField.last,
+          'Use uma camada adaptadora dedicada.',
+        );
+        await tester.tap(find.text('Publicar Resposta'));
+        await tester.pumpAndSettle();
+        expect(find.text('1 resposta'), findsAtLeastNWidgets(1));
+        expect(
+          (controller.courses.first.forumTopics.first['replies'] as List)
+              .length,
+          1,
+        );
+
+        // 4. Plano de Ensino edita e persiste alteracoes
+        await tester.tap(find.text('Plano de Ensino'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Editar Plano'));
+        await tester.pumpAndSettle();
+        final syllabusDialogFields = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(
+          syllabusDialogFields.first,
+          'Ementa atualizada via widget test.',
+        );
+        await tester.tap(find.text('Salvar Plano de Ensino'));
+        await tester.pumpAndSettle();
+        expect(find.text('Ementa atualizada via widget test.'), findsOneWidget);
+
+        // 5. Equipes de Projeto cria squad com projectTitle valido
+        await tester.tap(find.text('Equipes de Projeto'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Nova Equipe'));
+        await tester.pumpAndSettle();
+        final squadDialogFields = find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextField),
+        );
+        await tester.enterText(squadDialogFields.at(0), 'Squad Alpha');
+        await tester.enterText(
+          squadDialogFields.at(1),
+          'Portal Integrado Teste',
+        );
+        await tester.tap(find.text('Salvar Equipe'));
+        await tester.pumpAndSettle();
+        expect(find.text('SQUAD ALPHA'), findsOneWidget);
+        expect(find.text('Portal Integrado Teste'), findsOneWidget);
+
+        // 6. Viewport movel (compact tab bar) sem overflow
+        tester.view.physicalSize = const Size(430, 900);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }

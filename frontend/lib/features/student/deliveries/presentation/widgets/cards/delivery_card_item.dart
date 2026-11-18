@@ -145,7 +145,12 @@ class DeliveryCardItem extends StatelessWidget {
                             color: Color(0xFF64748B),
                           ),
                           const SizedBox(width: 4),
-                          Text('${item.dueDate}, ${item.dueHour}'),
+                          Text(
+                            item.dueDate.contains('às') ||
+                                    item.dueHour.trim().isEmpty
+                                ? item.dueDate
+                                : '${item.dueDate}, ${item.dueHour}',
+                          ),
                         ],
                       ),
                     ),
@@ -179,7 +184,12 @@ class DeliveryCardItem extends StatelessWidget {
                             color: Color(0xFF64748B),
                           ),
                           const SizedBox(width: 4),
-                          Text('${item.dueDate}, ${item.dueHour}'),
+                          Text(
+                            item.dueDate.contains('às') ||
+                                    item.dueHour.trim().isEmpty
+                                ? item.dueDate
+                                : '${item.dueDate}, ${item.dueHour}',
+                          ),
                         ],
                       ),
                     ),

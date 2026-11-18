@@ -46,7 +46,8 @@ class PortalShell extends StatefulWidget {
   State<StudentPortalShell> createState() => _StudentPortalShellState();
 }
 
-class _StudentPortalShellState extends State<StudentPortalShell> {
+class _StudentPortalShellState extends State<StudentPortalShell>
+    with WidgetsBindingObserver {
   bool _isSidebarCollapsed = false;
   late StudentNavItem _currentNavItem;
   late String _currentHeaderTitle;
@@ -54,6 +55,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentNavItem = widget.activeNavItem;
     StudentPortalController.instance.activeNavItem = _currentNavItem;
     StudentPortalController.instance.loadRemote();
@@ -63,8 +65,16 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     StudentPortalController.instance.removeListener(_onPortalControllerChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      StudentPortalController.instance.refreshIfStale();
+    }
   }
 
   /// Sincroniza o item de navegação ativo quando modificado externamente no controlador.
@@ -141,6 +151,7 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
     }
 
     StudentPortalController.instance.setNavItem(item);
+    StudentPortalController.instance.refreshIfStale();
 
     setState(() {
       _currentNavItem = item;
@@ -234,6 +245,19 @@ class _StudentPortalShellState extends State<StudentPortalShell> {
                       ),
                       const SizedBox(width: 8),
                     ],
+                    IconButton(
+                      onPressed: () {
+                        StudentPortalController.instance.loadRemote(
+                          force: true,
+                        );
+                      },
+                      tooltip: 'Atualizar dados acadêmicos',
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        size: 19,
+                        color: Color(0xFF52525B),
+                      ),
+                    ),
                     IconButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(

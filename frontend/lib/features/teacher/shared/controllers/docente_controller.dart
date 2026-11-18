@@ -51,6 +51,8 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
 
   bool isLoadingRemote = false;
   String? remoteError;
+  String? _loadedForToken;
+  DateTime? _lastSyncedAt;
 
   DocenteNavTab _activeTab = DocenteNavTab.painel;
   bool _isSidebarCollapsed = false;
@@ -123,6 +125,14 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
         orElse: () => _emptyAssignment,
       );
 
+  List<AssignmentItem> get assignmentsForSelectedCourse => List.unmodifiable(
+        _assignments.where(
+          (a) =>
+              a.courseId == _selectedCourseId ||
+              a.courseCode == selectedCourse.code,
+        ),
+      );
+
   List<ClassSession> get sessionsForSelectedCourse =>
       (_sessions.where((s) => s.courseId == _selectedCourseId).toList()
         ..sort((a, b) {
@@ -167,41 +177,75 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
       AppUserSession.instance.hasPermission(permission) &&
       _courses.any((course) => course.id == courseId);
 
+  Future<void> refreshIfStale({
+    Duration maxAge = const Duration(seconds: 8),
+  }) async {
+    final token = AppUserSession.instance.accessToken;
+    if (token == null || token.isEmpty || isLoadingRemote) return;
+    final last = _lastSyncedAt;
+    if (_loadedForToken == token &&
+        last != null &&
+        DateTime.now().difference(last) < maxAge) {
+      return;
+    }
+    await loadRemote(force: true);
+  }
+
   // Ciclo de Vida e Bootstrap
   Future<void> loadRemote({bool force = false}) async {
     final token = AppUserSession.instance.accessToken;
     if (token == null || token.isEmpty) {
       remoteError = 'Entre novamente para carregar suas turmas.';
+      _loadedForToken = null;
+      _lastSyncedAt = null;
       _clearRemoteState();
       notifyListeners();
       return;
     }
-    if (isLoadingRemote) return;
+    if (isLoadingRemote || (!force && _loadedForToken == token)) return;
+
+    final previousCourseId = _selectedCourseId;
+    final previousAssignmentId = _selectedAssignmentId;
+    final previousSessionId = _currentSession.id;
+    final tokenChanged = _loadedForToken != token;
 
     isLoadingRemote = true;
     remoteError = null;
-    _clearRemoteState();
+    if (tokenChanged || _courses.isEmpty) {
+      _clearRemoteState();
+    }
     notifyListeners();
     try {
       final snapshot = await _remote.getBootstrap();
       if (AppUserSession.instance.accessToken != token) return;
+      _loadedForToken = token;
+      _lastSyncedAt = DateTime.now();
       _ownerIdentity = snapshot.profile.registrationId;
       _profile = snapshot.profile;
       _dashboard = snapshot.dashboard;
       _courses = snapshot.courses;
-      _selectedCourseId = _courses.isEmpty ? '' : _courses.first.id;
+      final hasPreviousCourse =
+          !tokenChanged &&
+          previousCourseId.isNotEmpty &&
+          _courses.any((course) => course.id == previousCourseId);
+      _selectedCourseId = hasPreviousCourse
+          ? previousCourseId
+          : (_courses.isEmpty ? '' : _courses.first.id);
       _sessions = snapshot.sessions;
       _assignments = snapshot.assignments;
       _gradebook = snapshot.grades;
       _events = snapshot.events;
       _notices = snapshot.notices;
       _protocols = snapshot.protocols;
-      _currentSession = _sessions.isEmpty
-          ? _emptySession
-          : _sessions.firstWhere(
-              (session) => session.courseId == _selectedCourseId,
-              orElse: () => _sessions.first,
-            );
+      final matchingCourseSessions = _sessions
+          .where((session) => session.courseId == _selectedCourseId)
+          .toList();
+      _currentSession = matchingCourseSessions.firstWhere(
+        (session) => !tokenChanged && session.id == previousSessionId,
+        orElse: () => matchingCourseSessions.isNotEmpty
+            ? matchingCourseSessions.first
+            : (_sessions.isEmpty ? _emptySession : _sessions.first),
+      );
       _pautaHomologada
         ..clear()
         ..addEntries(
@@ -216,8 +260,13 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
               .where((course) => course.chancelaCode != null)
               .map((course) => MapEntry(course.id, course.chancelaCode!)),
         );
-      _selectedAssignmentId =
-          _assignments.isEmpty ? '' : _assignments.first.id;
+      final hasPreviousAssignment =
+          !tokenChanged &&
+          previousAssignmentId.isNotEmpty &&
+          _assignments.any((a) => a.id == previousAssignmentId);
+      _selectedAssignmentId = hasPreviousAssignment
+          ? previousAssignmentId
+          : (_assignments.isEmpty ? '' : _assignments.first.id);
       _forumTopicsByCourse
         ..clear()
         ..addEntries(

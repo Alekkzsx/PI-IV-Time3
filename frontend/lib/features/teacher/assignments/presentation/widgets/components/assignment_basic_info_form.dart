@@ -8,6 +8,7 @@ import '../../../../shared/domain/models/docente_course.dart';
 class AssignmentBasicInfoForm extends StatelessWidget {
   final List<DocenteCourse> courses;
   final String selectedCourseId;
+  final bool lockCourse;
   final ValueChanged<String?> onCourseChanged;
   final TextEditingController titleController;
   final TextEditingController descriptionController;
@@ -19,6 +20,7 @@ class AssignmentBasicInfoForm extends StatelessWidget {
     super.key,
     required this.courses,
     required this.selectedCourseId,
+    this.lockCourse = false,
     required this.onCourseChanged,
     required this.titleController,
     required this.descriptionController,
@@ -94,7 +96,7 @@ class AssignmentBasicInfoForm extends StatelessWidget {
               child: Text('${course.code} - ${course.title}'),
             );
           }).toList(),
-          onChanged: onCourseChanged,
+          onChanged: lockCourse ? null : onCourseChanged,
         ),
         const SizedBox(height: 18),
 

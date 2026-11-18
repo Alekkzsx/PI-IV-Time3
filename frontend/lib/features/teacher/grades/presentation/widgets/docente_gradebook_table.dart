@@ -272,7 +272,9 @@ class DocenteGradebookTable extends StatelessWidget {
             width: 86,
             child: Center(
               child: Text(
-                _formatNumber(student.finalAverage),
+                student.status == AcademicStatus.semNotas
+                    ? '—'
+                    : _formatNumber(student.finalAverage),
                 style: jakarta(
                   size: 13,
                   weight: FontWeight.w700,
@@ -321,6 +323,9 @@ class DocenteGradebookTable extends StatelessWidget {
   }
 
   Color _getAverageColor(StudentGrade student) {
+    if (student.status == AcademicStatus.semNotas) {
+      return const Color(0xFF71717A);
+    }
     if (student.attendanceRate < 75.0) {
       return const Color(0xFFD97706);
     }

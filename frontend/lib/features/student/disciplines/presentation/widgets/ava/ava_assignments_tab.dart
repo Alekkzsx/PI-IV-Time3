@@ -42,17 +42,14 @@ class _AvaAssignmentsTabState extends State<AvaAssignmentsTab> {
   @override
   Widget build(BuildContext context) {
     final code = widget.disciplineCode.trim().toLowerCase();
-    final allActivities = widget.controller.deliveries.where((d) {
+    final activities = widget.controller.deliveries.where((d) {
       final dCode = d.disciplineCode.trim().toLowerCase();
+      if (dCode.isEmpty || code.isEmpty) return false;
       return dCode == code ||
           dCode.contains(code) ||
           code.contains(dCode) ||
           d.disciplineName.toLowerCase().contains(code);
     }).toList();
-
-    final activities = allActivities.isNotEmpty
-        ? allActivities
-        : widget.controller.deliveries;
 
     final pendingList = activities
         .where((a) => a.status == 'Pendente')

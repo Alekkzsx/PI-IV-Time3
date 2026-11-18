@@ -36,14 +36,17 @@ class AssignmentRubricMatrixEditor extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Matriz de Correção (Rubrica Avaliativa)',
-                style: jakarta(
-                  size: 13.5,
-                  weight: FontWeight.w600,
-                  color: const Color(0xFF475569),
+              Flexible(
+                child: Text(
+                  'Matriz de Correção (Rubrica Avaliativa)',
+                  style: jakarta(
+                    size: 13.5,
+                    weight: FontWeight.w600,
+                    color: const Color(0xFF475569),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,

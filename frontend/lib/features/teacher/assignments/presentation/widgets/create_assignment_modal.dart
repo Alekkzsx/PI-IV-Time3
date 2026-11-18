@@ -11,8 +11,15 @@ import 'components/assignment_rubric_matrix_editor.dart';
 /// Modal dialog para criação de nova atividade avaliativa institucional.
 class CreateAssignmentModal extends StatefulWidget {
   final DocenteController controller;
+  final String? initialCourseId;
+  final bool lockCourse;
 
-  const CreateAssignmentModal({super.key, required this.controller});
+  const CreateAssignmentModal({
+    super.key,
+    required this.controller,
+    this.initialCourseId,
+    this.lockCourse = false,
+  });
 
   @override
   State<CreateAssignmentModal> createState() => _CreateAssignmentModalState();
@@ -35,7 +42,8 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
   @override
   void initState() {
     super.initState();
-    _selectedCourseId = widget.controller.selectedCourseId;
+    _selectedCourseId =
+        widget.initialCourseId ?? widget.controller.selectedCourseId;
 
     _addCriterionControllers(
       title: 'Conformidade Técnica e Modelagem',
@@ -179,6 +187,19 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
       );
     }
 
+    final dueDateObj = _selectedDueDate;
+    final cleanDateStr = dueDateObj != null
+        ? '${dueDateObj.day.toString().padLeft(2, '0')}/'
+            '${dueDateObj.month.toString().padLeft(2, '0')}/'
+            '${dueDateObj.year}'
+        : _dueDateController.text.trim().split(' ').first;
+    final dueHourStr = dueDateObj != null
+        ? '${dueDateObj.hour.toString().padLeft(2, '0')}:'
+            '${dueDateObj.minute.toString().padLeft(2, '0')}'
+        : (_dueDateController.text.contains('às')
+              ? _dueDateController.text.split('às').last.trim()
+              : '23:59');
+
     final created = await widget.controller.createAssignment(
       courseId: selectedCourse.id,
       courseCode: selectedCourse.code,
@@ -186,7 +207,9 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
       description: _descriptionController.text.trim(),
       weight: weight,
       stage: _selectedStage,
-      dueDateFormatted: _dueDateController.text.trim(),
+      dueDate: dueDateObj,
+      dueHour: dueHourStr,
+      dueDateFormatted: cleanDateStr,
       modality: _selectedModality,
       allowLateWithPenalty: _allowLate,
       rubricCriteria: rubricCriteria,
@@ -279,6 +302,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
                       AssignmentBasicInfoForm(
                         courses: widget.controller.courses,
                         selectedCourseId: _selectedCourseId,
+                        lockCourse: widget.lockCourse,
                         onCourseChanged: (val) {
                           if (val != null) {
                             setState(() => _selectedCourseId = val);

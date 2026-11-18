@@ -1,193 +1,97 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/features/teacher/diary/presentation/widgets/class_session_picker_modal.dart';
+import 'package:pi_iv_time3/features/teacher/diary/presentation/widgets/docente_diary_attendance_table.dart';
+import 'package:pi_iv_time3/features/teacher/diary/presentation/widgets/docente_diary_lesson_plan_card.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/teacher/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
+import 'course_hub_ui.dart';
 
-/// Aba de Diário de Presença & Frequência Eletrônica do curso no Portal Docente.
+/// Aba de Diário de Classe e Chamada integrada diretamente no AVA Docente.
 class CourseHubAttendanceTab extends StatelessWidget {
+  final DocenteCourse course;
   final DocenteController controller;
 
-  const CourseHubAttendanceTab({super.key, required this.controller});
+  const CourseHubAttendanceTab({
+    super.key,
+    required this.course,
+    required this.controller,
+  });
+
+  Future<void> _openSessionPicker(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => ClassSessionPickerModal(controller: controller),
+    );
+  }
+
+  Future<void> _openExtraDatePicker(BuildContext context) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: controller.currentSession.sessionDate,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 2),
+      helpText: 'Agendar / Selecionar Data de Aula (Reposição ou Regular)',
+    );
+    if (picked == null) return;
+    await controller.selectSessionByDate(picked, allowExtraDate: true);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Sessão carregada para ${controller.formatSessionDate(picked)}.',
+        ),
+        backgroundColor: const Color(0xFF18181B),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final session = controller.currentSession;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Diário de Presença & Frequência Eletrônica',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF09090B),
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Controle diário de assiduidade e lançamento regimental de faltas.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                OutlinedButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(session.dateFormatted)),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE4E4E7)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  child: Text(
-                    '${session.dateFormatted} (Aula ${session.sessionNumber})',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF09090B),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    controller.markAllPresent();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Presença marcada para toda a turma.'),
-                      ),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.check_circle_outline,
-                    size: 14,
-                    color: Colors.white,
-                  ),
-                  label: const Text(
-                    'Marcar Todos Presentes',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF18181B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE4E4E7)),
-          ),
-          child: Column(
+        CourseHubSectionHeader(
+          overline: 'REGISTRO MEC • ${course.code}',
+          title: 'Diário de Presença e Chamada',
+          subtitle:
+              'Navegue entre as aulas, registre conteúdo ministrado, marque P/F/J e homologue no sistema acadêmico.',
+          trailing: Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              for (final student in session.attendanceList) ...[
-                _buildAttendanceItem(student),
-                if (student != session.attendanceList.last)
-                  const Divider(height: 20, color: Color(0xFFF4F4F5)),
-              ],
+              CourseHubPillButton(
+                label: 'Agendar / Nova Aula',
+                icon: Icons.event_available_outlined,
+                variant: CourseHubButtonVariant.secondary,
+                compact: true,
+                onPressed: () => _openExtraDatePicker(context),
+              ),
+              CourseHubPillButton(
+                label: 'Trocar Aula',
+                icon: Icons.swap_horiz_rounded,
+                variant: CourseHubButtonVariant.secondary,
+                compact: true,
+                onPressed: () => _openSessionPicker(context),
+              ),
             ],
           ),
         ),
-      ],
-    );
-  }
+        const SizedBox(height: 18),
 
-  Widget _buildAttendanceItem(AttendanceStudent student) {
-    final isPresent = student.status == AttendanceStatus.presente;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              student.name,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF09090B),
-              ),
-            ),
-            Text(
-              'RA: ${student.ra} • ${student.accumulatedAbsences} faltas acumuladas (${student.attendanceRate}% de presença)',
-              style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-            ),
-          ],
+        DocenteDiaryLessonPlanCard(
+          controller: controller,
+          session: session,
         ),
-        Row(
-          children: [
-            ElevatedButton(
-              onPressed: () => controller.toggleAttendance(
-                student.studentId,
-                AttendanceStatus.presente,
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDCFCE7),
-                foregroundColor: const Color(0xFF16A34A),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: Text(
-                'Presente',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isPresent
-                      ? const Color(0xFF16A34A)
-                      : const Color(0xFF71717A),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: () => controller.toggleAttendance(
-                student.studentId,
-                AttendanceStatus.ausente,
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF71717A),
-                side: const BorderSide(color: Color(0xFFE4E4E7)),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: const Text('Falta', style: TextStyle(fontSize: 11)),
-            ),
-          ],
+        const SizedBox(height: 20),
+
+        DocenteDiaryAttendanceTable(
+          controller: controller,
+          session: session,
         ),
       ],
     );

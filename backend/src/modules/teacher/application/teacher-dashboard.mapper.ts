@@ -88,7 +88,9 @@ export function mapTeacherCourses(input: {
       pautaHomologated: classroom.pautaHomologated === true,
       chancelaCode: classroom.chancelaCode ?? null,
       isLive: Boolean(live),
-      syllabus: classroom.syllabus ?? `Estudo aprofundado e prática aplicada de ${classroom.subjectName ?? classroom.courseName ?? code}.`,
+      syllabus: String(classroom.syllabus ?? classroom.ementa ?? `Estudo aprofundado e prática aplicada de ${classroom.subjectName ?? classroom.courseName ?? code}.`),
+      objectives: String(classroom.objectives ?? ""),
+      methodology: String(classroom.methodology ?? ""),
       bibliography: Array.isArray(classroom.bibliography) ? classroom.bibliography : [],
       syllabusUnits,
       materials: [
@@ -101,6 +103,7 @@ export function mapTeacherCourses(input: {
           size: String(material.size ?? "1.0 MB"),
           type: String(material.type ?? "PDF"),
           unitAssociated: String(material.unitAssociated ?? "Unidade 1"),
+          category: String(material.category ?? "Material Complementar"),
           downloadUrl: `/api/files/materials/${String(material._id)}`,
         })),
         ...(Array.isArray(classroom.materials) ? classroom.materials : []),
@@ -392,6 +395,15 @@ export function mapTeacherGrades(
       const rawAbsences = Math.max(0, (absencesByClassStudent.get(`${classCode}:${studentId}`) ?? 0) - excused);
       const computedAttendance = Number(Math.max(0, ((totalHours - rawAbsences) / totalHours) * 100).toFixed(1));
 
+      const hasGrades = Boolean(
+        existing &&
+          (existing.hasEnteredGrades === true ||
+            Number(existing.assignmentsScore ?? 0) > 0 ||
+            Number(existing.p1Score ?? 0) > 0 ||
+            Number(existing.projectsScore ?? 0) > 0 ||
+            Number(existing.p2Score ?? 0) > 0),
+      );
+
       mappedGrades.push({
         id: existing ? String(existing._id) : `${classCode}-${studentId}`,
         courseId: classCode,
@@ -405,6 +417,7 @@ export function mapTeacherGrades(
         p2Score: Number(existing?.p2Score ?? 0),
         attendanceRate: existing?.attendanceRate !== undefined ? Number(existing.attendanceRate) : computedAttendance,
         absences: rawAbsences,
+        hasGrades,
       });
     }
   }

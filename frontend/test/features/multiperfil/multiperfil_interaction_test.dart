@@ -43,6 +43,10 @@ class _ProtocolRemoteDataSource extends StudentRemoteDataSource {
   ];
 
   @override
+  Future<TimelineResponse> getTimeline() async =>
+      const TimelineResponse(generatedAt: '', blocks: []);
+
+  @override
   Future<StudentDashboardSnapshot> getBootstrap() async =>
       StudentDashboardSnapshot.fromJson({
         'studentInfo': {
@@ -78,6 +82,10 @@ class _ProtocolRemoteDataSource extends StudentRemoteDataSource {
 
 class _StudentWorkRemoteDataSource extends StudentRemoteDataSource {
   bool submitted = false;
+
+  @override
+  Future<TimelineResponse> getTimeline() async =>
+      const TimelineResponse(generatedAt: '', blocks: []);
 
   @override
   Future<StudentDashboardSnapshot> getBootstrap() async =>

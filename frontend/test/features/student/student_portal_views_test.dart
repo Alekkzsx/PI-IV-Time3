@@ -9,7 +9,10 @@ import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/dashbo
 import 'package:pi_iv_time3/features/student/dashboard/presentation/widgets/views/timeline_list_view.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/disciplines_page.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/ava_cockpit_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava/ava_assignments_tab.dart';
 import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava/ava_evaluations_grades_tab.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/widgets/ava/tabs/components/ava_assignment_item_card.dart';
+import 'package:pi_iv_time3/features/student/shared/models/models.dart';
 import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
 import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/deliveries_page.dart';
 import 'package:pi_iv_time3/features/student/settings/presentation/pages/settings_page.dart';
@@ -18,6 +21,10 @@ import '../../helpers/student_fixtures.dart';
 class _StudentDashboardDataSource extends StudentRemoteDataSource {
   bool submitted = false;
   final List<Map<String, dynamic>> reminders = [];
+
+  @override
+  Future<TimelineResponse> getTimeline() async =>
+      const TimelineResponse(generatedAt: '', blocks: []);
 
   @override
   Future<StudentDashboardSnapshot> getBootstrap() async =>
@@ -625,6 +632,75 @@ void main() {
       expect(find.text('fevereiro 2027'), findsOneWidget);
       expect(find.text('Início das aulas do próximo período letivo'), findsOneWidget);
     });
+
+    testWidgets(
+      'AvaAssignmentsTab isolates deliveries per discipline and AvaAssignmentItemCard renders planned rubrics without duplicate hour',
+      (tester) async {
+        AppUserSession.instance.signIn(
+          identity: StudentFixtures.studentRa,
+          profile: 'aluno',
+          accessToken: 'test-student-token',
+        );
+        addTearDown(AppUserSession.instance.signOut);
+
+        final remote = _StudentDashboardDataSource();
+        final controller = StudentPortalController.withRemoteDataSource(remote);
+        addTearDown(controller.dispose);
+        await controller.loadRemote(force: true);
+
+        // 1. Outra disciplina sem atividades nao vaza entregas de APS-II
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: AvaAssignmentsTab(
+                  controller: controller,
+                  disciplineCode: 'IHC-305',
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Nenhuma tarefa encontrada para este filtro.'),
+          findsOneWidget,
+        );
+        expect(find.text('Entrega real de teste'), findsNothing);
+
+        // 2. Card pendente renderiza criterios planejados da rubrica e prazo sem duplicar "às"
+        final sampleActivity = DeliveryItem.fromJson({
+          'id': 'asg-rubric-1',
+          'title': 'Projeto Integrador Sprint 1',
+          'disciplineCode': 'IHC-305',
+          'disciplineName': 'Interação Humano-Computador',
+          'dueDate': '15/12/2026 às 23:59',
+          'dueHour': '23:59',
+          'status': 'Pendente',
+          'weight': 3.0,
+          'rubrics': [
+            {'title': 'Arquitetura', 'maxPoints': 5.0},
+            {'title': 'Protótipo', 'maxPoints': 5.0},
+          ],
+        });
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: AvaAssignmentItemCard(activity: sampleActivity),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Prazo: 15/12/2026 às 23:59'), findsOneWidget);
+        expect(find.text('Critérios da Rubrica (2)'), findsOneWidget);
+        expect(find.text('Arquitetura (5.0 pts)'), findsOneWidget);
+        expect(find.text('Protótipo (5.0 pts)'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 }
 

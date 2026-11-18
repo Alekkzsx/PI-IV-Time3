@@ -232,8 +232,135 @@ class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> homologate(String classCode) async => {
-    'signatureCode': 'SIG-TEST-001',
+    'pautaHomologated': true,
+    'chancelaCode': 'SIG-TEST-001',
   };
+
+  @override
+  Future<void> deleteMaterial(String classCode, String materialId) async {
+    courses = courses.map((course) {
+      if (course.code != classCode) return course;
+      return course.copyWith(
+        materials: course.materials.where((m) => m.id != materialId).toList(),
+      );
+    }).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> downloadMaterial(String materialId) async => {
+    'id': materialId,
+    'fileName': 'material_teste.pdf',
+    'contentBase64': '',
+  };
+
+  @override
+  Future<Map<String, dynamic>> updateSyllabusPlan({
+    required String classCode,
+    String? syllabus,
+    String? objectives,
+    String? methodology,
+    String? evaluationFormula,
+    List<Map<String, Object?>>? bibliography,
+  }) async {
+    courses = courses.map((course) {
+      if (course.code != classCode) return course;
+      return course.copyWith(
+        syllabus: syllabus ?? course.syllabus,
+        objectives: objectives ?? course.objectives,
+        methodology: methodology ?? course.methodology,
+        evaluationFormula: evaluationFormula ?? course.evaluationFormula,
+      );
+    }).toList();
+    return {'ok': true};
+  }
+
+  @override
+  Future<Map<String, dynamic>> resolveForumTopic({
+    required String classCode,
+    required String topicId,
+    required bool isResolved,
+  }) async {
+    courses = courses.map((course) {
+      if (course.code != classCode) return course;
+      return course.copyWith(
+        forumTopics: course.forumTopics.map((topic) {
+          if (topic['id']?.toString() != topicId) return topic;
+          return {...topic, 'isResolved': isResolved};
+        }).toList(),
+      );
+    }).toList();
+    return {'ok': true, 'isResolved': isResolved};
+  }
+
+  @override
+  Future<void> deleteAssignment(String assignmentId) async {
+    assignments = assignments.where((a) => a.id != assignmentId).toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> createForumTopic({
+    required String classCode,
+    required String title,
+    required String body,
+    String? category,
+  }) async {
+    final topic = <String, dynamic>{
+      'id': 'topic-${DateTime.now().millisecondsSinceEpoch}',
+      'title': title,
+      'body': body,
+      'category': category ?? 'Discussão Acadêmica',
+      'authorName': profile.fullName,
+      'authorRole': 'docente',
+      'isResolved': false,
+      'replies': <Map<String, dynamic>>[],
+    };
+    courses = courses.map((course) {
+      if (course.code != classCode) return course;
+      return course.copyWith(forumTopics: [topic, ...course.forumTopics]);
+    }).toList();
+    return topic;
+  }
+
+  @override
+  Future<Map<String, dynamic>> replyForumTopic({
+    required String classCode,
+    required String topicId,
+    required String body,
+  }) async {
+    final reply = {
+      'id': 'reply-${DateTime.now().millisecondsSinceEpoch}',
+      'authorName': profile.fullName,
+      'authorRole': 'docente',
+      'body': body,
+    };
+    courses = courses.map((course) {
+      if (course.code != classCode) return course;
+      return course.copyWith(
+        forumTopics: course.forumTopics.map((topic) {
+          if (topic['id']?.toString() != topicId) return topic;
+          final existingReplies = (topic['replies'] as List?)?.toList() ?? [];
+          return {
+            ...topic,
+            'replies': [...existingReplies, reply],
+          };
+        }).toList(),
+      );
+    }).toList();
+    return reply;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> saveSquads({
+    required String classCode,
+    required List<Map<String, Object?>> squads,
+  }) async {
+    final normalized = squads.map((e) => Map<String, dynamic>.from(e)).toList();
+    courses = courses.map((course) {
+      if (course.code != classCode) return course;
+      return course.copyWith(squads: normalized);
+    }).toList();
+    return normalized;
+  }
 }
 
 class FakeTeacherProfileRemoteDataSource extends AuthProfileRemoteDataSource {

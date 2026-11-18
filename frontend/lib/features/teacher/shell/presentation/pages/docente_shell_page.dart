@@ -14,7 +14,6 @@ import 'package:pi_iv_time3/features/teacher/grades/presentation/pages/docente_g
 import 'package:pi_iv_time3/features/teacher/messages/presentation/pages/docente_messages_tab.dart';
 import 'package:pi_iv_time3/features/teacher/settings/presentation/pages/docente_settings_tab.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/teacher/shared/theme/docente_colors.dart';
 import '../widgets/docente_header.dart';
 import '../widgets/docente_sidebar.dart';
 
@@ -116,12 +115,14 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
       builder: (context, _) {
         if (_controller.isLoadingRemote && _controller.courses.isEmpty) {
           return const Scaffold(
+            backgroundColor: Colors.white,
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (_controller.remoteError != null && _controller.courses.isEmpty) {
           return Scaffold(
+            backgroundColor: Colors.white,
             appBar: AppBar(
               title: const Text('Portal Docente'),
               actions: [
@@ -158,7 +159,7 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
           builder: (context, constraints) {
             if (_controller.courses.isEmpty) {
               return Scaffold(
-                backgroundColor: DocenteColors.offWhite,
+                backgroundColor: Colors.white,
                 appBar: AppBar(
                   title: const Text('Portal Docente'),
                   actions: [
@@ -198,7 +199,7 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
 
             return Scaffold(
               key: _scaffoldKey,
-              backgroundColor: DocenteColors.offWhite,
+              backgroundColor: Colors.white,
               drawer: isDesktop
                   ? null
                   : Drawer(

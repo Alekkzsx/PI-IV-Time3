@@ -93,6 +93,39 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
     response.json(result);
   });
 
+  router.patch("/courses/:classCode/syllabus-plan", async (request, response) => {
+    const body = parse(
+      z
+        .object({
+          syllabus: z.string().trim().max(4000).optional(),
+          objectives: z.string().trim().max(4000).optional(),
+          methodology: z.string().trim().max(4000).optional(),
+          evaluationFormula: z.string().trim().max(160).optional(),
+          bibliography: z
+            .array(
+              z.object({
+                type: z.string().trim().min(1).max(40),
+                title: z.string().trim().min(1).max(200),
+                authors: z.string().trim().min(1).max(200),
+                publisher: z.string().trim().max(120).optional(),
+                year: z.string().trim().max(20).optional(),
+              }),
+            )
+            .max(30)
+            .optional(),
+        })
+        .strict(),
+      request.body,
+    );
+    const updated = await service.updateSyllabusPlan(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      body,
+    );
+    response.json(updated);
+  });
+
   router.post("/courses/:classCode/materials", async (request, response) => {
     const body = parse(
       z.object({
@@ -102,6 +135,7 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
         size: z.string().trim().max(40).optional(),
         type: z.string().trim().max(20).optional(),
         unitAssociated: z.string().trim().max(80).optional(),
+        category: z.string().trim().max(80).optional(),
         contentBase64: z.string().max(12_000_000).optional(),
       }).strict(),
       request.body,
@@ -115,6 +149,16 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
     response.status(201).json(created);
   });
 
+  router.delete("/courses/:classCode/materials/:materialId", async (request, response) => {
+    const result = await service.deleteMaterial(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      request.params.materialId!,
+    );
+    response.json(result);
+  });
+
   router.post("/courses/:classCode/assignments", async (request, response) => {
     const body = parse(
       z.object({
@@ -123,9 +167,13 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
         weight: z.number().min(0.1).max(10),
         stage: z.string().trim().min(1).max(20),
         dueDate: z.string().trim().max(60).optional(),
+        dueHour: z.string().trim().max(20).optional(),
         dueDateFormatted: z.string().trim().min(2).max(80),
         modality: z.string().trim().min(2).max(80),
         allowLateWithPenalty: z.boolean(),
+        moduleTag: z.string().trim().max(80).optional(),
+        activityType: z.enum(["entrega", "forum", "atividade_pratica", "avaliacao_parcial"]).optional(),
+        allowedFormats: z.string().trim().max(80).optional(),
         rubricCriteria: z
           .array(
             z.object({
@@ -146,6 +194,15 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
       body,
     );
     response.status(201).json(created);
+  });
+
+  router.delete("/assignments/:assignmentId", async (request, response) => {
+    const result = await service.deleteAssignment(
+      response.locals.userId,
+      response.locals.user,
+      request.params.assignmentId!,
+    );
+    response.json(result);
   });
 
   router.patch("/assignments/:assignmentId/evaluate", async (request, response) => {
@@ -270,6 +327,18 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
     response.status(201).json(created);
   });
 
+  router.patch("/courses/:classCode/forum/:topicId/resolve", async (request, response) => {
+    const body = parse(z.object({ isResolved: z.boolean() }).strict(), request.body);
+    const updated = await service.resolveForumTopic(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      request.params.topicId!,
+      body.isResolved,
+    );
+    response.json(updated);
+  });
+
   router.put("/courses/:classCode/squads", async (request, response) => {
     const body = parse(
       z.object({
@@ -280,6 +349,8 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
               name: z.string().trim().min(2).max(100),
               projectTitle: z.string().trim().min(2).max(160),
               repoUrl: z.string().trim().max(300).optional(),
+              sprintStatus: z.string().trim().max(80).optional(),
+              status: z.string().trim().max(80).optional(),
               members: z.array(z.string().max(120)).max(20),
             }),
           )
@@ -293,7 +364,7 @@ export function createTeacherRouter(database: Db, jwtSecret: string): Router {
       request.params.classCode!,
       body.squads,
     );
-    response.json(saved);
+    response.json({ squads: saved });
   });
 
   router.post("/events", async (request, response) => {

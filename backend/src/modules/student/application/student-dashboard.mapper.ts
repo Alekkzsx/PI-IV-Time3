@@ -74,7 +74,14 @@ export function mapStudentDisciplines(input: {
         ? Number(grade.attendanceRate)
         : Number(Math.max(0, ((totalHours - absences) / totalHours) * 100).toFixed(1));
 
-    const hasGrade = Boolean(grade);
+    const hasGrade = Boolean(
+      grade &&
+        (grade.hasEnteredGrades === true ||
+          Number(grade.assignmentsScore ?? 0) > 0 ||
+          Number(grade.p1Score ?? 0) > 0 ||
+          Number(grade.projectsScore ?? 0) > 0 ||
+          Number(grade.p2Score ?? 0) > 0),
+    );
     const assignmentsScore = hasGrade ? Number(grade!.assignmentsScore ?? 0) : null;
     const p1 = hasGrade ? Number(grade!.p1Score ?? 0) : null;
     const projectsScore = hasGrade ? Number(grade!.projectsScore ?? 0) : null;
@@ -220,8 +227,40 @@ export function mapStudentDeliveries(
         ? "Avaliada"
         : "Em Análise";
     const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
-    const dueHour = assignment.dueHour ? String(assignment.dueHour) : "23:59";
-    const dueDateFormatted = String(assignment.dueDateFormatted ?? (dueDate ? formatShortDate(dueDate) : ""));
+    const rawDueFormatted = String(assignment.dueDateFormatted ?? (dueDate ? formatShortDate(dueDate) : ""));
+    const dueWithHourMatch = /^(.*?)\s+às\s+(\d{1,2}:\d{2})$/i.exec(rawDueFormatted);
+    const dueDateClean = dueWithHourMatch ? dueWithHourMatch[1]!.trim() : rawDueFormatted;
+    const dueHour = assignment.dueHour
+      ? String(assignment.dueHour)
+      : (dueWithHourMatch?.[2] ?? "23:59");
+
+    const evaluatedRubrics = Array.isArray(submission?.evaluatedCriteria) && submission.evaluatedCriteria.length > 0
+      ? submission.evaluatedCriteria.map((rubric: Document) => ({
+          id: String(rubric.id ?? ""),
+          title: String(rubric.title ?? rubric.criterio ?? ""),
+          criterio: String(rubric.title ?? rubric.criterio ?? ""),
+          maxPoints: Number(rubric.maxPoints ?? rubric.pontos ?? 0),
+          pontos: Number(rubric.maxPoints ?? rubric.pontos ?? 0),
+          assignedScore: Number(rubric.assignedScore ?? rubric.nota ?? 0),
+          nota: Number(rubric.assignedScore ?? rubric.nota ?? 0),
+          description: String(rubric.description ?? ""),
+        }))
+      : [];
+
+    const plannedRubrics = Array.isArray(assignment.rubricCriteria)
+      ? assignment.rubricCriteria.map((rubric: Document) => ({
+          id: String(rubric.id ?? ""),
+          title: String(rubric.title ?? ""),
+          criterio: String(rubric.title ?? ""),
+          maxPoints: Number(rubric.maxPoints ?? 0),
+          pontos: Number(rubric.maxPoints ?? 0),
+          assignedScore: null,
+          nota: null,
+          description: String(rubric.description ?? ""),
+        }))
+      : [];
+
+    const rubrics = evaluatedRubrics.length > 0 ? evaluatedRubrics : plannedRubrics;
 
     return {
       id: assignmentId,
@@ -230,12 +269,15 @@ export function mapStudentDeliveries(
       professor: discipline?.professor ?? String(assignment.authorName ?? "Docente"),
       title: String(assignment.title),
       description: String(assignment.description ?? ""),
-      dueDate: dueDateFormatted,
+      dueDate: dueDateClean,
       dueHour,
-      dueDateFormatted,
+      dueDateFormatted: dueDateClean,
       weight: Number(assignment.weight ?? 3.0),
+      maxScore: Number(assignment.maxScore ?? 10.0),
       stage: String(assignment.stage ?? "N1"),
       moduleTag: assignment.moduleTag ? String(assignment.moduleTag) : `MÓDULO ${assignment.stage ?? 1}`,
+      allowedFormats: assignment.allowedFormats ? String(assignment.allowedFormats) : "PDF / ZIP",
+      isUrgent: assignment.isUrgent === true,
       status,
       modality: String(assignment.modality ?? "Individual"),
       allowLate: assignment.allowLateWithPenalty !== false,
@@ -251,16 +293,8 @@ export function mapStudentDeliveries(
         ? Number(submission.score)
         : (submission?.grade !== undefined && submission?.grade !== null ? Number(submission.grade) : null),
       feedback: submission?.feedback ?? null,
-      evaluatedRubrics: Array.isArray(submission?.evaluatedCriteria)
-        ? submission.evaluatedCriteria.map((rubric: Document) => ({
-            title: String(rubric.title ?? rubric.criterio ?? ""),
-            criterio: String(rubric.title ?? rubric.criterio ?? ""),
-            maxPoints: Number(rubric.maxPoints ?? rubric.pontos ?? 0),
-            pontos: Number(rubric.maxPoints ?? rubric.pontos ?? 0),
-            assignedScore: Number(rubric.assignedScore ?? rubric.nota ?? 0),
-            nota: Number(rubric.assignedScore ?? rubric.nota ?? 0),
-          }))
-        : [],
+      rubrics,
+      evaluatedRubrics,
       doubts: Array.isArray(assignment.doubts) ? assignment.doubts : [],
     };
   });

@@ -96,7 +96,10 @@ class AvaAssignmentItemCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Prazo: ${activity.dueDate} às ${activity.dueHour}',
+                    activity.dueDate.contains('às') ||
+                            activity.dueHour.trim().isEmpty
+                        ? 'Prazo: ${activity.dueDate}'
+                        : 'Prazo: ${activity.dueDate} às ${activity.dueHour}',
                     style: jakarta(
                       size: 11.5,
                       weight: FontWeight.w500,
@@ -164,6 +167,62 @@ class AvaAssignmentItemCard extends StatelessWidget {
                 ),
             ],
           ),
+
+          if (activity.rubrics.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF8F5),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Critérios da Rubrica (${activity.rubrics.length})',
+                    style: jakarta(
+                      size: 11,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFF18181B),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: activity.rubrics.map((r) {
+                      final title = (r['title'] ?? r['criterio'] ?? '')
+                          .toString();
+                      final maxPts = r['maxPoints'] ?? r['pontos'] ?? 0;
+                      final ptsNum = maxPts is num ? maxPts.toDouble() : 0.0;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Text(
+                          '$title (${ptsNum.toStringAsFixed(1)} pts)',
+                          style: jakarta(
+                            size: 11,
+                            weight: FontWeight.w500,
+                            color: const Color(0xFF3F3F46),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           if (activity.feedback?.isNotEmpty == true) ...[
             const SizedBox(height: 14),

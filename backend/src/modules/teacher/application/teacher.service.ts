@@ -294,6 +294,21 @@ export class TeacherService {
     return this.syllabusService.advanceUnit(userId, user, classCode, unitId);
   }
 
+  async updateSyllabusPlan(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: {
+      syllabus?: string;
+      objectives?: string;
+      methodology?: string;
+      evaluationFormula?: string;
+      bibliography?: Array<{ type: string; title: string; authors: string; publisher?: string; year?: string }>;
+    },
+  ) {
+    return this.syllabusService.updateSyllabusPlan(userId, user, classCode, input);
+  }
+
   async publishMaterial(
     userId: string,
     user: Document,
@@ -304,10 +319,15 @@ export class TeacherService {
       size?: string;
       type?: string;
       unitAssociated?: string;
+      category?: string;
       contentBase64?: string;
     },
   ) {
     return this.materialService.publishMaterial(userId, user, classCode, input);
+  }
+
+  async deleteMaterial(userId: string, user: Document, classCode: string, materialId: string) {
+    return this.materialService.deleteMaterial(userId, user, classCode, materialId);
   }
 
   async createAssignment(
@@ -320,13 +340,21 @@ export class TeacherService {
       weight: number;
       stage: string;
       dueDate?: string;
+      dueHour?: string;
       dueDateFormatted: string;
       modality: string;
       allowLateWithPenalty: boolean;
+      moduleTag?: string;
+      activityType?: string;
+      allowedFormats?: string;
       rubricCriteria: Array<{ id?: string; title: string; maxPoints: number; description?: string }>;
     },
   ) {
     return this.assignmentService.createAssignment(userId, user, classCode, input);
+  }
+
+  async deleteAssignment(userId: string, user: Document, assignmentId: string) {
+    return this.assignmentService.deleteAssignment(userId, user, assignmentId);
   }
 
   async evaluateSubmission(
@@ -400,11 +428,29 @@ export class TeacherService {
     return this.communicationService.replyForumTopic(userId, user, classCode, topicId, body);
   }
 
+  async resolveForumTopic(
+    userId: string,
+    user: Document,
+    classCode: string,
+    topicId: string,
+    isResolved: boolean,
+  ) {
+    return this.communicationService.resolveForumTopic(userId, user, classCode, topicId, isResolved);
+  }
+
   async saveClassSquads(
     userId: string,
     user: Document,
     classCode: string,
-    squads: Array<{ id?: string; name: string; projectTitle: string; repoUrl?: string; members: string[] }>,
+    squads: Array<{
+      id?: string;
+      name: string;
+      projectTitle: string;
+      repoUrl?: string;
+      sprintStatus?: string;
+      status?: string;
+      members: string[];
+    }>,
   ) {
     return this.communicationService.saveClassSquads(userId, user, classCode, squads);
   }

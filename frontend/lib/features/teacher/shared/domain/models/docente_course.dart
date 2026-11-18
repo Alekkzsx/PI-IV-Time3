@@ -51,17 +51,25 @@ class CourseMaterial {
   final String id;
   final String courseId;
   final String title;
+  final String fileName;
   final String date;
   final String size;
   final String type;
+  final String unitAssociated;
+  final String category;
+  final String? downloadUrl;
 
   const CourseMaterial({
     required this.id,
     required this.courseId,
     required this.title,
+    this.fileName = '',
     required this.date,
     required this.size,
     required this.type,
+    this.unitAssociated = 'Unidade 1',
+    this.category = 'Material Complementar',
+    this.downloadUrl,
   });
 }
 
@@ -85,6 +93,12 @@ class DocenteCourse {
   final String? workloadCompletedLabelValue;
   final String? workloadTotalLabelValue;
   final String? progressCaptionValue;
+  final String syllabus;
+  final String objectives;
+  final String methodology;
+  final String evaluationFormula;
+  final List<Map<String, dynamic>> bibliography;
+  final List<Map<String, dynamic>> enrolledStudents;
   final List<SyllabusUnit> syllabusUnits;
   final List<CourseMaterial> materials;
   final bool gradeLocked;
@@ -130,6 +144,12 @@ class DocenteCourse {
     this.workloadCompletedLabelValue,
     this.workloadTotalLabelValue,
     this.progressCaptionValue,
+    this.syllabus = '',
+    this.objectives = '',
+    this.methodology = '',
+    this.evaluationFormula = '(N1 × 0.4) + (N2 × 0.6)',
+    this.bibliography = const [],
+    this.enrolledStudents = const [],
     required this.syllabusUnits,
     required this.materials,
     this.gradeLocked = false,
@@ -215,6 +235,12 @@ class DocenteCourse {
     String? workloadCompletedLabelValue,
     String? workloadTotalLabelValue,
     String? progressCaptionValue,
+    String? syllabus,
+    String? objectives,
+    String? methodology,
+    String? evaluationFormula,
+    List<Map<String, dynamic>>? bibliography,
+    List<Map<String, dynamic>>? enrolledStudents,
     List<SyllabusUnit>? syllabusUnits,
     List<CourseMaterial>? materials,
     bool? gradeLocked,
@@ -249,6 +275,12 @@ class DocenteCourse {
       workloadTotalLabelValue:
           workloadTotalLabelValue ?? this.workloadTotalLabelValue,
       progressCaptionValue: progressCaptionValue ?? this.progressCaptionValue,
+      syllabus: syllabus ?? this.syllabus,
+      objectives: objectives ?? this.objectives,
+      methodology: methodology ?? this.methodology,
+      evaluationFormula: evaluationFormula ?? this.evaluationFormula,
+      bibliography: bibliography ?? this.bibliography,
+      enrolledStudents: enrolledStudents ?? this.enrolledStudents,
       syllabusUnits: syllabusUnits ?? this.syllabusUnits,
       materials: materials ?? this.materials,
       gradeLocked: gradeLocked ?? this.gradeLocked,

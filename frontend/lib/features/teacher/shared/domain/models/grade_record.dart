@@ -1,7 +1,7 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 /// Academic standing of a student in the official gradebook.
-enum AcademicStatus { aprovado, exame, reprovadoPorNota, reprovadoPorFalta }
+enum AcademicStatus { semNotas, aprovado, exame, reprovadoPorNota, reprovadoPorFalta }
 
 /// Represents a student's grade record inside the official gradebook.
 class StudentGrade {
@@ -14,6 +14,7 @@ class StudentGrade {
   final double projectsScore;
   final double p2Score;
   final double attendanceRate;
+  final bool hasGrades;
 
   const StudentGrade({
     required this.studentId,
@@ -25,6 +26,7 @@ class StudentGrade {
     required this.projectsScore,
     required this.p2Score,
     required this.attendanceRate,
+    this.hasGrades = true,
   });
 
   /// N1 = (assignmentsScore * 0.4) + (p1Score * 0.6)
@@ -52,6 +54,15 @@ class StudentGrade {
     if (attendanceRate < 75.0) {
       return AcademicStatus.reprovadoPorFalta;
     }
+    final hasAnyScore =
+        hasGrades ||
+        assignmentsScore > 0 ||
+        p1Score > 0 ||
+        projectsScore > 0 ||
+        p2Score > 0;
+    if (!hasAnyScore) {
+      return AcademicStatus.semNotas;
+    }
     if (finalAverage >= 6.0) {
       return AcademicStatus.aprovado;
     }
@@ -64,6 +75,8 @@ class StudentGrade {
   /// Academic standing as string.
   String get statusLabel {
     switch (status) {
+      case AcademicStatus.semNotas:
+        return 'Em Curso';
       case AcademicStatus.aprovado:
         return 'Aprovado';
       case AcademicStatus.exame:
@@ -85,6 +98,7 @@ class StudentGrade {
     double? projectsScore,
     double? p2Score,
     double? attendanceRate,
+    bool? hasGrades,
   }) {
     return StudentGrade(
       studentId: studentId ?? this.studentId,
@@ -96,6 +110,7 @@ class StudentGrade {
       projectsScore: projectsScore ?? this.projectsScore,
       p2Score: p2Score ?? this.p2Score,
       attendanceRate: attendanceRate ?? this.attendanceRate,
+      hasGrades: hasGrades ?? this.hasGrades,
     );
   }
 }

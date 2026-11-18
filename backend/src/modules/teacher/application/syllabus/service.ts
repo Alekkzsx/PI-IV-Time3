@@ -59,4 +59,46 @@ export class TeacherSyllabusService {
       workloadTotalLabel,
     };
   }
+
+  async updateSyllabusPlan(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: {
+      syllabus?: string;
+      objectives?: string;
+      methodology?: string;
+      evaluationFormula?: string;
+      bibliography?: Array<{ type: string; title: string; authors: string; publisher?: string; year?: string }>;
+    },
+  ) {
+    const classroom = await this.classAccess.requireOwnedClass(userId, user, classCode);
+    const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+    if (input.syllabus !== undefined) {
+      updateSet.syllabus = input.syllabus.trim();
+      updateSet.ementa = input.syllabus.trim();
+    }
+    if (input.objectives !== undefined) updateSet.objectives = input.objectives.trim();
+    if (input.methodology !== undefined) updateSet.methodology = input.methodology.trim();
+    if (input.evaluationFormula !== undefined) updateSet.evaluationFormula = input.evaluationFormula.trim();
+    if (input.bibliography !== undefined) updateSet.bibliography = input.bibliography;
+
+    await this.database
+      .collection("academic_classes")
+      .updateOne({ _id: classroom._id }, { $set: updateSet });
+
+    return {
+      ok: true,
+      classCode: classroom.code,
+      syllabus: (updateSet.syllabus as string | undefined) ?? String(classroom.syllabus ?? classroom.ementa ?? ""),
+      objectives: (updateSet.objectives as string | undefined) ?? String(classroom.objectives ?? ""),
+      methodology: (updateSet.methodology as string | undefined) ?? String(classroom.methodology ?? ""),
+      evaluationFormula:
+        (updateSet.evaluationFormula as string | undefined) ??
+        String(classroom.evaluationFormula ?? "(N1 × 0.4) + (N2 × 0.6)"),
+      bibliography:
+        (updateSet.bibliography as unknown[] | undefined) ??
+        (Array.isArray(classroom.bibliography) ? classroom.bibliography : []),
+    };
+  }
 }

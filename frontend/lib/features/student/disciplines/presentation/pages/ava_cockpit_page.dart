@@ -57,6 +57,11 @@ class _AvaCockpitPageState extends State<AvaCockpitPage> {
     }
     _controller.activeAvaTabIndex = widget.initialTabIndex;
     _controller.addListener(_onControllerChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.refreshIfStale();
+      }
+    });
   }
 
   @override
@@ -86,6 +91,7 @@ class _AvaCockpitPageState extends State<AvaCockpitPage> {
   /// Altera a disciplina ativa em foco no cockpit.
   void switchDiscipline(StudentDisciplineModel newDisc) {
     _controller.selectDiscipline(newDisc);
+    _controller.refreshIfStale();
     widget.onSwitchDiscipline?.call(newDisc);
     setState(() {
       _currentDiscipline = newDisc;

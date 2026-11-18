@@ -166,7 +166,10 @@ class _StudentDashboardPageState extends State<DashboardPage> {
         .toList();
     final nextDue = pending.isEmpty
         ? 'Nenhuma pendente'
-        : '${pending.first.dueDate} às ${pending.first.dueHour}';
+        : (pending.first.dueDate.contains('às') ||
+                  pending.first.dueHour.trim().isEmpty
+              ? pending.first.dueDate
+              : '${pending.first.dueDate} às ${pending.first.dueHour}');
     final completedHours = (stats['completedHoursSemester'] as num?)?.toInt() ?? 0;
     final totalHours = (stats['totalHoursSemester'] as num?)?.toInt() ?? 0;
     final hoursProgress = totalHours > 0 ? completedHours / totalHours : 0.0;
@@ -306,20 +309,30 @@ class _StudentDashboardPageState extends State<DashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                footLabel,
-                style: jakarta(
-                  size: 12,
-                  color: const Color(0xFF71717A),
-                  weight: FontWeight.w400,
+              Flexible(
+                child: Text(
+                  footLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 12,
+                    color: const Color(0xFF71717A),
+                    weight: FontWeight.w400,
+                  ),
                 ),
               ),
-              Text(
-                footValue,
-                style: jakarta(
-                  size: 12,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  footValue,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: jakarta(
+                    size: 12,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
+                  ),
                 ),
               ),
             ],
@@ -377,7 +390,9 @@ class _StudentDashboardPageState extends State<DashboardPage> {
           (delivery) => StudentDeadlineItemData(
             delivery.title,
             delivery.disciplineName,
-            '${delivery.dueDate} às ${delivery.dueHour}',
+            delivery.dueDate.contains('às') || delivery.dueHour.trim().isEmpty
+                ? delivery.dueDate
+                : '${delivery.dueDate} às ${delivery.dueHour}',
           ),
         )
         .toList();
