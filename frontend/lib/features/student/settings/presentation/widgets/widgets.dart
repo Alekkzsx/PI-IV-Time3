@@ -11,3 +11,4 @@ export 'cards/privacy_lgpd_card.dart';
 export 'cards/profile_settings_card.dart';
 export 'cards/security_sessions_card.dart';
 export 'cards/system_preferences_card.dart';
+export 'common/settings_common_widgets.dart';

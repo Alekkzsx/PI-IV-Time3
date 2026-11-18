@@ -5,6 +5,7 @@ import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
+import '../common/settings_common_widgets.dart';
 
 /// [NotificationPrefsCard]
 ///
@@ -110,214 +111,63 @@ class _StudentNotificationPrefsCardState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 1. Canais de Comunicação
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E4E7)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
+        SettingsSectionCard(
+          icon: Icons.notifications_active_outlined,
+          title: 'Canais de Comunicação Principais',
+          subtitle:
+              'Escolha por onde deseja ser avisado sobre prazos de entrega, notas lançadas e requerimentos.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Canais de Comunicação Principais',
-                style: jakarta(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Escolha por onde deseja ser avisado sobre prazos de entrega, notas lançadas e requerimentos.',
-                style: jakarta(size: 12, color: const Color(0xFF71717A)),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFA),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE4E4E7)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF18181B),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.notifications_active_rounded,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Alertas no Portal (AVA)',
-                                  style: jakarta(
-                                    size: 12.5,
-                                    weight: FontWeight.w600,
-                                    color: const Color(0xFF18181B),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Sino superior e popups no painel.',
-                                  style: jakarta(
-                                    size: 10.5,
-                                    color: const Color(0xFF71717A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: widget.controller.pushNotifications,
-                            onChanged: (val) => setState(
-                              () => widget.controller.pushNotifications = val,
-                            ),
-                            activeTrackColor: const Color(0xFF16A34A),
-                            activeThumbColor: Colors.white,
-                          ),
-                        ],
-                      ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final portalCard = _buildChannelTile(
+                    icon: Icons.notifications_active_rounded,
+                    title: 'Alertas no Portal (AVA)',
+                    subtitle: 'Sino superior e popups no painel.',
+                    value: widget.controller.pushNotifications,
+                    onChanged: (val) => setState(
+                      () => widget.controller.pushNotifications = val,
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAFAFA),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE4E4E7)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF18181B),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.mail_outline_rounded,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'E-mail Institucional',
-                                  style: jakarta(
-                                    size: 12.5,
-                                    weight: FontWeight.w600,
-                                    color: const Color(0xFF18181B),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Envio no @aluno.universidade.edu.br.',
-                                  style: jakarta(
-                                    size: 10.5,
-                                    color: const Color(0xFF71717A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: widget.controller.emailNotifications,
-                            onChanged: (val) => setState(
-                              () => widget.controller.emailNotifications = val,
-                            ),
-                            activeTrackColor: const Color(0xFF16A34A),
-                            activeThumbColor: Colors.white,
-                          ),
-                        ],
-                      ),
+                  );
+                  final emailCard = _buildChannelTile(
+                    icon: Icons.mail_outline_rounded,
+                    title: 'E-mail Institucional',
+                    subtitle: 'Envio no @aluno.universidade.edu.br.',
+                    value: widget.controller.emailNotifications,
+                    onChanged: (val) => setState(
+                      () => widget.controller.emailNotifications = val,
                     ),
-                  ),
-                ],
+                  );
+
+                  if (constraints.maxWidth < 620) {
+                    return Column(
+                      children: [
+                        portalCard,
+                        const SizedBox(height: 12),
+                        emailCard,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: portalCard),
+                      const SizedBox(width: 14),
+                      Expanded(child: emailCard),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE4E4E7)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF18181B),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.sms_outlined,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Alertas Críticos via SMS',
-                            style: jakarta(
-                              size: 12.5,
-                              weight: FontWeight.w600,
-                              color: const Color(0xFF18181B),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Avisos de alterações emergenciais de sala ou suspensões de aula no seu celular cadastrado.',
-                            style: jakarta(
-                              size: 10.5,
-                              color: const Color(0xFF71717A),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: widget.controller.smsNotifications,
-                      onChanged: (val) => setState(
-                        () => widget.controller.smsNotifications = val,
-                      ),
-                      activeTrackColor: const Color(0xFF16A34A),
-                      activeThumbColor: Colors.white,
-                    ),
-                  ],
-                ),
+              _buildChannelTile(
+                icon: Icons.sms_outlined,
+                title: 'Alertas Críticos via SMS',
+                subtitle:
+                    'Avisos de alterações emergenciais de sala ou suspensões de aula no seu celular cadastrado.',
+                value: widget.controller.smsNotifications,
+                onChanged: (val) =>
+                    setState(() => widget.controller.smsNotifications = val),
               ),
             ],
           ),
@@ -325,37 +175,14 @@ class _StudentNotificationPrefsCardState
         const SizedBox(height: 20),
 
         // 2. Notificações por Categoria Acadêmica
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E4E7)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
+        SettingsSectionCard(
+          icon: Icons.tune_rounded,
+          title: 'Categorias de Eventos Acadêmicos',
+          subtitle:
+              'Personalize o comportamento de cada tipo de alerta gerado pelos docentes e pela secretaria.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Categorias de Eventos Acadêmicos',
-                style: jakarta(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Personalize o comportamento de cada tipo de alerta gerado pelos docentes e pela secretaria.',
-                style: jakarta(size: 12, color: const Color(0xFF71717A)),
-              ),
-              const SizedBox(height: 20),
 
               // Categoria 1: Notas e Faltas Lançadas
               _buildCategoryRow(
@@ -382,7 +209,10 @@ class _StudentNotificationPrefsCardState
                 onEmailChanged: (v) => setState(() => _prazosEmail = v),
                 extraWidget: Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: Row(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       Text(
                         'Antecedência do lembrete: ',
@@ -391,7 +221,6 @@ class _StudentNotificationPrefsCardState
                           color: const Color(0xFF71717A),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       DropdownButton<String>(
                         value: _antecedenciaPrazos,
                         isDense: true,
@@ -508,43 +337,73 @@ class _StudentNotificationPrefsCardState
               const SizedBox(height: 24),
 
               // Botão de Salvar Preferências
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _isSaving ? null : _savePreferences,
-                    icon: const Icon(
-                      Icons.check,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      'Salvar Preferências de Notificação',
-                      style: jakarta(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF18181B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ),
-                ],
+              SettingsSaveButton(
+                label: 'Salvar Preferências de Notificação',
+                onPressed: _isSaving ? null : _savePreferences,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildChannelTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFF18181B),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: jakarta(
+                    size: 12.5,
+                    weight: FontWeight.w600,
+                    color: const Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: jakarta(
+                    size: 10.5,
+                    color: const Color(0xFF71717A),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: const Color(0xFF16A34A),
+            activeThumbColor: Colors.white,
+          ),
+        ],
+      ),
     );
   }
 
@@ -558,85 +417,105 @@ class _StudentNotificationPrefsCardState
     required ValueChanged<bool> onEmailChanged,
     Widget? extraWidget,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final switches = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF4F4F5),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(icon, size: 18, color: const Color(0xFF18181B)),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: jakarta(
-                  size: 13,
-                  weight: FontWeight.w600,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                description,
-                style: jakarta(size: 11, color: const Color(0xFF71717A)),
-              ),
-              if (extraWidget != null) extraWidget,
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Column(
           children: [
-            Column(
-              children: [
-                Text(
-                  'Portal',
-                  style: jakarta(
-                    size: 10,
-                    weight: FontWeight.w500,
-                    color: const Color(0xFF71717A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Switch(
-                  value: portalVal,
-                  onChanged: onPortalChanged,
-                  activeTrackColor: const Color(0xFF16A34A),
-                  activeThumbColor: Colors.white,
-                ),
-              ],
+            Text(
+              'Portal',
+              style: jakarta(
+                size: 10,
+                weight: FontWeight.w500,
+                color: const Color(0xFF71717A),
+              ),
             ),
-            const SizedBox(width: 8),
-            Column(
-              children: [
-                Text(
-                  'E-mail',
-                  style: jakarta(
-                    size: 10,
-                    weight: FontWeight.w500,
-                    color: const Color(0xFF71717A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Switch(
-                  value: emailVal,
-                  onChanged: onEmailChanged,
-                  activeTrackColor: const Color(0xFF16A34A),
-                  activeThumbColor: Colors.white,
-                ),
-              ],
+            const SizedBox(height: 2),
+            Switch(
+              value: portalVal,
+              onChanged: onPortalChanged,
+              activeTrackColor: const Color(0xFF16A34A),
+              activeThumbColor: Colors.white,
+            ),
+          ],
+        ),
+        const SizedBox(width: 8),
+        Column(
+          children: [
+            Text(
+              'E-mail',
+              style: jakarta(
+                size: 10,
+                weight: FontWeight.w500,
+                color: const Color(0xFF71717A),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Switch(
+              value: emailVal,
+              onChanged: onEmailChanged,
+              activeTrackColor: const Color(0xFF16A34A),
+              activeThumbColor: Colors.white,
             ),
           ],
         ),
       ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 460;
+        final headerRow = Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F4F5),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 18, color: const Color(0xFF18181B)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF18181B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: jakarta(size: 11, color: const Color(0xFF71717A)),
+                  ),
+                  if (extraWidget != null) extraWidget,
+                ],
+              ),
+            ),
+            if (!isNarrow) ...[
+              const SizedBox(width: 16),
+              switches,
+            ],
+          ],
+        );
+
+        if (!isNarrow) return headerRow;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            headerRow,
+            const SizedBox(height: 10),
+            Align(alignment: Alignment.centerRight, child: switches),
+          ],
+        );
+      },
     );
   }
 }

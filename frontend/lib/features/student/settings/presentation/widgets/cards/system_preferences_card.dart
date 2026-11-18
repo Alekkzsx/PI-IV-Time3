@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import '../common/settings_common_widgets.dart';
 
 /// [SystemPreferencesCard]
 ///
@@ -92,227 +93,148 @@ class _StudentSystemPreferencesCardState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 1. Aparência & Tema
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E4E7)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Aparência & Tema da Interface',
-                style: jakarta(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Defina a identidade visual da plataforma para seus momentos de estudo.',
-                style: jakarta(size: 12, color: const Color(0xFF71717A)),
-              ),
-              const SizedBox(height: 18),
-              Row(
+        SettingsSectionCard(
+          icon: Icons.palette_outlined,
+          title: 'Aparência & Tema da Interface',
+          subtitle:
+              'Defina a identidade visual da plataforma para seus momentos de estudo.',
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final claroCard = _buildThemeOptionCard(
+                id: 'claro',
+                title: 'Claro (Padrão AGMRM)',
+                description:
+                    'Visual padrão com fundo claro e tipografia de alto contraste.',
+                icon: Icons.light_mode_outlined,
+              );
+              final escuroCard = _buildThemeOptionCard(
+                id: 'escuro',
+                title: 'Modo Noturno',
+                description:
+                    'Reduz fadiga ocular em estudos noturnos ou baixa luminosidade.',
+                icon: Icons.dark_mode_outlined,
+              );
+              final sistemaCard = _buildThemeOptionCard(
+                id: 'sistema',
+                title: 'Sincronizar com SO',
+                description:
+                    'Alterna automaticamente com o tema configurado no dispositivo.',
+                icon: Icons.brightness_auto_outlined,
+              );
+
+              if (constraints.maxWidth < 600) {
+                return Column(
+                  children: [
+                    claroCard,
+                    const SizedBox(height: 12),
+                    escuroCard,
+                    const SizedBox(height: 12),
+                    sistemaCard,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _buildThemeOptionCard(
-                      id: 'claro',
-                      title: 'Claro (Padrão AGMRM)',
-                      description:
-                          'Visual padrão com fundo claro e tipografia de alto contraste.',
-                      icon: Icons.light_mode_outlined,
-                    ),
-                  ),
+                  Expanded(child: claroCard),
                   const SizedBox(width: 14),
-                  Expanded(
-                    child: _buildThemeOptionCard(
-                      id: 'escuro',
-                      title: 'Modo Noturno',
-                      description:
-                          'Reduz fadiga ocular em estudos noturnos ou baixa luminosidade.',
-                      icon: Icons.dark_mode_outlined,
-                    ),
-                  ),
+                  Expanded(child: escuroCard),
                   const SizedBox(width: 14),
-                  Expanded(
-                    child: _buildThemeOptionCard(
-                      id: 'sistema',
-                      title: 'Sincronizar com SO',
-                      description:
-                          'Alterna automaticamente com o tema configurado no dispositivo.',
-                      icon: Icons.brightness_auto_outlined,
-                    ),
-                  ),
+                  Expanded(child: sistemaCard),
                 ],
-              ),
-            ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 20),
 
         // 2. Acessibilidade & Densidade de Visualização
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E4E7)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
+        SettingsSectionCard(
+          icon: Icons.accessibility_new_rounded,
+          title: 'Acessibilidade, Fontes & Densidade',
+          subtitle:
+              'Ajustes de escala tipográfica e espaçamento de tabelas de notas e tarefas.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Acessibilidade, Fontes & Densidade',
-                style: jakarta(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Ajustes de escala tipográfica e espaçamento de tabelas de notas e tarefas.',
-                style: jakarta(size: 12, color: const Color(0xFF71717A)),
-              ),
-              const SizedBox(height: 20),
-
               // Escala Tipográfica
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Escala Tipográfica da Interface',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
-                        ),
+              _buildPreferenceRow(
+                title: 'Escala Tipográfica da Interface',
+                subtitle:
+                    'Aumente o tamanho de textos caso utilize monitores de alta densidade.',
+                control: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE4E4E7)),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _typographyScale,
+                    underline: const SizedBox(),
+                    style: jakarta(
+                      size: 12,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF18181B),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Normal (100%)',
+                        child: Text('Normal (100%)'),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Aumente o tamanho de textos caso utilize monitores de alta densidade.',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
-                        ),
+                      DropdownMenuItem(
+                        value: 'Média (+10%)',
+                        child: Text('Média (+10%)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Grande (+20%)',
+                        child: Text('Grande (+20%)'),
                       ),
                     ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _typographyScale = val);
+                    },
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFE4E4E7)),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _typographyScale,
-                      underline: const SizedBox(),
-                      style: jakarta(
-                        size: 12,
-                        weight: FontWeight.w600,
-                        color: const Color(0xFF18181B),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Normal (100%)',
-                          child: Text('Normal (100%)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Média (+10%)',
-                          child: Text('Média (+10%)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Grande (+20%)',
-                          child: Text('Grande (+20%)'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _typographyScale = val);
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
               const Divider(height: 32, color: Color(0xFFF4F4F5)),
 
               // Densidade de Tabelas
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Densidade de Tabelas e Listas',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
-                        ),
+              _buildPreferenceRow(
+                title: 'Densidade de Tabelas e Listas',
+                subtitle:
+                    'Controle a altura das linhas em diários de presença e boletins de notas.',
+                control: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE4E4E7)),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _tableDensity,
+                    underline: const SizedBox(),
+                    style: jakarta(
+                      size: 12,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF18181B),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Confortável',
+                        child: Text('Confortável'),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Controle a altura das linhas em diários de presença e boletins de notas.',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
-                        ),
+                      DropdownMenuItem(
+                        value: 'Compacto',
+                        child: Text('Compacto'),
                       ),
                     ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _tableDensity = val);
+                    },
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFE4E4E7)),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _tableDensity,
-                      underline: const SizedBox(),
-                      style: jakarta(
-                        size: 12,
-                        weight: FontWeight.w600,
-                        color: const Color(0xFF18181B),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Confortável',
-                          child: Text('Confortável'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Compacto',
-                          child: Text('Compacto'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _tableDensity = val);
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
               const Divider(height: 32, color: Color(0xFFF4F4F5)),
 
@@ -320,27 +242,30 @@ class _StudentSystemPreferencesCardState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Modo de Alto Contraste (WCAG AAA)',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Modo de Alto Contraste (WCAG AAA)',
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: const Color(0xFF18181B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Maximiza a separação entre texto e elementos de fundo para acessibilidade.',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Maximiza a separação entre texto e elementos de fundo para acessibilidade.',
+                          style: jakarta(
+                            size: 11,
+                            color: const Color(0xFF71717A),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Switch(
                     value: _highContrast,
                     onChanged: (v) => setState(() => _highContrast = v),
@@ -355,27 +280,30 @@ class _StudentSystemPreferencesCardState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Reduzir Movimento e Transições',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Reduzir Movimento e Transições',
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: const Color(0xFF18181B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Desativa micro-animações em modais e transições de tela no portal.',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Desativa micro-animações em modais e transições de tela no portal.',
+                          style: jakarta(
+                            size: 11,
+                            color: const Color(0xFF71717A),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Switch(
                     value: _reduceMotion,
                     onChanged: (v) => setState(() => _reduceMotion = v),
@@ -390,142 +318,76 @@ class _StudentSystemPreferencesCardState
         const SizedBox(height: 20),
 
         // 3. Formato, Horário & Calendário Acadêmico
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4E4E7)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
+        SettingsSectionCard(
+          icon: Icons.calendar_month_outlined,
+          title: 'Localização & Calendário Acadêmico',
+          subtitle:
+              'Padrões de fuso horário, formato de datas e dias de aula.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Localização & Calendário Acadêmico',
-                style: jakarta(
-                  size: 14,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Padrões de fuso horário, formato de datas e dias de aula.',
-                style: jakarta(size: 12, color: const Color(0xFF71717A)),
-              ),
-              const SizedBox(height: 20),
-
               // Formato de Data & Fuso
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Formato de Data e Horário',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'DD/MM/AAAA • 24 Horas (Horário Oficial de Brasília - UTC-3)',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
-                        ),
-                      ),
-                    ],
+              _buildPreferenceRow(
+                title: 'Formato de Data e Horário',
+                subtitle:
+                    'DD/MM/AAAA • 24 Horas (Horário Oficial de Brasília - UTC-3)',
+                control: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFE4E4E7)),
-                    ),
-                    child: Text(
-                      'DD/MM/AAAA (24h)',
-                      style: jakarta(
-                        size: 11.5,
-                        weight: FontWeight.w600,
-                        color: const Color(0xFF18181B),
-                      ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE4E4E7)),
+                  ),
+                  child: Text(
+                    'DD/MM/AAAA (24h)',
+                    style: jakarta(
+                      size: 11.5,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF18181B),
                     ),
                   ),
-                ],
+                ),
               ),
               const Divider(height: 32, color: Color(0xFFF4F4F5)),
 
               // Primeiro dia da semana
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Primeiro Dia da Semana no Calendário',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
-                        ),
+              _buildPreferenceRow(
+                title: 'Primeiro Dia da Semana no Calendário',
+                subtitle:
+                    'Define qual dia aparece na primeira coluna da grade mensal de estudos.',
+                control: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE4E4E7)),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _firstDayOfWeek,
+                    underline: const SizedBox(),
+                    style: jakarta(
+                      size: 12,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF18181B),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Domingo (Padrão)',
+                        child: Text('Domingo (Padrão)'),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Define qual dia aparece na primeira coluna da grade mensal de estudos.',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
-                        ),
+                      DropdownMenuItem(
+                        value: 'Segunda-feira',
+                        child: Text('Segunda-feira'),
                       ),
                     ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _firstDayOfWeek = val);
+                    },
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFAFAFA),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFE4E4E7)),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _firstDayOfWeek,
-                      underline: const SizedBox(),
-                      style: jakarta(
-                        size: 12,
-                        weight: FontWeight.w600,
-                        color: const Color(0xFF18181B),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Domingo (Padrão)',
-                          child: Text('Domingo (Padrão)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Segunda-feira',
-                          child: Text('Segunda-feira'),
-                        ),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _firstDayOfWeek = val);
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
               const Divider(height: 32, color: Color(0xFFF4F4F5)),
 
@@ -533,27 +395,30 @@ class _StudentSystemPreferencesCardState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ocultar Finais de Semana no Cronograma Semanal',
-                        style: jakarta(
-                          size: 13,
-                          weight: FontWeight.w600,
-                          color: const Color(0xFF18181B),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ocultar Finais de Semana no Cronograma Semanal',
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w600,
+                            color: const Color(0xFF18181B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Exibe apenas de Segunda a Sexta nas visualizações de horário de aula.',
-                        style: jakarta(
-                          size: 11,
-                          color: const Color(0xFF71717A),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Exibe apenas de Segunda a Sexta nas visualizações de horário de aula.',
+                          style: jakarta(
+                            size: 11,
+                            color: const Color(0xFF71717A),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Switch(
                     value: _hideWeekends,
                     onChanged: (v) => setState(() => _hideWeekends = v),
@@ -565,43 +430,66 @@ class _StudentSystemPreferencesCardState
               const SizedBox(height: 24),
 
               // Botão de Salvar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _isSaving ? null : _savePreferences,
-                    icon: const Icon(
-                      Icons.check,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      'Salvar Preferências do Sistema',
-                      style: jakarta(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF18181B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ),
-                ],
+              SettingsSaveButton(
+                label: 'Salvar Preferências do Sistema',
+                onPressed: _isSaving ? null : _savePreferences,
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPreferenceRow({
+    required String title,
+    required String subtitle,
+    required Widget control,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textBlock = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: jakarta(
+                size: 13,
+                weight: FontWeight.w600,
+                color: const Color(0xFF18181B),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: jakarta(
+                size: 11,
+                color: const Color(0xFF71717A),
+              ),
+            ),
+          ],
+        );
+
+        if (constraints.maxWidth < 460) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              textBlock,
+              const SizedBox(height: 10),
+              Align(alignment: Alignment.centerRight, child: control),
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: textBlock),
+            const SizedBox(width: 12),
+            control,
+          ],
+        );
+      },
     );
   }
 

@@ -140,3 +140,4 @@ desktop.ini
 
 # ─── 8. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
 !.github/
+server/server.pid

@@ -408,6 +408,41 @@ void main() {
       expect(find.text('Privacidade & LGPD'), findsOneWidget);
     });
 
+    testWidgets(
+      'Alterna subabas de configuracoes sem overflow em desktop e mobile',
+      (tester) async {
+        final controller = StudentPortalController.instance;
+        final previousSubtab = controller.settingsSubtab;
+        addTearDown(() => controller.setSettingsSubtab(previousSubtab));
+
+        for (final size in const [Size(1280, 900), Size(390, 844)]) {
+          await tester.binding.setSurfaceSize(size);
+          await tester.pumpWidget(
+            const MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(child: StudentSettingsPage()),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          for (final entry in const [
+            ('seguranca', 'Segurança da conta'),
+            ('notificacoes', 'Canais de Comunicação Principais'),
+            ('preferencias', 'Aparência & Tema da Interface'),
+            ('privacidade', 'Visibilidade de Perfil & Dados entre Colegas'),
+          ]) {
+            controller.setSettingsSubtab(entry.$1);
+            await tester.pump();
+            expect(find.text(entry.$2), findsOneWidget);
+          }
+
+          expect(tester.takeException(), isNull);
+        }
+        await tester.binding.setSurfaceSize(null);
+      },
+    );
+
     testWidgets('Renderiza StudentAvaCockpitPage com as 12 abas de disciplina', (
       tester,
     ) async {

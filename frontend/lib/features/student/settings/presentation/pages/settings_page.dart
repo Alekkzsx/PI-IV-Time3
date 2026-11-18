@@ -1,6 +1,7 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/student/shared/controllers/portal_controller.dart';
 import '../widgets/widgets.dart';
@@ -43,7 +44,7 @@ class _StudentSettingsPageState extends State<SettingsPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 860;
+        final isDesktop = constraints.maxWidth >= 900;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,23 +55,19 @@ class _StudentSettingsPageState extends State<SettingsPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Coluna Esquerda: Menu lateral de categorias (280px)
                   SizedBox(
-                    width: 280,
+                    width: 300,
                     child: _buildSettingsSidebar(subtab),
                   ),
                   const SizedBox(width: 24),
-                  // Coluna Direita: Conteúdo dinâmico da subaba selecionada
-                  Expanded(
-                    child: _buildSubtabContent(subtab),
-                  ),
+                  Expanded(child: _buildSubtabContent(subtab)),
                 ],
               )
             else
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildSettingsSidebar(subtab, isCompact: true),
+                  _buildCompactTabStrip(subtab),
                   const SizedBox(height: 20),
                   _buildSubtabContent(subtab),
                 ],
@@ -88,9 +85,10 @@ class _StudentSettingsPageState extends State<SettingsPage> {
         Text(
           'Configurações da Conta Discente',
           style: jakarta(
-            size: 20,
+            size: 22,
             weight: FontWeight.w700,
             color: const Color(0xFF18181B),
+            letterSpacing: -0.4,
           ),
         ),
         const SizedBox(height: 4),
@@ -100,46 +98,56 @@ class _StudentSettingsPageState extends State<SettingsPage> {
             size: 13,
             weight: FontWeight.w400,
             color: const Color(0xFF71717A),
+            height: 1.4,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSettingsSidebar(String activeSubtab, {bool isCompact = false}) {
-    final navItems = [
-      {
-        'key': 'perfil',
-        'title': 'Perfil & Identidade',
-        'subtitle': 'Foto, curso e dados acadêmicos oficiais',
-        'icon': Icons.person_outline_rounded,
-      },
-      {
-        'key': 'seguranca',
-        'title': 'Segurança & Acessos',
-        'subtitle': 'Senha, 2FA e sessões ativas',
-        'icon': Icons.shield_outlined,
-        'badge': _controller.isTwoFactorEnabled ? '2FA ATIVO' : 'DESATIVADO',
-      },
-      {
-        'key': 'notificacoes',
-        'title': 'Central de Notificações',
-        'subtitle': 'Alertas no portal, e-mails e SMS',
-        'icon': Icons.notifications_none_rounded,
-      },
-      {
-        'key': 'preferencias',
-        'title': 'Preferências do Sistema',
-        'subtitle': 'Tema, densidade e acessibilidade',
-        'icon': Icons.tune_rounded,
-      },
-      {
-        'key': 'privacidade',
-        'title': 'Privacidade & LGPD',
-        'subtitle': 'Visibilidade para turmas e termos',
-        'icon': Icons.lock_outline_rounded,
-      },
+  List<_SettingsNavMeta> _buildNavItems() {
+    return [
+      const _SettingsNavMeta(
+        key: 'perfil',
+        title: 'Perfil & Identidade',
+        subtitle: 'Foto, curso e dados acadêmicos oficiais',
+        icon: Icons.person_outline_rounded,
+      ),
+      _SettingsNavMeta(
+        key: 'seguranca',
+        title: 'Segurança & Acessos',
+        subtitle: 'Senha, 2FA e sessões ativas',
+        icon: Icons.shield_outlined,
+        statusLabel: _controller.isTwoFactorEnabled
+            ? '2FA Ativo'
+            : '2FA Desativado',
+        statusVariant: _controller.isTwoFactorEnabled
+            ? SettingsPillVariant.success
+            : SettingsPillVariant.warning,
+      ),
+      const _SettingsNavMeta(
+        key: 'notificacoes',
+        title: 'Central de Notificações',
+        subtitle: 'Alertas no portal, e-mails e SMS',
+        icon: Icons.notifications_none_rounded,
+      ),
+      const _SettingsNavMeta(
+        key: 'preferencias',
+        title: 'Preferências do Sistema',
+        subtitle: 'Tema, densidade e acessibilidade',
+        icon: Icons.tune_rounded,
+      ),
+      const _SettingsNavMeta(
+        key: 'privacidade',
+        title: 'Privacidade & LGPD',
+        subtitle: 'Visibilidade para turmas e termos',
+        icon: Icons.lock_outline_rounded,
+      ),
     ];
+  }
+
+  Widget _buildSettingsSidebar(String activeSubtab) {
+    final navItems = _buildNavItems();
 
     return Container(
       decoration: BoxDecoration(
@@ -157,95 +165,89 @@ class _StudentSettingsPageState extends State<SettingsPage> {
       padding: const EdgeInsets.all(8),
       child: Column(
         children: navItems.map((item) {
-          final isSelected = activeSubtab == item['key'];
-          final badgeText = item['badge'] as String?;
+          final isSelected = activeSubtab == item.key;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _controller.setSettingsSubtab(item['key'] as String),
+                onTap: () => _controller.setSettingsSubtab(item.key),
+                hoverColor: InstColors.stone,
                 borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF18181B) : Colors.transparent,
+                    color: isSelected
+                        ? InstColors.stoneActive
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFE4E4E7)
+                          : Colors.transparent,
+                    ),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        item['icon'] as IconData,
-                        size: 18,
-                        color: isSelected ? Colors.white : const Color(0xFF71717A),
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF18181B)
+                              : const Color(0xFFF4F4F5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          item.icon,
+                          size: 16,
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF52525B),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    item['title'] as String,
-                                    style: jakarta(
-                                      size: 13,
-                                      weight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                      color: isSelected ? Colors.white : const Color(0xFF18181B),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (badgeText != null) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? (_controller.isTwoFactorEnabled
-                                              ? const Color(0xFF15803D)
-                                              : const Color(0xFFB91C1C))
-                                          : (_controller.isTwoFactorEnabled
-                                              ? const Color(0xFFF0FDF4)
-                                              : const Color(0xFFFEF2F2)),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? Colors.transparent
-                                            : (_controller.isTwoFactorEnabled
-                                                ? const Color(0xFFBBF7D0)
-                                                : const Color(0xFFFECACA)),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      badgeText,
-                                      style: jakarta(
-                                        size: 9,
-                                        weight: FontWeight.w700,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : (_controller.isTwoFactorEnabled
-                                                ? const Color(0xFF16A34A)
-                                                : const Color(0xFFDC2626)),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            const SizedBox(height: 2),
                             Text(
-                              item['subtitle'] as String,
+                              item.title,
                               style: jakarta(
-                                size: 10.5,
-                                color: isSelected ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+                                size: 13,
+                                weight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: const Color(0xFF18181B),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item.subtitle,
+                              style: jakarta(
+                                size: 11,
+                                color: isSelected
+                                    ? const Color(0xFF52525B)
+                                    : const Color(0xFF71717A),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (item.statusLabel != null) ...[
+                              const SizedBox(height: 6),
+                              SettingsStatusPill(
+                                label: item.statusLabel!,
+                                variant: item.statusVariant,
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -256,6 +258,78 @@ class _StudentSettingsPageState extends State<SettingsPage> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildCompactTabStrip(String activeSubtab) {
+    final navItems = _buildNavItems();
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: navItems.map((item) {
+            final isSelected = activeSubtab == item.key;
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InkWell(
+                onTap: () => _controller.setSettingsSubtab(item.key),
+                borderRadius: BorderRadius.circular(8),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? InstColors.stoneActive
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFE4E4E7)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.icon,
+                        size: 16,
+                        color: isSelected
+                            ? const Color(0xFF18181B)
+                            : const Color(0xFF71717A),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        item.title,
+                        style: jakarta(
+                          size: 12.5,
+                          weight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFF18181B)
+                              : const Color(0xFF52525B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -278,5 +352,22 @@ class _StudentSettingsPageState extends State<SettingsPage> {
   }
 }
 
+class _SettingsNavMeta {
+  final String key;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String? statusLabel;
+  final SettingsPillVariant statusVariant;
+
+  const _SettingsNavMeta({
+    required this.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.statusLabel,
+    this.statusVariant = SettingsPillVariant.neutral,
+  });
+}
 
 typedef StudentSettingsPage = SettingsPage;

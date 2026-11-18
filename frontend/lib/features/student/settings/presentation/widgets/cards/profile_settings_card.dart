@@ -190,24 +190,11 @@ class _StudentProfileSettingsCardState extends State<ProfileSettingsCard> {
                 style: jakarta(size: 13, color: const Color(0xFF71717A)),
                 decoration: buildSettingsInputDecoration(
                   readOnly: true,
-                  suffix: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: const Color(0xFFBBF7D0)),
-                    ),
-                    child: Text(
-                      'Verificado',
-                      style: jakarta(
-                        size: 10,
-                        weight: FontWeight.w600,
-                        color: const Color(0xFF16A34A),
-                      ),
+                  suffix: const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: SettingsStatusPill(
+                      label: 'Verificado',
+                      variant: SettingsPillVariant.success,
                     ),
                   ),
                 ),
@@ -277,38 +264,9 @@ class _StudentProfileSettingsCardState extends State<ProfileSettingsCard> {
                 },
               ),
               const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _handleSave,
-                    icon: const Icon(
-                      Icons.check,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      'Salvar Alterações de Perfil',
-                      style: jakarta(
-                        size: 13,
-                        weight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF18181B),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                  ),
-                ],
+              SettingsSaveButton(
+                label: 'Salvar Alterações de Perfil',
+                onPressed: _handleSave,
               ),
             ],
           ),
