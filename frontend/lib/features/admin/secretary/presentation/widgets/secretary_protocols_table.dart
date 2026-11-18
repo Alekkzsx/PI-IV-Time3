@@ -101,15 +101,17 @@ class SecretaryProtocolsTable extends StatelessWidget {
   }
 
   Widget _buildTableRow(BuildContext context, AdminProtocolModel p) {
-    final isDeferido = p.status == 'Deferido';
-    final isAguardando =
-        p.status == 'Aguardando' || p.status == 'Aguardando Parecer';
+    final normalizedStatus =
+        AdminPortalController.normalizeProtocolStatus(p.status);
+    final isPositive =
+        normalizedStatus == 'Deferido' || normalizedStatus == 'Concluído';
+    final isAguardando = normalizedStatus == 'Aguardando Parecer';
 
     Color statusBg;
     Color statusBorder;
     Color statusText;
 
-    if (isDeferido) {
+    if (isPositive) {
       statusBg = const Color(0xFFF0FDF4);
       statusBorder = const Color(0xFFDCFCE7);
       statusText = const Color(0xFF16A34A);
@@ -234,7 +236,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
                   border: Border.all(color: statusBorder),
                 ),
                 child: Text(
-                  p.status,
+                  normalizedStatus,
                   style: jakarta(
                     size: 12,
                     weight: FontWeight.w600,

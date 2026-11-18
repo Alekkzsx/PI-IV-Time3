@@ -122,6 +122,11 @@ class _AdminShellPageState extends State<AdminShellPage> {
                     isCollapsed: false,
                     onTabSelected: (tab) {
                       Navigator.of(context).pop();
+                      _portal.clearSupervisionError(notify: false);
+                      if (_portal.users.isNotEmpty ||
+                          _portal.classes.isNotEmpty) {
+                        _portal.clearRemoteError(notify: false);
+                      }
                       setState(() => _activeTab = tab);
                     },
                     onLogout: () {
@@ -142,7 +147,14 @@ class _AdminShellPageState extends State<AdminShellPage> {
                       _isSidebarCollapsed = !_isSidebarCollapsed;
                     });
                   },
-                  onTabSelected: (tab) => setState(() => _activeTab = tab),
+                  onTabSelected: (tab) {
+                    _portal.clearSupervisionError(notify: false);
+                    if (_portal.users.isNotEmpty ||
+                        _portal.classes.isNotEmpty) {
+                      _portal.clearRemoteError(notify: false);
+                    }
+                    setState(() => _activeTab = tab);
+                  },
                   onLogout: _onLogout,
                 ),
               Expanded(
@@ -159,9 +171,14 @@ class _AdminShellPageState extends State<AdminShellPage> {
                             color: Color(0xFF18181B),
                           ),
                           tooltip: 'Prazos Regimentais',
-                          onPressed: () => setState(
-                            () => _activeTab = AdminNavTab.calendario,
-                          ),
+                          onPressed: () {
+                            _portal.clearSupervisionError(notify: false);
+                            if (_portal.users.isNotEmpty ||
+                                _portal.classes.isNotEmpty) {
+                              _portal.clearRemoteError(notify: false);
+                            }
+                            setState(() => _activeTab = AdminNavTab.calendario);
+                          },
                         ),
                         Stack(
                           clipBehavior: Clip.none,
@@ -218,6 +235,10 @@ class _AdminShellPageState extends State<AdminShellPage> {
                               MaterialBanner(
                                 content: Text(_portal.remoteError!),
                                 actions: [
+                                  TextButton(
+                                    onPressed: () => _portal.clearRemoteError(),
+                                    child: const Text('Fechar'),
+                                  ),
                                   TextButton(
                                     onPressed: () => _portal.loadRemote(),
                                     child: const Text('Tentar novamente'),

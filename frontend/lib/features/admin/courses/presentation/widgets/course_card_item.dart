@@ -3,13 +3,21 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/courses/presentation/widgets/course_matrix_syllabus_modal.dart';
+import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Card descritivo de um Curso com carga horária, fórmula e botão de matriz
 class CourseCardItem extends StatelessWidget {
   final AdminCourseModel course;
+  final VoidCallback? onUpdated;
+  final AdminAcademicDataSource? dataSource;
 
-  const CourseCardItem({super.key, required this.course});
+  const CourseCardItem({
+    super.key,
+    required this.course,
+    this.onUpdated,
+    this.dataSource,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +159,12 @@ class CourseCardItem extends StatelessWidget {
 
           // Botão Consultar Matriz Curricular & Ementário
           InkWell(
-            onTap: () => CourseMatrixSyllabusModal.show(context, course),
+            onTap: () => CourseMatrixSyllabusModal.show(
+              context,
+              course,
+              onUpdated: onUpdated,
+              dataSource: dataSource,
+            ),
             borderRadius: BorderRadius.circular(8),
             child: Container(
               width: double.infinity,

@@ -136,11 +136,27 @@ class UserSessionsDialog extends StatelessWidget {
                       for (final session in sessions!)
                         _buildDeviceRow(
                           icon: Icons.web,
-                          device: "Sessão autenticada",
-                          ip: "Origem não registrada",
+                          device:
+                              (session['device']
+                                      ?.toString()
+                                      .trim()
+                                      .isNotEmpty ==
+                                  true)
+                              ? session['device'].toString().trim()
+                              : 'Sessão autenticada',
+                          ip:
+                              (session['ipAddress']
+                                      ?.toString()
+                                      .trim()
+                                      .isNotEmpty ==
+                                  true)
+                              ? session['ipAddress'].toString().trim()
+                              : 'Origem não registrada',
                           lastActive:
-                              "Criada: ${session['createdAt']}\nExpira: ${session['expiresAt']}",
-                          isCurrent: false,
+                              'Criada: ${session['createdAt'] ?? '-'}\nExpira: ${session['expiresAt'] ?? '-'}',
+                          isCurrent:
+                              session['current'] == true ||
+                              session['isCurrent'] == true,
                         ),
                     ] else ...[
                       _buildDeviceRow(
@@ -237,57 +253,60 @@ class UserSessionsDialog extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Ações
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF71717A),
-                    side: const BorderSide(color: Color(0xFFE4E4E7)),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Fechar',
-                    style: jakarta(size: 13, weight: FontWeight.w600),
-                  ),
-                ),
-                if (hasSessions) ...[
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onTerminateAll();
-                    },
-                    icon: const Icon(
-                      Icons.power_settings_new_rounded,
-                      size: 16,
-                    ),
-                    label: Text(
-                      'Encerrar Todas as Sessões',
-                      style: jakarta(size: 13, weight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDC2626),
-                      foregroundColor: Colors.white,
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF71717A),
+                      side: const BorderSide(color: Color(0xFFE4E4E7)),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
+                        horizontal: 18,
                         vertical: 12,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Fechar',
+                      style: jakarta(size: 13, weight: FontWeight.w600),
                     ),
                   ),
+                  if (hasSessions)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onTerminateAll();
+                      },
+                      icon: const Icon(
+                        Icons.power_settings_new_rounded,
+                        size: 16,
+                      ),
+                      label: Text(
+                        'Encerrar Todas as Sessões',
+                        style: jakarta(size: 13, weight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
                 ],
-              ],
+              ),
             ),
           ],
         ),
@@ -321,12 +340,15 @@ class UserSessionsDialog extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
-                    device,
-                    style: jakarta(
-                      size: 13,
-                      weight: FontWeight.w600,
-                      color: const Color(0xFF0F172A),
+                  Flexible(
+                    child: Text(
+                      device,
+                      overflow: TextOverflow.ellipsis,
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF0F172A),
+                      ),
                     ),
                   ),
                   if (isCurrent) ...[

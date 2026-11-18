@@ -84,6 +84,12 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
     );
   }
 
+  String _formatDateLabel(String raw) {
+    final parsed = DateTime.tryParse(raw.trim())?.toLocal();
+    if (parsed == null) return raw;
+    return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
+  }
+
   Widget _buildProtocolItem(AdminRecentProtocolItemData item) {
     return InkWell(
       onTap: () => onItemTap?.call(item),
@@ -92,22 +98,31 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                item.studentName,
-                style: jakarta(
-                  size: 13.5,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF1A1A1A),
+              Expanded(
+                child: Text(
+                  item.studentName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 13.5,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF1A1A1A),
+                  ),
                 ),
               ),
-              Text(
-                item.dateText,
-                style: jakarta(
-                  size: 12.5,
-                  weight: FontWeight.w400,
-                  color: const Color(0xFFA3A3A3),
+              const SizedBox(width: 8),
+              Flexible(
+                flex: 0,
+                child: Text(
+                  _formatDateLabel(item.dateText),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 12.5,
+                    weight: FontWeight.w400,
+                    color: const Color(0xFFA3A3A3),
+                  ),
                 ),
               ),
             ],

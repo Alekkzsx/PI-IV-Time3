@@ -31,6 +31,48 @@ class SupervisionCockpitPage extends StatefulWidget {
 
 class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   final AdminPortalController _controller = AdminPortalController.instance;
+  late final TextEditingController _justificationController;
+  late final TextEditingController _profController;
+
+  AdminClassModel get _activeClass =>
+      _controller.classes
+          .where((item) => item.code == widget.classModel.code)
+          .firstOrNull ??
+      widget.classModel;
+
+  static String _initialProfessorInput(String professor) {
+    final normalized = professor.trim();
+    if (normalized.isEmpty ||
+        normalized == 'Não alocado' ||
+        normalized == 'Não atribuído') {
+      return '';
+    }
+    return normalized;
+  }
+
+  static String _formulaChoiceFromExpression(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('equitativa') ||
+        lower.contains('/ 2') ||
+        lower.contains('0.5')) {
+      return 'Equitativa (N1 50% / N2 50%)';
+    }
+    if (lower.contains('aritm') || lower.contains('contínu')) {
+      return 'Aritmética Simples';
+    }
+    return 'Ponderada (N1 40% / N2 60%)';
+  }
+
+  static String _formulaExpressionFor(String selected) {
+    switch (selected) {
+      case 'Equitativa (N1 50% / N2 50%)':
+        return '(N1 + N2) / 2';
+      case 'Aritmética Simples':
+        return 'Média aritmética de instrumentos contínuos';
+      default:
+        return '(N1 × 0.4) + (N2 × 0.6)';
+    }
+  }
 
   final List<String> _tabs = [
     'Diretriz & Regime Avaliativo',
@@ -51,13 +93,28 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   @override
   void initState() {
     super.initState();
+    final initialClass = _activeClass;
+    _justificationController = TextEditingController();
+    _profController = TextEditingController(
+      text: _initialProfessorInput(initialClass.professor),
+    );
+    _controller.selectedEvaluationFormula = _formulaChoiceFromExpression(
+      initialClass.evaluationFormula,
+    );
     _controller.addListener(_onUpdate);
-    _controller.loadClassSupervision(widget.classModel.code);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.loadClassSupervision(widget.classModel.code);
+      }
+    });
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onUpdate);
+    _controller.clearSupervisionError(notify: false);
+    _justificationController.dispose();
+    _profController.dispose();
     super.dispose();
   }
 
@@ -66,6 +123,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   }
 
   Future<void> _exportGrades() async {
+    final activeClass = _activeClass;
     final rows = [
       ['RA', 'Discente', 'N1', 'N2', 'Média', 'Faltas'],
       ..._controller.supervisedGrades.map(
@@ -83,7 +141,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
         .map((row) => row.map((field) => '"${field.replaceAll('"', '""')}"').join(';'))
         .join('\n');
     final saved = await PlatformFileHelper.saveOrDownloadFile(
-      fileName: 'pauta-${widget.classModel.code}.csv',
+      fileName: 'pauta-${activeClass.code}.csv',
       bytes: utf8.encode(csv),
       mimeType: 'text/csv',
     );
@@ -100,6 +158,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   @override
   Widget build(BuildContext context) {
+    final activeClass = _activeClass;
     return Container(
       color: InstColors.stone,
       child: SingleChildScrollView(
@@ -113,7 +172,15 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildCockpitHeader(),
+                  _buildCockpitHeader(activeClass),
+                  if (_controller.isLoadingSupervision) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(),
+                  ],
+                  if (_controller.supervisionError != null) ...[
+                    const SizedBox(height: 12),
+                    _buildSupervisionErrorBanner(activeClass),
+                  ],
                   const SizedBox(height: 16),
                   _buildTabBar(),
                   const SizedBox(height: 16),
@@ -127,10 +194,45 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     );
   }
 
+  Widget _buildSupervisionErrorBanner(AdminClassModel activeClass) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFDC2626),
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _controller.supervisionError!,
+              style: jakarta(
+                size: 12.5,
+                weight: FontWeight.w500,
+                color: const Color(0xFF991B1B),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _controller.loadClassSupervision(activeClass.code),
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ==========================================
   // CABEÇALHO DO CONSOLE DE SUPERVISÃO
   // ==========================================
-  Widget _buildCockpitHeader() {
+  Widget _buildCockpitHeader(AdminClassModel activeClass) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -155,7 +257,10 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             spacing: 12,
             children: [
               OutlinedButton.icon(
-                onPressed: widget.onBack,
+                onPressed: () {
+                  _controller.clearSupervisionError();
+                  widget.onBack();
+                },
                 icon: const Icon(Icons.arrow_back_rounded, size: 16),
                 label: const Text('Voltar para Gestão de Turmas'),
                 style: OutlinedButton.styleFrom(
@@ -179,7 +284,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     animation: AcademicBridgeService.instance,
                     builder: (context, _) {
                       final isLive = AcademicBridgeService.instance
-                          .isSessionOpen(widget.classModel.code);
+                          .isSessionOpen(activeClass.code);
                       return ElevatedButton.icon(
                         key: const Key('btn_admin_supervisionar_chamada'),
                         onPressed: _controller.canPerform('manage_video_calls')
@@ -187,7 +292,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                                 Navigator.of(context).pushNamed(
                                   '/video-call',
                                   arguments: {
-                                    'roomCode': widget.classModel.code,
+                                    'roomCode': activeClass.code,
                                   },
                                 );
                               }
@@ -222,9 +327,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     },
                   ),
                   _buildStatusBadge(
-                    isLocked: _controller.isGradeLockedFor(
-                      widget.classModel.code,
-                    ),
+                    isLocked: activeClass.gradeLocked ||
+                        _controller.isGradeLockedFor(activeClass.code),
                   ),
                 ],
               ),
@@ -264,7 +368,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      widget.classModel.subjectName,
+                      activeClass.subjectName,
                       style: jakarta(
                         size: 21,
                         weight: FontWeight.w700,
@@ -274,7 +378,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      '${widget.classModel.code}  ·  ${widget.classModel.courseAndTerm}',
+                      '${activeClass.code}  ·  ${activeClass.courseAndTerm}',
                       style: jakarta(
                         size: 12,
                         weight: FontWeight.w500,
@@ -283,7 +387,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      widget.classModel.location,
+                      activeClass.location,
                       style: jakarta(size: 12, color: InstColors.muted),
                     ),
                   ],
@@ -301,17 +405,17 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               _buildHeaderStat(
                 Icons.person_outline_rounded,
                 'Docente regente',
-                widget.classModel.professor,
+                activeClass.professor,
               ),
               _buildHeaderStat(
                 Icons.groups_outlined,
                 'Ocupação de vagas',
-                '${widget.classModel.enrolled} / ${widget.classModel.maxCapacity} alunos',
+                '${_controller.supervisedEnrollments.isNotEmpty ? _controller.supervisedEnrollments.length : activeClass.enrolled} / ${activeClass.maxCapacity} alunos',
               ),
               _buildHeaderStat(
                 Icons.rule_rounded,
                 'Regime vigente',
-                widget.classModel.formulaRegime,
+                activeClass.formulaRegime,
               ),
             ],
           ),
@@ -565,9 +669,10 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             ],
           ),
           const SizedBox(height: 12),
-          const TextField(
+          TextField(
+            controller: _justificationController,
             maxLines: 3,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText:
                   'Registro de autorização da Secretaria Geral ou justificativa da alteração...',
               filled: true,
@@ -590,12 +695,20 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: () async {
+              final activeClass = _activeClass;
+              final justification = _justificationController.text.trim();
+              final formulaExpression = _formulaExpressionFor(
+                _controller.selectedEvaluationFormula,
+              );
               final ok = _controller.usesRemote
-                  ? await _controller.persistClass(widget.classModel.code, {
+                  ? await _controller.persistClass(activeClass.code, {
                       'formulaRegime': 'admin',
+                      'evaluationFormula': formulaExpression,
+                      if (justification.isNotEmpty)
+                        'justificationNote': justification,
                     })
                   : await _controller.updateFormulaRegime(
-                      widget.classModel.code,
+                      activeClass.code,
                       'Impor pelo Admin',
                     );
               if (!mounted) return;
@@ -784,10 +897,10 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
         'media': grade.finalAverage.toStringAsFixed(1),
         'faltas': grade.absences.toString(),
         'parecer': !grade.hasGrades
-            ? 'Sem notas lan?adas'
+            ? 'Sem notas lançadas'
             : approved
-                ? 'Aprovado por m?dia e frequ?ncia'
-                : 'Pendente de aprova??o',
+                ? 'Aprovado por média e frequência'
+                : 'Pendente de aprovação',
       };
     }).toList();
 
@@ -980,9 +1093,9 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             title: Text(
               '${_controller.supervisedGrades.length} registros de pauta carregados do servidor.',
             ),
-            subtitle: _controller.remoteError == null
+            subtitle: _controller.supervisionError == null
                 ? null
-                : Text(_controller.remoteError!),
+                : Text(_controller.supervisionError!),
           ),
         ],
       ),
@@ -991,9 +1104,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 3: Atribuição Docente (Print 51) ---
   Widget _buildFacultyTab() {
-    final profController = TextEditingController(
-      text: widget.classModel.professor,
-    );
+    final activeClass = _activeClass;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1016,7 +1127,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               child: Icon(Icons.person, color: Colors.white),
             ),
             title: Text(
-              widget.classModel.professor,
+              activeClass.professor,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: const Text(
@@ -1032,22 +1143,35 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           ),
           const SizedBox(height: 8),
           TextField(
-            controller: profController,
+            controller: _profController,
             decoration: const InputDecoration(
-              labelText: 'Nome do Docente Substituto',
+              labelText: 'Nome, e-mail ou matrícula do docente substituto',
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () async {
+              final profInput = _profController.text.trim();
+              if (profInput.isEmpty ||
+                  profInput == 'Não alocado' ||
+                  profInput == 'Não atribuído') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Informe o nome, e-mail ou matrícula de um docente válido.',
+                    ),
+                  ),
+                );
+                return;
+              }
               final ok = _controller.usesRemote
-                  ? await _controller.persistClass(widget.classModel.code, {
-                      'professorIdentity': profController.text.trim(),
+                  ? await _controller.persistClass(activeClass.code, {
+                      'professorIdentity': profInput,
                     })
                   : await _controller.reallocateProfessor(
-                      widget.classModel.code,
-                      profController.text,
+                      activeClass.code,
+                      profInput,
                     );
               if (!mounted) return;
               if (!ok) {
@@ -1060,6 +1184,9 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                 );
                 return;
               }
+              _profController.text = _initialProfessorInput(
+                _activeClass.professor,
+              );
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Atribuição docente atualizada com sucesso!'),
@@ -1079,7 +1206,13 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 4: Discentes & Vagas (Print 52) ---
   Widget _buildStudentsTab() {
+    final activeClass = _activeClass;
     final enrolledStudents = _controller.supervisedEnrollments;
+    final enrolledCount = enrolledStudents.isNotEmpty
+        ? enrolledStudents.length
+        : activeClass.enrolled;
+    final availableSeats = (activeClass.maxCapacity - enrolledCount)
+        .clamp(0, activeClass.maxCapacity);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1095,16 +1228,19 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Discentes Matriculados (${widget.classModel.enrolled} / ${widget.classModel.maxCapacity} vagas)',
+                'Discentes Matriculados ($enrolledCount / ${activeClass.maxCapacity} vagas)',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Chip(
-                label: const Text(
-                  '6 Vagas Disponíveis',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
+                label: Text(
+                  '$availableSeats ${availableSeats == 1 ? 'Vaga Disponível' : 'Vagas Disponíveis'}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF16A34A),
+                  ),
                 ),
                 backgroundColor: const Color(0xFFDCFCE7),
               ),
@@ -1186,7 +1322,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           const SizedBox(height: 20),
           const Divider(height: 1),
           const SizedBox(height: 20),
-          if (_controller.isGradeLockedFor(widget.classModel.code)) ...[
+          if (_activeClass.gradeLocked ||
+              _controller.isGradeLockedFor(_activeClass.code)) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -1213,12 +1350,13 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           ] else ...[
             ElevatedButton.icon(
               onPressed: () async {
+                final activeClass = _activeClass;
                 final ok = _controller.usesRemote
-                    ? await _controller.persistClass(widget.classModel.code, {
+                    ? await _controller.persistClass(activeClass.code, {
                         'gradeLocked': true,
                       })
                     : await _controller.lockAndHomologateClassPauta(
-                        widget.classModel.code,
+                        activeClass.code,
                       );
                 if (!mounted) return;
                 if (!ok) {

@@ -10,13 +10,29 @@ import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 /// Modal de Matriz Curricular & Ementário de um Curso
 class CourseMatrixSyllabusModal extends StatefulWidget {
   final AdminCourseModel course;
+  final VoidCallback? onUpdated;
+  final AdminAcademicDataSource? dataSource;
 
-  const CourseMatrixSyllabusModal({super.key, required this.course});
+  const CourseMatrixSyllabusModal({
+    super.key,
+    required this.course,
+    this.onUpdated,
+    this.dataSource,
+  });
 
-  static Future<void> show(BuildContext context, AdminCourseModel course) {
+  static Future<void> show(
+    BuildContext context,
+    AdminCourseModel course, {
+    VoidCallback? onUpdated,
+    AdminAcademicDataSource? dataSource,
+  }) {
     return showDialog<void>(
       context: context,
-      builder: (ctx) => CourseMatrixSyllabusModal(course: course),
+      builder: (ctx) => CourseMatrixSyllabusModal(
+        course: course,
+        onUpdated: onUpdated,
+        dataSource: dataSource,
+      ),
     );
   }
 
@@ -27,10 +43,54 @@ class CourseMatrixSyllabusModal extends StatefulWidget {
 
 class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
   bool _saving = false;
+  late List<Map<String, dynamic>> _components;
+
+  @override
+  void initState() {
+    super.initState();
+    _components = widget.course.components
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  String _componentPeriod(Map<String, dynamic> c) {
+    final sem = c['semestre'] ?? c['semester'];
+    if (sem == null) return '-';
+    if (sem is num) return '${sem.toInt()}º Sem.';
+    final text = sem.toString().trim();
+    return text.isEmpty ? '-' : text;
+  }
+
+  String _componentName(Map<String, dynamic> c) {
+    final name = (c['disciplina'] ?? c['name'])?.toString().trim() ?? '';
+    final code = c['code']?.toString().trim() ?? '';
+    if (name.isEmpty) {
+      return code.isEmpty ? 'Componente Curricular' : code;
+    }
+    if (code.isEmpty || name.contains(code)) return name;
+    return '$code · $name';
+  }
+
+  String _componentWorkload(Map<String, dynamic> c) {
+    final carga = c['carga']?.toString().trim();
+    if (carga != null && carga.isNotEmpty) return carga;
+    final hours = c['workloadHours'];
+    if (hours is num) return '${hours.toInt()}h';
+    final hoursText = hours?.toString().trim();
+    if (hoursText != null && hoursText.isNotEmpty) return '${hoursText}h';
+    return '-';
+  }
+
+  String _componentProfessor(Map<String, dynamic> c) {
+    final doc = (c['docente'] ?? c['professor'] ?? c['professorName'])
+        ?.toString()
+        .trim();
+    return (doc == null || doc.isEmpty) ? 'A definir / Colegiado' : doc;
+  }
 
   Future<void> _editComponents() async {
     final controller = TextEditingController(
-      text: const JsonEncoder.withIndent('  ').convert(widget.course.components),
+      text: const JsonEncoder.withIndent('  ').convert(_components),
     );
     final value = await showDialog<String>(
       context: context,
@@ -66,13 +126,21 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
       if (decoded is! List || decoded.any((item) => item is! Map)) {
         throw const FormatException('Informe uma lista JSON de componentes.');
       }
+      final updatedComponents = decoded
+          .map((item) => Map<String, Object?>.from(item as Map))
+          .toList();
       setState(() => _saving = true);
-      await AdminAcademicRemoteDataSource().patchCourse(widget.course.code, {
-        'components': decoded
-            .map((item) => Map<String, Object?>.from(item as Map))
-            .toList(),
+      final ds = widget.dataSource ?? AdminAcademicRemoteDataSource();
+      await ds.patchCourse(widget.course.code, {
+        'components': updatedComponents,
       });
       if (mounted) {
+        setState(() {
+          _components = decoded
+              .map((item) => Map<String, dynamic>.from(item as Map))
+              .toList();
+        });
+        widget.onUpdated?.call();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Matriz curricular atualizada.')),
         );
@@ -188,7 +256,7 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
                         _buildTh('DOCENTE HOMOLOGADO'),
                       ],
                     ),
-                    ...widget.course.components.map((c) {
+                    ..._components.map((c) {
                       return TableRow(
                         decoration: const BoxDecoration(
                           border: Border(
@@ -199,7 +267,7 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: Text(
-                              c['semestre'] as String,
+                              _componentPeriod(c),
                               style: jakarta(
                                 size: 12.5,
                                 color: const Color(0xFF737373),
@@ -209,7 +277,7 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: Text(
-                              c['disciplina'] as String,
+                              _componentName(c),
                               style: jakarta(
                                 size: 13,
                                 weight: FontWeight.w600,
@@ -220,7 +288,7 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: Text(
-                              c['carga'] as String,
+                              _componentWorkload(c),
                               style: jakarta(
                                 size: 12.5,
                                 color: const Color(0xFF18181B),
@@ -230,7 +298,7 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: Text(
-                              c['docente'] as String,
+                              _componentProfessor(c),
                               style: jakarta(
                                 size: 12.5,
                                 color: const Color(0xFF525252),

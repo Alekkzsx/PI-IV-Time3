@@ -181,7 +181,9 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            p.attachmentName,
+                            p.attachmentName.trim().isEmpty
+                                ? 'Extrato digital do protocolo (${p.code})'
+                                : p.attachmentName,
                             style: jakarta(
                               size: 13,
                               weight: FontWeight.w700,
@@ -208,11 +210,19 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                           if (encoded is! String || encoded.isEmpty) {
                             throw Exception('A API não retornou o anexo.');
                           }
+                          final apiFileName =
+                              (file['attachmentName'] ?? file['fileName'])
+                                  ?.toString()
+                                  .trim();
+                          final resolvedFileName =
+                              (apiFileName != null && apiFileName.isNotEmpty)
+                                  ? apiFileName
+                                  : (p.attachmentName.trim().isNotEmpty
+                                        ? p.attachmentName.trim()
+                                        : '${p.code.replaceAll(RegExp(r'[^\w\-.]'), '_')}.txt');
                           final path =
                               await PlatformFileHelper.saveOrDownloadFile(
-                                fileName:
-                                    file['fileName']?.toString() ??
-                                    p.attachmentName,
+                                fileName: resolvedFileName,
                                 bytes: base64Decode(encoded),
                                 mimeType:
                                     file['mimeType']?.toString() ??

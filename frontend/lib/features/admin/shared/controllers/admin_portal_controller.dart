@@ -10,12 +10,13 @@ import '../../../../core/network/authenticated_api_client.dart';
 
 /// Controlador reativo unificado em memória para o Portal do Administrador.
 class AdminPortalController extends ChangeNotifier {
-  final AdminRemoteDataSource remote = AdminRemoteDataSource();
-  final AdminAcademicRemoteDataSource academicRemote =
-      AdminAcademicRemoteDataSource();
+  final AdminRemoteDataSource remote;
+  final AdminAcademicRemoteDataSource academicRemote;
   bool isLoadingRemote = false;
   bool isSavingRemote = false;
+  bool isLoadingSupervision = false;
   String? remoteError;
+  String? supervisionError;
   Map<String, dynamic> dashboard = {};
   List<AdminCalendarMilestone> calendarEvents = [];
   List<Map<String, dynamic>> announcements = [];
@@ -81,16 +82,41 @@ class AdminPortalController extends ChangeNotifier {
         _gradeLocksByClass[classroom.code.trim().toUpperCase()] =
             classroom.gradeLocked;
       }
+      if (activeSupervisedClass != null) {
+        final refreshed = classes
+            .where((item) => item.code == activeSupervisedClass!.code)
+            .firstOrNull;
+        if (refreshed != null) {
+          activeSupervisedClass = refreshed;
+        }
+      }
     } catch (error) {
-      remoteError = error is ApiException
-          ? error.message
-          : error is AdminAcademicApiException
-          ? error.message
-          : 'Não foi possível carregar o portal administrativo.';
+      remoteError = _formatError(
+        error,
+        fallback: 'Não foi possível carregar o portal administrativo.',
+      );
     } finally {
       isLoadingRemote = false;
       notifyListeners();
     }
+  }
+
+  String _formatError(Object error, {required String fallback}) {
+    if (error is ApiException) return error.message;
+    if (error is AdminAcademicApiException) return error.message;
+    return fallback;
+  }
+
+  void clearRemoteError({bool notify = true}) {
+    if (remoteError == null) return;
+    remoteError = null;
+    if (notify) notifyListeners();
+  }
+
+  void clearSupervisionError({bool notify = true}) {
+    if (supervisionError == null) return;
+    supervisionError = null;
+    if (notify) notifyListeners();
   }
 
   Future<bool> persist(
@@ -107,9 +133,10 @@ class AdminPortalController extends ChangeNotifier {
       await loadRemote();
       return true;
     } catch (error) {
-      remoteError = error is ApiException
-          ? error.message
-          : 'A operação não pôde ser concluída.';
+      remoteError = _formatError(
+        error,
+        fallback: 'A operação não pôde ser concluída.',
+      );
       return false;
     } finally {
       isSavingRemote = false;
@@ -162,28 +189,59 @@ class AdminPortalController extends ChangeNotifier {
       persist(() => remote.deleteCalendarEvent(id));
 
   Future<void> loadClassSupervision(String classCode) async {
-    try {
-      final values = await Future.wait<dynamic>([
-        academicRemote.classGrades(classCode),
-        academicRemote.getEnrollments(classCode),
-      ]);
-      supervisedGrades = values[0] as List<AdminGradeAuditRow>;
-      supervisedEnrollments = values[1] as List<AdminEnrolledStudent>;
-      remoteError = null;
-    } catch (error) {
-      remoteError = error is ApiException
-          ? error.message
-          : error is AdminAcademicApiException
-          ? error.message
-          : 'Não foi possível carregar os dados de supervisão.';
-      supervisedGrades = [];
-      supervisedEnrollments = [];
-    }
+    isLoadingSupervision = true;
+    supervisionError = null;
+    notifyListeners();
+
+    String? gradesError;
+    String? enrollmentsError;
+
+    await Future.wait<void>([
+      academicRemote
+          .classGrades(classCode)
+          .then((value) {
+            supervisedGrades = value;
+          })
+          .catchError((Object error) {
+            supervisedGrades = [];
+            gradesError = _formatError(
+              error,
+              fallback: 'Não foi possível carregar os registros de notas.',
+            );
+          }),
+      academicRemote
+          .getEnrollments(classCode)
+          .then((value) {
+            supervisedEnrollments = value;
+          })
+          .catchError((Object error) {
+            supervisedEnrollments = [];
+            enrollmentsError = _formatError(
+              error,
+              fallback: 'Não foi possível carregar os discentes da turma.',
+            );
+          }),
+    ]);
+
+    supervisionError = gradesError ?? enrollmentsError;
+    isLoadingSupervision = false;
     notifyListeners();
   }
   static final AdminPortalController instance =
       AdminPortalController._internal();
-  AdminPortalController._internal();
+  AdminPortalController._internal({
+    AdminRemoteDataSource? remote,
+    AdminAcademicRemoteDataSource? academicRemote,
+  }) : remote = remote ?? AdminRemoteDataSource(),
+       academicRemote = academicRemote ?? AdminAcademicRemoteDataSource();
+
+  /// Isolated instance for unit tests with injected data sources.
+  AdminPortalController.forTesting({
+    AdminRemoteDataSource? remote,
+    AdminAcademicRemoteDataSource? academicRemote,
+  }) : remote = remote ?? AdminRemoteDataSource(),
+       academicRemote = academicRemote ?? AdminAcademicRemoteDataSource();
+
   factory AdminPortalController() => instance;
 
   // Usuários
@@ -317,12 +375,16 @@ class AdminPortalController extends ChangeNotifier {
     }
     activeSupervisedClass = classModel;
     supervisionTabIndex = 0;
+    supervisionError = null;
     notifyListeners();
   }
 
   void closeSupervision() {
     if (!AppUserSession.instance.hasRole(RolePermissionPolicy.admin)) return;
     activeSupervisedClass = null;
+    supervisionError = null;
+    supervisedGrades = [];
+    supervisedEnrollments = [];
     notifyListeners();
   }
 
@@ -378,6 +440,25 @@ class AdminPortalController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static String normalizeProtocolStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    if (normalized == 'aguardando' ||
+        normalized == 'aguardando parecer' ||
+        normalized == 'pendente') {
+      return 'Aguardando Parecer';
+    }
+    if (normalized == 'deferido') {
+      return 'Deferido';
+    }
+    if (normalized == 'indeferido') {
+      return 'Indeferido';
+    }
+    if (normalized == 'concluido' || normalized == 'concluído') {
+      return 'Concluído';
+    }
+    return status.trim();
+  }
+
   List<AdminProtocolModel> get filteredProtocols {
     if (protocolFilter == 'Todos' || protocolFilter == 'Todos Os Protocolos') {
       return protocols;
@@ -386,17 +467,27 @@ class AdminPortalController extends ChangeNotifier {
         protocolFilter == 'Aguardando Parecer') {
       return protocols
           .where(
-            (p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer',
+            (p) => normalizeProtocolStatus(p.status) == 'Aguardando Parecer',
           )
           .toList();
     }
     if (protocolFilter == 'Deferidos' || protocolFilter == 'Deferido') {
-      return protocols.where((p) => p.status == 'Deferido').toList();
+      return protocols
+          .where((p) => normalizeProtocolStatus(p.status) == 'Deferido')
+          .toList();
     }
     if (protocolFilter == 'Indeferidos' || protocolFilter == 'Indeferido') {
-      return protocols.where((p) => p.status == 'Indeferido').toList();
+      return protocols
+          .where((p) => normalizeProtocolStatus(p.status) == 'Indeferido')
+          .toList();
     }
-    return protocols.where((p) => p.status == protocolFilter).toList();
+    return protocols
+        .where(
+          (p) =>
+              normalizeProtocolStatus(p.status) ==
+              normalizeProtocolStatus(protocolFilter),
+        )
+        .toList();
   }
 
   Future<bool> decideProtocol({

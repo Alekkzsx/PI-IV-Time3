@@ -276,13 +276,14 @@ class AdminCalendarMilestone {
   });
 
   factory AdminCalendarMilestone.fromJson(Map<String, dynamic> json) {
+    final rawType = (json['type'] ?? json['category'])?.toString().trim();
     return AdminCalendarMilestone(
-      id: json['id']?.toString() ?? '',
+      id: (json['id'] ?? json['_id'])?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       startsAt: json['startsAt']?.toString() ?? '',
       endsAt: json['endsAt']?.toString(),
-      type: json['type']?.toString() ?? 'academic',
+      type: (rawType == null || rawType.isEmpty) ? 'academic' : rawType,
       scope: json['scope']?.toString() ?? 'Institucional',
       classCode: json['classCode']?.toString(),
     );

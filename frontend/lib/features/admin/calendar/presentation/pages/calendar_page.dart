@@ -71,14 +71,6 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                       const SizedBox(height: 28),
 
-                      if (_controller.remoteError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            _controller.remoteError!,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
                       _buildTimelineCard(),
                     ],
                   ),
@@ -113,7 +105,7 @@ class _CalendarPageState extends State<CalendarPage> {
               children: [
                 const Expanded(
                   child: Text(
-                    'Marcos do calend?rio acad?mico',
+                    'Marcos do calendário acadêmico',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
@@ -140,7 +132,7 @@ class _CalendarPageState extends State<CalendarPage> {
             ) ...[
               if (index > 0) const Divider(height: 1, color: Color(0xFFF4F4F5)),
               _buildTimelineRow(
-                tag: _controller.calendarEvents[index].type,
+                tag: _formatEventTag(_controller.calendarEvents[index].type),
                 dateText: _formatEventDate(
                   _controller.calendarEvents[index].startsAt,
                   _controller.calendarEvents[index].endsAt,
@@ -174,7 +166,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: Text(
                     _controller.isRegimentalLockActive
                         ? 'Trava regimental ativa'
-                        : 'Di?rios abertos para digita??o',
+                        : 'Diários abertos para digitação',
                   ),
                 ),
                 ElevatedButton(
@@ -188,7 +180,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             SnackBar(
                               content: Text(
                                 saved
-                                    ? 'Configura??o da trava atualizada.'
+                                    ? 'Configuração da trava atualizada.'
                                     : _controller.remoteError ??
                                           'Falha ao atualizar a trava.',
                               ),
@@ -197,7 +189,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         },
                   child: Text(
                     _controller.isRegimentalLockActive
-                        ? 'Liberar di?rios'
+                        ? 'Liberar diários'
                         : 'Ativar trava',
                   ),
                 ),
@@ -215,7 +207,40 @@ class _CalendarPageState extends State<CalendarPage> {
     if (start == null) return startsAt;
     String date(DateTime value) =>
         '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-    return end == null ? date(start) : '${date(start)} ? ${date(end)}';
+    return end == null ? date(start) : '${date(start)} – ${date(end)}';
+  }
+
+  String _normalizeCalendarType(String? raw) {
+    switch ((raw ?? '').trim().toLowerCase()) {
+      case 'holiday':
+        return 'holiday';
+      case 'deadline':
+      case 'closing':
+        return 'deadline';
+      default:
+        return 'academic';
+    }
+  }
+
+  String _formatEventTag(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'academic':
+        return 'Acadêmico';
+      case 'deadline':
+        return 'Prazo';
+      case 'holiday':
+        return 'Feriado';
+      case 'closing':
+        return 'Fechamento';
+      case 'administrative':
+        return 'Administrativo';
+      case 'exam':
+        return 'Avaliação';
+      case 'event':
+        return 'Evento';
+      default:
+        return raw.trim().isEmpty ? 'Acadêmico' : raw;
+    }
   }
 
   String? _inputDate(String? value) {
@@ -239,7 +264,7 @@ class _CalendarPageState extends State<CalendarPage> {
               .substring(0, 16),
     );
     final ends = TextEditingController(text: _inputDate(event?.endsAt) ?? '');
-    var type = event?.type ?? 'academic';
+    var type = _normalizeCalendarType(event?.type);
     final values = await showDialog<Map<String, Object?>>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -253,20 +278,20 @@ class _CalendarPageState extends State<CalendarPage> {
                 children: [
                   TextField(
                     controller: title,
-                    decoration: const InputDecoration(labelText: 'T?tulo'),
+                    decoration: const InputDecoration(labelText: 'Título'),
                   ),
                   TextField(
                     controller: description,
                     maxLines: 3,
-                    decoration: const InputDecoration(labelText: 'Descri??o'),
+                    decoration: const InputDecoration(labelText: 'Descrição'),
                   ),
                   DropdownButtonFormField<String>(
-                    value: type,
+                    initialValue: type,
                     decoration: const InputDecoration(labelText: 'Tipo'),
                     items: const [
                       DropdownMenuItem(
                         value: 'academic',
-                        child: Text('Acad?mico'),
+                        child: Text('Acadêmico'),
                       ),
                       DropdownMenuItem(value: 'deadline', child: Text('Prazo')),
                       DropdownMenuItem(
@@ -281,13 +306,13 @@ class _CalendarPageState extends State<CalendarPage> {
                   TextField(
                     controller: starts,
                     decoration: const InputDecoration(
-                      labelText: 'In?cio (AAAA-MM-DD HH:MM)',
+                      labelText: 'Início (AAAA-MM-DD HH:MM)',
                     ),
                   ),
                   TextField(
                     controller: ends,
                     decoration: const InputDecoration(
-                      labelText: 'T?rmino opcional (AAAA-MM-DD HH:MM)',
+                      labelText: 'Término opcional (AAAA-MM-DD HH:MM)',
                     ),
                   ),
                 ],
@@ -307,8 +332,9 @@ class _CalendarPageState extends State<CalendarPage> {
                     : _parseDate(ends.text);
                 if (title.text.trim().length < 2 ||
                     start == null ||
-                    (ends.text.trim().isNotEmpty && end == null))
+                    (ends.text.trim().isNotEmpty && end == null)) {
                   return;
+                }
                 Navigator.pop(context, {
                   'title': title.text.trim(),
                   'description': description.text.trim(),
@@ -343,7 +369,7 @@ class _CalendarPageState extends State<CalendarPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Excluir marco?'),
-        content: const Text('Esta a??o n?o pode ser desfeita.'),
+        content: const Text('Esta ação não pode ser desfeita.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

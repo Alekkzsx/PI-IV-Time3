@@ -44,8 +44,8 @@ export function createAdminOperationsRouter(
       users.countDocuments({ profile: "admin", active: true }),
       database.collection("academic_courses").countDocuments({ active: { $ne: false } }),
       database.collection("academic_classes").find({ active: { $ne: false } }).toArray(),
-      protocols.countDocuments({ status: "Aguardando Parecer" }),
-      protocols.countDocuments({ status: { $in: ["Deferido", "Indeferido"] } }),
+      protocols.countDocuments({ status: { $regex: /^(aguardando parecer|aguardando|pendente)$/i } }),
+      protocols.countDocuments({ status: { $regex: /^(deferido|indeferido|conclu[ií]do)$/i } }),
       database.collection("academic_grades").find({}).toArray(),
       database.collection("academic_calendar").find({}).sort({ startsAt: 1 }).limit(10).toArray(),
     ]);

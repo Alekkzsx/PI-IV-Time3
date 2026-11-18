@@ -31,10 +31,18 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
     try {
       final settings = await portal.remote.request('GET', '/settings') as Map;
       if (!mounted) return;
-      _approvalController.text = settings['minimumGrade'].toString();
-      _attendanceController.text = settings['minimumAttendance'].toString();
-      _specialExamController.text = settings['specialExamGrade'].toString();
-      _formulaController.text = settings['evaluationFormula'] as String;
+      _approvalController.text =
+          (settings['minimumGrade'] ?? _approvalController.text).toString();
+      _attendanceController.text =
+          (settings['minimumAttendance'] ?? _attendanceController.text)
+              .toString();
+      _specialExamController.text =
+          (settings['specialExamGrade'] ?? _specialExamController.text)
+              .toString();
+      final formula = settings['evaluationFormula']?.toString();
+      if (formula != null && formula.trim().isNotEmpty) {
+        _formulaController.text = formula;
+      }
       setState(() {});
     } catch (_) {
       if (mounted) {
@@ -43,10 +51,13 @@ class _AcademicGuidelinesTabState extends State<AcademicGuidelinesTab> {
     }
   }
 
+  double? _parseDecimal(String raw) =>
+      double.tryParse(raw.trim().replaceAll(',', '.'));
+
   Future<void> _save() async {
-    final grade = double.tryParse(_approvalController.text);
-    final attendance = double.tryParse(_attendanceController.text);
-    final exam = double.tryParse(_specialExamController.text);
+    final grade = _parseDecimal(_approvalController.text);
+    final attendance = _parseDecimal(_attendanceController.text);
+    final exam = _parseDecimal(_specialExamController.text);
     if (grade == null || attendance == null || exam == null) {
       setState(() => _error = 'Informe valores numéricos válidos.');
       return;

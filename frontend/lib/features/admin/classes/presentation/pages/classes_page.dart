@@ -265,9 +265,18 @@ class _ClassesPageState extends State<ClassesPage> {
   @override
   Widget build(BuildContext context) {
     if (_activeSupervisedClass != null) {
+      final liveClass = _classes
+          .where((item) => item.code == _activeSupervisedClass!.code)
+          .firstOrNull;
+      final portalClass = _controller.classes
+          .where((item) => item.code == _activeSupervisedClass!.code)
+          .firstOrNull;
       return SupervisionCockpitPage(
-        classModel: _activeSupervisedClass!,
-        onBack: () => setState(() => _activeSupervisedClass = null),
+        classModel: portalClass ?? liveClass ?? _activeSupervisedClass!,
+        onBack: () {
+          setState(() => _activeSupervisedClass = null);
+          _loadData();
+        },
       );
     }
 

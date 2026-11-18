@@ -9,14 +9,17 @@ import '../../../../../core/state/app_user_session.dart';
 ///
 /// Consulta a conta real e permite alterar a senha e o segundo fator por e-mail.
 class SecurityCredentialsTab extends StatefulWidget {
-  const SecurityCredentialsTab({super.key});
+  final AuthProfileRemoteDataSource? profileRemote;
+
+  const SecurityCredentialsTab({super.key, this.profileRemote});
 
   @override
   State<SecurityCredentialsTab> createState() => _SecurityCredentialsTabState();
 }
 
 class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
-  final _profileRemote = AuthProfileRemoteDataSource();
+  late final AuthProfileRemoteDataSource _profileRemote =
+      widget.profileRemote ?? AuthProfileRemoteDataSource();
   bool? _twoFactor;
   String? _error;
   @override
@@ -245,14 +248,30 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
             return Column(
               children: sessions.map((session) {
                 final id = session['id']?.toString() ?? '';
-                final current = session['isCurrent'] == true;
+                final current =
+                    session['current'] == true || session['isCurrent'] == true;
+                final device = session['device']?.toString().trim();
+                final ip = (session['ipAddress'] ?? session['location'])
+                    ?.toString()
+                    .trim();
+                final created = (session['createdAt'] ?? session['lastActive'])
+                    ?.toString()
+                    .trim();
+                final expires = session['expiresAt']?.toString().trim();
+                final subtitleParts = <String>[
+                  if (ip != null && ip.isNotEmpty) ip,
+                  if (created != null && created.isNotEmpty) 'Início: $created',
+                  if (expires != null && expires.isNotEmpty) 'Expira: $expires',
+                ];
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(
-                    '${session['device'] ?? 'Dispositivo'}${current ? ' · Esta sessão' : ''}',
+                    '${(device != null && device.isNotEmpty) ? device : 'Dispositivo autenticado'}${current ? ' · Esta sessão' : ''}',
                   ),
                   subtitle: Text(
-                    '${session['location'] ?? ''} · ${session['lastActive'] ?? ''}',
+                    subtitleParts.isEmpty
+                        ? 'Sessão ativa'
+                        : subtitleParts.join(' · '),
                   ),
                   trailing: current
                       ? null

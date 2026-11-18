@@ -71,7 +71,7 @@ export function registerAdminProtocolRoutes(
 		const signedBy = adminUser?.displayName ?? "Secretaria Geral Acadêmica";
 		const record = await adminWrite(database, response.locals.adminId, async (session) => {
 			const updated = await protocols.findOneAndUpdate(
-				{ _id: id, status: "Aguardando Parecer" },
+				{ _id: id, status: { $regex: /^(aguardando parecer|aguardando|pendente)$/i } },
 				{
 					$set: {
 						status: input.approved ? "Deferido" : "Indeferido",

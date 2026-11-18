@@ -112,13 +112,19 @@ class _CoursesPageState extends State<CoursesPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    child: CourseCardItem(course: _courses[i]),
+                                    child: CourseCardItem(
+                                      course: _courses[i],
+                                      onUpdated: _loadCourses,
+                                      dataSource: _dataSource,
+                                    ),
                                   ),
                                   if (i + 1 < _courses.length) ...[
                                     const SizedBox(width: 24),
                                     Expanded(
                                       child: CourseCardItem(
                                         course: _courses[i + 1],
+                                        onUpdated: _loadCourses,
+                                        dataSource: _dataSource,
                                       ),
                                     ),
                                   ],
@@ -128,7 +134,11 @@ class _CoursesPageState extends State<CoursesPage> {
                           ] else ...[
                             for (int i = 0; i < _courses.length; i++) ...[
                               if (i > 0) const SizedBox(height: 20),
-                              CourseCardItem(course: _courses[i]),
+                              CourseCardItem(
+                                course: _courses[i],
+                                onUpdated: _loadCourses,
+                                dataSource: _dataSource,
+                              ),
                             ],
                           ],
                         ],

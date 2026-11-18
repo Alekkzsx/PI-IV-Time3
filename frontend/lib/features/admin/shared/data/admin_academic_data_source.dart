@@ -1,6 +1,7 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import '../../../../core/network/authenticated_api_client.dart';
+import '../../../../core/network/resilient_http_client.dart';
 
 import 'package:http/http.dart' as http;
 import '../models/admin_models.dart';
@@ -46,7 +47,7 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
   final http.Client _client;
 
   AdminAcademicRemoteDataSource({http.Client? client})
-    : _client = client ?? http.Client();
+    : _client = client ?? createResilientHttpClient();
 
   @override
   Future<List<AdminCourseModel>> getCourses() async {
@@ -121,10 +122,11 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
       'GET',
       '/api/admin/classes/${Uri.encodeComponent(classCode)}/grades',
     );
-    if (response is! List) {
+    final dynamic rawGrades = response is Map ? response['grades'] : response;
+    if (rawGrades is! List) {
       throw const AdminAcademicApiException('Resposta inválida da API.');
     }
-    return response
+    return rawGrades
         .whereType<Map>()
         .map(
           (item) =>
@@ -241,22 +243,47 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     }
   }
 
+  String _str(Object? value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    final text = value.toString().trim();
+    return text.isEmpty ? fallback : text;
+  }
+
+  String? _nullableStr(Object? value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  int _int(Object? value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
   AdminCourseModel _courseFromJson(dynamic value) {
-    if (value is! Map<String, dynamic>) {
+    if (value is! Map) {
       throw const AdminAcademicApiException(
         'Curso retornado pela API é inválido.',
       );
     }
-    final components = value['components'];
+    final map = Map<String, dynamic>.from(value);
+    final components = map['components'];
     return AdminCourseModel(
-      code: value['code'] as String,
-      name: value['name'] as String,
-      matrix: value['matrix'] as String,
-      workload: value['workload'] as String,
-      studentsCount: value['studentsCount'] as int? ?? 0,
-      formula: value['formula'] as String,
-      department: value['department'] as String,
-      modality: value['modality'] as String,
+      code: _str(map['code']),
+      name: _str(map['name'], fallback: 'Curso'),
+      matrix: _str(map['matrix']),
+      workload: _str(map['workload'], fallback: '0h'),
+      studentsCount: _int(map['studentsCount']),
+      formula: _str(
+        map['formula'],
+        fallback: 'Média Ponderada (N1 40% / N2 60%)',
+      ),
+      department: _str(
+        map['department'],
+        fallback: 'Departamento de Computação e Sistemas',
+      ),
+      modality: _str(map['modality'], fallback: 'Graduação'),
       components: components is List
           ? components
                 .whereType<Map>()
@@ -267,59 +294,64 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
   }
 
   AdminClassModel _classFromJson(dynamic value) {
-    if (value is! Map<String, dynamic>) {
+    if (value is! Map) {
       throw const AdminAcademicApiException(
         'Turma retornada pela API é inválida.',
       );
     }
-    final formulaRegime = value['formulaRegime'] as String?;
-    final enrolledStudents = value['enrolledStudents'];
+    final map = Map<String, dynamic>.from(value);
+    final formulaRegime = _nullableStr(map['formulaRegime']);
+    final enrolledStudentsRaw = map['enrolledStudents'];
+    final parsedEnrolledStudents = enrolledStudentsRaw is List
+        ? enrolledStudentsRaw
+              .whereType<Map>()
+              .map(
+                (item) => AdminEnrolledStudent.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList()
+        : const <AdminEnrolledStudent>[];
+    final subjectName = _nullableStr(map['subjectName']) ??
+        _nullableStr(map['courseName']) ??
+        _str(map['code']);
+    final courseName = _nullableStr(map['courseName']) ??
+        _nullableStr(map['subjectName']) ??
+        'Curso Superior';
     return AdminClassModel(
-      code: value['code'] as String,
-      courseCode: value['courseCode'] as String? ?? '',
-      gradeLocked: value['gradeLocked'] == true,
-      pautaHomologated: value['pautaHomologated'] == true,
-      chancelaCode: value['chancelaCode'] as String?,
-      subjectName:
-          value['subjectName'] as String? ??
-          value['courseName'] as String? ??
-          '',
-      courseName:
-          value['courseName'] as String? ??
-          value['subjectName'] as String? ??
-          '',
-      semester: value['semester'] as String,
-      shift: value['shift'] as String,
-      schedule: value['schedule'] as String? ?? '',
-      location: value['location'] as String,
-      enrolled: value['enrolled'] as int? ?? 0,
-      maxCapacity: value['maxCapacity'] as int,
+      code: _str(map['code']),
+      courseCode: _str(map['courseCode']),
+      gradeLocked: map['gradeLocked'] == true,
+      pautaHomologated: map['pautaHomologated'] == true,
+      chancelaCode: _nullableStr(map['chancelaCode']),
+      subjectName: subjectName,
+      courseName: courseName,
+      semester: _str(map['semester']),
+      shift: _str(map['shift']),
+      schedule: _str(map['schedule']),
+      location: _str(map['location'], fallback: 'A definir'),
+      enrolled: map['enrolled'] == null
+          ? parsedEnrolledStudents.length
+          : _int(map['enrolled']),
+      maxCapacity: _int(map['maxCapacity'], fallback: 40),
       enrolledStudentRas:
-          (value['enrolledStudentRas'] as List?)
-              ?.map((item) => item.toString())
-              .toList() ??
-          const [],
-      enrolledStudents: enrolledStudents is List
-          ? enrolledStudents
-                .whereType<Map>()
-                .map(
-                  (item) => AdminEnrolledStudent.fromJson(
-                    Map<String, dynamic>.from(item),
-                  ),
-                )
-                .toList()
-          : const [],
+          (map['enrolledStudentRas'] is List)
+              ? (map['enrolledStudentRas'] as List)
+                    .map((item) => item.toString())
+                    .toList()
+              : const [],
+      enrolledStudents: parsedEnrolledStudents,
       professor:
-          value['professorName'] as String? ??
-          value['professorIdentity'] as String? ??
+          _nullableStr(map['professorName']) ??
+          _nullableStr(map['professorIdentity']) ??
           'Não alocado',
-      professorIdentity: value['professorIdentity'] as String?,
+      professorIdentity: _nullableStr(map['professorIdentity']),
       formulaRegime: formulaRegime == 'admin'
           ? 'Impor pelo Admin'
           : 'Autonomia Docente',
       evaluationFormula:
-          value['evaluationFormula'] as String? ?? '(N1 × 0.4) + (N2 × 0.6)',
-      isLive: value['isLive'] == true,
+          _nullableStr(map['evaluationFormula']) ?? '(N1 × 0.4) + (N2 × 0.6)',
+      isLive: map['isLive'] == true,
     );
   }
 }
