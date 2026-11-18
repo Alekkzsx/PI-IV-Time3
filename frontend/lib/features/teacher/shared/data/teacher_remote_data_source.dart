@@ -206,6 +206,14 @@ class TeacherRemoteDataSource {
     },
   );
 
+  Future<Map<String, dynamic>> updateGradesBatch({
+    required String classCode,
+    required List<Map<String, Object?>> grades,
+  }) => _api.patchMap(
+    '/api/teacher/courses/${Uri.encodeComponent(classCode)}/grades',
+    {'grades': grades},
+  );
+
   Future<Map<String, dynamic>> homologate(String classCode) => _api.postMap(
     '/api/teacher/courses/${Uri.encodeComponent(classCode)}/grades/homologate',
   );

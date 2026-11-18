@@ -317,7 +317,13 @@ export class TeacherAssignmentService {
         });
     }
 
-    return { ok: true, score: input.calculatedGrade, consolidatedStageGrade };
+    return {
+      ok: true,
+      score: input.calculatedGrade,
+      consolidatedStageGrade,
+      stage: isN2Bucket ? "N2" : "N1",
+      gradeField,
+    };
   }
 
   async replyAssignmentDoubt(userId: string, user: Document, assignmentId: string, doubtId: string, replyText: string) {

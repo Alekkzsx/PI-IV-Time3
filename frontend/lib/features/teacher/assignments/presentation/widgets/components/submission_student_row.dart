@@ -31,19 +31,43 @@ class SubmissionStudentRow extends StatelessWidget {
 
   Widget _buildActionButton(BuildContext context) {
     if (submission.status == SubmissionStatus.naoEntregue) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF4F4F5),
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onOpenRubric(assignment, submission),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFFE4E4E7)),
-        ),
-        child: Text(
-          'Sem Submissão',
-          style: jakarta(
-            size: 11,
-            weight: FontWeight.w500,
-            color: const Color(0xFFA1A1AA),
+          child: Container(
+            width: 112,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFFD4D4D8)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.edit_outlined,
+                  size: 13,
+                  color: Color(0xFF3F3F46),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    'Lançar Nota',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: jakarta(
+                      size: 11,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF18181B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );

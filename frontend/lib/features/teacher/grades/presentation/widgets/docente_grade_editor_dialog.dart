@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
@@ -89,30 +89,35 @@ class DocenteGradeEditorDialog {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                final ativ =
-                    double.tryParse(ativController.text) ??
-                    grade.assignmentsScore;
-                final p1 = double.tryParse(p1Controller.text) ?? grade.p1Score;
-                final proj =
-                    double.tryParse(projController.text) ?? grade.projectsScore;
-                final p2 = double.tryParse(p2Controller.text) ?? grade.p2Score;
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                double parseInput(String raw, double fallback) {
+                  final parsed = double.tryParse(raw.trim().replaceAll(',', '.'));
+                  if (parsed == null || !parsed.isFinite) return fallback;
+                  return double.parse(parsed.clamp(0.0, 10.0).toStringAsFixed(1));
+                }
 
-                controller.updateStudentGrade(
-                  grade.studentId,
-                  assignments: ativ.clamp(0.0, 10.0),
-                  p1: p1.clamp(0.0, 10.0),
-                  projects: proj.clamp(0.0, 10.0),
-                  p2: p2.clamp(0.0, 10.0),
-                );
+                final ativ = parseInput(ativController.text, grade.assignmentsScore);
+                final p1 = parseInput(p1Controller.text, grade.p1Score);
+                final proj = parseInput(projController.text, grade.projectsScore);
+                final p2 = parseInput(p2Controller.text, grade.p2Score);
 
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                final ok = await controller.updateStudentGrade(
+                  grade.studentId,
+                  assignments: ativ,
+                  p1: p1,
+                  projects: proj,
+                  p2: p2,
+                );
+                messenger.showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Notas de ${grade.studentName} recalculadas com sucesso!',
+                      ok
+                          ? 'Notas de ${grade.studentName} salvas e recalculadas com sucesso!'
+                          : (controller.remoteError ?? 'Não foi possível salvar as notas.'),
                     ),
-                    backgroundColor: DocenteColors.emerald,
+                    backgroundColor: ok ? DocenteColors.emerald : const Color(0xFFDC2626),
                   ),
                 );
               },

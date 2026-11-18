@@ -251,6 +251,38 @@ export function createTeacherRouter(
     response.json(result);
   });
 
+  router.patch("/courses/:classCode/grades", async (request, response) => {
+    const scoreEntrySchema = z
+      .object({
+        studentId: z.string().trim().min(1).max(120),
+        assignmentsScore: z.number().min(0).max(10).optional(),
+        p1Score: z.number().min(0).max(10).optional(),
+        projectsScore: z.number().min(0).max(10).optional(),
+        p2Score: z.number().min(0).max(10).optional(),
+      })
+      .strict()
+      .refine(
+        (v) =>
+          v.assignmentsScore !== undefined ||
+          v.p1Score !== undefined ||
+          v.projectsScore !== undefined ||
+          v.p2Score !== undefined,
+      );
+    const body = parse(
+      z.object({
+        grades: z.array(scoreEntrySchema).min(1).max(200),
+      }).strict(),
+      request.body,
+    );
+    const result = await service.updateClassGradesBatch(
+      response.locals.userId,
+      response.locals.user,
+      request.params.classCode!,
+      body.grades,
+    );
+    response.json(result);
+  });
+
   router.patch("/courses/:classCode/grades/:studentId", async (request, response) => {
     const body = parse(
       z

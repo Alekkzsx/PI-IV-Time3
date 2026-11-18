@@ -183,6 +183,13 @@ class DocenteRepositoryImpl implements IDocenteRepository {
       );
 
   @override
+  Future<Map<String, dynamic>> updateGradesBatch({
+    required String classCode,
+    required List<Map<String, Object?>> grades,
+  }) =>
+      _remote.updateGradesBatch(classCode: classCode, grades: grades);
+
+  @override
   Future<Map<String, dynamic>> homologate(String classCode) =>
       _remote.homologate(classCode);
 

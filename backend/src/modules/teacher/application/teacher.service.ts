@@ -428,6 +428,21 @@ export class TeacherService {
     return this.gradebookService.updateStudentGrade(userId, user, classCode, studentId, scores);
   }
 
+  async updateClassGradesBatch(
+    userId: string,
+    user: Document,
+    classCode: string,
+    entries: Array<{
+      studentId: string;
+      assignmentsScore?: number;
+      p1Score?: number;
+      projectsScore?: number;
+      p2Score?: number;
+    }>,
+  ) {
+    return this.gradebookService.updateClassGradesBatch(userId, user, classCode, entries);
+  }
+
   async homologateClassGrades(userId: string, user: Document, classCode: string) {
     return this.gradebookService.homologateClassGrades(userId, user, classCode);
   }

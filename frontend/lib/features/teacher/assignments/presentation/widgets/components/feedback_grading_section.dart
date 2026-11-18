@@ -56,7 +56,7 @@ class FeedbackGradingSection extends StatelessWidget {
                           horizontal: 14,
                           vertical: 10,
                         ),
-                        suffixText: '/ ${assignment.weight}',
+                        suffixText: '/ 10,0',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: const BorderSide(

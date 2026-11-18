@@ -244,6 +244,26 @@ export async function seedTeacher(
         stage: asg.stage,
         modality: i % 3 === 0 ? "Equipe" : "Individual",
         allowLateWithPenalty: true,
+        rubricCriteria: [
+          {
+            id: "rc-1",
+            title: "Domínio Técnico e Implementação",
+            maxPoints: 4.0,
+            description: "Correção conceitual, funcionalidade completa e aderência ao enunciado.",
+          },
+          {
+            id: "rc-2",
+            title: "Qualidade Estrutural e Organização",
+            maxPoints: 3.5,
+            description: "Clareza arquitetural, boas práticas e legibilidade da entrega.",
+          },
+          {
+            id: "rc-3",
+            title: "Documentação e Fundamentação",
+            maxPoints: 2.5,
+            description: "Justificativas técnicas, evidências de execução e apresentação.",
+          },
+        ],
         createdBy: String(teacher._id),
         createdAt: now,
         updatedAt: now,

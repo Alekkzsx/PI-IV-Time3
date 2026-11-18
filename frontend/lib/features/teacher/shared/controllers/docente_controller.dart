@@ -77,6 +77,8 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
 
   final Map<String, bool> _pautaHomologada = {};
   final Map<String, String> _pautaChancelaCodes = {};
+  final Map<String, StudentGrade> _pendingGradeDrafts = {};
+  bool isSavingGrades = false;
   final List<Map<String, dynamic>> _retificacaoRequests = [];
   final Map<String, List<Map<String, dynamic>>> _forumTopicsByCourse = {};
 
@@ -154,7 +156,12 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   }
 
   List<StudentGrade> get gradebook => List.unmodifiable(
-        _gradebook.where((g) => g.courseId == _selectedCourseId).toList(),
+        _gradebook
+            .where((g) => g.courseId == _selectedCourseId)
+            .map(
+              (g) => _pendingGradeDrafts['$_selectedCourseId::${g.studentId}'] ?? g,
+            )
+            .toList(),
       );
 
   bool isPautaHomologada(String courseId) =>
@@ -314,6 +321,8 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
     _selectedAssignmentId = '';
     _pautaHomologada.clear();
     _pautaChancelaCodes.clear();
+    _pendingGradeDrafts.clear();
+    isSavingGrades = false;
     _forumTopicsByCourse.clear();
   }
 

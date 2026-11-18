@@ -197,6 +197,72 @@ class FakeTeacherRemoteDataSource extends TeacherRemoteDataSource {
   }) async {
     lastEvaluatedSubmissionId = assignmentId;
     return {};
+    assignments = assignments.map((assignment) {
+      if (assignment.id != assignmentId) return assignment;
+      return assignment.copyWith(
+        submissions: assignment.submissions.map((sub) {
+          if (sub.studentId != studentId) return sub;
+          return sub.copyWith(
+            grade: calculatedGrade,
+            status: SubmissionStatus.corrigido,
+            teacherFeedback: feedback,
+          );
+        }).toList(),
+      );
+    }).toList();
+    return {
+      'ok': true,
+      'score': calculatedGrade,
+      'consolidatedStageGrade': calculatedGrade,
+      'stage': 'N1',
+      'gradeField': 'assignmentsScore',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateGrade({
+    required String classCode,
+    required String studentId,
+    double? assignmentsScore,
+    double? p1Score,
+    double? projectsScore,
+    double? p2Score,
+  }) async {
+    final courseId = courses
+        .firstWhere((c) => c.code == classCode, orElse: () => DocenteCourse.empty)
+        .id;
+    grades = grades.map((g) {
+      if ((g.courseId != courseId && g.courseId != classCode) ||
+          g.studentId != studentId) {
+        return g;
+      }
+      return g.copyWith(
+        assignmentsScore: assignmentsScore ?? g.assignmentsScore,
+        p1Score: p1Score ?? g.p1Score,
+        projectsScore: projectsScore ?? g.projectsScore,
+        p2Score: p2Score ?? g.p2Score,
+        hasGrades: true,
+      );
+    }).toList();
+    return {'ok': true};
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateGradesBatch({
+    required String classCode,
+    required List<Map<String, Object?>> grades,
+  }) async {
+    for (final entry in grades) {
+      await updateGrade(
+        classCode: classCode,
+        studentId: entry['studentId']!.toString(),
+        assignmentsScore: (entry['assignmentsScore'] as num?)?.toDouble(),
+        p1Score: (entry['p1Score'] as num?)?.toDouble(),
+        projectsScore: (entry['projectsScore'] as num?)?.toDouble(),
+        p2Score: (entry['p2Score'] as num?)?.toDouble(),
+      );
+    }
+    return {'ok': true, 'updatedCount': grades.length};
   }
 
   @override

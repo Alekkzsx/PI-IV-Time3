@@ -75,6 +75,11 @@ abstract class IDocenteRepository {
     double? p2Score,
   });
 
+  Future<Map<String, dynamic>> updateGradesBatch({
+    required String classCode,
+    required List<Map<String, Object?>> grades,
+  });
+
   Future<Map<String, dynamic>> homologate(String classCode);
 
   Future<Map<String, dynamic>> rectify({

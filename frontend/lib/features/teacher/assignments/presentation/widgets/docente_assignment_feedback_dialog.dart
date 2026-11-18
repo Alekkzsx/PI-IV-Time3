@@ -231,29 +231,35 @@ class _DocenteAssignmentFeedbackDialogState
                     ],
                   ),
                   ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       final grade =
                           double.tryParse(
                             _gradeController.text.replaceAll(',', '.'),
                           ) ??
                           0.0;
-                      widget.controller.salvarFeedbackIndividual(
+                      final ok = await widget.controller.salvarFeedbackIndividual(
                         assignmentId: widget.assignment.id,
                         studentRa: widget.submission.ra,
-                        nota: grade,
+                        nota: grade.clamp(0.0, 10.0),
                         feedback: _feedbackController.text,
                         teacherReply: _replyController.text.isNotEmpty
                             ? _replyController.text
                             : null,
                       );
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      if (!context.mounted) return;
+                      if (ok) {
+                        Navigator.of(context).pop();
+                      }
+                      messenger.showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Feedback e nota de ${widget.submission.studentName} salvos com sucesso.',
+                            ok
+                                ? 'Feedback e nota de ${widget.submission.studentName} salvos com sucesso.'
+                                : (widget.controller.remoteError ?? 'Não foi possível salvar a avaliação.'),
                             style: jakarta(size: 13, color: Colors.white),
                           ),
-                          backgroundColor: const Color(0xFF047857),
+                          backgroundColor: ok ? const Color(0xFF047857) : const Color(0xFFDC2626),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

@@ -108,7 +108,7 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
     return false;
   }
 
-  Future<void> evaluateRubric({
+  Future<bool> evaluateRubric({
     required String assignmentId,
     required String submissionId,
     required double calculatedGrade,
@@ -122,29 +122,28 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
         !_courses.any(
           (course) => course.id == _assignments[asgIndex].courseId,
         )) {
-      return;
+      return false;
     }
 
     final assignment = _assignments[asgIndex];
+    final submission = assignment.submissions
+        .where((item) => item.id == submissionId)
+        .firstOrNull;
     if (!calculatedGrade.isFinite ||
         calculatedGrade < 0 ||
         calculatedGrade > 10 ||
-        !assignment.submissions.any(
-          (submission) =>
-              submission.id == submissionId &&
-              submission.status == SubmissionStatus.aguardandoCorrecao,
-        )) {
-      return;
+        submission == null) {
+      return false;
     }
-    final submission = assignment.submissions.firstWhere(
-      (item) => item.id == submissionId,
-    );
+    final normalizedGrade = double.parse(calculatedGrade.toStringAsFixed(1));
+    final trimmedFeedback = feedback.trim();
+    remoteError = null;
     try {
-      await _remote.evaluateSubmission(
+      final result = await _remote.evaluateSubmission(
         assignmentId: assignmentId,
         studentId: submission.studentId,
-        calculatedGrade: calculatedGrade,
-        feedback: feedback.trim(),
+        calculatedGrade: normalizedGrade,
+        feedback: trimmedFeedback,
         evaluatedCriteria: evaluatedCriteria
             .map(
               (criterion) => <String, Object?>{
@@ -157,13 +156,51 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
             )
             .toList(),
       );
-      await loadRemote(force: true);
+
+      final updatedSubmissions = assignment.submissions.map((item) {
+        if (item.id != submissionId && item.studentId != submission.studentId) {
+          return item;
+        }
+        return item.copyWith(
+          grade: normalizedGrade,
+          status: SubmissionStatus.corrigido,
+          teacherFeedback: trimmedFeedback,
+          rubricEvaluations: List<RubricCriterion>.from(evaluatedCriteria),
+        );
+      }).toList();
+      final updatedAssignments = List<AssignmentItem>.from(_assignments);
+      updatedAssignments[asgIndex] = assignment.copyWith(
+        submissions: updatedSubmissions,
+      );
+      _assignments = updatedAssignments;
+
+      final consolidated = (result['consolidatedStageGrade'] as num?)?.toDouble();
+      if (consolidated != null) {
+        final isN2 = assignment.stage.toUpperCase() == 'N2';
+        _gradebook = _gradebook.map((gradeItem) {
+          if (gradeItem.courseId != assignment.courseId ||
+              gradeItem.studentId != submission.studentId) {
+            return gradeItem;
+          }
+          return gradeItem.copyWith(
+            assignmentsScore: isN2 ? gradeItem.assignmentsScore : consolidated,
+            projectsScore: isN2 ? consolidated : gradeItem.projectsScore,
+            hasGrades: true,
+          );
+        }).toList();
+      }
+      _lastSyncedAt = DateTime.now();
+      notifyListeners();
+      return true;
     } on ApiException catch (error) {
       remoteError = error.message;
+      notifyListeners();
+      return false;
     } catch (_) {
       remoteError = 'Não foi possível avaliar a entrega.';
+      notifyListeners();
+      return false;
     }
-    notifyListeners();
   }
 
   List<Map<String, String>> getDoubtThread(
@@ -279,13 +316,13 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
     notifyListeners();
   }
 
-  void salvarFeedbackIndividual({
+  Future<bool> salvarFeedbackIndividual({
     required String assignmentId,
     required String studentRa,
     required double nota,
     required String feedback,
     String? teacherReply,
-  }) {
+  }) async {
     final asgIndex = _assignments.indexWhere((a) => a.id == assignmentId);
     if (!_hasActiveTeacherAccess ||
         !AppUserSession.instance.hasPermission('manage_assignments') ||
@@ -295,31 +332,25 @@ mixin _DocenteAssignmentsMixin on _DocenteControllerBase {
         ) ||
         !nota.isFinite ||
         nota < 0 ||
-        nota > 10 ||
-        !_assignments[asgIndex].submissions.any(
-          (submission) =>
-              submission.ra == studentRa &&
-              submission.status == SubmissionStatus.aguardandoCorrecao,
-        )) {
-      return;
+        nota > 10) {
+      return false;
     }
     final assignment = _assignments[asgIndex];
     final submission = assignment.submissions
         .where((item) => item.ra == studentRa)
         .firstOrNull;
-    if (submission == null) return;
-    unawaited(
-      evaluateRubric(
-        assignmentId: assignmentId,
-        submissionId: submission.id,
-        calculatedGrade: nota,
-        feedback: feedback.trim(),
-        evaluatedCriteria: submission.rubricEvaluations,
-      ),
+    if (submission == null) return false;
+    final ok = await evaluateRubric(
+      assignmentId: assignmentId,
+      submissionId: submission.id,
+      calculatedGrade: nota,
+      feedback: feedback.trim(),
+      evaluatedCriteria: submission.rubricEvaluations,
     );
-    if (teacherReply != null && teacherReply.trim().isNotEmpty) {
+    if (ok && teacherReply != null && teacherReply.trim().isNotEmpty) {
       unawaited(enviarRespostaDuvida(assignmentId, studentRa, teacherReply));
     }
+    return ok;
   }
 
   Future<String?> downloadSubmission(StudentSubmission submission) async {
