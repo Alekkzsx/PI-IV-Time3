@@ -9,6 +9,7 @@ import auth.RecoveryHandlerTeste;
 import auth.ResilientNetworkTeste;
 import auth.RevogacaoTokensTeste;
 import auth.SenhaHasherTeste;
+import auth.SmtpClienteTeste;
 import core.HttpUtilsCorsTeste;
 import utils.ConfigEnvTeste;
 import utils.JsonTeste;
@@ -80,14 +81,17 @@ public class SuiteTestesServidor {
         System.out.println("\n=== 14/15 HttpUtilsCors (origem unica, porta dinamica e PNA) ===");
         totalFalhas += HttpUtilsCorsTeste.executar();
 
-        System.out.println("\n=== 15/15 ResilientNetwork (DoH fallback e 503 rede bloqueada) ===");
+        System.out.println("\n=== 15/16 ResilientNetwork (DoH fallback e 503 rede bloqueada) ===");
         totalFalhas += ResilientNetworkTeste.executar();
+
+        System.out.println("\n=== 16/16 SmtpCliente (RFC 5321 CRLF, AUTH PLAIN/LOGIN, Webhook e Circuit Breaker) ===");
+        totalFalhas += SmtpClienteTeste.executar();
 
         System.out.println("\n==========================================");
         if (totalFalhas > 0) {
             System.out.println("[RESULTADO] FALHOU com " + totalFalhas + " erro(s).");
             System.exit(1);
         }
-        System.out.println("[RESULTADO] TODAS AS 15 SUITES NATIVAS PASSARAM COM SUCESSO!");
+        System.out.println("[RESULTADO] TODAS AS 16 SUITES NATIVAS PASSARAM COM SUCESSO!");
     }
 }

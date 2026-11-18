@@ -425,6 +425,50 @@ export class AcademicEmailTemplateRenderer {
     };
   }
 
+  /** E-mail de comunicado ou aviso acadêmico publicado pelo docente da disciplina */
+  static renderCourseNotice(input: {
+    studentName: string;
+    disciplineName: string;
+    title: string;
+    message: string;
+    authorName: string;
+    classification?: string;
+  }): RenderedEmail {
+    const classificationLabel = input.classification?.trim() || "Aviso da Disciplina";
+    const subject = `[${input.disciplineName}] ${input.title}`;
+    const bodyContent = `
+      <p style="margin: 0 0 16px 0; font-size: 16px; color: ${this.TEXT_DARK}; line-height: 1.5;">
+        Olá, <strong>${this.escape(input.studentName)}</strong>!
+      </p>
+      <p style="margin: 0 0 18px 0; font-size: 15px; color: ${this.TEXT_MUTED}; line-height: 1.5;">
+        Um novo comunicado foi publicado na disciplina <strong>${this.escape(input.disciplineName)}</strong> por <strong>${this.escape(input.authorName)}</strong>.
+      </p>
+      <div style="background-color: #F8FAFC; border: 1px solid ${this.BORDER_COLOR}; border-left: 4px solid ${this.ACCENT_COLOR}; border-radius: 8px; padding: 16px 20px; margin: 18px 0;">
+        <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: ${this.ACCENT_COLOR};">
+          ${this.escape(classificationLabel)}
+        </p>
+        <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: 700; color: ${this.TEXT_DARK};">
+          ${this.escape(input.title)}
+        </p>
+        <p style="margin: 0; font-size: 14px; color: ${this.TEXT_DARK}; line-height: 1.55; white-space: pre-wrap;">${this.escape(input.message)}</p>
+      </div>
+    `;
+    const text = [
+      `Comunicado da Disciplina: ${input.disciplineName}`,
+      `Classificação: ${classificationLabel}`,
+      `Título: ${input.title}`,
+      `Publicado por: ${input.authorName}`,
+      "",
+      input.message,
+    ].join("\n");
+
+    return {
+      subject,
+      html: this.wrapLayout("Comunicado Acadêmico", bodyContent, `${input.disciplineName}: ${input.title}`),
+      text,
+    };
+  }
+
   /** Envolve o conteúdo em layout HTML responsivo institucional */
   private static wrapLayout(heading: string, bodyContent: string, preheader: string): string {
     return `<!DOCTYPE html>

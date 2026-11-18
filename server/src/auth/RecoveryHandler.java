@@ -90,28 +90,38 @@ public class RecoveryHandler implements ManipuladorHttp {
 
         String email = getString(corpo, "email");
         String identity = getString(corpo, "identity");
+        boolean temEmail = email != null && !email.isEmpty();
+        boolean temIdentity = identity != null && !identity.isEmpty();
 
-        // Mensagem opaca independente de existir ou nao (evita enumeracao)
-        String mensagemOpaca = "Se a conta existir, um codigo de recuperacao sera enviado.";
-
-        RepositorioUsuarios repo = this.repositorio;
-        UsuarioAutenticado usuario = null;
-
-        if (email != null && !email.isEmpty()) {
-            usuario = repo.buscarPorEmail(email);
-        } else if (identity != null && !identity.isEmpty()) {
-            usuario = repo.buscarPorIdentidade(identity);
+        if (!temEmail && !temIdentity) {
+            enviarErro(resposta, 400, "invalid_request",
+                    "Informe o e-mail ou identificador cadastrado para recuperar a senha.");
+            return;
         }
 
+        String chaveConsultada = temEmail ? email : identity;
+        RepositorioUsuarios repo = this.repositorio;
+        UsuarioAutenticado usuario = temEmail
+                ? repo.buscarPorEmail(email)
+                : repo.buscarPorIdentidade(identity);
+
         if (usuario == null) {
+            Map<String, Object> det = new LinkedHashMap<String, Object>();
+            det.put("queriedValue", chaveConsultada);
+            repo.registrarAuditoria("anonymous", "password_recovery_not_registered", chaveConsultada, det);
             aplicarLatenciaPadronizada();
-            // Retornar 200 com mensagem opaca (nao revelar se o usuario existe)
-            Map<String, Object> resp = new LinkedHashMap<String, Object>();
-            resp.put("status", 200);
-            resp.put("success", true);
-            resp.put("expiresInSeconds", 300);
-            resp.put("message", mensagemOpaca);
-            resposta.enviarJson(200, Json.escrever(resp));
+            enviarErro(resposta, 404, "email_not_registered",
+                    "E-mail ou identificador nao cadastrado no sistema.");
+            return;
+        }
+
+        if (!SmtpCliente.isEmailValido(usuario.getEmail())) {
+            Map<String, Object> det = new LinkedHashMap<String, Object>();
+            det.put("identity", usuario.getIdentity());
+            repo.registrarAuditoria(usuario.getUserId(), "password_recovery_missing_email", usuario.getUserId(), det);
+            aplicarLatenciaPadronizada();
+            enviarErro(resposta, 422, "email_not_registered",
+                    "Esta conta nao possui um e-mail valido cadastrado no sistema.");
             return;
         }
 
@@ -128,24 +138,20 @@ public class RecoveryHandler implements ManipuladorHttp {
         repo.salvarOtp(usuario.getIdentity(), otpHash, "RECOVERY", expiraEmMillis);
 
         // Se a requisição informou um identificador ou email diferente da identidade oficial, salvar sob esses aliases também
-        if (identity != null && !identity.trim().isEmpty() && !identity.trim().equalsIgnoreCase(usuario.getIdentity())) {
+        if (temIdentity && !identity.trim().equalsIgnoreCase(usuario.getIdentity())) {
             repo.salvarOtp(identity.trim().toLowerCase(), otpHash, "RECOVERY", expiraEmMillis);
         }
-        if (email != null && !email.trim().isEmpty() && !email.trim().equalsIgnoreCase(usuario.getIdentity())) {
+        if (temEmail && !email.trim().equalsIgnoreCase(usuario.getIdentity())) {
             repo.salvarOtp(email.trim().toLowerCase(), otpHash, "RECOVERY", expiraEmMillis);
         }
-        if (!usuario.getEmail().isEmpty() && !usuario.getEmail().equalsIgnoreCase(usuario.getIdentity())) {
+        if (!usuario.getEmail().equalsIgnoreCase(usuario.getIdentity())) {
             repo.salvarOtp(usuario.getEmail().toLowerCase(), otpHash, "RECOVERY", expiraEmMillis);
         }
 
-        // Enviar email e registrar auditoria
-        if (!usuario.getEmail().isEmpty()) {
-            try {
-                SmtpCliente.enviarRecuperacao(usuario.getEmail(), otpCode, usuario.getDisplayName());
-            } catch (Exception e) {
-                System.err.println("[RECOVERY] Falha ao enviar OTP por email: " + e.getMessage());
-            }
-        }
+        // Enviar email assincrono e registrar auditoria do resultado real de entrega
+        SmtpCliente.enviarRecuperacaoComResultado(usuario.getEmail(), otpCode, usuario.getDisplayName())
+                .whenComplete((resultado, erro) -> repo.registrarResultadoEnvioEmail(
+                        usuario.getUserId(), "password_recovery_email", usuario.getEmail(), resultado, erro));
         repo.registrarAuditoria(usuario.getUserId(), "password_recovery_requested", usuario.getUserId(), null);
 
         aplicarLatenciaPadronizada();
@@ -154,11 +160,9 @@ public class RecoveryHandler implements ManipuladorHttp {
         resp.put("status", 200);
         resp.put("success", true);
         resp.put("expiresInSeconds", 300);
-        resp.put("message", mensagemOpaca);
-        if (!usuario.getEmail().isEmpty()) {
-            resp.put("maskedEmail", mascararEmail(usuario.getEmail()));
-            resp.put("email", usuario.getEmail());
-        }
+        resp.put("message", "Codigo de verificacao enviado para o e-mail cadastrado.");
+        resp.put("maskedEmail", mascararEmail(usuario.getEmail()));
+        resp.put("email", usuario.getEmail());
         resp.put("identity", usuario.getIdentity());
         if (!usuario.getDisplayName().isEmpty()) {
             resp.put("displayName", usuario.getDisplayName());
@@ -420,9 +424,17 @@ public class RecoveryHandler implements ManipuladorHttp {
     }
 
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
+        String codigo = status == 401 ? "invalid_or_expired_code"
+                : status == 429 ? "recovery_attempts_exceeded"
+                : status == 404 ? "not_found"
+                : "invalid_request";
+        enviarErro(resposta, status, codigo, mensagem);
+    }
+
+    private void enviarErro(RespostaHttp resposta, int status, String codigo, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
-        erro.put("code", status == 401 ? "invalid_or_expired_code" : status == 429 ? "recovery_attempts_exceeded" : "invalid_request");
+        erro.put("code", codigo);
         erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));

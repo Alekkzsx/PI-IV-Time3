@@ -163,13 +163,13 @@ public class LoginHandler implements ManipuladorHttp {
                 repositorio.salvarOtp(usuario.getIdentity(), otpHash, "2FA_LOGIN", expiraMillis);
                 repositorio.salvarOtp(challengeToken, usuario.getIdentity(), "2FA_CHALLENGE", expiraMillis);
 
-                // Enviar OTP por email
-                if (!usuario.getEmail().isEmpty()) {
-                    try {
-                        SmtpCliente.enviarOtp(usuario.getEmail(), otpCode, usuario.getDisplayName());
-                    } catch (Exception e) {
-                        System.err.println("[LOGIN] Falha ao enviar OTP por email: " + e.getMessage());
-                    }
+                // Enviar OTP por email apenas se houver e-mail valido cadastrado
+                if (SmtpCliente.isEmailValido(usuario.getEmail())) {
+                    SmtpCliente.enviarOtpComResultado(usuario.getEmail(), otpCode, usuario.getDisplayName())
+                            .whenComplete((resultado, erro) -> repositorio.registrarResultadoEnvioEmail(
+                                    usuario.getUserId(), "login_2fa_email", usuario.getEmail(), resultado, erro));
+                } else {
+                    repositorio.registrarAuditoria(usuario.getUserId(), "login_2fa_missing_email", usuario.getUserId(), null, ipCliente);
                 }
 
                 Map<String, Object> desafio = new LinkedHashMap<String, Object>();

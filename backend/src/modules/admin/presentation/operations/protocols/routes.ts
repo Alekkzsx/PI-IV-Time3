@@ -7,6 +7,10 @@ import { AuthError } from "../../../../../shared/auth-error.js";
 import { objectId, parse } from "../../../../../shared/validation.js";
 import { adminWrite, audit, publicRecord } from "../../../infrastructure/admin-support.js";
 import type { UnifiedEmailService } from "../../../../notifications/domain/notification.types.js";
+import {
+	dispatchNotificationSafe,
+	resolveActiveRegisteredRecipientById,
+} from "../../../../notifications/domain/recipient-guard.js";
 
 export function registerAdminProtocolRoutes(
 	router: Router,
@@ -96,24 +100,28 @@ export function registerAdminProtocolRoutes(
 		});
 
 		if (emailService && record) {
-			void database
-				.collection("auth_users")
-				.findOne({ _id: objectId(String(record.studentId)) })
+			void resolveActiveRegisteredRecipientById(database, String(record.studentId))
 				.then((student) => {
-					if (student?.email) {
-						return emailService.sendProtocolDecided({
+					if (!student) {
+						console.warn(
+							`[admin-protocols] Discente ${String(record.studentId)} sem conta ativa ou e-mail válido em auth_users; e-mail de parecer ignorado.`,
+						);
+						return;
+					}
+					dispatchNotificationSafe("admin-protocols", student.email, () =>
+						emailService.sendProtocolDecided({
 							to: student.email,
-							studentName: student.displayName ?? record.studentName,
+							studentName: student.displayName || record.studentName,
 							protocolCode: record.code,
 							requestType: record.requestType,
 							approved: input.approved,
 							decisionNote: input.decisionNote,
 							signedBy,
-						});
-					}
+						}),
+					);
 				})
 				.catch((err) => {
-					console.warn(`[admin-protocols] Falha ao notificar discente por e-mail: ${err?.message}`);
+					console.warn(`[admin-protocols] Falha ao localizar discente em auth_users: ${err?.message}`);
 				});
 		}
 

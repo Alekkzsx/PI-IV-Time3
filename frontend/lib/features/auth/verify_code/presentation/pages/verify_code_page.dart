@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../../shared/widgets/top_header_bar.dart';
 import '../../../shared/domain/auth_repository.dart';
 import '../../../shared/domain/models/recovery_session.dart';
+import '../../../shared/external/auth_remote_datasource_impl.dart';
 
 /// Tela de conferência de token de segurança OTP (One-Time Password) de 6 dígitos.
 ///
@@ -278,6 +279,14 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
           duration: const Duration(seconds: 2),
         ),
       );
+    } on AuthApiException catch (error) {
+      if (!mounted) return;
+      final allowed = const {400, 403, 404, 422, 429, 503, 504};
+      setState(() {
+        _errorMessage = allowed.contains(error.statusCode) && error.message.trim().isNotEmpty
+            ? error.message.trim()
+            : 'Não foi possível reenviar o código. Tente novamente em instantes.';
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {

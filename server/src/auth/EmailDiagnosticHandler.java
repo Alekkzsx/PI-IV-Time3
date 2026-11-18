@@ -41,6 +41,15 @@ import java.util.concurrent.TimeUnit;
  * Response 400: Campo 'destinatarioTeste' invalido.
  */
 public class EmailDiagnosticHandler implements ManipuladorHttp {
+    private final RepositorioUsuarios repositorio;
+
+    public EmailDiagnosticHandler() {
+        this(RepositorioUsuarios.getInstance());
+    }
+
+    public EmailDiagnosticHandler(RepositorioUsuarios repositorio) {
+        this.repositorio = repositorio != null ? repositorio : RepositorioUsuarios.getInstance();
+    }
 
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
@@ -60,12 +69,12 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
             // Verificar autenticacao administrativa persistida no MongoDB
             UsuarioAutenticado usuario;
             try {
-                usuario = JwtAuthValidator.autenticarAdminObrigatorio(requisicao, RepositorioUsuarios.getInstance());
+                usuario = JwtAuthValidator.autenticarAdminObrigatorio(requisicao, this.repositorio);
             } catch (JwtAuthValidator.HttpSecurityException e) {
-                enviarErro(resposta, e.getStatusHttp(), e.getMessage());
+                enviarErro(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
                 return;
             } catch (SecurityException e) {
-                enviarErro(resposta, 401, e.getMessage());
+                enviarErro(resposta, 401, "unauthorized", e.getMessage());
                 return;
             }
 
@@ -75,7 +84,7 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
 
             String destinatarioTeste = getString(corpo, "destinatarioTeste");
             if (destinatarioTeste == null || destinatarioTeste.trim().isEmpty()) {
-                enviarErro(resposta, 400, "Campo 'destinatarioTeste' e obrigatorio.");
+                enviarErro(resposta, 400, "invalid_request", "Campo 'destinatarioTeste' e obrigatorio.");
                 return;
             }
 
@@ -89,9 +98,11 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
             String smtpUser = ConfigEnv.obter("SMTP_USER", "");
             String smtpFrom = ConfigEnv.obter("SMTP_FROM", smtpUser);
             int timeoutMs = ConfigEnv.obterInteiro("SMTP_TIMEOUT_MS", 15000);
-            int maxRetries = ConfigEnv.obterInteiro("SMTP_MAX_RETRIES", 3);
+            int maxRetries = ConfigEnv.obterInteiro("SMTP_MAX_RETRIES", 1);
             boolean sandbox = "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SANDBOX_MODE", "false"));
             String webhookUrl = ConfigEnv.obter("GMAIL_WEBHOOK_URL", "");
+            String resendApiKey = ConfigEnv.obter("RESEND_API_KEY", "");
+            String brevoApiKey = ConfigEnv.obter("BREVO_API_KEY", "");
 
             Map<String, Object> relatorio = new LinkedHashMap<String, Object>();
             relatorio.put("status", 200);
@@ -103,13 +114,34 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
             relatorio.put("timeoutMs", timeoutMs);
             relatorio.put("maxRetries", maxRetries);
             relatorio.put("sandboxMode", sandbox);
+            relatorio.put("resendConfigurado", !resendApiKey.isEmpty());
+            relatorio.put("brevoConfigurado", !brevoApiKey.isEmpty());
             relatorio.put("fallbackWebhookConfigurado", !webhookUrl.isEmpty());
+            relatorio.put("circuitBreakerState", SmtpCliente.getEstadoCircuito());
 
             // Validar endereco de email
-            if (!destinatarioTeste.contains("@") || !destinatarioTeste.contains(".")) {
+            if (!SmtpCliente.isEmailValido(destinatarioTeste)) {
+                relatorio.put("status", 400);
+                relatorio.put("code", "invalid_email");
                 relatorio.put("emailEnviado", false);
+                relatorio.put("deliveredExternally", false);
                 relatorio.put("mensagem", "Endereco de email invalido: " + destinatarioTeste);
                 resposta.enviarJson(400, Json.escrever(relatorio));
+                return;
+            }
+
+            // Bloquear envios para enderecos que nao existem como conta ativa em auth_users
+            UsuarioAutenticado destinatarioCadastrado = this.repositorio.buscarPorEmail(destinatarioTeste);
+            if (destinatarioCadastrado == null
+                    || !destinatarioCadastrado.getEmail().equalsIgnoreCase(destinatarioTeste)) {
+                relatorio.put("status", 404);
+                relatorio.put("code", "email_not_registered");
+                relatorio.put("erro", "E-mail nao cadastrado na base de usuarios ativos (auth_users).");
+                relatorio.put("message", "E-mail nao cadastrado na base de usuarios ativos (auth_users).");
+                relatorio.put("emailEnviado", false);
+                relatorio.put("deliveredExternally", false);
+                relatorio.put("mensagem", "Destinatario nao cadastrado no sistema: " + destinatarioTeste);
+                resposta.enviarJson(404, Json.escrever(relatorio));
                 return;
             }
 
@@ -117,43 +149,41 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
             String assunto = "📧 AGMRM - Diagnóstico de Email";
             String html = construirHtmlDiagnostico(usuario.getDisplayName(), destinatarioTeste);
 
-            long inicio = System.currentTimeMillis();
-            boolean sucesso = false;
-            String erro = null;
-            int tentativas = 0;
-
-            // Tentar envio sincrono para medir latencia
-            if (smtpHost.isEmpty() && !sandbox) {
+            if (smtpHost.isEmpty()
+                    && resendApiKey.isEmpty()
+                    && brevoApiKey.isEmpty()
+                    && webhookUrl.isEmpty()
+                    && !sandbox) {
                 relatorio.put("emailEnviado", false);
-                relatorio.put("mensagem", "SMTP_HOST nao configurado. Email nao enviado.");
+                relatorio.put("deliveredExternally", false);
+                relatorio.put("storedInOutbox", false);
+                relatorio.put("canalUtilizado", "NENHUM");
+                relatorio.put("mensagem", "Nenhum canal de envio configurado (SMTP_HOST, RESEND_API_KEY, BREVO_API_KEY e GMAIL_WEBHOOK_URL ausentes).");
                 resposta.enviarJson(200, Json.escrever(relatorio));
                 return;
             }
 
-            // Enviar via metodo sincrono resiliente (SMTP -> Webhook -> Outbox)
-            String canalEfetivo = null;
-            try {
-                canalEfetivo = SmtpCliente.enviarSincronoResiliente(destinatarioTeste, assunto, html, "DIAGNOSTIC");
-                sucesso = true;
-                tentativas = 1;
-            } catch (Exception e) {
-                erro = e.getMessage();
-                tentativas = 1;
-            }
+            // Enviar via metodo sincrono resiliente (SMTP -> HTTPS REST -> Outbox)
+            SmtpCliente.ResultadoEnvioEmail resultado = SmtpCliente.enviarSincronoDetalhado(
+                    destinatarioTeste, assunto, html, "DIAGNOSTIC");
 
-            long latencia = System.currentTimeMillis() - inicio;
+            boolean entregueExternamente = resultado.isDeliveredExternally();
+            boolean retidoEmOutbox = "OUTBOX".equals(resultado.getCanal());
 
-            relatorio.put("emailEnviado", sucesso);
-            relatorio.put("canalUtilizado", canalEfetivo != null ? canalEfetivo : "NENHUM");
-            relatorio.put("latenciaMs", latencia);
-            relatorio.put("tentativas", tentativas);
+            relatorio.put("emailEnviado", Boolean.valueOf(entregueExternamente));
+            relatorio.put("deliveredExternally", Boolean.valueOf(entregueExternamente));
+            relatorio.put("storedInOutbox", Boolean.valueOf(retidoEmOutbox));
+            relatorio.put("canalUtilizado", resultado.getCanal());
+            relatorio.put("latenciaMs", Long.valueOf(resultado.getLatenciaMs()));
+            relatorio.put("tentativas", Integer.valueOf(1));
+            relatorio.put("errorTrail", resultado.getErrorTrail());
+            relatorio.put("circuitBreakerState", SmtpCliente.getEstadoCircuito());
 
-            if (sucesso) {
-                relatorio.put("mensagem", "Email de diagnostico processado com sucesso via canal ["
-                        + canalEfetivo + "] para " + destinatarioTeste);
+            if (entregueExternamente) {
+                relatorio.put("mensagem", "Email de diagnostico enviado externamente com sucesso via canal ["
+                        + resultado.getCanal() + "] para " + destinatarioTeste);
             } else {
-                relatorio.put("mensagem", "Falha no envio: " + (erro != null ? erro : "erro desconhecido"));
-                relatorio.put("erro", erro);
+                relatorio.put("mensagem", "Nenhum canal externo entregou o e-mail (retido em OUTBOX local). Consulte errorTrail.");
             }
 
             resposta.enviarJson(200, Json.escrever(relatorio));
@@ -173,8 +203,14 @@ public class EmailDiagnosticHandler implements ManipuladorHttp {
     }
 
     private void enviarErro(RespostaHttp resposta, int status, String mensagem) throws IOException {
+        enviarErro(resposta, status, status == 401 ? "unauthorized" : "invalid_request", mensagem);
+    }
+
+    private void enviarErro(RespostaHttp resposta, int status, String codigo, String mensagem) throws IOException {
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
         erro.put("status", status);
+        erro.put("code", codigo);
+        erro.put("message", mensagem);
         erro.put("erro", mensagem);
         resposta.enviarJson(status, Json.escrever(erro));
     }

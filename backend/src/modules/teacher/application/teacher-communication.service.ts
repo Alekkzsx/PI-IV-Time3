@@ -4,11 +4,18 @@ import { ObjectId, type Db, type Document } from "mongodb";
 import { AuthError } from "../../../shared/auth-error.js";
 import { TeacherClassAccess } from "./teacher-class-access.js";
 import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  resolveActiveEnrolledRecipients,
+} from "../../notifications/domain/recipient-guard.js";
+import { AcademicEmailTemplateRenderer } from "../../notifications/templates/academic-email-template.renderer.js";
 
 export class TeacherCommunicationService {
   constructor(
     private readonly database: Db,
     private readonly classAccess: TeacherClassAccess,
+    private readonly emailService?: UnifiedEmailService,
   ) {}
 
   async createForumTopic(
@@ -153,6 +160,35 @@ export class TeacherCommunicationService {
       createdAt: now,
     };
     const inserted = await this.database.collection("academic_announcements").insertOne(doc);
+
+    if (this.emailService && classroom) {
+      const disciplineName = String(classroom.subjectName ?? classroom.name ?? classroom.code);
+      void resolveActiveEnrolledRecipients(this.database, classroom.code)
+        .then((recipients) => {
+          for (const student of recipients) {
+            const rendered = AcademicEmailTemplateRenderer.renderCourseNotice({
+              studentName: student.displayName,
+              disciplineName,
+              title: doc.title,
+              message: doc.body,
+              authorName: String(doc.authorName),
+              classification: doc.classification,
+            });
+            dispatchNotificationSafe("teacher-notice", student.email, () =>
+              this.emailService!.sendRaw({
+                to: student.email,
+                subject: rendered.subject,
+                html: rendered.html,
+                text: rendered.text,
+              }),
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn(`[teacher-notice] Falha ao resolver destinatários matriculados: ${err?.message}`);
+        });
+    }
+
     return {
       id: String(inserted.insertedId),
       author: doc.authorName,

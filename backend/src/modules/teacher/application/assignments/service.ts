@@ -2,6 +2,12 @@
 import { randomBytes } from "node:crypto";
 import { ObjectId, type Db, type Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";
+import type { UnifiedEmailService } from "../../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  resolveActiveEnrolledRecipients,
+  resolveActiveRegisteredRecipientById,
+} from "../../../notifications/domain/recipient-guard.js";
 import { TeacherClassAccess } from "../teacher-class-access.js";
 
 function resolveDueParts(
@@ -63,6 +69,7 @@ export class TeacherAssignmentService {
   constructor(
     private readonly database: Db,
     private readonly classAccess: TeacherClassAccess,
+    private readonly emailService?: UnifiedEmailService,
   ) {}
 
   async createAssignment(
@@ -135,6 +142,28 @@ export class TeacherAssignmentService {
       details: { assignmentId: String(inserted.insertedId), title: doc.title },
       createdAt: now,
     });
+
+    if (this.emailService) {
+      const disciplineName = String(classroom.subjectName ?? classroom.name ?? classroom.code);
+      void resolveActiveEnrolledRecipients(this.database, classroom.code)
+        .then((recipients) => {
+          for (const student of recipients) {
+            dispatchNotificationSafe("teacher-assignment-created", student.email, () =>
+              this.emailService!.sendAssignmentDeadline({
+                to: student.email,
+                studentName: student.displayName,
+                assignmentTitle: doc.title,
+                disciplineName,
+                dueDate: doc.dueDate,
+              }),
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn(`[teacher-assignment-created] Falha ao resolver discentes matriculados: ${err?.message}`);
+        });
+    }
+
     return { id: String(inserted.insertedId), ...doc };
   }
 
@@ -265,6 +294,29 @@ export class TeacherAssignmentService {
       details: { assignmentId, studentId: input.studentId, score: input.calculatedGrade, consolidatedStageGrade },
       createdAt: now,
     });
+
+    if (this.emailService) {
+      const disciplineName = String(classroom.subjectName ?? classroom.name ?? classroom.code);
+      const assignmentTitle = String(assignment.title ?? "Atividade Avaliativa");
+      void resolveActiveRegisteredRecipientById(this.database, input.studentId)
+        .then((student) => {
+          if (!student) return;
+          dispatchNotificationSafe("teacher-submission-evaluated", student.email, () =>
+            this.emailService!.sendGradePublished({
+              to: student.email,
+              studentName: student.displayName,
+              assignmentTitle,
+              disciplineName,
+              grade: input.calculatedGrade,
+              feedback: input.feedback,
+            }),
+          );
+        })
+        .catch((err) => {
+          console.warn(`[teacher-submission-evaluated] Falha ao resolver discente avaliado: ${err?.message}`);
+        });
+    }
+
     return { ok: true, score: input.calculatedGrade, consolidatedStageGrade };
   }
 

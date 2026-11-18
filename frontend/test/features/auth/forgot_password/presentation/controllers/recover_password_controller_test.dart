@@ -6,12 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
+import 'package:pi_iv_time3/features/auth/shared/external/auth_remote_datasource_impl.dart';
 
 /// Repositório dublê (Fake) implementando o contrato [AuthRepository]
 /// para testes de unidade do [RecoverPasswordController].
 class FakeAuthRepository implements AuthRepository {
   /// Define se o método assíncrono deve simular um lançamento de exceção.
   bool shouldThrow = false;
+  Object? customError;
   Completer<void>? recoveryCompleter;
   String? lastIdentity;
 
@@ -19,6 +21,9 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> recoverPassword({required String identity}) async {
     lastIdentity = identity;
     await recoveryCompleter?.future;
+    if (customError != null) {
+      throw customError!;
+    }
     if (shouldThrow) {
       throw Exception('Erro de servidor');
     }
@@ -143,5 +148,20 @@ void main() {
       controller.errorMessage,
       'Não foi possível solicitar a recuperação agora. Tente novamente.',
     );
+  });
+
+  test('Exibe erro explícito 404 quando e-mail ou RA não está cadastrado', () async {
+    repository.customError = const AuthApiException(
+      'E-mail ou identificador nao cadastrado no sistema.',
+      statusCode: 404,
+    );
+    controller.setIdentity('naoexiste@gmail.com');
+
+    expect(await controller.submit(), false);
+    expect(
+      controller.errorMessage,
+      'E-mail ou identificador nao cadastrado no sistema.',
+    );
+    expect(controller.isSuccess, false);
   });
 }

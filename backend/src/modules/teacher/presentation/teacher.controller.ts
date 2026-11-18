@@ -5,6 +5,7 @@ import { z } from "zod";
 import { AuthError } from "../../../shared/auth-error.js";
 import { parse } from "../../../shared/validation.js";
 import { authenticated } from "../../../shared/auth/jwt-session.middleware.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 import { TeacherService } from "../application/index.js";
 
 function teacherOrAdmin(): RequestHandler {
@@ -18,9 +19,13 @@ function teacherOrAdmin(): RequestHandler {
   };
 }
 
-export function createTeacherRouter(database: Db, jwtSecret: string): Router {
+export function createTeacherRouter(
+  database: Db,
+  jwtSecret: string,
+  emailService?: UnifiedEmailService,
+): Router {
   const router = Router();
-  const service = new TeacherService(database);
+  const service = new TeacherService(database, emailService);
 
   router.use(authenticated(database, jwtSecret, false));
   router.use(teacherOrAdmin());

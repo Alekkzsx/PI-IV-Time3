@@ -8,6 +8,8 @@ export type EmailRecipient = {
 export type EmailDeliveryResult = {
   success: boolean;
   provider: "smtp" | "resend" | "brevo" | "webhook" | "outbox";
+  deliveredExternally?: boolean;
+  errorTrail?: string[];
   messageId?: string;
   error?: string;
   latencyMs: number;

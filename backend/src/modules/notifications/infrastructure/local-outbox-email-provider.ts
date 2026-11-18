@@ -81,6 +81,8 @@ export class LocalOutboxEmailProvider {
     return {
       success: true,
       provider: "outbox",
+      deliveredExternally: false,
+      errorTrail: meta?.errorTrail,
       messageId: id,
       latencyMs: Date.now() - startTime,
     };

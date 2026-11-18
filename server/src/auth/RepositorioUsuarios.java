@@ -7,6 +7,8 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Collation;
+import com.mongodb.client.model.CollationStrength;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
@@ -29,6 +31,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +43,10 @@ public class RepositorioUsuarios {
     private static final int SERVER_SELECTION_TIMEOUT_MS = 5_000;
     private static final int SOCKET_TIMEOUT_MS = 10_000;
     private static final long HEALTH_CACHE_TTL_MS = 5_000L;
+    private static final Collation CASE_INSENSITIVE = Collation.builder()
+            .locale("en")
+            .collationStrength(CollationStrength.SECONDARY)
+            .build();
 
     private volatile MongoClient client;
     private volatile MongoDatabase database;
@@ -536,7 +543,8 @@ public class RepositorioUsuarios {
         return buscarUsuarioPorFiltro(
                 new Document("_id", new ObjectId(userId.trim())).append("active", true),
                 userId.trim(),
-                "buscarPorId"
+                "buscarPorId",
+                false
         );
     }
 
@@ -547,35 +555,39 @@ public class RepositorioUsuarios {
         if (identidade == null || identidade.trim().isEmpty()) {
             return null;
         }
-        String normalizedIdentity = identidade.trim().toLowerCase();
+        String normalizedIdentity = identidade.trim().toLowerCase(Locale.ROOT);
         Document query = new Document("active", true).append("$or", java.util.Arrays.asList(
                 new Document("normalizedIdentity", normalizedIdentity),
                 new Document("email", normalizedIdentity),
                 new Document("normalizedEmail", normalizedIdentity)
         ));
-        return buscarUsuarioPorFiltro(query, normalizedIdentity, "buscarPorIdentidade");
+        return buscarUsuarioPorFiltro(query, normalizedIdentity, "buscarPorIdentidade", true);
     }
 
     /**
-     * Busca usuario por endereco de email.
+     * Busca usuario por endereco de email (case-insensitive).
      */
     public UsuarioAutenticado buscarPorEmail(String email) {
         if (email == null || email.trim().isEmpty()) {
             return null;
         }
-        String normalizedEmail = email.trim().toLowerCase();
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         Document query = new Document("active", true).append("$or", java.util.Arrays.asList(
                 new Document("email", normalizedEmail),
-                new Document("normalizedEmail", normalizedEmail),
-                new Document("normalizedIdentity", normalizedEmail)
+                new Document("normalizedEmail", normalizedEmail)
         ));
-        return buscarUsuarioPorFiltro(query, normalizedEmail, "buscarPorEmail");
+        return buscarUsuarioPorFiltro(query, normalizedEmail, "buscarPorEmail", true);
     }
 
-    private UsuarioAutenticado buscarUsuarioPorFiltro(Document query, String fallbackIdentity, String contexto) {
+    private UsuarioAutenticado buscarUsuarioPorFiltro(
+            Document query, String fallbackIdentity, String contexto, boolean caseInsensitive) {
         garantirColecoesAtivas();
         try {
-            Document user = usersCollection.find(query).first();
+            com.mongodb.client.FindIterable<Document> cursor = usersCollection.find(query);
+            if (caseInsensitive) {
+                cursor = cursor.collation(CASE_INSENSITIVE);
+            }
+            Document user = cursor.first();
             return construirUsuarioAutenticado(user, fallbackIdentity);
         } catch (MongoException e) {
             throw tratarFalhaMongo(e, contexto);
@@ -737,6 +749,7 @@ public class RepositorioUsuarios {
                 .append("normalizedIdentity", normalizedIdentity)
                 .append("displayName", displayName != null ? displayName : "")
                 .append("email", normalizedEmail)
+                .append("normalizedEmail", normalizedEmail)
                 .append("profile", profile.trim().toLowerCase())
                 .append("passwordHash", hashedPassword)
                 .append("twoFactorEnabled", false)
@@ -1201,6 +1214,37 @@ public class RepositorioUsuarios {
 
     public void registrarAuditoria(String actorId, String action, String target, Map<String, Object> details) {
         registrarAuditoria(actorId, action, target, details, null);
+    }
+
+    /**
+     * Registra em auditoria o desfecho real de uma entrega assincrona de e-mail.
+     */
+    public void registrarResultadoEnvioEmail(
+            String actorId,
+            String eventoBase,
+            String destinatario,
+            SmtpCliente.ResultadoEnvioEmail resultado,
+            Throwable erro) {
+        String destino = destinatario != null ? destinatario : "";
+        Map<String, Object> det = new LinkedHashMap<String, Object>();
+        det.put("recipient", destino);
+        if (erro != null) {
+            det.put("error", erro.getMessage() != null ? erro.getMessage() : erro.getClass().getSimpleName());
+            registrarAuditoria(actorId, eventoBase + "_failed", destino, det);
+            return;
+        }
+        if (resultado == null) {
+            registrarAuditoria(actorId, eventoBase + "_failed", destino, det);
+            return;
+        }
+        det.put("channel", resultado.getCanal());
+        det.put("deliveredExternally", Boolean.valueOf(resultado.isDeliveredExternally()));
+        det.put("latencyMs", Long.valueOf(resultado.getLatenciaMs()));
+        if (!resultado.getErrorTrail().isEmpty()) {
+            det.put("errorTrail", resultado.getErrorTrail());
+        }
+        String action = resultado.isDeliveredExternally() ? eventoBase + "_sent" : eventoBase + "_outbox";
+        registrarAuditoria(actorId, action, destino, det);
     }
 
     /**

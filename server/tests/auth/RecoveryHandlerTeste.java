@@ -31,6 +31,8 @@ public class RecoveryHandlerTeste {
     private static final class RepoResetFake extends RepositorioUsuarios {
         final Set<String> grantsDisponiveis = new HashSet<String>();
         final Map<String, String> senhasAtualizadas = new HashMap<String, String>();
+        final Map<String, String> otpsSalvos = new HashMap<String, String>();
+        final java.util.List<String> auditorias = new java.util.ArrayList<String>();
         int sessoesRevogadas = 0;
         Document otpRecuperacao;
 
@@ -62,7 +64,20 @@ public class RecoveryHandlerTeste {
 
         @Override
         public UsuarioAutenticado buscarPorIdentidade(String identidade) {
-            return "2024.1.00001".equalsIgnoreCase(identidade) ? usuario : null;
+            if ("2024.1.00001".equalsIgnoreCase(identidade) || "aluno@example.edu".equalsIgnoreCase(identidade)) {
+                return usuario;
+            }
+            return null;
+        }
+
+        @Override
+        public UsuarioAutenticado buscarPorEmail(String email) {
+            return "aluno@example.edu".equalsIgnoreCase(email) ? usuario : null;
+        }
+
+        @Override
+        public void salvarOtp(String identity, String otpHash, String type, long expiresAtMillis) {
+            otpsSalvos.put(identity + ":" + type, otpHash);
         }
 
         @Override
@@ -104,7 +119,7 @@ public class RecoveryHandlerTeste {
 
         @Override
         public void registrarAuditoria(String actorId, String action, String target, Map<String, Object> details) {
-            // Sem persistencia em teste offline
+            auditorias.add(action + ":" + target);
         }
     }
 
@@ -113,13 +128,42 @@ public class RecoveryHandlerTeste {
         String anteriorJwt = System.getProperty("AUTH_JWT_SECRET");
         String anteriorOtp = System.getProperty("AUTH_OTP_SECRET");
         String anteriorMinLen = System.getProperty("PASSWORD_MIN_LENGTH");
+        String anteriorSandbox = System.getProperty("SMTP_SANDBOX_MODE");
+        String anteriorLatencia = System.getProperty("STANDARDIZED_AUTH_LATENCY_MS");
         try {
             System.setProperty("AUTH_JWT_SECRET", SEGREDO_TESTE);
             System.setProperty("AUTH_OTP_SECRET", OTP_SEGREDO);
             System.setProperty("PASSWORD_MIN_LENGTH", "8");
+            System.setProperty("SMTP_SANDBOX_MODE", "true");
+            System.setProperty("STANDARDIZED_AUTH_LATENCY_MS", "0");
 
             RepoResetFake repo = new RepoResetFake();
             RecoveryHandler handler = new RecoveryHandler(repo);
+
+            // 0A. Payload vazio retorna 400 invalid_request
+            String respVazio = postJson(handler, "/api/auth/send-recovery-otp", "{}");
+            esperar(respVazio.startsWith("HTTP/1.1 400") && repo.otpsSalvos.isEmpty(),
+                    "RecoveryHandler: payload vazio rejeita com 400 sem gerar OTP");
+
+            // 0B. E-mail nao cadastrado no banco retorna 404 email_not_registered e nao gera OTP
+            String respNaoCadastrado = postJson(handler, "/api/auth/send-recovery-otp",
+                    "{\"email\":\"desconhecido@gmail.com\"}");
+            esperar(respNaoCadastrado.startsWith("HTTP/1.1 404")
+                            && respNaoCadastrado.contains("email_not_registered")
+                            && repo.otpsSalvos.isEmpty()
+                            && repo.auditorias.contains("password_recovery_not_registered:desconhecido@gmail.com"),
+                    "RecoveryHandler: e-mail nao cadastrado retorna 404 explicito e nao envia OTP");
+
+            // 0C. E-mail cadastrado gera OTP, audita e retorna 200 com maskedEmail
+            String respCadastrado = postJson(handler, "/api/auth/send-recovery-otp",
+                    "{\"email\":\"ALUNO@example.edu\"}");
+            Thread.sleep(150);
+            esperar(respCadastrado.startsWith("HTTP/1.1 200")
+                            && respCadastrado.contains("maskedEmail")
+                            && repo.otpsSalvos.containsKey("2024.1.00001:RECOVERY")
+                            && repo.otpsSalvos.containsKey("aluno@example.edu:RECOVERY")
+                            && repo.auditorias.contains("password_recovery_requested:507f1f77bcf86cd799439011"),
+                    "RecoveryHandler: e-mail cadastrado gera OTP e retorna 200");
 
             // 1. Verificar OTP gera resetToken e emite grant unico
             repo.prepararOtp("654321");
@@ -156,6 +200,8 @@ public class RecoveryHandlerTeste {
             restaurar("AUTH_JWT_SECRET", anteriorJwt);
             restaurar("AUTH_OTP_SECRET", anteriorOtp);
             restaurar("PASSWORD_MIN_LENGTH", anteriorMinLen);
+            restaurar("SMTP_SANDBOX_MODE", anteriorSandbox);
+            restaurar("STANDARDIZED_AUTH_LATENCY_MS", anteriorLatencia);
         }
         return falhas;
     }

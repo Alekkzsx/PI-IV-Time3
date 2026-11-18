@@ -252,7 +252,8 @@ export async function seedUsers(
   );
 
   for (const st of studentAccounts) {
-    const doc = await upsertOnInsert(
+    const normalizedStEmail = st.email.trim().toLowerCase();
+    let doc = await upsertOnInsert(
       "auth_users",
       { normalizedIdentity: st.identity },
       {
@@ -260,7 +261,7 @@ export async function seedUsers(
         normalizedIdentity: st.identity,
         displayName: st.name,
         email: st.email,
-        normalizedEmail: st.email,
+        normalizedEmail: normalizedStEmail,
         profile: "aluno",
         departmentOrCourse: "Engenharia de Software",
         semester: "2026/2 - 4º Semestre",
@@ -275,6 +276,24 @@ export async function seedUsers(
         seedTag: SEED_TAG,
       },
     );
+    // Garante que a conta de teste principal reflita o e-mail real configurado na seed mesmo se já existir no banco
+    if (
+      st.identity === "aluno.test" &&
+      (doc.email !== st.email || doc.normalizedEmail !== normalizedStEmail || doc.displayName !== st.name)
+    ) {
+      await database.collection("auth_users").updateOne(
+        { _id: doc._id },
+        {
+          $set: {
+            email: st.email,
+            normalizedEmail: normalizedStEmail,
+            displayName: st.name,
+            updatedAt: now,
+          },
+        },
+      );
+      doc = (await database.collection("auth_users").findOne({ _id: doc._id })) ?? doc;
+    }
     usersMap.set(st.identity, doc);
   }
 
@@ -309,6 +328,21 @@ export async function seedUsers(
       },
     );
     usersMap.set(st.identity, doc);
+  }
+
+  // Normaliza e-mails legados em auth_users (como contas de demonstração sem normalizedEmail)
+  const legacyEmailDocs = await database
+    .collection("auth_users")
+    .find({ email: { $type: "string" } }, { projection: { _id: 1, email: 1, normalizedEmail: 1 } })
+    .toArray();
+  for (const doc of legacyEmailDocs) {
+    const normalized = String(doc.email ?? "").trim().toLowerCase();
+    if (normalized && doc.normalizedEmail !== normalized) {
+      await database.collection("auth_users").updateOne(
+        { _id: doc._id },
+        { $set: { normalizedEmail: normalized } },
+      );
+    }
   }
 
   await database.collection("auth_users").createIndex({ normalizedIdentity: 1 }, { unique: true });

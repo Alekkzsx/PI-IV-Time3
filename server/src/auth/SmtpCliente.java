@@ -7,9 +7,11 @@ import utils.Json;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -18,13 +20,18 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -80,6 +87,98 @@ public final class SmtpCliente {
     // Buffer circular em memoria dos ultimos 50 emails despachados (Tier 3 Outbox)
     private static final Queue<EmailOutboxItem> OUTBOX_HISTORICO = new ConcurrentLinkedQueue<EmailOutboxItem>();
     private static final Pattern OTP_PATTERN = Pattern.compile("(?<!\\d)(\\d{6})(?!\\d)");
+    private static final Pattern EMAIL_ANGULO_PATTERN = Pattern.compile("<([^>]+)>");
+    private static final int MAX_FALHAS_CIRCUITO = 3;
+    private static final long COOLDOWN_CIRCUITO_MS = 60_000L;
+    private static final int WEBHOOK_TIMEOUT_MS = 12_000;
+    private static final Object CIRCUITO_LOCK = new Object();
+    private static String estadoCircuito = "CLOSED";
+    private static int falhasConsecutivasSmtp = 0;
+    private static long proximaTentativaSmtpMs = 0L;
+
+    /**
+     * Resultado detalhado de um disparo resiliente de e-mail para diagnostico e auditoria.
+     */
+    public static final class ResultadoEnvioEmail {
+        private final String canal;
+        private final boolean deliveredExternally;
+        private final List<String> errorTrail;
+        private final long latenciaMs;
+
+        public ResultadoEnvioEmail(String canal, boolean deliveredExternally, List<String> errorTrail, long latenciaMs) {
+            this.canal = canal;
+            this.deliveredExternally = deliveredExternally;
+            this.errorTrail = errorTrail == null
+                    ? Collections.<String>emptyList()
+                    : Collections.unmodifiableList(new ArrayList<String>(errorTrail));
+            this.latenciaMs = latenciaMs;
+        }
+
+        public String getCanal() { return canal; }
+        public boolean isDeliveredExternally() { return deliveredExternally; }
+        public List<String> getErrorTrail() { return errorTrail; }
+        public long getLatenciaMs() { return latenciaMs; }
+    }
+
+    static final class SmtpConfig {
+        final String host;
+        final int porta;
+        final boolean usarSsl;
+        final String usuario;
+        final String senha;
+        final String remetente;
+        final int timeoutMs;
+
+        SmtpConfig(String host, int porta, boolean usarSsl, String usuario, String senha, String remetente, int timeoutMs) {
+            this.host = host != null ? host.trim() : "";
+            this.porta = porta;
+            this.usarSsl = usarSsl;
+            this.usuario = usuario != null ? usuario.trim() : "";
+            this.senha = senha != null ? senha : "";
+            String bruto = (remetente != null && !remetente.trim().isEmpty()) ? remetente : this.usuario;
+            this.remetente = extrairEmailPuro(bruto);
+            this.timeoutMs = timeoutMs > 0 ? timeoutMs : 10_000;
+        }
+
+        static SmtpConfig fromEnv() {
+            String usuario = ConfigEnv.obter("SMTP_USER", "");
+            return new SmtpConfig(
+                    ConfigEnv.obter("SMTP_HOST", ""),
+                    ConfigEnv.obterInteiro("SMTP_PORT", 587),
+                    "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SECURE", "false"))
+                            || "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SSL", "false")),
+                    usuario,
+                    ConfigEnv.obter("SMTP_PASSWORD", ""),
+                    ConfigEnv.obter("SMTP_FROM", usuario),
+                    ConfigEnv.obterInteiro("SMTP_TIMEOUT_MS", 10_000)
+            );
+        }
+    }
+
+    static final class HttpsRelayConfig {
+        final String resendApiKey;
+        final String brevoApiKey;
+        final String webhookUrl;
+        final String remetente;
+
+        HttpsRelayConfig(String resendApiKey, String brevoApiKey, String webhookUrl, String remetente) {
+            this.resendApiKey = resendApiKey != null ? resendApiKey.trim() : "";
+            this.brevoApiKey = brevoApiKey != null ? brevoApiKey.trim() : "";
+            this.webhookUrl = webhookUrl != null ? webhookUrl.trim() : "";
+            String limpo = extrairEmailPuro(remetente);
+            this.remetente = limpo.isEmpty() ? "portal.academico@agmrm.edu.br" : limpo;
+        }
+
+        static HttpsRelayConfig fromEnv() {
+            String usuario = ConfigEnv.obter("SMTP_USER", "");
+            return new HttpsRelayConfig(
+                    ConfigEnv.obter("RESEND_API_KEY", ""),
+                    ConfigEnv.obter("BREVO_API_KEY", ""),
+                    ConfigEnv.obter("GMAIL_WEBHOOK_URL", ""),
+                    ConfigEnv.obter("SMTP_FROM", usuario)
+            );
+        }
+    }
 
     /**
      * Registro de um e-mail retido no Outbox em memoria para auditoria e resiliencia.
@@ -113,11 +212,39 @@ public final class SmtpCliente {
         return new ArrayList<EmailOutboxItem>(OUTBOX_HISTORICO);
     }
 
+    public static String getEstadoCircuito() {
+        synchronized (CIRCUITO_LOCK) {
+            return estadoCircuito;
+        }
+    }
+
+    static void resetarCircuitoParaTeste() {
+        synchronized (CIRCUITO_LOCK) {
+            estadoCircuito = "CLOSED";
+            falhasConsecutivasSmtp = 0;
+            proximaTentativaSmtpMs = 0L;
+        }
+    }
+
     private SmtpCliente() {}
 
     // =========================================================================
     // API PUBLICA - ENVIO ASSINCRONO
     // =========================================================================
+
+    /**
+     * Valida sintaticamente um endereco de e-mail institucional ou pessoal.
+     */
+    public static boolean isEmailValido(String email) {
+        if (email == null) return false;
+        String limpo = email.trim();
+        if (limpo.isEmpty() || limpo.length() > 254 || limpo.contains(" ")) return false;
+        int arroba = limpo.indexOf('@');
+        if (arroba <= 0 || arroba != limpo.lastIndexOf('@')) return false;
+        String dominio = limpo.substring(arroba + 1);
+        int ponto = dominio.indexOf('.');
+        return ponto > 0 && ponto < dominio.length() - 1;
+    }
 
     /**
      * Envia um email com codigo OTP para o usuario (assincrono, nao bloqueia).
@@ -127,9 +254,17 @@ public final class SmtpCliente {
      * @param nomeUsuario       Nome de exibicao do usuario.
      */
     public static void enviarOtp(String destinatarioEmail, String codigoOTP, String nomeUsuario) {
+        enviarOtpComResultado(destinatarioEmail, codigoOTP, nomeUsuario);
+    }
+
+    /**
+     * Envia OTP de autenticacao assincronamente retornando o resultado detalhado da entrega.
+     */
+    public static CompletableFuture<ResultadoEnvioEmail> enviarOtpComResultado(
+            String destinatarioEmail, String codigoOTP, String nomeUsuario) {
         String assunto = "Seu código de verificação - AGMRM";
         String corpoHtml = construirHtmlOtp(codigoOTP, nomeUsuario);
-        enviarAsync(destinatarioEmail, assunto, corpoHtml, "OTP");
+        return enviarAsyncDetalhado(destinatarioEmail, assunto, corpoHtml, "OTP");
     }
 
     /**
@@ -141,10 +276,25 @@ public final class SmtpCliente {
             String identidade,
             String perfil,
             String senhaTemporaria) {
-        if (destinatarioEmail == null || destinatarioEmail.trim().isEmpty()) return;
+        enviarBoasVindasComResultado(destinatarioEmail, nomeUsuario, identidade, perfil, senhaTemporaria);
+    }
+
+    /**
+     * Envia um email de boas-vindas assincrono retornando telemetria de entrega.
+     */
+    public static CompletableFuture<ResultadoEnvioEmail> enviarBoasVindasComResultado(
+            String destinatarioEmail,
+            String nomeUsuario,
+            String identidade,
+            String perfil,
+            String senhaTemporaria) {
+        if (destinatarioEmail == null || destinatarioEmail.trim().isEmpty()) {
+            return CompletableFuture.completedFuture(
+                    new ResultadoEnvioEmail("OUTBOX", false, Collections.singletonList("Destinatario vazio"), 0L));
+        }
         String assunto = "Bem-vindo ao Portal AGMRM — Credenciais de Acesso";
         String corpoHtml = construirHtmlBoasVindas(nomeUsuario, identidade, perfil, senhaTemporaria);
-        enviarAsync(destinatarioEmail.trim(), assunto, corpoHtml, "WELCOME");
+        return enviarAsyncDetalhado(destinatarioEmail.trim(), assunto, corpoHtml, "WELCOME");
     }
 
     /**
@@ -155,9 +305,17 @@ public final class SmtpCliente {
      * @param nomeUsuario       Nome de exibicao do usuario.
      */
     public static void enviarRecuperacao(String destinatarioEmail, String codigoOTP, String nomeUsuario) {
+        enviarRecuperacaoComResultado(destinatarioEmail, codigoOTP, nomeUsuario);
+    }
+
+    /**
+     * Envia email de recuperacao assincronamente retornando telemetria detalhada da entrega.
+     */
+    public static CompletableFuture<ResultadoEnvioEmail> enviarRecuperacaoComResultado(
+            String destinatarioEmail, String codigoOTP, String nomeUsuario) {
         String assunto = "Recuperação de senha - AGMRM";
         String corpoHtml = construirHtmlRecuperacao(codigoOTP, nomeUsuario);
-        enviarAsync(destinatarioEmail, assunto, corpoHtml, "RECOVERY");
+        return enviarAsyncDetalhado(destinatarioEmail, assunto, corpoHtml, "RECOVERY");
     }
 
     /**
@@ -171,10 +329,16 @@ public final class SmtpCliente {
      */
     public static CompletableFuture<Void> enviarAsync(
             String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
+        return enviarAsyncDetalhado(destinatarioEmail, assunto, corpoHtml, tipo)
+                .thenApply(resultado -> null);
+    }
 
-        return CompletableFuture.runAsync(() -> {
-            enviarComRetry(destinatarioEmail, assunto, corpoHtml, tipo);
-        }, FILA_EMAILS);
+    /**
+     * Envia um email de forma assincrona retornando telemetria completa do canal usado.
+     */
+    public static CompletableFuture<ResultadoEnvioEmail> enviarAsyncDetalhado(
+            String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
+        return CompletableFuture.supplyAsync(() -> enviarComRetry(destinatarioEmail, assunto, corpoHtml, tipo), FILA_EMAILS);
     }
 
     /**
@@ -186,174 +350,405 @@ public final class SmtpCliente {
     }
 
     /**
-     * Envia um email de forma sincrona percorrendo todos os 3 tiers de resiliencia (SMTP -> Webhook -> Outbox).
-     * Retorna o canal efetivo utilizado ("SMTP", "WEBHOOK" ou "OUTBOX").
+     * Envia um email de forma sincrona percorrendo todos os 3 tiers de resiliencia (SMTP -> HTTPS -> Outbox).
+     * Retorna o canal efetivo utilizado ("SMTP", "RESEND", "BREVO", "WEBHOOK" ou "OUTBOX").
      */
     public static String enviarSincronoResiliente(String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
-        try {
-            enviarSmtp(destinatarioEmail, assunto, corpoHtml);
-            OUTBOX_HISTORICO.offer(new EmailOutboxItem(destinatarioEmail, assunto, extrairCodigoOtp(corpoHtml), tipo, "SMTP"));
-            return "SMTP";
-        } catch (Exception e) {
-            log("WARN", "[DIAGNOSTICO SMTP FALHOU] " + e.getMessage());
-            boolean webhookOk = acionarFallbackWebhook(destinatarioEmail, assunto, corpoHtml, tipo, e);
-            if (webhookOk) {
-                return "WEBHOOK";
-            }
-            acionarLocalOutbox(destinatarioEmail, assunto, corpoHtml, tipo);
-            return "OUTBOX";
-        }
+        return enviarSincronoDetalhado(destinatarioEmail, assunto, corpoHtml, tipo).getCanal();
+    }
+
+    /**
+     * Envia um email de forma sincrona percorrendo os 3 tiers de resiliencia e retornando telemetria completa.
+     */
+    public static ResultadoEnvioEmail enviarSincronoDetalhado(
+            String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
+        return despacharResiliente(
+                SmtpConfig.fromEnv(),
+                HttpsRelayConfig.fromEnv(),
+                destinatarioEmail,
+                assunto,
+                corpoHtml,
+                tipo,
+                1,
+                "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SANDBOX_MODE", "false"))
+        );
     }
 
     // =========================================================================
-    // LOGICA DE RETRY COM BACKOFF EXPONENCIAL
+    // LOGICA DE RESILIENCIA, CIRCUIT BREAKER E RETRY COM BACKOFF EXPONENCIAL
     // =========================================================================
 
-    private static void enviarComRetry(String destinatario, String assunto, String html, String tipo) {
-        // Modo sandbox: armazena no outbox e exibe no console sem disparar externamente
-        if ("true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SANDBOX_MODE", "false"))) {
+    private static ResultadoEnvioEmail enviarComRetry(String destinatario, String assunto, String html, String tipo) {
+        int maxTentativas = ConfigEnv.obterInteiro("SMTP_MAX_RETRIES", 1);
+        if (maxTentativas < 1) maxTentativas = 1;
+        return despacharResiliente(
+                SmtpConfig.fromEnv(),
+                HttpsRelayConfig.fromEnv(),
+                destinatario,
+                assunto,
+                html,
+                tipo,
+                maxTentativas,
+                "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SANDBOX_MODE", "false"))
+        );
+    }
+
+    static ResultadoEnvioEmail despacharResiliente(
+            SmtpConfig smtpConfig,
+            HttpsRelayConfig httpsConfig,
+            String destinatario,
+            String assunto,
+            String html,
+            String tipo,
+            int maxTentativasSmtp,
+            boolean sandboxMode) {
+        long inicioTotal = System.currentTimeMillis();
+        List<String> errorTrail = new ArrayList<String>();
+
+        if (sandboxMode) {
             log("INFO", "[SANDBOX] Email simulado para: " + destinatario + " | Tipo: " + tipo);
-            acionarLocalOutbox(destinatario, assunto, html, tipo);
+            errorTrail.add("Modo sandbox ativo (SMTP_SANDBOX_MODE=true)");
+            acionarLocalOutbox(destinatario, assunto, html, tipo, errorTrail);
             if ("true".equalsIgnoreCase(ConfigEnv.obter("SMTP_LOG_HTML", "false"))) {
                 log("DEBUG", "[SANDBOX] Assunto: " + assunto + "\n" + html);
             }
-            return;
+            return new ResultadoEnvioEmail("OUTBOX", false, errorTrail, System.currentTimeMillis() - inicioTotal);
         }
 
-        int maxTentativas = ConfigEnv.obterInteiro("SMTP_MAX_RETRIES", 2);
-        long delayMs = 1000; // 1s, 2s
-        Exception ultimaExcecao = null;
+        // Tier 1: SMTP com retry exponencial e Circuit Breaker
+        if (podeTentarSmtp(smtpConfig)) {
+            long delayMs = 1000L;
+            int tentativas = Math.max(1, maxTentativasSmtp);
+            for (int tentativa = 1; tentativa <= tentativas; tentativa++) {
+                try {
+                    long inicio = System.currentTimeMillis();
+                    enviarSmtpComConfig(smtpConfig, destinatario, assunto, html);
+                    long latencia = System.currentTimeMillis() - inicio;
+                    registrarSucessoSmtp();
+                    log("INFO", "[ENVIO OK] Tipo=" + tipo + " | Para=" + destinatario
+                            + " | Tentativa=" + tentativa + "/" + tentativas
+                            + " | Latencia=" + latencia + "ms");
+                    OUTBOX_HISTORICO.offer(new EmailOutboxItem(destinatario, assunto, extrairCodigoOtp(html), tipo, "SMTP"));
+                    return new ResultadoEnvioEmail("SMTP", true, errorTrail, System.currentTimeMillis() - inicioTotal);
+                } catch (Exception e) {
+                    String msgErro = "SMTP tentativa " + tentativa + "/" + tentativas + ": "
+                            + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+                    errorTrail.add(msgErro);
+                    registrarFalhaSmtp(msgErro);
+                    log("WARN", "[FALHA SMTP] Tipo=" + tipo + " | Para=" + destinatario
+                            + " | Tentativa=" + tentativa + "/" + tentativas
+                            + " | Erro: " + e.getMessage());
 
-        for (int tentativa = 1; tentativa <= maxTentativas; tentativa++) {
-            try {
-                long inicio = System.currentTimeMillis();
-                enviarSmtp(destinatario, assunto, html);
-                long latencia = System.currentTimeMillis() - inicio;
-                log("INFO", "[ENVIO OK] Tipo=" + tipo + " | Para=" + destinatario
-                        + " | Tentativa=" + tentativa + "/" + maxTentativas
-                        + " | Latencia=" + latencia + "ms");
-                OUTBOX_HISTORICO.offer(new EmailOutboxItem(destinatario, assunto, extrairCodigoOtp(html), tipo, "SMTP"));
-                return; // Sucesso!
-            } catch (Exception e) {
-                ultimaExcecao = e;
-                log("WARN", "[FALHA SMTP] Tipo=" + tipo + " | Para=" + destinatario
-                        + " | Tentativa=" + tentativa + "/" + maxTentativas
-                        + " | Erro: " + e.getMessage());
-
-                if (tentativa < maxTentativas) {
-                    try {
-                        Thread.sleep(delayMs);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        log("ERROR", "[INTERRUPCAO] Retry interrompido para " + destinatario);
-                        acionarLocalOutbox(destinatario, assunto, html, tipo);
-                        return;
+                    if ("OPEN".equals(getEstadoCircuito())) {
+                        break;
                     }
-                    delayMs *= 2; // Backoff exponencial
+                    if (tentativa < tentativas) {
+                        try {
+                            Thread.sleep(delayMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            errorTrail.add("Retry SMTP interrompido");
+                            log("ERROR", "[INTERRUPCAO] Retry interrompido para " + destinatario);
+                            acionarLocalOutbox(destinatario, assunto, html, tipo, errorTrail);
+                            return new ResultadoEnvioEmail("OUTBOX", false, errorTrail, System.currentTimeMillis() - inicioTotal);
+                        }
+                        delayMs *= 2L;
+                    }
                 }
             }
+        } else if (smtpConfig.host.isEmpty()) {
+            errorTrail.add("SMTP nao configurado (SMTP_HOST vazio)");
+        } else {
+            errorTrail.add("Circuit Breaker OPEN: SMTP ignorado temporariamente");
         }
 
-        // Tier 1 SMTP falhou - tentar Tier 2 Webhook HTTPS
-        log("WARN", "[SMTP ESGOTADO] Tentativas SMTP falharam para " + destinatario + ". Acionando Tier 2 (Webhook HTTPS)...");
-        boolean webhookOk = acionarFallbackWebhook(destinatario, assunto, html, tipo, ultimaExcecao);
+        // Tier 2: Provedores HTTPS REST na porta 443 (Resend -> Brevo -> Webhook)
+        log("WARN", "[SMTP INDISPONIVEL] Acionando Tier 2 (HTTPS REST) para " + destinatario + "...");
+        String canalHttps = acionarFallbackHttps(httpsConfig, destinatario, assunto, html, tipo, errorTrail);
+        if (canalHttps != null) {
+            OUTBOX_HISTORICO.offer(new EmailOutboxItem(destinatario, assunto, extrairCodigoOtp(html), tipo, canalHttps));
+            return new ResultadoEnvioEmail(canalHttps, true, errorTrail, System.currentTimeMillis() - inicioTotal);
+        }
 
-        // Se Webhook tambem falhar ou nao estiver disponivel, acionar Tier 3 (Outbox Local)
-        if (!webhookOk) {
-            log("INFO", "[RESILIENCIA ATIVA] Acionando Tier 3 (Outbox Local de Seguranca)...");
-            acionarLocalOutbox(destinatario, assunto, html, tipo);
+        // Tier 3: Outbox Local (Zero Crash)
+        log("INFO", "[RESILIENCIA ATIVA] Acionando Tier 3 (Outbox Local de Seguranca)...");
+        acionarLocalOutbox(destinatario, assunto, html, tipo, errorTrail);
+        return new ResultadoEnvioEmail("OUTBOX", false, errorTrail, System.currentTimeMillis() - inicioTotal);
+    }
+
+    private static boolean podeTentarSmtp(SmtpConfig config) {
+        if (config == null || config.host.isEmpty()) return false;
+        long agora = System.currentTimeMillis();
+        synchronized (CIRCUITO_LOCK) {
+            if ("CLOSED".equals(estadoCircuito)) return true;
+            if ("OPEN".equals(estadoCircuito)) {
+                if (agora >= proximaTentativaSmtpMs) {
+                    estadoCircuito = "HALF_OPEN";
+                    return true;
+                }
+                return false;
+            }
+            return true;
+        }
+    }
+
+    private static void registrarSucessoSmtp() {
+        synchronized (CIRCUITO_LOCK) {
+            falhasConsecutivasSmtp = 0;
+            estadoCircuito = "CLOSED";
+            proximaTentativaSmtpMs = 0L;
+        }
+    }
+
+    private static void registrarFalhaSmtp(String motivo) {
+        synchronized (CIRCUITO_LOCK) {
+            falhasConsecutivasSmtp++;
+            if (falhasConsecutivasSmtp >= MAX_FALHAS_CIRCUITO) {
+                estadoCircuito = "OPEN";
+                proximaTentativaSmtpMs = System.currentTimeMillis() + COOLDOWN_CIRCUITO_MS;
+                log("WARN", "[CIRCUITO SMTP ABERTO] Apos " + falhasConsecutivasSmtp
+                        + " falhas consecutivas (" + motivo + "). Cooldown de 60s.");
+            }
         }
     }
 
     // =========================================================================
-    // FALLBACK: WEBHOOK HTTP (Google Apps Script / Relay REST na Porta 443)
+    // TIER 2: PROVEDORES HTTPS REST (Resend / Brevo / Google Apps Script Webhook)
     // =========================================================================
 
-    private static boolean acionarFallbackWebhook(String destinatario, String assunto,
-                                                   String html, String tipo, Exception causa) {
-        String webhookUrl = ConfigEnv.obter("GMAIL_WEBHOOK_URL", "");
+    static final class HttpResposta {
+        final int status;
+        final String body;
 
-        if (webhookUrl == null || webhookUrl.trim().isEmpty()) {
-            log("INFO", "[SEM WEBHOOK] GMAIL_WEBHOOK_URL nao configurado.");
-            return false;
+        HttpResposta(int status, String body) {
+            this.status = status;
+            this.body = body != null ? body : "";
+        }
+    }
+
+    static String acionarFallbackHttps(
+            HttpsRelayConfig config,
+            String destinatario,
+            String assunto,
+            String html,
+            String tipo,
+            List<String> errorTrail) {
+        if (config == null) {
+            errorTrail.add("Nenhum provedor HTTPS configurado");
+            return null;
         }
 
+        String textoPlano = extrairTextoPlano(html, assunto);
+
+        if (!config.resendApiKey.isEmpty()) {
+            try {
+                Map<String, String> headers = new LinkedHashMap<String, String>();
+                headers.put("Authorization", "Bearer " + config.resendApiKey);
+                Map<String, Object> bodyMap = new LinkedHashMap<String, Object>();
+                bodyMap.put("from", config.remetente);
+                bodyMap.put("to", Collections.singletonList(destinatario));
+                bodyMap.put("subject", assunto);
+                bodyMap.put("html", html);
+                bodyMap.put("text", textoPlano);
+
+                HttpResposta res = executarPostJsonHttp(
+                        "https://api.resend.com/emails", headers, Json.escrever(bodyMap), 5000, 8000, false);
+                if (res.status >= 200 && res.status < 300) {
+                    log("INFO", "[FALLBACK OK] Resend enviou com sucesso para " + destinatario);
+                    return "RESEND";
+                }
+                errorTrail.add("Resend HTTP " + res.status + ": " + truncar(res.body, 160));
+            } catch (Exception e) {
+                errorTrail.add("Resend falhou: " + e.getMessage());
+            }
+        }
+
+        if (!config.brevoApiKey.isEmpty()) {
+            try {
+                Map<String, String> headers = new LinkedHashMap<String, String>();
+                headers.put("api-key", config.brevoApiKey);
+                Map<String, Object> sender = new LinkedHashMap<String, Object>();
+                sender.put("email", config.remetente);
+                sender.put("name", "Portal Acadêmico AGM-RM");
+                Map<String, Object> recipient = new LinkedHashMap<String, Object>();
+                recipient.put("email", destinatario);
+                Map<String, Object> bodyMap = new LinkedHashMap<String, Object>();
+                bodyMap.put("sender", sender);
+                bodyMap.put("to", Collections.singletonList(recipient));
+                bodyMap.put("subject", assunto);
+                bodyMap.put("htmlContent", html);
+                bodyMap.put("textContent", textoPlano);
+
+                HttpResposta res = executarPostJsonHttp(
+                        "https://api.brevo.com/v3/smtp/email", headers, Json.escrever(bodyMap), 5000, 8000, false);
+                if (res.status >= 200 && res.status < 300) {
+                    log("INFO", "[FALLBACK OK] Brevo enviou com sucesso para " + destinatario);
+                    return "BREVO";
+                }
+                errorTrail.add("Brevo HTTP " + res.status + ": " + truncar(res.body, 160));
+            } catch (Exception e) {
+                errorTrail.add("Brevo falhou: " + e.getMessage());
+            }
+        }
+
+        if (!config.webhookUrl.isEmpty()) {
+            try {
+                Map<String, Object> bodyMap = new LinkedHashMap<String, Object>();
+                bodyMap.put("to", destinatario);
+                bodyMap.put("from", config.remetente);
+                bodyMap.put("subject", assunto);
+                bodyMap.put("html", html);
+                bodyMap.put("text", textoPlano);
+                bodyMap.put("type", tipo);
+
+                HttpResposta res = executarPostJsonHttp(
+                        config.webhookUrl,
+                        Collections.<String, String>emptyMap(),
+                        Json.escrever(bodyMap),
+                        6000,
+                        WEBHOOK_TIMEOUT_MS,
+                        true
+                );
+
+                String erroWebhook = validarRespostaWebhook(res.status, res.body);
+                if (erroWebhook == null) {
+                    log("INFO", "[FALLBACK OK] Webhook enviado com sucesso para " + destinatario + " | HTTP " + res.status);
+                    return "WEBHOOK";
+                }
+                errorTrail.add(erroWebhook);
+                log("WARN", "[FALLBACK REJEITADO] " + erroWebhook);
+            } catch (Exception e) {
+                String msg = "Webhook falhou: " + e.getMessage();
+                errorTrail.add(msg);
+                log("WARN", "[FALLBACK FALHOU] " + msg);
+            }
+        } else if (config.resendApiKey.isEmpty() && config.brevoApiKey.isEmpty()) {
+            errorTrail.add("Nenhum provedor HTTPS configurado (RESEND_API_KEY, BREVO_API_KEY, GMAIL_WEBHOOK_URL ausentes)");
+        }
+
+        return null;
+    }
+
+    static String validarRespostaWebhook(int status, String body) {
+        if (status < 200 || status >= 300) {
+            return "Webhook retornou HTTP " + status + (body != null && !body.trim().isEmpty()
+                    ? ": " + truncar(body.trim(), 160) : "");
+        }
+        String limpo = body != null ? body.trim() : "";
+        String lower = limpo.toLowerCase(Locale.ROOT);
+        if (lower.contains("<!doctype")
+                || lower.contains("<html")
+                || lower.contains("accounts.google.com")
+                || lower.contains("não foi possível abrir o arquivo")
+                || lower.contains("função de script não encontrada")
+                || lower.contains("script function not found")
+                || lower.contains("errormessage")) {
+            return "Webhook retornou pagina/erro invalido em HTTP " + status + ": " + truncar(limpo, 160);
+        }
+        if (limpo.startsWith("{")) {
+            try {
+                Map<String, Object> json = Json.analisarObjeto(limpo);
+                Object erro = json.get("error");
+                if (erro == null) erro = json.get("errorMessage");
+                if (erro != null && !String.valueOf(erro).trim().isEmpty()) {
+                    return "Webhook reportou erro no corpo: " + erro;
+                }
+                Object ok = json.get("ok");
+                Object success = json.get("success");
+                if (Boolean.FALSE.equals(ok) || Boolean.FALSE.equals(success)) {
+                    return "Webhook retornou success=false: " + truncar(limpo, 160);
+                }
+                Object statusJson = json.get("status");
+                if (statusJson instanceof Number && ((Number) statusJson).intValue() >= 400) {
+                    return "Webhook retornou status interno " + statusJson + ": " + truncar(limpo, 160);
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Resposta textual não-JSON aceita caso não contenha marcadores de erro HTML
+            }
+        }
+        return null;
+    }
+
+    private static HttpResposta executarPostJsonHttp(
+            String urlDestino,
+            Map<String, String> headersExtras,
+            String payloadJson,
+            int connectTimeoutMs,
+            int readTimeoutMs,
+            boolean seguirRedirectPost302) throws IOException {
+        HttpURLConnection conn = null;
         try {
-            URL url = new URL(webhookUrl.trim());
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            URL url = new URL(urlDestino);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setInstanceFollowRedirects(false);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            conn.setRequestProperty("Accept", "application/json, text/plain, */*");
             conn.setRequestProperty("User-Agent", "AGMRM-Native-Server/1.0");
+            if (headersExtras != null) {
+                for (Map.Entry<String, String> entry : headersExtras.entrySet()) {
+                    conn.setRequestProperty(entry.getKey(), entry.getValue());
+                }
+            }
             conn.setDoOutput(true);
-            conn.setConnectTimeout(6000);
-            conn.setReadTimeout(6000);
-
-            // Construir payload JSON no formato compativel com Google Apps Script
-            String payload = String.format(
-                    "{\"to\":\"%s\",\"subject\":\"%s\",\"html\":%s,\"text\":\"%s\",\"type\":\"%s\"}",
-                    escaparJson(destinatario),
-                    escaparJson(assunto),
-                    Json.escrever(html),
-                    escaparJson(assunto),
-                    escaparJson(tipo)
-            );
+            conn.setConnectTimeout(connectTimeoutMs);
+            conn.setReadTimeout(readTimeoutMs);
 
             OutputStream os = conn.getOutputStream();
-            os.write(payload.getBytes(StandardCharsets.UTF_8));
+            os.write(payloadJson.getBytes(StandardCharsets.UTF_8));
             os.flush();
             os.close();
 
             int status = conn.getResponseCode();
-
-            // Lidar com redirecionamento 302/303 comum no Google Apps Script
-            if (status == HttpURLConnection.HTTP_MOVED_TEMP || status == HttpURLConnection.HTTP_SEE_OTHER) {
+            if (seguirRedirectPost302
+                    && (status == HttpURLConnection.HTTP_MOVED_TEMP
+                    || status == HttpURLConnection.HTTP_SEE_OTHER
+                    || status == 307
+                    || status == 308)) {
                 String redirectUrl = conn.getHeaderField("Location");
-                if (redirectUrl != null && !redirectUrl.isEmpty()) {
+                if (redirectUrl != null && !redirectUrl.trim().isEmpty()) {
                     conn.disconnect();
-                    URL nextUrl = new URL(redirectUrl);
-                    conn = (HttpURLConnection) nextUrl.openConnection();
+                    conn = (HttpURLConnection) new URL(redirectUrl.trim()).openConnection();
+                    conn.setInstanceFollowRedirects(true);
                     conn.setRequestMethod("GET");
-                    conn.setConnectTimeout(6000);
-                    conn.setReadTimeout(6000);
+                    conn.setRequestProperty("User-Agent", "AGMRM-Native-Server/1.0");
+                    conn.setConnectTimeout(connectTimeoutMs);
+                    conn.setReadTimeout(readTimeoutMs);
                     status = conn.getResponseCode();
                 }
             }
 
-            // Ler resposta para verificar se nao e pagina de erro HTML (ex: 404 Google Drive)
-            BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    status >= 200 && status < 400 ? conn.getInputStream() : conn.getErrorStream(),
-                    StandardCharsets.UTF_8
-            ));
-            StringBuilder body = new StringBuilder();
-            String linha;
-            while ((linha = reader.readLine()) != null) {
-                body.append(linha);
+            InputStream stream = status >= 200 && status < 400 ? conn.getInputStream() : conn.getErrorStream();
+            String body = lerStreamSeguro(stream);
+            return new HttpResposta(status, body);
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
             }
-            reader.close();
-            conn.disconnect();
-
-            String respostaTexto = body.toString();
-            if (status >= 200 && status < 300 && !respostaTexto.contains("errorMessage")
-                    && !respostaTexto.contains("Não foi possível abrir o arquivo")) {
-                log("INFO", "[FALLBACK OK] Webhook enviado com sucesso para " + destinatario + " | HTTP " + status);
-                OUTBOX_HISTORICO.offer(new EmailOutboxItem(destinatario, assunto, extrairCodigoOtp(html), tipo, "WEBHOOK"));
-                return true;
-            } else {
-                log("WARN", "[FALLBACK REJEITADO] Webhook retornou HTTP " + status + " com conteudo nao reconhecido.");
-                return false;
-            }
-
-        } catch (Exception e) {
-            log("WARN", "[FALLBACK FALHOU] Falha ao contatar Webhook: " + e.getMessage());
-            return false;
         }
+    }
+
+    private static String lerStreamSeguro(InputStream stream) throws IOException {
+        if (stream == null) return "";
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        byte[] chunk = new byte[4096];
+        int lidos;
+        try {
+            while ((lidos = stream.read(chunk)) != -1) {
+                buffer.write(chunk, 0, lidos);
+            }
+        } finally {
+            try { stream.close(); } catch (IOException ignored) { }
+        }
+        return new String(buffer.toByteArray(), StandardCharsets.UTF_8);
     }
 
     // =========================================================================
     // TIER 3: LOCAL OUTBOX (RESILIENCIA TOTAL EM CONSOLE E MEMORIA)
     // =========================================================================
 
-    private static void acionarLocalOutbox(String destinatario, String assunto, String html, String tipo) {
+    private static void acionarLocalOutbox(
+            String destinatario, String assunto, String html, String tipo, List<String> errorTrail) {
         String codigoOtp = extrairCodigoOtp(html);
         EmailOutboxItem item = new EmailOutboxItem(destinatario, assunto, codigoOtp, tipo, "OUTBOX");
         OUTBOX_HISTORICO.offer(item);
@@ -365,22 +760,30 @@ public final class SmtpCliente {
         String assuntoFormatado = truncar(assunto, 56);
         String otpFormatado = codigoOtp != null ? codigoOtp : "------";
 
-        String moldura = "\n"
-                + "┌════════════════════════════════════════════════════════════════════┐\n"
-                + "│ 📬 [OUTBOX LOCAL / RESILIÊNCIA ATIVA]                               │\n"
-                + String.format("│ Para:    %-58s │\n", destinatarioFormatado)
-                + String.format("│ Assunto: %-58s │\n", assuntoFormatado)
-                + "│                                                                    │\n"
-                + String.format("│   CÓDIGO DE VERIFICAÇÃO OTP:  [ %-6s ]                           │\n", otpFormatado)
-                + "│                                                                    │\n"
-                + "└════════════════════════════════════════════════════════════════════┘\n";
+        StringBuilder moldura = new StringBuilder();
+        moldura.append("\n")
+                .append("┌════════════════════════════════════════════════════════════════════┐\n")
+                .append("│ 📬 [OUTBOX LOCAL / RESILIÊNCIA ATIVA]                               │\n")
+                .append(String.format("│ Para:    %-58s │\n", destinatarioFormatado))
+                .append(String.format("│ Assunto: %-58s │\n", assuntoFormatado))
+                .append("│                                                                    │\n")
+                .append(String.format("│   CÓDIGO DE VERIFICAÇÃO OTP:  [ %-6s ]                           │\n", otpFormatado))
+                .append("│                                                                    │\n");
+        if (errorTrail != null && !errorTrail.isEmpty()) {
+            moldura.append("│ Motivos do failover:                                               │\n");
+            for (String err : errorTrail) {
+                moldura.append(String.format("│ • %-64s │\n", truncar(err, 64)));
+            }
+        }
+        moldura.append("└════════════════════════════════════════════════════════════════════┘\n");
 
-        System.out.println(moldura);
-        persistirOutboxMongo(destinatario, assunto, html, codigoOtp, tipo);
+        System.out.println(moldura.toString());
+        persistirOutboxMongo(destinatario, assunto, html, codigoOtp, tipo, errorTrail);
         log("INFO", "[OUTBOX REGISTRADO] Email retido em outbox local para " + destinatario + " | OTP=" + otpFormatado);
     }
 
-    private static void persistirOutboxMongo(String destinatario, String assunto, String html, String codigoOtp, String tipo) {
+    private static void persistirOutboxMongo(
+            String destinatario, String assunto, String html, String codigoOtp, String tipo, List<String> errorTrail) {
         try {
             RepositorioUsuarios repo = RepositorioUsuarios.getInstanciaSeInicializada();
             if (repo == null || repo.getEmailOutboxCollection() == null) return;
@@ -397,6 +800,7 @@ public final class SmtpCliente {
                     .append("createdAt", agora)
                     .append("expiresAt", expira);
             if (codigoOtp != null) doc.append("code", codigoOtp);
+            if (errorTrail != null && !errorTrail.isEmpty()) doc.append("errorTrail", errorTrail);
             repo.getEmailOutboxCollection().insertOne(doc);
         } catch (Exception ignored) { }
     }
@@ -410,6 +814,36 @@ public final class SmtpCliente {
         return null;
     }
 
+    static String extrairEmailPuro(String valor) {
+        if (valor == null) return "";
+        String limpo = valor.trim();
+        Matcher m = EMAIL_ANGULO_PATTERN.matcher(limpo);
+        if (m.find()) {
+            return m.group(1).trim();
+        }
+        return limpo;
+    }
+
+    static String extrairTextoPlano(String html, String fallbackAssunto) {
+        if (html == null || html.trim().isEmpty()) {
+            return fallbackAssunto != null ? fallbackAssunto : "";
+        }
+        String semBlocos = html
+                .replaceAll("(?is)<style[^>]*>.*?</style>", " ")
+                .replaceAll("(?is)<script[^>]*>.*?</script>", " ")
+                .replaceAll("(?i)<br\\s*/?>", "\n")
+                .replaceAll("(?i)</p>|</div>|</tr>|</h[1-6]>", "\n")
+                .replaceAll("<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replaceAll("[ \\t\\x0B\\f\\r]+", " ")
+                .replaceAll("\\n\\s+", "\n")
+                .trim();
+        return semBlocos.isEmpty() ? (fallbackAssunto != null ? fallbackAssunto : "") : semBlocos;
+    }
+
     private static String truncar(String texto, int max) {
         if (texto == null) return "";
         if (texto.length() <= max) return texto;
@@ -417,148 +851,170 @@ public final class SmtpCliente {
     }
 
     // =========================================================================
-    // PROTOCOLO SMTP (RFC 5321) - IMPLEMENTACAO NA UNHA COM FAIL-FAST
+    // PROTOCOLO SMTP (RFC 5321) - IMPLEMENTACAO NATIVA COM CRLF ESTRITO
     // =========================================================================
 
     private static void enviarSmtp(String destinatarioEmail, String assunto, String corpoHtml)
             throws Exception {
+        enviarSmtpComConfig(SmtpConfig.fromEnv(), destinatarioEmail, assunto, corpoHtml);
+    }
 
-        String host = ConfigEnv.obter("SMTP_HOST", "");
-        int porta = ConfigEnv.obterInteiro("SMTP_PORT", 587);
-        boolean usarSsl = "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SECURE", "false"))
-                || "true".equalsIgnoreCase(ConfigEnv.obter("SMTP_SSL", "false"));
-        String usuario = ConfigEnv.obter("SMTP_USER", "");
-        String senha = ConfigEnv.obter("SMTP_PASSWORD", "");
-        String remetente = ConfigEnv.obter("SMTP_FROM", usuario);
-        int timeoutMs = ConfigEnv.obterInteiro("SMTP_TIMEOUT_MS", 10000);
-
-        if (host.isEmpty()) {
-            log("WARN", "[SIMULACAO] SMTP_HOST nao configurado. Email nao enviado para: "
-                    + destinatarioEmail);
-            log("INFO", "[SIMULACAO] Assunto: " + assunto);
-            return;
+    static void enviarSmtpComConfig(
+            SmtpConfig config, String destinatarioEmail, String assunto, String corpoHtml) throws Exception {
+        if (config == null || config.host.isEmpty()) {
+            throw new IllegalStateException("SMTP_HOST nao configurado.");
+        }
+        if (config.remetente.isEmpty()) {
+            throw new IllegalStateException("SMTP_FROM / SMTP_USER nao configurado.");
         }
 
         Socket socket = null;
         try {
-            // 1. Conectar ao servidor SMTP com fail-fast (max 3000ms de connect timeout)
             Socket rawSocket = new Socket();
-            int connectTimeout = Math.min(timeoutMs, 3000);
-            rawSocket.connect(new InetSocketAddress(host, porta), connectTimeout);
-            rawSocket.setSoTimeout(timeoutMs);
+            int connectTimeout = Math.min(config.timeoutMs, 3000);
+            rawSocket.connect(new InetSocketAddress(config.host, config.porta), connectTimeout);
+            rawSocket.setSoTimeout(config.timeoutMs);
 
-            if (usarSsl) {
+            if (config.usarSsl) {
                 SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                SSLSocket sslSocket = (SSLSocket) sslFactory.createSocket(rawSocket, host, porta, true);
+                SSLSocket sslSocket = (SSLSocket) sslFactory.createSocket(rawSocket, config.host, config.porta, true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
             } else {
                 socket = rawSocket;
             }
-            socket.setSoTimeout(timeoutMs);
+            socket.setSoTimeout(config.timeoutMs);
 
             BufferedReader leitor = new BufferedReader(
                     new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             OutputStream saida = socket.getOutputStream();
-            PrintWriter escritor = new PrintWriter(saida, true);
 
-            // 2. Ler saudacao do servidor
             String resposta = lerResposta(leitor);
             if (!resposta.startsWith("220")) {
                 throw new Exception("Servidor SMTP nao respondeu com 220: " + resposta);
             }
 
-            // 3. EHLO
-            escritor.println("EHLO agmrm.local");
+            escreverLinhaSmtp(saida, "EHLO agmrm.local");
             resposta = lerRespostaMultipla(leitor);
 
-            // 4. STARTTLS se disponivel e SSL nao esta ativo
-            if (!usarSsl && resposta.contains("STARTTLS")) {
-                escritor.println("STARTTLS");
+            if (!config.usarSsl && resposta.toUpperCase(Locale.ROOT).contains("STARTTLS")) {
+                escreverLinhaSmtp(saida, "STARTTLS");
                 resposta = lerResposta(leitor);
-                if (resposta.startsWith("220")) {
-                    SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-                    socket = sslFactory.createSocket(socket, host, porta, true);
-                    socket.setSoTimeout(timeoutMs);
-                    leitor = new BufferedReader(
-                            new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-                    saida = socket.getOutputStream();
-                    escritor = new PrintWriter(saida, true);
-
-                    escritor.println("EHLO agmrm.local");
-                    resposta = lerRespostaMultipla(leitor);
+                if (!resposta.startsWith("220")) {
+                    throw new Exception("STARTTLS rejeitado: " + resposta);
                 }
+                SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+                socket = sslFactory.createSocket(socket, config.host, config.porta, true);
+                socket.setSoTimeout(config.timeoutMs);
+                leitor = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+                saida = socket.getOutputStream();
+
+                escreverLinhaSmtp(saida, "EHLO agmrm.local");
+                resposta = lerRespostaMultipla(leitor);
             }
 
-            // 5. Autenticacao
-            if (!usuario.isEmpty() && !senha.isEmpty()) {
-                if (resposta.contains("AUTH") && resposta.contains("LOGIN")) {
-                    escritor.println("AUTH LOGIN");
-                    resposta = lerResposta(leitor);
-                    if (resposta.startsWith("334")) {
-                        escritor.println(base64Codificar(usuario));
-                        resposta = lerResposta(leitor);
-                        if (resposta.startsWith("334")) {
-                            escritor.println(base64Codificar(senha));
-                            resposta = lerResposta(leitor);
-                            if (!resposta.startsWith("235")) {
-                                throw new Exception("Autenticacao SMTP falhou: " + resposta);
-                            }
-                        } else {
-                            throw new Exception("Autenticacao SMTP interrompida: " + resposta);
-                        }
-                    }
-                }
+            if (!config.usuario.isEmpty() && !config.senha.isEmpty()) {
+                autenticarSmtp(leitor, saida, resposta, config.usuario, config.senha);
             }
 
-            // 6. MAIL FROM
-            escritor.println("MAIL FROM:<" + remetente + ">");
+            escreverLinhaSmtp(saida, "MAIL FROM:<" + config.remetente + ">");
             resposta = lerResposta(leitor);
             if (!resposta.startsWith("250")) {
                 throw new Exception("MAIL FROM rejeitado: " + resposta);
             }
 
-            // 7. RCPT TO
-            escritor.println("RCPT TO:<" + destinatarioEmail + ">");
+            escreverLinhaSmtp(saida, "RCPT TO:<" + destinatarioEmail + ">");
             resposta = lerResposta(leitor);
             if (!resposta.startsWith("250")) {
                 throw new Exception("RCPT TO rejeitado: " + resposta);
             }
 
-            // 8. DATA
-            escritor.println("DATA");
+            escreverLinhaSmtp(saida, "DATA");
             resposta = lerResposta(leitor);
             if (!resposta.startsWith("354")) {
                 throw new Exception("DATA rejeitado: " + resposta);
             }
 
-            // 9. Enviar corpo do email
-            escritor.println("From: AGMRM <" + remetente + ">");
-            escritor.println("To: " + destinatarioEmail);
-            escritor.println("Subject: " + codificarSubjectRFC2047(assunto));
-            escritor.println("MIME-Version: 1.0");
-            escritor.println("Content-Type: text/html; charset=UTF-8");
-            escritor.println("Content-Transfer-Encoding: 8bit");
-            escritor.println("X-Mailer: AGMRM-Java-Native-SMTP");
-            escritor.println("");
-            escritor.println(corpoHtml);
-            escritor.println(".");
-            escritor.flush();
+            escreverLinhaSmtp(saida, "From: AGMRM <" + config.remetente + ">");
+            escreverLinhaSmtp(saida, "To: " + destinatarioEmail);
+            escreverLinhaSmtp(saida, "Subject: " + codificarSubjectRFC2047(assunto));
+            escreverLinhaSmtp(saida, "MIME-Version: 1.0");
+            escreverLinhaSmtp(saida, "Content-Type: text/html; charset=UTF-8");
+            escreverLinhaSmtp(saida, "Content-Transfer-Encoding: 8bit");
+            escreverLinhaSmtp(saida, "X-Mailer: AGMRM-Java-Native-SMTP");
+            escreverLinhaSmtp(saida, "");
+            escreverLinhaSmtp(saida, normalizarCorpoDataRfc5321(corpoHtml));
+            escreverLinhaSmtp(saida, ".");
 
             resposta = lerResposta(leitor);
             if (!resposta.startsWith("250")) {
                 throw new Exception("Envio do email falhou: " + resposta);
             }
 
-            // 10. QUIT
-            escritor.println("QUIT");
-            lerResposta(leitor);
+            // QUIT best-effort: apos 250 OK do DATA a entrega ja foi aceita pelo servidor
+            try {
+                escreverLinhaSmtp(saida, "QUIT");
+                lerResposta(leitor);
+            } catch (Exception ignored) { }
 
         } finally {
             if (socket != null && !socket.isClosed()) {
                 try { socket.close(); } catch (Exception ignored) {}
             }
         }
+    }
+
+    private static void autenticarSmtp(
+            BufferedReader leitor, OutputStream saida, String respostaEhlo, String usuario, String senha)
+            throws Exception {
+        String upper = respostaEhlo != null ? respostaEhlo.toUpperCase(Locale.ROOT) : "";
+        if (upper.contains("AUTH") && upper.contains("LOGIN")) {
+            escreverLinhaSmtp(saida, "AUTH LOGIN");
+            String resp = lerResposta(leitor);
+            if (!resp.startsWith("334")) {
+                throw new Exception("AUTH LOGIN rejeitado: " + resp);
+            }
+            escreverLinhaSmtp(saida, base64Codificar(usuario));
+            resp = lerResposta(leitor);
+            if (!resp.startsWith("334")) {
+                throw new Exception("Autenticacao SMTP interrompida: " + resp);
+            }
+            escreverLinhaSmtp(saida, base64Codificar(senha));
+            resp = lerResposta(leitor);
+            if (!resp.startsWith("235")) {
+                throw new Exception("Autenticacao SMTP falhou: " + resp);
+            }
+            return;
+        }
+        if (upper.contains("AUTH") && upper.contains("PLAIN")) {
+            String credencial = "\0" + usuario + "\0" + senha;
+            escreverLinhaSmtp(saida, "AUTH PLAIN " + base64Codificar(credencial));
+            String resp = lerResposta(leitor);
+            if (!resp.startsWith("235")) {
+                throw new Exception("Autenticacao SMTP PLAIN falhou: " + resp);
+            }
+        }
+    }
+
+    private static void escreverLinhaSmtp(OutputStream saida, String linha) throws IOException {
+        saida.write((linha + "\r\n").getBytes(StandardCharsets.UTF_8));
+        saida.flush();
+    }
+
+    static String normalizarCorpoDataRfc5321(String corpo) {
+        String texto = corpo == null ? "" : corpo.replace("\r\n", "\n").replace("\r", "\n");
+        String[] linhas = texto.split("\n", -1);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < linhas.length; i++) {
+            if (i > 0) sb.append("\r\n");
+            String linha = linhas[i];
+            if (linha.startsWith(".")) {
+                sb.append('.');
+            }
+            sb.append(linha);
+        }
+        return sb.toString();
     }
 
     // =========================================================================
@@ -628,15 +1084,6 @@ public final class SmtpCliente {
     private static String base64Codificar(String texto) {
         return java.util.Base64.getEncoder().encodeToString(
                 texto.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static String escaparJson(String texto) {
-        if (texto == null) return "";
-        return texto.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 
     // =========================================================================
@@ -717,10 +1164,18 @@ public final class SmtpCliente {
     }
 
     /**
-     * Encerra o pool de threads de forma gracios (aguarda emails em andamento).
+     * Encerra o pool de threads de forma graciosa (aguarda emails em andamento antes de interromper).
      */
     public static void encerrar() {
         FILA_EMAILS.shutdown();
+        try {
+            if (!FILA_EMAILS.awaitTermination(10, TimeUnit.SECONDS)) {
+                FILA_EMAILS.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            FILA_EMAILS.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
         log("INFO", "[SHUTDOWN] Pool de threads SMTP encerrado.");
     }
 }

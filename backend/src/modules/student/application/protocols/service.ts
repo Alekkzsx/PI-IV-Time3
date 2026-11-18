@@ -4,6 +4,10 @@ import type { Db, Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";
 import { formatShortDate } from "../../../../shared/formatting/date-formatters.js";
 import type { UnifiedEmailService } from "../../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  isSyntacticallyValidEmail,
+} from "../../../notifications/domain/recipient-guard.js";
 
 export class StudentProtocolService {
   constructor(
@@ -53,18 +57,19 @@ export class StudentProtocolService {
       createdAt: now,
     });
 
-    if (this.emailService && user.email) {
-      void this.emailService.sendProtocolSubmitted({
-        to: user.email,
-        studentName: user.displayName,
-        protocolCode: code,
-        requestType: input.requestType,
-        targetComponent: input.targetComponent,
-        justification: input.justification,
-        estimatedDays: 5,
-      }).catch((err) => {
-        console.warn(`[student-protocol] Falha ao enviar confirmação de protocolo por e-mail: ${err?.message}`);
-      });
+    if (this.emailService && user.active !== false && isSyntacticallyValidEmail(user.email)) {
+      const targetEmail = user.email.trim();
+      dispatchNotificationSafe("student-protocol", targetEmail, () =>
+        this.emailService!.sendProtocolSubmitted({
+          to: targetEmail,
+          studentName: user.displayName,
+          protocolCode: code,
+          requestType: input.requestType,
+          targetComponent: input.targetComponent,
+          justification: input.justification,
+          estimatedDays: 5,
+        }),
+      );
     }
 
     return {

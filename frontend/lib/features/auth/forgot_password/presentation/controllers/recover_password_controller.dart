@@ -97,9 +97,7 @@ class RecoverPasswordController extends ChangeNotifier {
     } on AuthApiException catch (error) {
       if (operationId != _operationId) return false;
       _isLoading = false;
-      _errorMessage = error.statusCode == 503 || error.statusCode == 504
-          ? error.message
-          : 'Não foi possível solicitar a recuperação agora. Tente novamente.';
+      _errorMessage = _resolveApiErrorMessage(error);
       _isSuccess = false;
       notifyListeners();
       return false;
@@ -114,9 +112,7 @@ class RecoverPasswordController extends ChangeNotifier {
       } on AuthApiException catch (error) {
         if (operationId != _operationId) return false;
         _isLoading = false;
-        _errorMessage = error.statusCode == 503 || error.statusCode == 504
-            ? error.message
-            : 'Não foi possível solicitar a recuperação agora. Tente novamente.';
+        _errorMessage = _resolveApiErrorMessage(error);
         _isSuccess = false;
         notifyListeners();
         return false;
@@ -130,6 +126,16 @@ class RecoverPasswordController extends ChangeNotifier {
         return false;
       }
     }
+  }
+
+  static const Set<int> _clientVisibleStatuses = {400, 403, 404, 422, 429, 503, 504};
+
+  String _resolveApiErrorMessage(AuthApiException error) {
+    final trimmed = error.message.trim();
+    if (_clientVisibleStatuses.contains(error.statusCode) && trimmed.isNotEmpty) {
+      return trimmed;
+    }
+    return 'Não foi possível solicitar a recuperação agora. Tente novamente.';
   }
 
   /// Restaura todas as variáveis de estado do controller para suas condições

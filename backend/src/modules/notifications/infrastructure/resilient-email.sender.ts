@@ -37,6 +37,7 @@ export class ResilientEmailSender implements UnifiedEmailService {
   private circuitState: CircuitBreakerState = "CLOSED";
   private consecutiveFailures = 0;
   private nextAttemptTimestamp = 0;
+  private halfOpenProbeInFlight = false;
   private static readonly MAX_FAILURES_BEFORE_OPEN = 3;
   private static readonly CIRCUIT_COOLDOWN_MS = 60_000; // 60 segundos
 
@@ -234,6 +235,7 @@ export class ResilientEmailSender implements UnifiedEmailService {
         return {
           success: true,
           provider: "smtp",
+          deliveredExternally: true,
           messageId: info.messageId,
           latencyMs: Date.now() - startTime,
         };
@@ -245,6 +247,8 @@ export class ResilientEmailSender implements UnifiedEmailService {
       }
     } else if (this.circuitState === "OPEN") {
       errorTrail.push(`Circuit Breaker OPEN: SMTP ignorado temporariamente (cooldown até ${new Date(this.nextAttemptTimestamp).toISOString()})`);
+    } else {
+      errorTrail.push("SMTP não configurado neste ambiente.");
     }
 
     // 2. TIER 2: HTTPS REST Provider (Porta 443 — Imune a restrições de firewall)
@@ -253,6 +257,8 @@ export class ResilientEmailSender implements UnifiedEmailService {
         const httpResult = await this.httpProvider.send(input);
         return {
           ...httpResult,
+          deliveredExternally: true,
+          ...(errorTrail.length > 0 ? { errorTrail } : {}),
           latencyMs: Date.now() - startTime,
         };
       } catch (err: any) {
@@ -279,28 +285,34 @@ export class ResilientEmailSender implements UnifiedEmailService {
     if (this.circuitState === "CLOSED") return true;
 
     if (this.circuitState === "OPEN") {
-      if (now >= this.nextAttemptTimestamp) {
+      if (now >= this.nextAttemptTimestamp && !this.halfOpenProbeInFlight) {
         this.circuitState = "HALF_OPEN";
+        this.halfOpenProbeInFlight = true;
         return true;
       }
       return false;
     }
 
-    // HALF_OPEN: permite 1 tentativa de teste
-    return true;
+    // HALF_OPEN: permite apenas 1 tentativa de sonda por ciclo
+    return false;
   }
 
   private recordSmtpSuccess(): void {
     this.consecutiveFailures = 0;
     this.circuitState = "CLOSED";
+    this.halfOpenProbeInFlight = false;
   }
 
   private recordSmtpFailure(reason: string): void {
+    this.halfOpenProbeInFlight = false;
+    const wasAlreadyOpen = this.circuitState === "OPEN";
     this.consecutiveFailures++;
     if (this.consecutiveFailures >= ResilientEmailSender.MAX_FAILURES_BEFORE_OPEN) {
       this.circuitState = "OPEN";
       this.nextAttemptTimestamp = Date.now() + ResilientEmailSender.CIRCUIT_COOLDOWN_MS;
-      console.warn(`[resilient-email] Circuit Breaker SMTP ABERTO após ${this.consecutiveFailures} falhas consecutivas. Motivo: ${reason}`);
+      if (!wasAlreadyOpen) {
+        console.warn(`[resilient-email] Circuit Breaker SMTP ABERTO após ${this.consecutiveFailures} falhas consecutivas. Motivo: ${reason}`);
+      }
     }
   }
 

@@ -1,9 +1,12 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, it, beforeEach } from "node:test";
 import {
   AcademicEmailTemplateRenderer,
+  HttpEmailProvider,
   LocalOutboxEmailProvider,
   ResilientEmailSender,
 } from "../../modules/notifications/index.js";
@@ -192,5 +195,76 @@ describe("LocalOutboxEmailProvider & Resilience", () => {
       () => sender.ensureAvailable(),
       (err: any) => err.code === "recovery_email_unavailable",
     );
+  });
+
+  it("HttpEmailProvider rejects HTTP 200 Apps Script error payloads and accepts valid JSON", async () => {
+    assert.equal(
+      HttpEmailProvider.validateWebhookResponse(200, JSON.stringify({ status: 200, success: true })),
+      null,
+    );
+    assert.match(
+      HttpEmailProvider.validateWebhookResponse(200, JSON.stringify({ status: 500, error: "Quota exceeded" })) ?? "",
+      /Quota exceeded/,
+    );
+    assert.match(
+      HttpEmailProvider.validateWebhookResponse(200, "<!DOCTYPE html><html><body>Erro</body></html>") ?? "",
+      /página\/erro inválido/,
+    );
+
+    const server = createServer((req, res) => {
+      if (req.url === "/exec-ok") {
+        res.writeHead(302, { Location: "/echo-ok" });
+        res.end();
+        return;
+      }
+      if (req.url === "/echo-ok") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: 200, success: true }));
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: 500, error: "GmailApp limit reached" }));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address() as AddressInfo;
+
+    try {
+      const okProvider = new HttpEmailProvider({
+        gmailWebhookUrl: `http://127.0.0.1:${port}/exec-ok`,
+        defaultSender: "noreply@agmrm.test",
+      });
+      const okResult = await okProvider.send({
+        to: "aluno@agmrm.test",
+        subject: "Teste",
+        html: "<p>Oi</p>",
+        text: "Oi",
+      });
+      assert.equal(okResult.success, true);
+      assert.equal(okResult.provider, "webhook");
+      assert.equal(okResult.deliveredExternally, true);
+
+      const errSender = new ResilientEmailSender({
+        ...mockEnvironment,
+        emailProviders: {
+          fallbackMode: "outbox",
+          gmailWebhookUrl: `http://127.0.0.1:${port}/exec-fail`,
+        },
+      });
+      const fallbackResult = await errSender.sendAuthOtp({
+        to: "aluno@agmrm.test",
+        displayName: "Aluno Teste",
+        code: "654321",
+        expiresInSeconds: 300,
+        purpose: "recovery",
+      });
+      assert.equal(fallbackResult.success, true);
+      assert.equal(fallbackResult.provider, "outbox");
+      assert.equal(fallbackResult.deliveredExternally, false);
+      assert.ok(
+        fallbackResult.errorTrail?.some((entry) => entry.includes("GmailApp limit reached")),
+      );
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });

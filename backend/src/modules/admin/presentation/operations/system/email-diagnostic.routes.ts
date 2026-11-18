@@ -6,6 +6,7 @@ import { z } from "zod";
 import { parse } from "../../../../../shared/validation.js";
 import { audit } from "../../../infrastructure/admin-support.js";
 import type { UnifiedEmailService } from "../../../../notifications/domain/notification.types.js";
+import { resolveActiveRegisteredRecipientByEmail } from "../../../../notifications/domain/recipient-guard.js";
 import type { ResilientEmailSender } from "../../../../notifications/infrastructure/resilient-email.sender.js";
 
 export function registerAdminEmailDiagnosticRoutes(
@@ -27,7 +28,7 @@ export function registerAdminEmailDiagnosticRoutes(
     );
 
     const adminUser = response.locals.user as Document | undefined;
-    const recipient = input.recipientEmail ?? adminUser?.email ?? "staff.notadez@gmail.com";
+    const requestedRecipient = input.recipientEmail ?? (typeof adminUser?.email === "string" ? adminUser.email : "");
     const testId = `DIAG-${Date.now().toString(36).toUpperCase()}`;
     const now = new Date();
 
@@ -39,6 +40,28 @@ export function registerAdminEmailDiagnosticRoutes(
       });
       return;
     }
+
+    const registeredRecipient = await resolveActiveRegisteredRecipientByEmail(database, requestedRecipient);
+    if (!registeredRecipient) {
+      await audit(
+        database,
+        response.locals.adminId,
+        "system_email_diagnostic_rejected",
+        testId,
+        { recipient: requestedRecipient, reason: "email_not_registered" },
+      );
+      response.status(404).json({
+        success: false,
+        code: "email_not_registered",
+        message: "E-mail não cadastrado na base de usuários ativos (auth_users).",
+        error: "E-mail não cadastrado na base de usuários ativos (auth_users).",
+        testId,
+        recipient: requestedRecipient,
+      });
+      return;
+    }
+
+    const recipient = registeredRecipient.email;
 
     try {
       const result = await emailService.sendDiagnostic({
@@ -52,25 +75,37 @@ export function registerAdminEmailDiagnosticRoutes(
         },
       });
 
+      const deliveredExternally = result.deliveredExternally ?? result.provider !== "outbox";
+      const storedInOutbox = result.provider === "outbox";
+      const errorTrail = result.errorTrail ?? [];
+
       await audit(
         database,
         response.locals.adminId,
-        "system_email_diagnostic_sent",
+        deliveredExternally ? "system_email_diagnostic_sent" : "system_email_diagnostic_outbox",
         testId,
         {
           recipient,
           provider: result.provider,
+          deliveredExternally,
+          storedInOutbox,
+          errorTrail,
           latencyMs: result.latencyMs,
-          success: result.success,
+          success: deliveredExternally,
         },
       );
 
       response.status(200).json({
-        success: true,
+        success: deliveredExternally,
+        deliveredExternally,
+        storedInOutbox,
+        errorTrail,
         testId,
         recipient,
         result,
-        message: "E-mail de diagnóstico despachado com sucesso.",
+        message: deliveredExternally
+          ? `E-mail de diagnóstico enviado externamente com sucesso via ${result.provider}.`
+          : "Nenhum canal externo entregou o e-mail (retido no OUTBOX local). Consulte errorTrail.",
       });
     } catch (error: any) {
       await audit(

@@ -4,6 +4,19 @@ import { ObjectId, type Db, type Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";
 import { formatShortDate } from "../../../../shared/formatting/date-formatters.js";
 import type { UnifiedEmailService } from "../../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  resolveActiveRegisteredRecipientById,
+} from "../../../notifications/domain/recipient-guard.js";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export class StudentCommunicationsService {
   constructor(
@@ -52,12 +65,19 @@ export class StudentCommunicationsService {
       throw new AuthError(404, "class_not_found", "Disciplina não localizada.");
     }
 
-    const professor =
-      classroom.professorId && ObjectId.isValid(String(classroom.professorId))
-        ? await this.database.collection("auth_users").findOne({ _id: new ObjectId(String(classroom.professorId)) })
-        : null;
-    const recipientName = String(classroom.professorName ?? professor?.displayName ?? "Docente Titular");
-    const recipientEmail = String(professor?.email ?? classroom.professorEmail ?? "docente.agmrm@agmrm.edu.br");
+    const professor = await resolveActiveRegisteredRecipientById(
+      this.database,
+      String(classroom.professorId ?? ""),
+    );
+    if (!professor) {
+      throw new AuthError(
+        404,
+        "professor_email_not_registered",
+        "O docente responsável por esta disciplina não possui e-mail ativo cadastrado no sistema.",
+      );
+    }
+    const recipientName = professor.displayName || String(classroom.professorName ?? "Docente Titular");
+    const recipientEmail = professor.email;
     const now = new Date();
     const protocolCode = `MSG-DOC-${randomBytes(3).toString("hex").toUpperCase()}`;
 
@@ -69,7 +89,7 @@ export class StudentCommunicationsService {
       studentName: String(user.displayName ?? user.identity),
       studentRa: String(user.identity ?? ""),
       studentEmail: String(user.email ?? ""),
-      professorId: classroom.professorId ? String(classroom.professorId) : null,
+      professorId: professor.userId,
       professorName: recipientName,
       professorEmail: recipientEmail,
       subject: input.subject.trim(),
@@ -77,23 +97,25 @@ export class StudentCommunicationsService {
       createdAt: now,
     });
 
-    if (this.emailService && recipientEmail) {
+    if (this.emailService) {
       const studentLabel = `${String(user.displayName ?? user.identity)} (RA: ${String(user.identity ?? "-")})`;
-      void this.emailService
-        .sendRaw({
+      const safeClassCode = escapeHtml(classCode);
+      const safeStudentLabel = escapeHtml(studentLabel);
+      const safeProtocolCode = escapeHtml(protocolCode);
+      const safeMessage = escapeHtml(input.message.trim());
+      dispatchNotificationSafe("student-contact-professor", recipientEmail, () =>
+        this.emailService!.sendRaw({
           to: recipientEmail,
           subject: `[Portal AVA • ${classCode}] ${input.subject.trim()}`,
           text: `Mensagem enviada por ${studentLabel} na disciplina ${String(classroom.subjectName ?? classCode)} (${classCode}).\nProtocolo: ${protocolCode}\n\n${input.message.trim()}`,
           html: `<div style="font-family: sans-serif; color: #18181B;">
-            <h3 style="margin-bottom: 4px;">Atendimento Discente — ${classCode}</h3>
-            <p style="color: #71717A; font-size: 13px;">De: <strong>${studentLabel}</strong> • Protocolo: <code>${protocolCode}</code></p>
+            <h3 style="margin-bottom: 4px;">Atendimento Discente — ${safeClassCode}</h3>
+            <p style="color: #71717A; font-size: 13px;">De: <strong>${safeStudentLabel}</strong> • Protocolo: <code>${safeProtocolCode}</code></p>
             <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 12px 0;" />
-            <p style="font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${input.message.trim()}</p>
+            <p style="font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${safeMessage}</p>
           </div>`,
-        })
-        .catch((err) => {
-          console.warn(`[student-contact-professor] Falha no disparo de e-mail: ${err?.message}`);
-        });
+        }),
+      );
     }
 
     return {

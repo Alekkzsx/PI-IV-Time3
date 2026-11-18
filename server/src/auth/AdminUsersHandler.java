@@ -281,6 +281,7 @@ public class AdminUsersHandler implements ManipuladorHttp {
                 .append("identity", identity)
                 .append("normalizedIdentity", normalizedIdentity)
                 .append("email", normalizedEmail)
+                .append("normalizedEmail", normalizedEmail)
                 .append("displayName", displayName)
                 .append("profile", canonicalProfile)
                 .append("departmentOrCourse", department != null ? department : "")
@@ -306,7 +307,9 @@ public class AdminUsersHandler implements ManipuladorHttp {
         det.put("profile", canonicalProfile);
         repositorio.registrarAuditoria(admin.getUserId(), "user_created", newId, det);
 
-        SmtpCliente.enviarBoasVindas(normalizedEmail, displayName, identity, canonicalProfile, password);
+        SmtpCliente.enviarBoasVindasComResultado(normalizedEmail, displayName, identity, canonicalProfile, password)
+                .whenComplete((resultado, erro) -> repositorio.registrarResultadoEnvioEmail(
+                        admin.getUserId(), "admin_welcome_email", normalizedEmail, resultado, erro));
         resp.enviarJson(201, Json.escrever(publicUser(novo)));
     }
 
@@ -394,6 +397,7 @@ public class AdminUsersHandler implements ManipuladorHttp {
         }
         if (newEmail != null) {
             updates.add(Updates.set("email", finalEmail));
+            updates.add(Updates.set("normalizedEmail", finalEmail));
         }
         if (newDisplayName != null) {
             updates.add(Updates.set("displayName", newDisplayName));
@@ -555,6 +559,11 @@ public class AdminUsersHandler implements ManipuladorHttp {
         String identity = existing.getString("identity");
         String email = existing.getString("email");
         String displayName = existing.getString("displayName");
+        if (!SmtpCliente.isEmailValido(email)) {
+            enviarErro(resp, 422, "email_not_registered", "Usuario nao possui um e-mail valido cadastrado no sistema.");
+            return;
+        }
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
 
         String otpCode = OtpService.gerarCodigo();
         String otpSecret = ConfigEnv.obter("AUTH_OTP_SECRET",
@@ -566,10 +575,10 @@ public class AdminUsersHandler implements ManipuladorHttp {
         if (identity != null && !identity.isEmpty()) {
             repositorio.salvarOtp(identity, otpHash, "RECOVERY", expira);
         }
-        if (email != null && !email.isEmpty()) {
-            repositorio.salvarOtp(email, otpHash, "RECOVERY", expira);
-            SmtpCliente.enviarRecuperacao(email, otpCode, displayName);
-        }
+        repositorio.salvarOtp(normalizedEmail, otpHash, "RECOVERY", expira);
+        SmtpCliente.enviarRecuperacaoComResultado(normalizedEmail, otpCode, displayName)
+                .whenComplete((resultado, erro) -> repositorio.registrarResultadoEnvioEmail(
+                        admin.getUserId(), "admin_recovery_email", normalizedEmail, resultado, erro));
 
         List<Bson> updates = new ArrayList<Bson>();
         updates.add(Updates.set("requirePasswordChange", Boolean.valueOf(forceNextLogin)));
@@ -663,6 +672,7 @@ public class AdminUsersHandler implements ManipuladorHttp {
                 .append("identity", identity)
                 .append("normalizedIdentity", identity.toLowerCase(Locale.ROOT))
                 .append("email", normalizedEmail)
+                .append("normalizedEmail", normalizedEmail)
                 .append("displayName", name)
                 .append("profile", "docente")
                 .append("passwordHash", SenhaHasher.hash(tempPassword))
@@ -685,7 +695,9 @@ public class AdminUsersHandler implements ManipuladorHttp {
         }
 
         repositorio.registrarAuditoria(admin.getUserId(), "teacher_created", teacher.getObjectId("_id").toHexString(), null);
-        SmtpCliente.enviarBoasVindas(normalizedEmail, name, identity, "docente", tempPassword);
+        SmtpCliente.enviarBoasVindasComResultado(normalizedEmail, name, identity, "docente", tempPassword)
+                .whenComplete((resultado, erro) -> repositorio.registrarResultadoEnvioEmail(
+                        admin.getUserId(), "admin_teacher_welcome_email", normalizedEmail, resultado, erro));
 
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("identity", identity);

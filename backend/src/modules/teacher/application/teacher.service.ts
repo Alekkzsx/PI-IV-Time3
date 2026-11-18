@@ -20,6 +20,11 @@ import { TeacherSessionService, type SessionAttendanceUpdate } from "./teacher-s
 import { TeacherGradebookService } from "./gradebook/index.js";
 import { TeacherAssignmentService } from "./assignments/index.js";
 import { createDefaultSyllabusUnits, TeacherSyllabusService } from "./syllabus/index.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  resolveActiveRegisteredRecipientById,
+} from "../../notifications/domain/recipient-guard.js";
 
 export { formatPtBrLongDate, formatShortDate } from "../../../shared/formatting/date-formatters.js";
 
@@ -33,14 +38,17 @@ export class TeacherService {
   private readonly assignmentService: TeacherAssignmentService;
   private readonly syllabusService: TeacherSyllabusService;
 
-  constructor(private readonly database: Db) {
+  constructor(
+    private readonly database: Db,
+    private readonly emailService?: UnifiedEmailService,
+  ) {
     this.classAccess = new TeacherClassAccess(database);
-    this.communicationService = new TeacherCommunicationService(database, this.classAccess);
+    this.communicationService = new TeacherCommunicationService(database, this.classAccess, emailService);
     this.dashboardRepository = new TeacherDashboardRepository(database, this.classAccess);
     this.materialService = new TeacherMaterialService(database, this.classAccess);
     this.sessionService = new TeacherSessionService(database, this.classAccess);
-    this.gradebookService = new TeacherGradebookService(database, this.classAccess);
-    this.assignmentService = new TeacherAssignmentService(database, this.classAccess);
+    this.gradebookService = new TeacherGradebookService(database, this.classAccess, emailService);
+    this.assignmentService = new TeacherAssignmentService(database, this.classAccess, emailService);
     this.syllabusService = new TeacherSyllabusService(database, this.classAccess);
   }
 
@@ -268,6 +276,30 @@ export class TeacherService {
     const updated = await this.database
       .collection("academic_protocols")
       .findOne({ _id: new ObjectId(protocolId) });
+
+    if (this.emailService && existing.studentId) {
+      const signedBy = String(user.displayName ?? user.identity ?? userId);
+      const protocolCode = String(updated?.code ?? existing.code ?? protocolId);
+      void resolveActiveRegisteredRecipientById(this.database, String(existing.studentId))
+        .then((student) => {
+          if (!student) return;
+          dispatchNotificationSafe("teacher-protocol-decided", student.email, () =>
+            this.emailService!.sendProtocolDecided({
+              to: student.email,
+              studentName: student.displayName,
+              protocolCode,
+              requestType: existing.requestType ? String(existing.requestType) : undefined,
+              approved: input.status === "deferido",
+              decisionNote: resolutionText,
+              signedBy,
+            }),
+          );
+        })
+        .catch((err) => {
+          console.warn(`[teacher-protocol-decided] Falha ao localizar discente: ${err?.message}`);
+        });
+    }
+
     return mapTeacherProtocols(updated ? [updated] : [])[0] ?? null;
   }
 

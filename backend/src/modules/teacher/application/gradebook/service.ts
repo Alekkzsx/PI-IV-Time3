@@ -2,13 +2,54 @@
 import { randomBytes } from "node:crypto";
 import { ObjectId, type Db, type Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";
+import type { UnifiedEmailService } from "../../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  resolveActiveRegisteredRecipientById,
+} from "../../../notifications/domain/recipient-guard.js";
 import { TeacherClassAccess } from "../teacher-class-access.js";
+
+const STAGE_LABELS: ReadonlyArray<[keyof { assignmentsScore?: number; p1Score?: number; projectsScore?: number; p2Score?: number }, string]> = [
+  ["assignmentsScore", "Atividades N1"],
+  ["p1Score", "Prova P1"],
+  ["projectsScore", "Projetos / Atividades N2"],
+  ["p2Score", "Prova P2"],
+];
 
 export class TeacherGradebookService {
   constructor(
     private readonly database: Db,
     private readonly classAccess: TeacherClassAccess,
+    private readonly emailService?: UnifiedEmailService,
   ) {}
+
+  private notifyGradeUpdated(
+    classroom: Document,
+    studentId: string,
+    assignmentTitle: string,
+    grade: number,
+    feedback?: string,
+  ): void {
+    if (!this.emailService) return;
+    const disciplineName = String(classroom.subjectName ?? classroom.name ?? classroom.code ?? "");
+    void resolveActiveRegisteredRecipientById(this.database, studentId)
+      .then((student) => {
+        if (!student) return;
+        dispatchNotificationSafe("teacher-gradebook", student.email, () =>
+          this.emailService!.sendGradePublished({
+            to: student.email,
+            studentName: student.displayName,
+            assignmentTitle,
+            disciplineName,
+            grade,
+            feedback,
+          }),
+        );
+      })
+      .catch((err) => {
+        console.warn(`[teacher-gradebook] Falha ao resolver discente para envio de nota: ${err?.message}`);
+      });
+  }
 
   async updateStudentGrade(
     userId: string,
@@ -91,6 +132,19 @@ export class TeacherGradebookService {
       details: { studentId, ra: enrollment.studentIdentity, ...scores },
       createdAt: new Date(),
     });
+
+    const changedStages = STAGE_LABELS
+      .filter(([key]) => scores[key] !== undefined)
+      .map(([key, label]) => ({ label, score: scores[key]! }));
+    if (changedStages.length > 0) {
+      const title = changedStages.map((s) => s.label).join(" / ");
+      const summaryFeedback =
+        changedStages.length > 1
+          ? changedStages.map((s) => `${s.label}: ${s.score.toFixed(1)}`).join(" • ")
+          : "Nota lançada ou atualizada no diário acadêmico pelo docente.";
+      this.notifyGradeUpdated(classroom, studentId, title, changedStages[0]!.score, summaryFeedback);
+    }
+
     return { ok: true };
   }
 
@@ -162,6 +216,13 @@ export class TeacherGradebookService {
       await this.database.collection("academic_grades").updateOne(
         { classCode: classroom.code, studentId: input.studentId },
         { $set: { [targetField]: input.newScore, updatedAt: new Date() } },
+      );
+      this.notifyGradeUpdated(
+        classroom,
+        input.studentId,
+        `Retificação de Nota (${input.stage})`,
+        input.newScore,
+        input.justification,
       );
     }
     return { ok: true };

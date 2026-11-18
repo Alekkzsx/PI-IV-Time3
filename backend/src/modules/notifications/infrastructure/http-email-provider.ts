@@ -28,6 +28,7 @@ export class HttpEmailProvider {
   async send(input: BaseEmailInput): Promise<EmailDeliveryResult> {
     const startTime = Date.now();
     const fromAddress = input.from || this.config.defaultSender;
+    const errors: string[] = [];
 
     // 1. Tenta Resend API (se configurado)
     if (this.config.resendApiKey) {
@@ -45,7 +46,7 @@ export class HttpEmailProvider {
             html: input.html,
             text: input.text,
           }),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(8000),
         });
 
         if (response.ok) {
@@ -53,13 +54,19 @@ export class HttpEmailProvider {
           return {
             success: true,
             provider: "resend",
+            deliveredExternally: true,
             messageId: data.id ?? "resend-ok",
             latencyMs: Date.now() - startTime,
           };
         }
-        console.warn(`[http-email-provider] Resend retornou HTTP ${response.status}`);
+        const errBody = await response.text().catch(() => "");
+        const msg = `Resend retornou HTTP ${response.status}${errBody ? `: ${errBody.slice(0, 160)}` : ""}`;
+        errors.push(msg);
+        console.warn(`[http-email-provider] ${msg}`);
       } catch (err: any) {
-        console.warn(`[http-email-provider] Falha ao enviar via Resend: ${err?.message}`);
+        const msg = `Falha ao enviar via Resend: ${err?.message ?? "erro desconhecido"}`;
+        errors.push(msg);
+        console.warn(`[http-email-provider] ${msg}`);
       }
     }
 
@@ -79,7 +86,7 @@ export class HttpEmailProvider {
             htmlContent: input.html,
             textContent: input.text,
           }),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(8000),
         });
 
         if (response.ok) {
@@ -87,13 +94,19 @@ export class HttpEmailProvider {
           return {
             success: true,
             provider: "brevo",
+            deliveredExternally: true,
             messageId: data.messageId ?? "brevo-ok",
             latencyMs: Date.now() - startTime,
           };
         }
-        console.warn(`[http-email-provider] Brevo retornou HTTP ${response.status}`);
+        const errBody = await response.text().catch(() => "");
+        const msg = `Brevo retornou HTTP ${response.status}${errBody ? `: ${errBody.slice(0, 160)}` : ""}`;
+        errors.push(msg);
+        console.warn(`[http-email-provider] ${msg}`);
       } catch (err: any) {
-        console.warn(`[http-email-provider] Falha ao enviar via Brevo: ${err?.message}`);
+        const msg = `Falha ao enviar via Brevo: ${err?.message ?? "erro desconhecido"}`;
+        errors.push(msg);
+        console.warn(`[http-email-provider] ${msg}`);
       }
     }
 
@@ -102,6 +115,7 @@ export class HttpEmailProvider {
       try {
         const response = await fetch(this.config.gmailWebhookUrl, {
           method: "POST",
+          redirect: "follow",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             to: input.to,
@@ -111,23 +125,74 @@ export class HttpEmailProvider {
             from: fromAddress,
             sentAt: new Date().toISOString(),
           }),
-          signal: AbortSignal.timeout(5000),
+          signal: AbortSignal.timeout(12000),
         });
 
-        if (response.ok) {
+        const rawBody = await response.text().catch(() => "");
+        const validationError = HttpEmailProvider.validateWebhookResponse(response.status, rawBody);
+        if (!validationError) {
           return {
             success: true,
             provider: "webhook",
+            deliveredExternally: true,
             messageId: `webhook-${Date.now()}`,
             latencyMs: Date.now() - startTime,
           };
         }
-        console.warn(`[http-email-provider] Webhook retornou HTTP ${response.status}`);
+        errors.push(validationError);
+        console.warn(`[http-email-provider] ${validationError}`);
       } catch (err: any) {
-        console.warn(`[http-email-provider] Falha ao enviar via Webhook: ${err?.message}`);
+        const msg = `Falha ao enviar via Webhook: ${err?.message ?? "erro desconhecido"}`;
+        errors.push(msg);
+        console.warn(`[http-email-provider] ${msg}`);
       }
     }
 
-    throw new Error("Nenhum provedor HTTPS REST respondeu com sucesso.");
+    throw new Error(
+      errors.length > 0
+        ? `Nenhum provedor HTTPS REST respondeu com sucesso (${errors.join(" | ")})`
+        : "Nenhum provedor HTTPS REST configurado.",
+    );
+  }
+
+  /** Valida HTTP status e corpo da resposta (Google Apps Script retorna HTTP 200 mesmo em erros). */
+  static validateWebhookResponse(status: number, rawBody: string): string | null {
+    const trimmed = rawBody.trim();
+    if (status < 200 || status >= 300) {
+      return `Webhook retornou HTTP ${status}${trimmed ? `: ${trimmed.slice(0, 160)}` : ""}`;
+    }
+
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.includes("<!doctype") ||
+      lower.includes("<html") ||
+      lower.includes("accounts.google.com") ||
+      lower.includes("não foi possível abrir o arquivo") ||
+      lower.includes("função de script não encontrada") ||
+      lower.includes("script function not found") ||
+      lower.includes("errormessage")
+    ) {
+      return `Webhook retornou página/erro inválido em HTTP ${status}: ${trimmed.slice(0, 160)}`;
+    }
+
+    if (trimmed.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+        const errField = parsed.error ?? parsed.errorMessage;
+        if (errField !== undefined && errField !== null && String(errField).trim() !== "") {
+          return `Webhook reportou erro no corpo: ${String(errField)}`;
+        }
+        if (parsed.ok === false || parsed.success === false) {
+          return `Webhook retornou success=false: ${trimmed.slice(0, 160)}`;
+        }
+        if (typeof parsed.status === "number" && parsed.status >= 400) {
+          return `Webhook retornou status interno ${parsed.status}: ${trimmed.slice(0, 160)}`;
+        }
+      } catch {
+        // Ignora texto que começa com '{' mas não é JSON válido caso não tenha marcadores HTML de erro
+      }
+    }
+
+    return null;
   }
 }

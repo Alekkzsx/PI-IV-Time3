@@ -94,7 +94,7 @@ export function createApp(
   app.use("/api/admin", createAdminOperationsRouter(options.database, options.jwtSecret, options.emailSender));
   app.use("/api/admin", createAdminAcademicRouter(options.database, options.jwtSecret));
   app.use("/api/student", createStudentDashboardRouter(options.database, options.jwtSecret, options.emailSender));
-  app.use("/api/teacher", createTeacherRouter(options.database, options.jwtSecret));
+  app.use("/api/teacher", createTeacherRouter(options.database, options.jwtSecret, options.emailSender));
   app.use("/api/files", createFilesRouter(options.database, options.jwtSecret));
 
   app.use(notFoundHandler);
