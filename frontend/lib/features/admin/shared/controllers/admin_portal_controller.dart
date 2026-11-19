@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/role_permission_policy.dart';
 import '../data/admin_remote_data_source.dart';
@@ -18,12 +19,83 @@ class AdminPortalController extends ChangeNotifier {
   String? remoteError;
   String? supervisionError;
   Map<String, dynamic> dashboard = {};
+  Map<String, dynamic> institutionalSettings = {};
   List<AdminCalendarMilestone> calendarEvents = [];
   List<Map<String, dynamic>> announcements = [];
   List<AdminGradeAuditRow> supervisedGrades = [];
   List<AdminEnrolledStudent> supervisedEnrollments = [];
+  List<AdminGradeRectificationModel> rectifications = [];
   List<AdminCourseModel> courses = [];
   bool get usesRemote => true;
+
+  AcademicThresholds get academicThresholds =>
+      AcademicThresholds.fromJson(institutionalSettings);
+
+  List<AdminGradeRectificationModel> get pendingRectifications =>
+      rectifications.where((r) => r.isPending).toList();
+
+  List<Map<String, dynamic>> get institutionalNotifications {
+    final alertsConfig = institutionalSettings['campusAlerts'] is Map
+        ? Map<String, dynamic>.from(
+            institutionalSettings['campusAlerts'] as Map,
+          )
+        : <String, dynamic>{};
+    final showProtocols = alertsConfig['notifyPendingProtocols'] != false;
+    final showRects = alertsConfig['notifyGradeRectifications'] != false;
+    final showDeadlines = alertsConfig['notifyRegimentalDeadlines'] != false;
+
+    final items = <Map<String, dynamic>>[];
+    if (showProtocols) {
+      final pendingProtocols = protocols
+          .where((p) => normalizeProtocolStatus(p.status) == 'Aguardando Parecer')
+          .length;
+      if (pendingProtocols > 0) {
+        items.add({
+          'type': 'protocol',
+          'title': '$pendingProtocols requerimento(s) aguardando parecer',
+          'subtitle': 'Secretaria Acadêmica · Despacho pendente',
+          'tab': 'secretaria',
+        });
+      }
+    }
+    if (showRects) {
+      final pendingRectCount = pendingRectifications.length;
+      if (pendingRectCount > 0) {
+        items.add({
+          'type': 'rectification',
+          'title': '$pendingRectCount solicitação(ões) de retificação pós-lacração',
+          'subtitle': 'Cockpit de Turmas · Revisão de notas pendente',
+          'tab': 'turmas',
+        });
+      }
+    }
+    if (showDeadlines && isRegimentalLockActive) {
+      items.add({
+        'type': 'lock',
+        'title': 'Trava Regimental Global Ativa',
+        'subtitle': 'Edição de notas no Diário Docente bloqueada',
+        'tab': 'calendario',
+      });
+    }
+    if (showDeadlines && calendarEvents.isNotEmpty) {
+      final now = DateTime.now();
+      final upcoming = calendarEvents.where((e) {
+        final d = DateTime.tryParse(e.startsAt);
+        return d != null &&
+            !d.isBefore(DateTime(now.year, now.month, now.day)) &&
+            d.difference(now).inDays <= 14;
+      }).length;
+      if (upcoming > 0) {
+        items.add({
+          'type': 'calendar',
+          'title': '$upcoming marco(s) acadêmico(s) nos próximos 14 dias',
+          'subtitle': 'Calendário Acadêmico Institucional',
+          'tab': 'calendario',
+        });
+      }
+    }
+    return items;
+  }
 
   Future<void> loadRemote({bool clear = false}) async {
     final requestedToken = AppUserSession.instance.accessToken;
@@ -35,7 +107,9 @@ class AdminPortalController extends ChangeNotifier {
       courses = [];
       calendarEvents = [];
       announcements = [];
+      rectifications = [];
       dashboard = {};
+      institutionalSettings = {};
       remoteError = 'Entre como administrador para carregar os dados.';
       notifyListeners();
       return;
@@ -46,7 +120,9 @@ class AdminPortalController extends ChangeNotifier {
       protocols = [];
       auditLogs = [];
       courses = [];
+      rectifications = [];
       dashboard = {};
+      institutionalSettings = {};
     }
     isLoadingRemote = true;
     remoteError = null;
@@ -62,13 +138,15 @@ class AdminPortalController extends ChangeNotifier {
         academicRemote.getClasses(),
         remote.calendar(),
         remote.request('GET', '/announcements'),
+        remote.rectifications().catchError((_) => <AdminGradeRectificationModel>[]),
       ]);
       if (AppUserSession.instance.accessToken != requestedToken) return;
       users = values[0] as List<AdminUserModel>;
       protocols = values[1] as List<AdminProtocolModel>;
       auditLogs = values[2] as List<AdminAuditLogModel>;
+      institutionalSettings = Map<String, dynamic>.from(values[3] as Map);
       isRegimentalLockActive =
-          (values[3] as Map)['regimentalLockActive'] == true;
+          institutionalSettings['regimentalLockActive'] == true;
       dashboard = Map<String, dynamic>.from(values[4] as Map);
       courses = values[5] as List<AdminCourseModel>;
       classes = values[6] as List<AdminClassModel>;
@@ -77,6 +155,7 @@ class AdminPortalController extends ChangeNotifier {
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+      rectifications = values[9] as List<AdminGradeRectificationModel>;
       _gradeLocksByClass.clear();
       for (final classroom in classes) {
         _gradeLocksByClass[classroom.code.trim().toUpperCase()] =
@@ -363,6 +442,55 @@ class AdminPortalController extends ChangeNotifier {
         fields,
       ),
     );
+  }
+
+  Future<bool> deleteAnnouncement(String id) {
+    if (!canPerform('publish_announcements') || id.isEmpty) {
+      _denyPermission('publish_announcements');
+      return Future.value(false);
+    }
+    return persist(() => remote.deleteAnnouncement(id));
+  }
+
+  Future<bool> updateSettings(Map<String, Object?> fields) {
+    if (!canPerform('system_settings_2fa') || fields.isEmpty) {
+      _denyPermission('system_settings_2fa');
+      return Future.value(false);
+    }
+    return persist(() => remote.patchSettings(fields));
+  }
+
+  Future<bool> decideRectification({
+    required String id,
+    required bool approved,
+    required String decisionNote,
+  }) async {
+    if (!canPerform('manage_classes') || id.isEmpty) {
+      _denyPermission('manage_classes');
+      return false;
+    }
+    final ok = await persist(
+      () => remote.decideRectification(
+        id,
+        approved: approved,
+        decisionNote: decisionNote,
+      ),
+    );
+    if (ok && activeSupervisedClass != null) {
+      await loadClassSupervision(activeSupervisedClass!.code);
+    }
+    return ok;
+  }
+
+  Future<bool> unlockClassPauta(String classCode) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return Future.value(false);
+    }
+    return persistClass(classCode, {
+      'gradeLocked': false,
+      'pautaHomologated': false,
+    });
   }
 
   // --- MÉTODOS DE GESTÃO DE TURMAS & SUPERVISÃO ---

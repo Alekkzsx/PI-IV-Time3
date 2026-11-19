@@ -1,11 +1,10 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
-/// Configuration tab for System Preferences and Accessibility.
-///
-/// Allows toggling interface themes (Light, Dark, OS default), table density,
-/// typography scale, high-contrast mode, and academic calendar initial views.
+/// Aba visual de preferências de leitura e interface do Portal Gestão.
 class SystemPreferencesTab extends StatefulWidget {
   const SystemPreferencesTab({super.key});
 
@@ -32,7 +31,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         _buildSectionCard(
           title: 'Aparência & Tema',
           subtitle:
-              'Personalize a experiência visual do Portal e Ambiente Virtual de Aprendizagem.',
+              'Parâmetros visuais de leitura e contraste do Portal Gestão.',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 650;
@@ -101,7 +100,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         _buildSectionCard(
           title: 'Acessibilidade & Leitura',
           subtitle:
-              'Ajustes para facilitar a visualização de textos, notas e materiais acadêmicos.',
+              'Ajustes visuais para facilitar a leitura de tabelas administrativas, pautas e auditorias.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -129,7 +128,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
               ),
 
               const SizedBox(height: 24),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: InstColors.border),
               const SizedBox(height: 18),
 
               // Accessibility Toggles
@@ -158,7 +157,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         _buildSectionCard(
           title: 'Preferências do Calendário Acadêmico',
           subtitle:
-              'Defina o comportamento inicial da sua agenda de aulas e entregas.',
+              'Defina o comportamento inicial da grade do Calendário Acadêmico institucional.',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 650;
@@ -170,8 +169,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                           _firstDayOfWeek,
                           ['Segunda-feira', 'Domingo'],
                           (val) {
-                            if (val != null)
+                            if (val != null) {
                               setState(() => _firstDayOfWeek = val);
+                            }
                           },
                         ),
                         const SizedBox(height: 12),
@@ -180,8 +180,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                           _defaultCalendarView,
                           ['Mês Atual', 'Semana Atual', 'Agenda Diária'],
                           (val) {
-                            if (val != null)
+                            if (val != null) {
                               setState(() => _defaultCalendarView = val);
+                            }
                           },
                         ),
                       ],
@@ -194,8 +195,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                             _firstDayOfWeek,
                             ['Segunda-feira', 'Domingo'],
                             (val) {
-                              if (val != null)
+                              if (val != null) {
                                 setState(() => _firstDayOfWeek = val);
+                              }
                             },
                           ),
                         ),
@@ -206,8 +208,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                             _defaultCalendarView,
                             ['Mês Atual', 'Semana Atual', 'Agenda Diária'],
                             (val) {
-                              if (val != null)
+                              if (val != null) {
                                 setState(() => _defaultCalendarView = val);
+                              }
                             },
                           ),
                         ),
@@ -227,9 +230,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -237,16 +240,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0F172A),
+            style: jakarta(
+              size: 16,
+              weight: FontWeight.w700,
+              color: InstColors.ink,
             ),
           ),
           const SizedBox(height: 3),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+            style: jakarta(size: 12.5, color: InstColors.muted),
           ),
           const SizedBox(height: 20),
           child,
@@ -268,12 +271,10 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? InstColors.stone : InstColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF0F172A)
-                : const Color(0xFFE2E8F0),
+            color: isSelected ? InstColors.ink : InstColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -282,7 +283,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: const Color(0xFF0F172A)),
+                Icon(icon, size: 20, color: InstColors.ink),
                 const Spacer(),
                 Container(
                   width: 16,
@@ -291,8 +292,8 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF0F172A)
-                          : const Color(0xFFCBD5E1),
+                          ? InstColors.ink
+                          : InstColors.borderStrong,
                       width: 2,
                     ),
                   ),
@@ -302,7 +303,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                             width: 8,
                             height: 8,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF0F172A),
+                              color: InstColors.ink,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -314,16 +315,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             const SizedBox(height: 14),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
+              style: jakarta(
+                size: 13.5,
+                weight: FontWeight.w700,
+                color: InstColors.ink,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              style: jakarta(size: 11, color: InstColors.muted),
             ),
           ],
         ),
@@ -336,16 +337,20 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
-            Icon(Icons.text_fields_rounded, size: 16, color: Color(0xFF475569)),
-            SizedBox(width: 6),
+          children: [
+            const Icon(
+              Icons.text_fields_rounded,
+              size: 16,
+              color: InstColors.body,
+            ),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Escala de Tipografia',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF334155),
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.body,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -356,7 +361,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: InstColors.subtle,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -391,16 +396,20 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
-            Icon(Icons.table_rows_outlined, size: 16, color: Color(0xFF475569)),
-            SizedBox(width: 6),
+          children: [
+            const Icon(
+              Icons.table_rows_outlined,
+              size: 16,
+              color: InstColors.body,
+            ),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Densidade das Tabelas & Listas',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF334155),
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.body,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -411,7 +420,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: InstColors.subtle,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -449,16 +458,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF0F172A) : Colors.transparent,
+            color: isSelected ? InstColors.ink : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Center(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : const Color(0xFF64748B),
+              style: jakarta(
+                size: 12,
+                weight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : InstColors.muted,
               ),
             ),
           ),
@@ -482,19 +491,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+                style: jakarta(
+                  size: 13.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: Color(0xFF64748B),
-                ),
+                style: jakarta(size: 11.5, color: InstColors.muted),
               ),
             ],
           ),
@@ -502,7 +508,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         const SizedBox(width: 14),
         Checkbox(
           value: value,
-          activeColor: const Color(0xFF0F172A),
+          activeColor: InstColors.ink,
           onChanged: (val) => onChanged(val ?? false),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         ),
@@ -519,19 +525,19 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: InstColors.stone,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF64748B),
+            style: jakarta(
+              size: 10.5,
+              weight: FontWeight.w700,
+              color: InstColors.muted,
             ),
           ),
           const SizedBox(height: 4),
@@ -540,10 +546,10 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
               value: value,
               isExpanded: true,
               isDense: true,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0F172A),
+              style: jakarta(
+                size: 13,
+                weight: FontWeight.w600,
+                color: InstColors.ink,
               ),
               items: items
                   .map(

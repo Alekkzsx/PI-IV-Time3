@@ -51,11 +51,7 @@ class PainelGeralPage extends StatelessWidget {
                         // Indicadores acadêmicos em cards (4 KPIs)
                         _buildMetricsRow(isDesktop),
                         const SizedBox(height: 36),
-                        AnimatedBuilder(
-                          animation: AdminPortalController.instance,
-                          builder: (context, _) =>
-                              const AdminAnnouncementsPanel(),
-                        ),
+                        const AdminAnnouncementsPanel(),
                         const SizedBox(height: 36),
 
                         // Grid Principal (2 colunas principais + 1 lateral de apoio)
@@ -246,38 +242,58 @@ class PainelGeralPage extends StatelessWidget {
 
   Widget _buildMetricsRow(bool isDesktop) {
     final portal = AdminPortalController.instance;
+    final dash = portal.dashboard;
+    final students = (dash['students'] as num?)?.toInt() ?? 0;
+    final professors = (dash['professors'] as num?)?.toInt() ?? 0;
+    final classesCount = (dash['classes'] as num?)?.toInt() ?? 0;
+    final coursesCount = (dash['courses'] as num?)?.toInt() ?? 0;
+    final pendingProtocols = (dash['pendingProtocols'] as num?)?.toInt() ?? 0;
+    final decidedProtocols = (dash['decidedProtocols'] as num?)?.toInt() ?? 0;
+    final totalProtocols = pendingProtocols + decidedProtocols;
+    final homologatedPct =
+        (dash['homologatedPercentage'] as num?)?.toInt() ?? 0;
+    final attendanceAvg = (dash['attendanceAverage'] as num?)?.toDouble();
+
     final cards = [
       InstitutionalKpiCard(
         title: 'DISCENTES ATIVOS',
-        value: (portal.dashboard['students'] ?? 0).toString(),
+        value: students.toString(),
         subtitle: 'Matriculados',
-        footerLabel: 'Indicador institucional',
-        footerValue: '—',
-        progress: 0,
+        footerLabel: 'Frequência média',
+        footerValue: attendanceAvg != null
+            ? '${attendanceAvg.toStringAsFixed(1)}%'
+            : '—',
+        progress: attendanceAvg != null
+            ? (attendanceAvg / 100).clamp(0.0, 1.0)
+            : 0.0,
       ),
       InstitutionalKpiCard(
         title: 'CORPO DOCENTE',
-        value: (portal.dashboard['professors'] ?? 0).toString(),
+        value: professors.toString(),
         subtitle: 'Professores',
-        footerLabel: 'Indicador institucional',
-        footerValue: '—',
-        progress: 0,
+        footerLabel: 'Cursos ativos',
+        footerValue: coursesCount > 0 ? '$coursesCount matrizes' : '—',
+        progress: coursesCount > 0 ? (classesCount / (coursesCount * 8)).clamp(0.1, 1.0) : 0.0,
       ),
       InstitutionalKpiCard(
         title: 'TURMAS EM ANDAMENTO',
-        value: (portal.dashboard['classes'] ?? 0).toString(),
+        value: classesCount.toString(),
         subtitle: 'Turmas registradas',
-        footerLabel: 'Indicador institucional',
-        footerValue: '—',
-        progress: 0,
+        footerLabel: 'Pautas homologadas',
+        footerValue: '$homologatedPct%',
+        progress: (homologatedPct / 100).clamp(0.0, 1.0),
       ),
       InstitutionalKpiCard(
         title: 'PROTOCOLOS DE SECRETARIA',
-        value: (portal.dashboard['pendingProtocols'] ?? 0).toString(),
+        value: pendingProtocols.toString(),
         subtitle: 'Aguardando Parecer',
-        footerLabel: 'Acompanhamento',
-        footerValue: 'Secretaria',
-        progress: 0,
+        footerLabel: 'Despachados',
+        footerValue: totalProtocols > 0
+            ? '$decidedProtocols / $totalProtocols'
+            : 'Em dia',
+        progress: totalProtocols > 0
+            ? (decidedProtocols / totalProtocols).clamp(0.0, 1.0)
+            : 1.0,
       ),
     ];
 

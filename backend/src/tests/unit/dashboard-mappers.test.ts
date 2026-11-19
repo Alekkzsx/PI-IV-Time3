@@ -4,8 +4,14 @@ import { describe, it } from "node:test";
 import type { Document } from "mongodb";
 import {
   mapStudentDeliveries,
+  mapStudentDisciplines,
   mapStudentHistoricalBoletim,
 } from "../../modules/student/application/dashboard/index.js";
+import {
+  computeSemesterGrades,
+  extractClassCodeCandidates,
+  isAnnouncementVisibleToRole,
+} from "../../shared/academic/grade-formula.js";
 import {
   mapTeacherAssignments,
   mapTeacherCourses,
@@ -335,5 +341,98 @@ describe("dashboard mappers", () => {
 
     assert.equal(attendanceOnly?.hasGrades, false);
     assert.equal(explicitZero?.hasGrades, true);
+  });
+
+  it("computes semester averages by formula mode and evaluates dynamic institutional thresholds", () => {
+    const weighted = computeSemesterGrades({
+      assignmentsScore: 6,
+      p1Score: 6,
+      projectsScore: 10,
+      p2Score: 10,
+      evaluationFormula: "(N1 × 0.4) + (N2 × 0.6)",
+    });
+    assert.equal(weighted.finalAverage, 8.4);
+
+    const equitativa = computeSemesterGrades({
+      assignmentsScore: 6,
+      p1Score: 6,
+      projectsScore: 10,
+      p2Score: 10,
+      evaluationFormula: "(N1 + N2) / 2",
+    });
+    assert.equal(equitativa.finalAverage, 8.0);
+
+    const aritmetica = computeSemesterGrades({
+      assignmentsScore: 8,
+      p1Score: 6,
+      projectsScore: 10,
+      p2Score: 8,
+      evaluationFormula: "Média aritmética de instrumentos contínuos",
+    });
+    assert.equal(aritmetica.finalAverage, 8.0);
+
+    const [boletim] = mapStudentHistoricalBoletim(
+      [
+        {
+          code: "ES-101",
+          semester: "2026/2",
+          name: "Engenharia",
+          n1: 6.5,
+          n2: 6.5,
+          partialAverage: 6.5,
+          absences: 2,
+          attendancePercentage: 85,
+        },
+      ],
+      { minimumGrade: 7.0, minimumAttendance: 75, specialExamGrade: 4.0 } as Document,
+    );
+    assert.equal(boletim?.items[0]?.situacao, "Em Exame / Curso");
+  });
+
+  it("filters institutional announcements by audience, extracts composite class codes, and respects LGPD visibility", () => {
+    assert.equal(
+      isAnnouncementVisibleToRole({ isInstitutional: true, audience: "Somente Docentes" } as Document, "aluno"),
+      false,
+    );
+    assert.equal(
+      isAnnouncementVisibleToRole({ isInstitutional: true, audience: "Somente Docentes" } as Document, "docente"),
+      true,
+    );
+    assert.equal(
+      isAnnouncementVisibleToRole({ isInstitutional: true, audience: "Somente Discentes" } as Document, "docente"),
+      false,
+    );
+    assert.deepEqual(
+      extractClassCodeCandidates("IHC-305 - Interação Humano-Computador"),
+      ["IHC-305 - Interação Humano-Computador", "IHC-305"],
+    );
+
+    const [disc] = mapStudentDisciplines({
+      classes: documents([{ code: "IHC-305", evaluationFormula: "(N1 + N2) / 2", formulaRegime: "admin" }]),
+      enrollments: documents([{ classCode: "IHC-305", studentId: "s1", studentIdentity: "RA-1", displayName: "Aluno" }]),
+      classEnrollments: documents([
+        { classCode: "IHC-305", studentId: "s1", studentIdentity: "RA-1", displayName: "Aluno" },
+        { classCode: "IHC-305", studentId: "s2", studentIdentity: "RA-2", displayName: "Colega" },
+      ]),
+      grades: [],
+      submissions: [],
+      classSessions: [],
+      materials: [],
+      assignments: [],
+      liveSessions: [],
+      studentId: "s1",
+      studentIdentity: "RA-1",
+      professorById: new Map(),
+      studentById: new Map([
+        ["s2", { email: "colega@agmrm.edu.br", preferences: { showInstitutionalEmail: false, showPresenceStatus: false } } as Document],
+      ]),
+      institutionalSettings: {
+        governanceLgpd: { showInstitutionalEmailInClassLists: true, showPeerPresenceStatus: true },
+      } as Document,
+    });
+    const peer = (disc?.participants as Array<Record<string, unknown>>).find((p) => p.ra === "RA-2");
+    assert.equal(peer?.email, undefined);
+    assert.equal(peer?.status, "Privado");
+    assert.equal(disc?.formulaRegime, "admin");
   });
 });

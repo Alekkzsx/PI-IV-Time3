@@ -3,6 +3,11 @@ import { createHash } from "node:crypto";
 import type { Document } from "mongodb";
 import { sanitizeRoomCode } from "../../../shared/formatting/room-code.js";
 import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
+import {
+  computeSemesterGrades,
+  evaluateAcademicSituation,
+  resolveInstitutionalThresholds,
+} from "../../../shared/academic/grade-formula.js";
 
 type StudentDisciplineReference = {
   name: string;
@@ -22,7 +27,13 @@ export function mapStudentDisciplines(input: {
   studentId: string;
   studentIdentity: unknown;
   professorById: Map<string, Document>;
+  studentById?: Map<string, Document>;
+  institutionalSettings?: Document | null;
 }) {
+  const thresholds = resolveInstitutionalThresholds(input.institutionalSettings);
+  const governanceLgpd = (input.institutionalSettings?.governanceLgpd ?? {}) as Record<string, unknown>;
+  const allowPeerEmails = governanceLgpd.showInstitutionalEmailInClassLists !== false;
+  const allowPeerPresence = governanceLgpd.showPeerPresenceStatus !== false;
   const enrollmentByClass = new Map(input.enrollments.map((enrollment) => [String(enrollment.classCode), enrollment]));
   const allEnrollmentsByClass = new Map<string, Document[]>();
   for (const enr of input.classEnrollments ?? input.enrollments) {
@@ -86,9 +97,18 @@ export function mapStudentDisciplines(input: {
     const p1 = hasGrade ? Number(grade!.p1Score ?? 0) : null;
     const projectsScore = hasGrade ? Number(grade!.projectsScore ?? 0) : null;
     const p2 = hasGrade ? Number(grade!.p2Score ?? 0) : null;
-    const n1 = hasGrade ? Number((assignmentsScore! * 0.4 + p1! * 0.6).toFixed(1)) : null;
-    const n2 = hasGrade ? Number((projectsScore! * 0.4 + p2! * 0.6).toFixed(1)) : null;
-    const partialAverage = hasGrade ? Number((n1! * 0.4 + n2! * 0.6).toFixed(1)) : null;
+    const computedGrades = hasGrade
+      ? computeSemesterGrades({
+          assignmentsScore: assignmentsScore!,
+          p1Score: p1!,
+          projectsScore: projectsScore!,
+          p2Score: p2!,
+          evaluationFormula: classroom.evaluationFormula,
+        })
+      : null;
+    const n1 = computedGrades ? computedGrades.n1 : null;
+    const n2 = computedGrades ? computedGrades.n2 : null;
+    const partialAverage = computedGrades ? computedGrades.finalAverage : null;
 
     const scheduleString = String(classroom.schedule ?? "Segundas e Quartas, 19:00 - 20:40");
     const [scheduleDays, scheduleTime] = scheduleString.includes(",")
@@ -112,13 +132,21 @@ export function mapStudentDisciplines(input: {
         }))
       : [];
 
-    const enrolledStudents = (allEnrollmentsByClass.get(code) ?? []).map((enr: Document) => ({
-      id: String(enr.studentId ?? enr._id),
-      name: String(enr.displayName ?? enr.studentName ?? enr.studentIdentity ?? "Estudante"),
-      role: "Estudante",
-      ra: String(enr.studentIdentity ?? ""),
-      status: "Matriculado",
-    }));
+    const enrolledStudents = (allEnrollmentsByClass.get(code) ?? []).map((enr: Document) => {
+      const studentDoc = input.studentById?.get(String(enr.studentId ?? ""));
+      const prefs = (studentDoc?.preferences ?? {}) as Record<string, unknown>;
+      const showEmail = allowPeerEmails && prefs.showInstitutionalEmail === true;
+      const showPresence = allowPeerPresence && prefs.showPresenceStatus !== false;
+      return {
+        id: String(enr.studentId ?? enr._id),
+        name: String(enr.displayName ?? enr.studentName ?? enr.studentIdentity ?? "Estudante"),
+        role: "Estudante",
+        ra: String(enr.studentIdentity ?? ""),
+        ...(showEmail && studentDoc?.email ? { email: String(studentDoc.email) } : {}),
+        status: showPresence ? "Matriculado" : "Privado",
+        showPresenceStatus: showPresence,
+      };
+    });
 
     const participants = [
       {
@@ -177,7 +205,13 @@ export function mapStudentDisciplines(input: {
       n1,
       n2,
       partialAverage,
-      evaluationFormula: String(classroom.evaluationFormula ?? "(N1 × 0.4) + (N2 × 0.6)"),
+      formulaRegime: String(classroom.formulaRegime ?? "autonomia_docente"),
+      evaluationFormula: String(classroom.evaluationFormula ?? thresholds.evaluationFormula),
+      academicThresholds: {
+        minimumGrade: thresholds.minimumGrade,
+        minimumAttendance: thresholds.minimumAttendance,
+        specialExamGrade: thresholds.specialExamGrade,
+      },
       hasPendingTask: pendingByClass.has(code),
       isLab: String(classroom.location ?? "").toLowerCase().includes("lab"),
       semester: String(classroom.semester ?? "2026/2"),
@@ -330,15 +364,29 @@ export function mapStudentEvents(
         courseCode: String(assignment.classCode),
         location: "Portal AVA",
       })),
-    ...calendarEvents.map((event) => ({
-      id: `cal-${String(event._id)}`,
-      title: String(event.title),
-      date: new Date(event.startsAt ?? Date.now()).toISOString(),
-      timeRange: "Dia inteiro",
-      category: event.type === "deadline" ? "avaliacao" : "institucional",
-      courseCode: "INSTITUCIONAL",
-      location: "Calendário Acadêmico",
-    })),
+    ...calendarEvents.map((event) => {
+      const startsAt = new Date(event.startsAt ?? Date.now());
+      const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+      const pad2 = (n: number) => String(n).padStart(2, "0");
+      const hasTime =
+        startsAt.getHours() !== 0 ||
+        startsAt.getMinutes() !== 0 ||
+        (endsAt !== null && (endsAt.getHours() !== 0 || endsAt.getMinutes() !== 0));
+      const timeRange = hasTime
+        ? endsAt
+          ? `${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())} - ${pad2(endsAt.getHours())}:${pad2(endsAt.getMinutes())}`
+          : `${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())}`
+        : "Dia inteiro";
+      return {
+        id: `cal-${String(event._id)}`,
+        title: String(event.title),
+        date: startsAt.toISOString(),
+        timeRange,
+        category: event.type === "deadline" ? "avaliacao" : "institucional",
+        courseCode: "INSTITUCIONAL",
+        location: "Calendário Acadêmico",
+      };
+    }),
     ...personalReminders.map((reminder) => ({
       id: String(reminder._id),
       title: String(reminder.title),
@@ -351,28 +399,29 @@ export function mapStudentEvents(
   ];
 }
 
-export function mapStudentHistoricalBoletim(disciplines: Array<{
-  code: string;
-  semester: string;
-  name: string;
-  n1: number | null;
-  n2: number | null;
-  partialAverage: number | null;
-  absences: number;
-  attendancePercentage: number;
-}>) {
+export function mapStudentHistoricalBoletim(
+  disciplines: Array<{
+    code: string;
+    semester: string;
+    name: string;
+    n1: number | null;
+    n2: number | null;
+    partialAverage: number | null;
+    absences: number;
+    attendancePercentage: number;
+  }>,
+  institutionalSettings?: Document | null,
+) {
+  const thresholds = resolveInstitutionalThresholds(institutionalSettings);
   const periods = new Map<string, Record<string, unknown>[]>();
   for (const discipline of disciplines) {
-    const period = discipline.semester || "2026/2";
+    const period = discipline.semester || thresholds.currentSemesterLabel;
     const items = periods.get(period) ?? [];
-    const situation =
-      discipline.partialAverage === null
-        ? "Em Curso"
-        : discipline.attendancePercentage < 75
-          ? "Reprovado por Falta"
-          : discipline.partialAverage >= 6.0
-            ? "Aprovado"
-            : "Em Exame / Curso";
+    const situation = evaluateAcademicSituation({
+      partialAverage: discipline.partialAverage,
+      attendancePercentage: discipline.attendancePercentage,
+      thresholds,
+    });
     items.push({
       codigo: discipline.code,
       disciplina: discipline.name,

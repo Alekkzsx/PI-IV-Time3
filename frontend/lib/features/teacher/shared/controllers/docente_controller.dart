@@ -4,6 +4,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
+import '../../../../core/academic/grade_calculator.dart';
 import '../../../../core/network/auth_profile_remote_data_source.dart';
 import '../../../../core/utils/platform_file_helper.dart';
 import '../../../../core/network/authenticated_api_client.dart';
@@ -71,6 +72,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   List<TeacherProtocol> _protocols = [];
   DocenteProfile _profile = DocenteProfile.empty;
   TeacherDashboardOverview _dashboard = TeacherDashboardOverview.empty;
+  AcademicThresholds _academicThresholds = AcademicThresholds.defaults;
   String _ownerIdentity = '';
 
   String _settingsSubtab = 'perfil';
@@ -115,6 +117,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   List<TeacherProtocol> get protocols => List.unmodifiable(_protocols);
   DocenteProfile get profile => _profile;
   TeacherDashboardOverview get dashboard => _dashboard;
+  AcademicThresholds get academicThresholds => _academicThresholds;
   String get settingsSubtab => _settingsSubtab;
 
   DocenteCourse get selectedCourse => _courses.firstWhere(
@@ -230,6 +233,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
       _ownerIdentity = snapshot.profile.registrationId;
       _profile = snapshot.profile;
       _dashboard = snapshot.dashboard;
+      _academicThresholds = snapshot.academicThresholds;
       _courses = snapshot.courses;
       final hasPreviousCourse =
           !tokenChanged &&
@@ -316,6 +320,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
     _protocols = [];
     _profile = _emptyProfile;
     _dashboard = TeacherDashboardOverview.empty;
+    _academicThresholds = AcademicThresholds.defaults;
     _currentSession = _emptySession;
     _selectedCourseId = '';
     _selectedAssignmentId = '';

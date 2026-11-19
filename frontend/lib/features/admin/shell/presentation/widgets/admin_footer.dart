@@ -1,7 +1,9 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 
 /// Rodapé institucional padronizado e reutilizável para todas as telas do Painel Administrativo.
 /// Mantém a identidade corporativa do portal AVA AGMRM com links de Ajuda e Privacidade.
@@ -152,17 +154,16 @@ class AdminFooter extends StatelessWidget {
     required String title,
     required String message,
   }) {
-    showDialog<void>(
+    AcademicModalDialog.show<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Entendi'),
-          ),
-        ],
+      builder: (dialogContext) => AcademicModalDialog(
+        title: title,
+        icon: Icons.info_outline_rounded,
+        cancelLabel: 'Entendi',
+        child: Text(
+          message,
+          style: jakarta(size: 13.5, color: InstColors.body, height: 1.45),
+        ),
       ),
     );
   }

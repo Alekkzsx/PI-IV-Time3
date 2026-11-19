@@ -1,9 +1,12 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 
 /// Tela do Calendário Acadêmico Oficial e Prazos Regimentais (CONSEPE) na Visão do Administrador.
 /// Exibe as janelas de avaliação, controle das travas regimentais de notas e homologação de semestres.
@@ -35,6 +38,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1100;
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
@@ -44,29 +48,29 @@ class _CalendarPageState extends State<CalendarPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32.0,
-                    vertical: 28.0,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 48.0 : 20.0,
+                    vertical: 36.0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Cabeçalho da Página
-                      const Text(
+                      Text(
                         'Calendário Acadêmico Oficial & Prazos Regimentais',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF09090B),
-                          letterSpacing: -0.3,
+                        style: jakarta(
+                          size: isDesktop ? 26 : 22,
+                          weight: FontWeight.w700,
+                          color: const Color(0xFF09090B),
+                          letterSpacing: -0.4,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
+                      Text(
                         'Parametrização das janelas de provas, controle das travas regimentais de notas e homologação de semestres.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF71717A),
+                        style: jakarta(
+                          size: 14,
+                          color: const Color(0xFF737373),
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -103,17 +107,21 @@ class _CalendarPageState extends State<CalendarPage> {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Marcos do calendário acadêmico',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: jakarta(
+                      size: 16,
+                      weight: FontWeight.w700,
+                      color: InstColors.ink,
+                    ),
                   ),
                 ),
                 OutlinedButton.icon(
                   onPressed: _controller.isSavingRemote
                       ? null
                       : () => _editEvent(),
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add, size: 17),
                   label: const Text('Adicionar marco'),
                 ),
               ],
@@ -170,6 +178,12 @@ class _CalendarPageState extends State<CalendarPage> {
                   ),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _controller.isRegimentalLockActive
+                        ? InstColors.danger
+                        : InstColors.ink,
+                    foregroundColor: Colors.white,
+                  ),
                   onPressed: _controller.isSavingRemote
                       ? null
                       : () async {
@@ -215,8 +229,11 @@ class _CalendarPageState extends State<CalendarPage> {
       case 'holiday':
         return 'holiday';
       case 'deadline':
-      case 'closing':
         return 'deadline';
+      case 'closing':
+        return 'closing';
+      case 'institutional':
+        return 'institutional';
       default:
         return 'academic';
     }
@@ -232,6 +249,8 @@ class _CalendarPageState extends State<CalendarPage> {
         return 'Feriado';
       case 'closing':
         return 'Fechamento';
+      case 'institutional':
+        return 'Institucional';
       case 'administrative':
         return 'Administrativo';
       case 'exam':
@@ -252,100 +271,149 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime? _parseDate(String value) =>
       DateTime.tryParse(value.trim().replaceFirst(' ', 'T'));
 
+  Future<void> _pickDateTimeFor(TextEditingController target) async {
+    final initial = _parseDate(target.text) ?? DateTime.now().add(const Duration(days: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null) return;
+    target.text =
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
   Future<void> _editEvent([AdminCalendarMilestone? event]) async {
     final title = TextEditingController(text: event?.title ?? '');
     final description = TextEditingController(text: event?.description ?? '');
     final starts = TextEditingController(
       text:
           _inputDate(event?.startsAt) ??
-          DateTime.now()
-              .add(const Duration(days: 1))
-              .toIso8601String()
-              .substring(0, 16),
+          _inputDate(
+            DateTime.now().add(const Duration(days: 1)).toIso8601String(),
+          )!,
     );
     final ends = TextEditingController(text: _inputDate(event?.endsAt) ?? '');
     var type = _normalizeCalendarType(event?.type);
-    final values = await showDialog<Map<String, Object?>>(
+    String? validationError;
+
+    final values = await AcademicModalDialog.show<Map<String, Object?>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(event == null ? 'Novo marco' : 'Editar marco'),
-          content: SizedBox(
-            width: 440,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: title,
-                    decoration: const InputDecoration(labelText: 'Título'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AcademicModalDialog(
+          title: event == null
+              ? 'Novo Marco Acadêmico'
+              : 'Editar Marco Acadêmico',
+          subtitle:
+              'Os marcos publicados são sincronizados com o calendário dos portais Docente e Discente.',
+          icon: Icons.event_note_outlined,
+          cancelLabel: 'Cancelar',
+          confirmLabel: 'Salvar marco',
+          onConfirm: () {
+            final start = _parseDate(starts.text);
+            final end = ends.text.trim().isEmpty
+                ? null
+                : _parseDate(ends.text);
+            if (title.text.trim().length < 2 ||
+                start == null ||
+                (ends.text.trim().isNotEmpty && end == null) ||
+                (end != null && end.isBefore(start))) {
+              setDialogState(() {
+                validationError =
+                    'Verifique título e datas válidas (término posterior ao início).';
+              });
+              return;
+            }
+            Navigator.pop(dialogContext, {
+              'title': title.text.trim(),
+              'description': description.text.trim(),
+              'type': type,
+              'isMilestone': true,
+              'startsAt': start.toUtc().toIso8601String(),
+              'endsAt': end?.toUtc().toIso8601String(),
+            });
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (validationError != null) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: InstColors.dangerBg,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  TextField(
-                    controller: description,
-                    maxLines: 3,
-                    decoration: const InputDecoration(labelText: 'Descrição'),
+                  child: Text(
+                    validationError!,
+                    style: jakarta(size: 12.5, color: InstColors.danger),
                   ),
-                  DropdownButtonFormField<String>(
-                    initialValue: type,
-                    decoration: const InputDecoration(labelText: 'Tipo'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'academic',
-                        child: Text('Acadêmico'),
-                      ),
-                      DropdownMenuItem(value: 'deadline', child: Text('Prazo')),
-                      DropdownMenuItem(
-                        value: 'holiday',
-                        child: Text('Feriado'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) setDialogState(() => type = value);
-                    },
-                  ),
-                  TextField(
-                    controller: starts,
-                    decoration: const InputDecoration(
-                      labelText: 'Início (AAAA-MM-DD HH:MM)',
-                    ),
-                  ),
-                  TextField(
-                    controller: ends,
-                    decoration: const InputDecoration(
-                      labelText: 'Término opcional (AAAA-MM-DD HH:MM)',
-                    ),
-                  ),
-                ],
+                ),
+              ],
+              TextField(
+                controller: title,
+                decoration: InstText.inputDecoration(labelText: 'Título'),
               ),
-            ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: description,
+                maxLines: 3,
+                decoration: InstText.inputDecoration(labelText: 'Descrição'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: type,
+                decoration: InstText.inputDecoration(labelText: 'Tipo'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'academic',
+                    child: Text('Acadêmico'),
+                  ),
+                  DropdownMenuItem(value: 'deadline', child: Text('Prazo')),
+                  DropdownMenuItem(value: 'closing', child: Text('Fechamento')),
+                  DropdownMenuItem(
+                    value: 'institutional',
+                    child: Text('Institucional'),
+                  ),
+                  DropdownMenuItem(value: 'holiday', child: Text('Feriado')),
+                ],
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => type = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: starts,
+                decoration: InstText.inputDecoration(
+                  labelText: 'Início (AAAA-MM-DD HH:MM)',
+                  suffixIcon: IconButton(
+                    tooltip: 'Selecionar data e hora',
+                    icon: const Icon(Icons.calendar_today_outlined, size: 17),
+                    onPressed: () => _pickDateTimeFor(starts),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ends,
+                decoration: InstText.inputDecoration(
+                  labelText: 'Término opcional (AAAA-MM-DD HH:MM)',
+                  suffixIcon: IconButton(
+                    tooltip: 'Selecionar data e hora',
+                    icon: const Icon(Icons.calendar_today_outlined, size: 17),
+                    onPressed: () => _pickDateTimeFor(ends),
+                  ),
+                ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final start = _parseDate(starts.text);
-                final end = ends.text.trim().isEmpty
-                    ? null
-                    : _parseDate(ends.text);
-                if (title.text.trim().length < 2 ||
-                    start == null ||
-                    (ends.text.trim().isNotEmpty && end == null)) {
-                  return;
-                }
-                Navigator.pop(context, {
-                  'title': title.text.trim(),
-                  'description': description.text.trim(),
-                  'type': type,
-                  'startsAt': start.toUtc().toIso8601String(),
-                  'endsAt': end?.toUtc().toIso8601String(),
-                });
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
         ),
       ),
     );
@@ -365,21 +433,20 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _deleteEvent(String id) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AcademicModalDialog.show<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Excluir marco?'),
-        content: const Text('Esta ação não pode ser desfeita.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Excluir'),
-          ),
-        ],
+      builder: (dialogContext) => AcademicModalDialog(
+        title: 'Excluir Marco Acadêmico?',
+        subtitle: 'Esta ação não pode ser desfeita nos portais.',
+        icon: Icons.delete_outline_rounded,
+        cancelLabel: 'Cancelar',
+        confirmLabel: 'Excluir',
+        isConfirmDestructive: true,
+        onConfirm: () => Navigator.pop(dialogContext, true),
+        child: Text(
+          'Confirma a exclusão permanente deste marco do calendário oficial?',
+          style: jakarta(size: 13.5, color: InstColors.ink),
+        ),
       ),
     );
     if (confirm != true) return;

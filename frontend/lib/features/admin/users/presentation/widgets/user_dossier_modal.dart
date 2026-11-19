@@ -185,10 +185,14 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   icon: const Icon(Icons.download_rounded, size: 16),
                   label: Text(
                     'Exportar Dossiê JSON/PDF',
-                    style: jakarta(size: 13, weight: FontWeight.w600),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
+                    backgroundColor: const Color(0xFF18181B),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -238,7 +242,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
+              color: isSelected ? const Color(0xFF18181B) : Colors.transparent,
               width: 2.5,
             ),
           ),
@@ -249,8 +253,8 @@ class _UserDossierModalState extends State<UserDossierModal> {
               icon,
               size: 17,
               color: isSelected
-                  ? const Color(0xFF1E3A8A)
-                  : const Color(0xFF64748B),
+                  ? const Color(0xFF18181B)
+                  : const Color(0xFF737373),
             ),
             const SizedBox(width: 8),
             Text(
@@ -259,8 +263,8 @@ class _UserDossierModalState extends State<UserDossierModal> {
                 size: 13,
                 weight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? const Color(0xFF1E3A8A)
-                    : const Color(0xFF64748B),
+                    ? const Color(0xFF18181B)
+                    : const Color(0xFF737373),
               ),
             ),
           ],
@@ -505,8 +509,8 @@ class _UserDossierModalState extends State<UserDossierModal> {
                     style: jakarta(size: 11.5, weight: FontWeight.w600),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    side: const BorderSide(color: Color(0xFFBFDBFE)),
+                    foregroundColor: const Color(0xFF18181B),
+                    side: const BorderSide(color: Color(0xFFE5E5E5)),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 6,

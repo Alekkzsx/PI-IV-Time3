@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_alocar_docente_modal.dart';
 import 'package:pi_iv_time3/features/admin/classes/presentation/widgets/class_list_table.dart';
@@ -9,6 +10,7 @@ import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_contr
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 import 'supervision_cockpit_page.dart';
 
 /// Tela de Gestão de Turmas, Ensalamento e Atribuição Docente na Visão do Administrador.
@@ -87,9 +89,12 @@ class _ClassesPageState extends State<ClassesPage> {
       return;
     }
 
-    final draft = await showDialog<_ClassDraft>(
+    final draft = await AcademicModalDialog.show<_ClassDraft>(
       context: context,
-      builder: (_) => _CreateClassDialog(courses: _courses),
+      builder: (_) => _CreateClassDialog(
+        courses: _courses,
+        teachers: _teachers,
+      ),
     );
     if (draft == null) return;
 
@@ -97,9 +102,12 @@ class _ClassesPageState extends State<ClassesPage> {
       await _dataSource.createClass(
         code: draft.code,
         courseCode: draft.courseCode,
+        subjectName: draft.subjectName,
         semester: draft.semester,
         shift: draft.shift,
+        schedule: draft.schedule,
         location: draft.location,
+        totalHours: draft.totalHours,
         maxCapacity: draft.maxCapacity,
         professorIdentity: draft.professorIdentity,
       );
@@ -111,37 +119,101 @@ class _ClassesPageState extends State<ClassesPage> {
   }
 
   Future<void> _manageClassRecords(AdminClassModel classModel) async {
-    await showDialog<void>(
+    await AcademicModalDialog.show<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(classModel.code),
-        content: Column(
+      builder: (dialogContext) => AcademicModalDialog(
+        title: 'Registros da Turma ${classModel.code}',
+        subtitle: classModel.subjectName,
+        icon: Icons.event_note_outlined,
+        cancelLabel: 'Fechar',
+        confirmLabel: 'Concluir',
+        onConfirm: () => Navigator.pop(dialogContext),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.person_add_alt_1_outlined),
-              title: const Text('Matricular aluno'),
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
               onTap: () {
                 Navigator.pop(dialogContext);
                 _enrollStudent(classModel);
               },
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: InstColors.stone,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: InstColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.person_add_alt_1_outlined,
+                      size: 19,
+                      color: InstColors.ink,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Matricular aluno',
+                        style: jakarta(
+                          size: 13.5,
+                          weight: FontWeight.w600,
+                          color: InstColors.ink,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: InstColors.muted,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.event_available_outlined),
-              title: const Text('Agendar aula'),
+            const SizedBox(height: 10),
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
               onTap: () {
                 Navigator.pop(dialogContext);
                 _scheduleClassSession(classModel);
               },
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: InstColors.stone,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: InstColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.event_available_outlined,
+                      size: 19,
+                      color: InstColors.ink,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Agendar aula',
+                        style: jakarta(
+                          size: 13.5,
+                          weight: FontWeight.w600,
+                          color: InstColors.ink,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: InstColors.muted,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Fechar'),
-          ),
-        ],
       ),
     );
   }
@@ -170,7 +242,7 @@ class _ClassesPageState extends State<ClassesPage> {
     required String title,
     required String label,
     required String action,
-  }) => showDialog<String>(
+  }) => AcademicModalDialog.show<String>(
     context: context,
     builder: (_) =>
         _TextPromptDialog(title: title, label: label, action: action),
@@ -341,7 +413,25 @@ class _ClassesPageState extends State<ClassesPage> {
   }
 
   Widget _buildHeader(bool isDesktop) {
-    return Column(
+    final openBtn = ElevatedButton.icon(
+      onPressed: _isLoading || !_controller.canPerform('manage_classes')
+          ? null
+          : _createClass,
+      icon: const Icon(Icons.add, size: 17, color: Colors.white),
+      label: Text(
+        'Abrir turma',
+        style: jakarta(size: 13.5, weight: FontWeight.w600, color: Colors.white),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: InstColors.ink,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
+    final titleColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -362,18 +452,24 @@ class _ClassesPageState extends State<ClassesPage> {
             color: const Color(0xFF737373),
           ),
         ),
-        const SizedBox(height: 18),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.icon(
-            onPressed: _isLoading || !_controller.canPerform('manage_classes')
-                ? null
-                : _createClass,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Abrir turma'),
-          ),
-        ),
       ],
+    );
+
+    if (isDesktop) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: titleColumn),
+          const SizedBox(width: 24),
+          openBtn,
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [titleColumn, const SizedBox(height: 16), openBtn],
     );
   }
 
@@ -399,18 +495,24 @@ class _ClassesPageState extends State<ClassesPage> {
 class _ClassDraft {
   final String code;
   final String courseCode;
+  final String subjectName;
   final String semester;
   final String shift;
+  final String schedule;
   final String location;
+  final int totalHours;
   final int maxCapacity;
   final String? professorIdentity;
 
   const _ClassDraft({
     required this.code,
     required this.courseCode,
+    required this.subjectName,
     required this.semester,
     required this.shift,
+    required this.schedule,
     required this.location,
+    required this.totalHours,
     required this.maxCapacity,
     required this.professorIdentity,
   });
@@ -418,8 +520,9 @@ class _ClassDraft {
 
 class _CreateClassDialog extends StatefulWidget {
   final List<AdminCourseModel> courses;
+  final List<AdminUserModel> teachers;
 
-  const _CreateClassDialog({required this.courses});
+  const _CreateClassDialog({required this.courses, required this.teachers});
 
   @override
   State<_CreateClassDialog> createState() => _CreateClassDialogState();
@@ -428,102 +531,152 @@ class _CreateClassDialog extends StatefulWidget {
 class _CreateClassDialogState extends State<_CreateClassDialog> {
   final _formKey = GlobalKey<FormState>();
   final _code = TextEditingController();
-  final _semester = TextEditingController();
+  final _subjectName = TextEditingController();
+  final _semester = TextEditingController(text: '2026/2');
   final _shift = TextEditingController(text: 'Noturno');
+  final _schedule = TextEditingController(
+    text: 'Segundas e Quartas, 19:00 - 20:40',
+  );
   final _location = TextEditingController();
+  final _totalHours = TextEditingController(text: '80');
   final _capacity = TextEditingController(text: '40');
-  final _professorIdentity = TextEditingController();
   late String _selectedCourseCode = widget.courses.first.code;
+  String? _selectedProfessorIdentity;
 
   @override
   void dispose() {
     _code.dispose();
+    _subjectName.dispose();
     _semester.dispose();
     _shift.dispose();
+    _schedule.dispose();
     _location.dispose();
+    _totalHours.dispose();
     _capacity.dispose();
-    _professorIdentity.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Abrir turma'),
-    content: SizedBox(
-      width: 440,
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) => AcademicModalDialog(
+    title: 'Abrir Nova Turma',
+    subtitle:
+        'Associe o componente curricular, horários, sala e professor titular.',
+    icon: Icons.class_outlined,
+    cancelLabel: 'Cancelar',
+    confirmLabel: 'Salvar turma',
+    onConfirm: () {
+      if (!_formKey.currentState!.validate()) return;
+      Navigator.pop(
+        context,
+        _ClassDraft(
+          code: _code.text.trim(),
+          courseCode: _selectedCourseCode,
+          subjectName: _subjectName.text.trim(),
+          semester: _semester.text.trim(),
+          shift: _shift.text.trim(),
+          schedule: _schedule.text.trim(),
+          location: _location.text.trim(),
+          totalHours: int.parse(_totalHours.text.trim()),
+          maxCapacity: int.parse(_capacity.text.trim()),
+          professorIdentity: _selectedProfessorIdentity,
+        ),
+      );
+    },
+    child: Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            initialValue: _selectedCourseCode,
+            decoration: InstText.inputDecoration(labelText: 'Curso'),
+            items: widget.courses
+                .map(
+                  (course) => DropdownMenuItem(
+                    value: course.code,
+                    child: Text(
+                      course.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _selectedCourseCode = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: _selectedCourseCode,
-                decoration: const InputDecoration(labelText: 'Curso'),
-                items: widget.courses
-                    .map(
-                      (course) => DropdownMenuItem(
-                        value: course.code,
-                        child: Text(
-                          course.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedCourseCode = value);
-                  }
-                },
+              Expanded(child: _field(_code, 'Código da turma (ex: IHC-305)')),
+              const SizedBox(width: 12),
+              Expanded(child: _field(_semester, 'Período letivo')),
+            ],
+          ),
+          _field(_subjectName, 'Nome da disciplina'),
+          Row(
+            children: [
+              Expanded(child: _field(_shift, 'Turno')),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _field(
+                  _totalHours,
+                  'Carga horária (h)',
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    final parsed = int.tryParse(value ?? '');
+                    if (parsed == null || parsed < 10 || parsed > 400) {
+                      return 'Informe entre 10 e 400.';
+                    }
+                    return null;
+                  },
+                ),
               ),
-              _field(_code, 'Código da turma'),
-              _field(_semester, 'Período letivo'),
-              _field(_shift, 'Turno'),
-              _field(_location, 'Sala/local'),
-              _field(
-                _capacity,
-                'Número de vagas',
-                keyboardType: TextInputType.number,
-                validator: (value) => int.tryParse(value ?? '') == null
-                    ? 'Informe um número de vagas válido.'
-                    : null,
-              ),
-              _field(
-                _professorIdentity,
-                'Identidade do docente (opcional)',
-                required: false,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _field(
+                  _capacity,
+                  'Vagas',
+                  keyboardType: TextInputType.number,
+                  validator: (value) => int.tryParse(value ?? '') == null
+                      ? 'Informe um número válido.'
+                      : null,
+                ),
               ),
             ],
           ),
-        ),
+          _field(_location, 'Sala / Laboratório'),
+          _field(_schedule, 'Dias e horário', required: false),
+          DropdownButtonFormField<String?>(
+            isExpanded: true,
+            initialValue: _selectedProfessorIdentity,
+            decoration: InstText.inputDecoration(
+              labelText: 'Docente titular (opcional)',
+            ),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('Alocar posteriormente'),
+              ),
+              ...widget.teachers.map(
+                (t) => DropdownMenuItem<String?>(
+                  value: t.identity,
+                  child: Text(
+                    '${t.name} (${t.identity})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+            onChanged: (val) => setState(() => _selectedProfessorIdentity = val),
+          ),
+        ],
       ),
     ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      FilledButton(
-        onPressed: () {
-          if (!_formKey.currentState!.validate()) return;
-          Navigator.pop(
-            context,
-            _ClassDraft(
-              code: _code.text.trim(),
-              courseCode: _selectedCourseCode,
-              semester: _semester.text.trim(),
-              shift: _shift.text.trim(),
-              location: _location.text.trim(),
-              maxCapacity: int.parse(_capacity.text.trim()),
-              professorIdentity: _professorIdentity.text.trim(),
-            ),
-          );
-        },
-        child: const Text('Salvar turma'),
-      ),
-    ],
   );
 
   Widget _field(
@@ -537,7 +690,8 @@ class _CreateClassDialogState extends State<_CreateClassDialog> {
     child: TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      decoration: InputDecoration(labelText: label),
+      style: jakarta(size: 13.5, color: InstColors.ink),
+      decoration: InstText.inputDecoration(labelText: label),
       validator:
           validator ??
           (value) => required && (value == null || value.trim().isEmpty)
@@ -572,21 +726,15 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.title),
-    content: TextField(
+  Widget build(BuildContext context) => AcademicModalDialog(
+    title: widget.title,
+    icon: Icons.edit_outlined,
+    cancelLabel: 'Cancelar',
+    confirmLabel: widget.action,
+    onConfirm: () => Navigator.pop(context, _controller.text.trim()),
+    child: TextField(
       controller: _controller,
-      decoration: InputDecoration(labelText: widget.label),
+      decoration: InstText.inputDecoration(labelText: widget.label),
     ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      FilledButton(
-        onPressed: () => Navigator.pop(context, _controller.text.trim()),
-        child: Text(widget.action),
-      ),
-    ],
   );
 }

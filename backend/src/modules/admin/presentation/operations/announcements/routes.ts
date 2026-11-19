@@ -83,4 +83,26 @@ export function registerAdminAnnouncementRoutes(router: Router, database: Db): v
 		});
 		response.json(record);
 	});
+
+	router.delete("/announcements/:id", async (request, response) => {
+		if (!ObjectId.isValid(request.params.id ?? "")) {
+			throw new AuthError(400, "invalid_id", "Comunicado inválido.");
+		}
+		const id = new ObjectId(request.params.id);
+		await adminWrite(database, response.locals.adminId, async (session) => {
+			const deleted = await database.collection("academic_announcements").deleteOne({ _id: id }, { session });
+			if (!deleted.deletedCount) {
+				throw new AuthError(404, "announcement_not_found", "Comunicado não encontrado.");
+			}
+			await audit(
+				database,
+				response.locals.adminId,
+				"announcement_deleted",
+				String(id),
+				{},
+				session,
+			);
+		});
+		response.status(204).end();
+	});
 }

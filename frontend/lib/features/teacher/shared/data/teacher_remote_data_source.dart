@@ -1,5 +1,6 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
+import '../../../../core/academic/grade_calculator.dart';
 import '../../../../core/network/authenticated_api_client.dart';
 import '../domain/models/academic_event.dart';
 import '../domain/models/academic_notice.dart';
@@ -16,6 +17,7 @@ class TeacherDashboardSnapshot {
   final DocenteProfile profile;
   final TeacherDashboardOverview dashboard;
   final bool regimentalLockActive;
+  final AcademicThresholds academicThresholds;
   final List<DocenteCourse> courses;
   final List<ClassSession> sessions;
   final List<AssignmentItem> assignments;
@@ -28,6 +30,7 @@ class TeacherDashboardSnapshot {
     required this.profile,
     this.dashboard = TeacherDashboardOverview.empty,
     required this.regimentalLockActive,
+    this.academicThresholds = AcademicThresholds.defaults,
     required this.courses,
     required this.sessions,
     required this.assignments,
@@ -38,14 +41,31 @@ class TeacherDashboardSnapshot {
   });
 
   factory TeacherDashboardSnapshot.fromJson(Map<String, dynamic> json) {
+    final thresholds = AcademicThresholds.fromJson(json['academicThresholds']);
+    final courses = _maps(json['courses']).map(_course).toList();
+    final formulaByCourse = <String, String>{
+      for (final course in courses) ...{
+        course.id: course.evaluationFormula,
+        course.code: course.evaluationFormula,
+      },
+    };
     return TeacherDashboardSnapshot(
       profile: _profile(_map(json['profile'])),
       dashboard: _dashboardOverview(_map(json['dashboard'])),
       regimentalLockActive: json['regimentalLockActive'] == true,
-      courses: _maps(json['courses']).map(_course).toList(),
+      academicThresholds: thresholds,
+      courses: courses,
       sessions: _maps(json['sessions']).map(_session).toList(),
       assignments: _maps(json['assignments']).map(_assignment).toList(),
-      grades: _maps(json['grades']).map(_grade).toList(),
+      grades: _maps(json['grades'])
+          .map(
+            (g) => _grade(
+              g,
+              thresholds: thresholds,
+              formulaByCourse: formulaByCourse,
+            ),
+          )
+          .toList(),
       events: _maps(json['events']).map(_event).toList(),
       notices: _maps(json['notices']).map(_notice).toList(),
       protocols: _maps(json['protocols']).map(_protocol).toList(),
@@ -420,6 +440,7 @@ DocenteCourse _course(Map<String, dynamic> json) {
     syllabus: _string(json['syllabus'], _string(json['ementa'])),
     objectives: _string(json['objectives']),
     methodology: _string(json['methodology']),
+    formulaRegime: _string(json['formulaRegime'], 'autonomia_docente'),
     evaluationFormula: _string(
       json['evaluationFormula'],
       '(N1 × 0.4) + (N2 × 0.6)',
@@ -560,18 +581,31 @@ StudentSubmission _submission(Map<String, dynamic> json) {
   );
 }
 
-StudentGrade _grade(Map<String, dynamic> json) => StudentGrade(
-  studentId: _string(json['studentId']),
-  courseId: _string(json['courseId'], _string(json['classCode'])),
-  ra: _string(json['ra']),
-  studentName: _string(json['studentName']),
-  assignmentsScore: _double(json['assignmentsScore']),
-  p1Score: _double(json['p1Score']),
-  projectsScore: _double(json['projectsScore']),
-  p2Score: _double(json['p2Score']),
-  attendanceRate: _double(json['attendanceRate'], 100),
-  hasGrades: json.containsKey('hasGrades') ? json['hasGrades'] == true : true,
-);
+StudentGrade _grade(
+  Map<String, dynamic> json, {
+  AcademicThresholds thresholds = AcademicThresholds.defaults,
+  Map<String, String> formulaByCourse = const {},
+}) {
+  final courseId = _string(json['courseId'], _string(json['classCode']));
+  final rawFormula = json['evaluationFormula']?.toString().trim() ?? '';
+  final effectiveFormula = rawFormula.isNotEmpty
+      ? rawFormula
+      : (formulaByCourse[courseId] ?? thresholds.evaluationFormula);
+  return StudentGrade(
+    studentId: _string(json['studentId']),
+    courseId: courseId,
+    ra: _string(json['ra']),
+    studentName: _string(json['studentName']),
+    assignmentsScore: _double(json['assignmentsScore']),
+    p1Score: _double(json['p1Score']),
+    projectsScore: _double(json['projectsScore']),
+    p2Score: _double(json['p2Score']),
+    attendanceRate: _double(json['attendanceRate'], 100),
+    hasGrades: json.containsKey('hasGrades') ? json['hasGrades'] == true : true,
+    evaluationFormula: effectiveFormula,
+    thresholds: thresholds,
+  );
+}
 
 AcademicEvent _event(Map<String, dynamic> json) {
   final type = switch (_string(json['type']).toLowerCase()) {

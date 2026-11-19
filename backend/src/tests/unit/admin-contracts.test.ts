@@ -51,14 +51,13 @@ function makeInMemoryDb(seed: Record<string, Document[]>): { db: Db; store: Reco
     async endSession() {},
   };
   const collection = (name: string) => {
-    store[name] ??= [];
-    const list = store[name]!;
+    const getList = () => (store[name] ??= []);
     return {
       async findOne(filter: Document = {}) {
-        return list.find((d) => matchesFilter(d, filter)) ?? null;
+        return getList().find((d) => matchesFilter(d, filter)) ?? null;
       },
       find(filter: Document = {}) {
-        const filtered = list.filter((d) => matchesFilter(d, filter));
+        const filtered = getList().filter((d) => matchesFilter(d, filter));
         return {
           sort() { return this; },
           skip(n: number) { return this; },
@@ -68,14 +67,15 @@ function makeInMemoryDb(seed: Record<string, Document[]>): { db: Db; store: Reco
         };
       },
       async countDocuments(filter: Document = {}) {
-        return list.filter((d) => matchesFilter(d, filter)).length;
+        return getList().filter((d) => matchesFilter(d, filter)).length;
       },
       async insertOne(doc: Document) {
         const saved = { _id: doc._id ?? new ObjectId(), ...doc };
-        list.push(saved);
+        getList().push(saved);
         return { insertedId: saved._id };
       },
       async updateOne(filter: Document, update: Document, opts?: { upsert?: boolean }) {
+        const list = getList();
         const idx = list.findIndex((d) => matchesFilter(d, filter));
         if (idx >= 0) {
           const cur = { ...list[idx]! };
@@ -96,6 +96,7 @@ function makeInMemoryDb(seed: Record<string, Document[]>): { db: Db; store: Reco
         return { matchedCount: 0, modifiedCount: 0 };
       },
       async updateMany(filter: Document, update: Document) {
+        const list = getList();
         let count = 0;
         for (let i = 0; i < list.length; i++) {
           if (matchesFilter(list[i]!, filter)) {
@@ -113,12 +114,20 @@ function makeInMemoryDb(seed: Record<string, Document[]>): { db: Db; store: Reco
         return { matchedCount: count, modifiedCount: count };
       },
       async findOneAndUpdate(filter: Document, update: Document) {
+        const list = getList();
         const idx = list.findIndex((d) => matchesFilter(d, filter));
         if (idx < 0) return null;
         const cur = { ...list[idx]! };
         if (update.$set) Object.assign(cur, update.$set);
         list[idx] = cur;
         return cur;
+      },
+      async deleteOne(filter: Document) {
+        const list = getList();
+        const idx = list.findIndex((d) => matchesFilter(d, filter));
+        if (idx < 0) return { deletedCount: 0 };
+        list.splice(idx, 1);
+        return { deletedCount: 1 };
       },
       aggregate() {
         return { async toArray() { return []; } };
@@ -315,5 +324,66 @@ describe("admin API contracts", () => {
     });
     assert.equal(stdRes.status, 200);
     assert.equal(stdRes.body.status, "Indeferido");
+  });
+
+  it("DELETE /api/admin/announcements/:id deletes announcements and audits", async () => {
+    const annRes = await api("POST", "/api/admin/announcements", {
+      title: "Aviso Exclusivo Docentes",
+      body: "Reunião de colegiado às 18h.",
+      audience: "Somente Docentes",
+      category: "Acadêmico",
+    });
+    assert.equal(annRes.status, 201);
+    const delRes = await api("DELETE", `/api/admin/announcements/${annRes.body.id}`);
+    assert.equal(delRes.status, 204);
+    assert.equal(store.academic_announcements?.length ?? 0, 0);
+  });
+
+  it("GET & PATCH /api/admin/rectifications/:id/decision updates academic_grades and unlocks pauta via PATCH /classes/:code", async () => {
+    const rectId = new ObjectId();
+    store.academic_rectifications = [
+      {
+        _id: rectId,
+        code: "RET-2026/AA11",
+        classCode: "218131 - APS-II",
+        studentId: String(studentId),
+        studentRa: "aluno.demo1",
+        studentName: "Aluno Um",
+        teacherId: String(adminId),
+        teacherName: "Prof. Demo",
+        stage: "P1",
+        previousScore: 9,
+        newScore: 9.8,
+        justification: "Correção de questão anulada.",
+        status: "Pendente",
+        createdAt: new Date(),
+      },
+    ];
+
+    const lockRes = await api("PATCH", `/api/admin/classes/${encodeURIComponent("218131 - APS-II")}`, {
+      gradeLocked: true,
+    });
+    assert.equal(lockRes.status, 200);
+    assert.equal(lockRes.body.gradeLocked, true);
+    assert.equal(lockRes.body.pautaHomologated, true);
+
+    const listRes = await api("GET", "/api/admin/rectifications?status=Pendente");
+    assert.equal(listRes.status, 200);
+    assert.equal(listRes.body.length, 1);
+
+    const approveRes = await api("PATCH", `/api/admin/rectifications/${rectId}/decision`, {
+      approved: true,
+      decisionNote: "Deferido conforme ata revisada.",
+    });
+    assert.equal(approveRes.status, 200);
+    assert.equal(approveRes.body.status, "Deferido");
+    assert.equal(store.academic_grades?.[0]?.p1Score, 9.8);
+
+    const unlockRes = await api("PATCH", `/api/admin/classes/${encodeURIComponent("218131 - APS-II")}`, {
+      gradeLocked: false,
+    });
+    assert.equal(unlockRes.status, 200);
+    assert.equal(unlockRes.body.gradeLocked, false);
+    assert.equal(unlockRes.body.pautaHomologated, false);
   });
 });

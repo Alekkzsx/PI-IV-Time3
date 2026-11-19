@@ -10,6 +10,7 @@ import { registerAdminProtocolRoutes } from "./operations/protocols/routes.js";
 import { registerAdminAnnouncementRoutes } from "./operations/announcements/routes.js";
 import { registerAdminSettingsRoutes } from "./operations/settings/routes.js";
 import { registerAdminEmailDiagnosticRoutes } from "./operations/system/email-diagnostic.routes.js";
+import { registerAdminRectificationRoutes } from "./operations/rectifications/routes.js";
 import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
 
 export function createAdminOperationsRouter(
@@ -24,6 +25,7 @@ export function createAdminOperationsRouter(
   registerAdminAnnouncementRoutes(router, database);
   registerAdminSettingsRoutes(router, database);
   registerAdminEmailDiagnosticRoutes(router, database, emailService);
+  registerAdminRectificationRoutes(router, database, emailService);
   const protocols = database.collection("academic_protocols");
 
   router.get("/dashboard", async (_request, response) => {
@@ -36,6 +38,7 @@ export function createAdminOperationsRouter(
       allClasses,
       pendingProtocols,
       decidedProtocols,
+      pendingRectifications,
       gradesList,
       calendarMilestones,
     ] = await Promise.all([
@@ -46,6 +49,9 @@ export function createAdminOperationsRouter(
       database.collection("academic_classes").find({ active: { $ne: false } }).toArray(),
       protocols.countDocuments({ status: { $regex: /^(aguardando parecer|aguardando|pendente)$/i } }),
       protocols.countDocuments({ status: { $regex: /^(deferido|indeferido|conclu[ií]do)$/i } }),
+      database
+        .collection("academic_rectifications")
+        .countDocuments({ status: { $regex: /^(pendente|aguardando|aguardando parecer)$/i } }),
       database.collection("academic_grades").find({}).toArray(),
       database.collection("academic_calendar").find({}).sort({ startsAt: 1 }).limit(10).toArray(),
     ]);
@@ -71,6 +77,7 @@ export function createAdminOperationsRouter(
       classes,
       pendingProtocols,
       decidedProtocols,
+      pendingRectifications,
       homologatedCount,
       homologatedPercentage,
       attendanceAverage,

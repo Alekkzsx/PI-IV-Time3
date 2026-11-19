@@ -27,7 +27,6 @@ class RolePermissionPolicy {
     'submit_protocols': {student: true, teacher: false, admin: false},
     'manage_users': {student: false, teacher: false, admin: true},
     'reset_passwords': {student: false, teacher: false, admin: true},
-    'impersonate_support': {student: false, teacher: false, admin: true},
     'audit_diff_inspect': {student: false, teacher: false, admin: true},
     'system_settings_2fa': {student: false, teacher: false, admin: true},
     'dispatch_protocols': {student: false, teacher: false, admin: true},

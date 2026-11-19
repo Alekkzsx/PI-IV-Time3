@@ -96,6 +96,7 @@ class DocenteCourse {
   final String syllabus;
   final String objectives;
   final String methodology;
+  final String formulaRegime;
   final String evaluationFormula;
   final List<Map<String, dynamic>> bibliography;
   final List<Map<String, dynamic>> enrolledStudents;
@@ -147,6 +148,7 @@ class DocenteCourse {
     this.syllabus = '',
     this.objectives = '',
     this.methodology = '',
+    this.formulaRegime = 'autonomia_docente',
     this.evaluationFormula = '(N1 × 0.4) + (N2 × 0.6)',
     this.bibliography = const [],
     this.enrolledStudents = const [],
@@ -159,6 +161,9 @@ class DocenteCourse {
     this.squads = const [],
     this.isLive = false,
   });
+
+  bool get isFormulaLockedByAdmin =>
+      formulaRegime.trim().toLowerCase() == 'admin';
 
   String get name => title;
   String get semester => term;
@@ -238,6 +243,7 @@ class DocenteCourse {
     String? syllabus,
     String? objectives,
     String? methodology,
+    String? formulaRegime,
     String? evaluationFormula,
     List<Map<String, dynamic>>? bibliography,
     List<Map<String, dynamic>>? enrolledStudents,
@@ -278,6 +284,7 @@ class DocenteCourse {
       syllabus: syllabus ?? this.syllabus,
       objectives: objectives ?? this.objectives,
       methodology: methodology ?? this.methodology,
+      formulaRegime: formulaRegime ?? this.formulaRegime,
       evaluationFormula: evaluationFormula ?? this.evaluationFormula,
       bibliography: bibliography ?? this.bibliography,
       enrolledStudents: enrolledStudents ?? this.enrolledStudents,

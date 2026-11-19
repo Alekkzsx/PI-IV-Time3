@@ -6,6 +6,10 @@ import { TeacherCommunicationService } from "./teacher-communication.service.js"
 import { TeacherDashboardRepository } from "./teacher-dashboard.repository.js";
 import { formatPtBrLongDate, formatShortDate } from "../../../shared/formatting/date-formatters.js";
 import {
+  extractClassCodeCandidates,
+  resolveInstitutionalThresholds,
+} from "../../../shared/academic/grade-formula.js";
+import {
   mapTeacherEvents,
   mapTeacherCourses,
   mapTeacherDashboardOverview,
@@ -227,6 +231,7 @@ export class TeacherService {
       profile,
       dashboard,
       regimentalLockActive: adminSettings?.regimentalLockActive === true,
+      academicThresholds: resolveInstitutionalThresholds(adminSettings),
       courses: mappedCourses,
       sessions: mappedSessions,
       assignments: mappedAssignments,
@@ -276,6 +281,56 @@ export class TeacherService {
     const updated = await this.database
       .collection("academic_protocols")
       .findOne({ _id: new ObjectId(protocolId) });
+
+    const requestType = String(existing.requestType ?? "").toLowerCase();
+    if (
+      input.status === "deferido" &&
+      existing.studentId &&
+      ["abono", "atestado", "falta"].some((term) => requestType.includes(term))
+    ) {
+      const targetFilter: Document = { studentId: String(existing.studentId), status: "active" };
+      const codeCandidates = extractClassCodeCandidates(existing.targetComponent);
+      if (codeCandidates.length > 0) {
+        targetFilter.classCode = { $in: codeCandidates };
+      }
+      const matchedEnrollments = await this.database
+        .collection("academic_enrollments")
+        .find(targetFilter)
+        .toArray();
+      await this.database.collection("academic_enrollments").updateMany(
+        targetFilter,
+        { $inc: { excusedAbsences: 2 } },
+      );
+      for (const enrollment of matchedEnrollments) {
+        const classCode = String(enrollment.classCode);
+        const existingGrade = await this.database
+          .collection("academic_grades")
+          .findOne({ classCode, studentId: String(existing.studentId) });
+        if (existingGrade && Number(existingGrade.absences ?? 0) > 0) {
+          const classroom = await this.database.collection("academic_classes").findOne({ code: classCode });
+          const totalHours = Number(classroom?.totalHours ?? 80);
+          const nextAbsences = Math.max(0, Number(existingGrade.absences) - 2);
+          const nextAttendanceRate = Number(
+            Math.max(0, ((totalHours - nextAbsences) / totalHours) * 100).toFixed(1),
+          );
+          await this.database.collection("academic_grades").updateOne(
+            { _id: existingGrade._id },
+            { $set: { absences: nextAbsences, attendanceRate: nextAttendanceRate, updatedAt: now } },
+          );
+        }
+      }
+    }
+
+    await this.database.collection("admin_audit_logs").insertOne({
+      actorId: userId,
+      actorName: user.displayName,
+      actorRole: user.profile,
+      action: "protocol_decided",
+      target: String(updated?.code ?? existing.code ?? protocolId),
+      severity: "INFO",
+      details: { approved: input.status === "deferido", decisionNote: resolutionText },
+      createdAt: now,
+    });
 
     if (this.emailService && existing.studentId) {
       const signedBy = String(user.displayName ?? user.identity ?? userId);

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -443,7 +443,11 @@ class _DocenteRetificacaoDialogState extends State<DocenteRetificacaoDialog> {
                   icon: const Icon(Icons.send_rounded, size: 16),
                   label: Text(
                     'Submeter à Coordenação',
-                    style: jakarta(size: 13, weight: FontWeight.w700),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD97706),

@@ -1,11 +1,14 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/courses/presentation/widgets/course_card_item.dart';
+import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 
 /// Tela de Cursos & Matrizes Curriculares (PPC) da Visão do Administrador.
 /// Exibe a estrutura pedagógica institucional, carga horária regimental,
@@ -54,15 +57,50 @@ class _CoursesPageState extends State<CoursesPage> {
   }
 
   Future<void> _createCourse() async {
-    final course = await showDialog<AdminCourseModel>(
+    final course = await AcademicModalDialog.show<AdminCourseModel>(
       context: context,
-      builder: (context) => const _CreateCourseDialog(),
+      builder: (context) => const _CourseFormDialog(),
     );
     if (course == null) return;
 
     try {
       await _dataSource.createCourse(course);
       await _loadCourses();
+      if (widget.dataSource == null) {
+        AdminPortalController.instance.loadRemote();
+      }
+    } on AdminAcademicApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
+
+  Future<void> _editCourse(AdminCourseModel current) async {
+    final updated = await AcademicModalDialog.show<AdminCourseModel>(
+      context: context,
+      builder: (context) => _CourseFormDialog(initialCourse: current),
+    );
+    if (updated == null) return;
+
+    try {
+      await _dataSource.patchCourse(current.code, {
+        'name': updated.name,
+        'matrix': updated.matrix,
+        'workload': updated.workload,
+        'department': updated.department,
+        'modality': updated.modality,
+        'formula': updated.formula,
+      });
+      await _loadCourses();
+      if (widget.dataSource == null) {
+        AdminPortalController.instance.loadRemote();
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Curso atualizado com sucesso.')),
+      );
     } on AdminAcademicApiException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -115,6 +153,7 @@ class _CoursesPageState extends State<CoursesPage> {
                                     child: CourseCardItem(
                                       course: _courses[i],
                                       onUpdated: _loadCourses,
+                                      onEdit: () => _editCourse(_courses[i]),
                                       dataSource: _dataSource,
                                     ),
                                   ),
@@ -124,9 +163,14 @@ class _CoursesPageState extends State<CoursesPage> {
                                       child: CourseCardItem(
                                         course: _courses[i + 1],
                                         onUpdated: _loadCourses,
+                                        onEdit: () =>
+                                            _editCourse(_courses[i + 1]),
                                         dataSource: _dataSource,
                                       ),
                                     ),
+                                  ] else ...[
+                                    const SizedBox(width: 24),
+                                    const Expanded(child: SizedBox.shrink()),
                                   ],
                                 ],
                               ),
@@ -137,6 +181,7 @@ class _CoursesPageState extends State<CoursesPage> {
                               CourseCardItem(
                                 course: _courses[i],
                                 onUpdated: _loadCourses,
+                                onEdit: () => _editCourse(_courses[i]),
                                 dataSource: _dataSource,
                               ),
                             ],
@@ -156,7 +201,23 @@ class _CoursesPageState extends State<CoursesPage> {
   }
 
   Widget _buildHeader(bool isDesktop) {
-    return Column(
+    final createBtn = ElevatedButton.icon(
+      onPressed: _isLoading ? null : _createCourse,
+      icon: const Icon(Icons.add, size: 17, color: Colors.white),
+      label: Text(
+        'Novo curso',
+        style: jakarta(size: 13.5, weight: FontWeight.w600, color: Colors.white),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: InstColors.ink,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+
+    final titleColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -177,16 +238,24 @@ class _CoursesPageState extends State<CoursesPage> {
             color: const Color(0xFF737373),
           ),
         ),
-        const SizedBox(height: 18),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton.icon(
-            onPressed: _isLoading ? null : _createCourse,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Novo curso'),
-          ),
-        ),
       ],
+    );
+
+    if (isDesktop) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: titleColumn),
+          const SizedBox(width: 24),
+          createBtn,
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [titleColumn, const SizedBox(height: 16), createBtn],
     );
   }
 
@@ -209,20 +278,49 @@ class _CoursesPageState extends State<CoursesPage> {
   }
 }
 
-class _CreateCourseDialog extends StatefulWidget {
-  const _CreateCourseDialog();
+class _CourseFormDialog extends StatefulWidget {
+  final AdminCourseModel? initialCourse;
+
+  const _CourseFormDialog({this.initialCourse});
 
   @override
-  State<_CreateCourseDialog> createState() => _CreateCourseDialogState();
+  State<_CourseFormDialog> createState() => _CourseFormDialogState();
 }
 
-class _CreateCourseDialogState extends State<_CreateCourseDialog> {
+class _CourseFormDialogState extends State<_CourseFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _code = TextEditingController();
-  final _name = TextEditingController();
-  final _matrix = TextEditingController();
-  final _workload = TextEditingController();
-  final _department = TextEditingController();
+  late final TextEditingController _code;
+  late final TextEditingController _name;
+  late final TextEditingController _matrix;
+  late final TextEditingController _workload;
+  late final TextEditingController _department;
+  late String _modality;
+  late String _formula;
+
+  static const _modalities = ['Graduação', 'Tecnólogo', 'Pós-Graduação', 'Presencial'];
+  static const _formulas = [
+    '(N1 × 0.4) + (N2 × 0.6)',
+    '(N1 + N2) / 2',
+    'Média aritmética de instrumentos contínuos',
+  ];
+
+  bool get _isEditing => widget.initialCourse != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.initialCourse;
+    _code = TextEditingController(text: c?.code ?? '');
+    _name = TextEditingController(text: c?.name ?? '');
+    _matrix = TextEditingController(text: c?.matrix ?? '');
+    _workload = TextEditingController(text: c?.workload ?? '');
+    _department = TextEditingController(text: c?.department ?? '');
+    _modality = _modalities.contains(c?.modality) ? c!.modality : 'Graduação';
+    final initFormula = c?.formula ?? '';
+    _formula = _formulas.contains(initFormula)
+        ? initFormula
+        : '(N1 × 0.4) + (N2 × 0.6)';
+  }
 
   @override
   void dispose() {
@@ -236,61 +334,108 @@ class _CreateCourseDialogState extends State<_CreateCourseDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Cadastrar curso'),
-      content: SizedBox(
-        width: 440,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    return AcademicModalDialog(
+      title: _isEditing ? 'Editar Curso & PPC' : 'Cadastrar Curso',
+      subtitle:
+          'Configure os dados regimentais, modalidade e fórmula avaliativa padrão do curso.',
+      icon: Icons.school_outlined,
+      cancelLabel: 'Cancelar',
+      confirmLabel: _isEditing ? 'Salvar alterações' : 'Salvar curso',
+      onConfirm: () {
+        if (!_formKey.currentState!.validate()) return;
+        Navigator.pop(
+          context,
+          AdminCourseModel(
+            code: _code.text.trim(),
+            name: _name.text.trim(),
+            matrix: _matrix.text.trim(),
+            workload: _workload.text.trim(),
+            studentsCount: widget.initialCourse?.studentsCount ?? 0,
+            formula: _formula,
+            department: _department.text.trim(),
+            modality: _modality,
+            components: widget.initialCourse?.components ?? const [],
+          ),
+        );
+      },
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                _field(_code, 'Código do curso'),
-                _field(_name, 'Nome do curso'),
-                _field(_matrix, 'Matriz curricular'),
-                _field(_workload, 'Carga horária'),
-                _field(_department, 'Departamento'),
+                Expanded(
+                  child: _field(_code, 'Código do curso', readOnly: _isEditing),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _modality,
+                      decoration: InstText.inputDecoration(
+                        labelText: 'Modalidade',
+                      ),
+                      items: _modalities
+                          .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _modality = v);
+                      },
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
+            _field(_name, 'Nome do curso'),
+            Row(
+              children: [
+                Expanded(child: _field(_matrix, 'Matriz curricular')),
+                const SizedBox(width: 12),
+                Expanded(child: _field(_workload, 'Carga horária (ex: 3.200h)')),
+              ],
+            ),
+            _field(_department, 'Departamento / Unidade'),
+            DropdownButtonFormField<String>(
+              initialValue: _formula,
+              decoration: InstText.inputDecoration(
+                labelText: 'Fórmula de avaliação padrão',
+              ),
+              items: _formulas
+                  .map(
+                    (f) => DropdownMenuItem(
+                      value: f,
+                      child: Text(f, overflow: TextOverflow.ellipsis),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) setState(() => _formula = v);
+              },
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (!_formKey.currentState!.validate()) return;
-            Navigator.pop(
-              context,
-              AdminCourseModel(
-                code: _code.text.trim(),
-                name: _name.text.trim(),
-                matrix: _matrix.text.trim(),
-                workload: _workload.text.trim(),
-                studentsCount: 0,
-                formula: 'Média ponderada',
-                department: _department.text.trim(),
-                modality: 'Graduação',
-                components: const [],
-              ),
-            );
-          },
-          child: const Text('Salvar curso'),
-        ),
-      ],
     );
   }
 
-  Widget _field(TextEditingController controller, String label) {
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool readOnly = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
-        decoration: InputDecoration(labelText: label),
+        readOnly: readOnly,
+        style: jakarta(
+          size: 13.5,
+          color: readOnly ? InstColors.muted : InstColors.ink,
+        ),
+        decoration: InstText.inputDecoration(labelText: label),
         validator: (value) => value == null || value.trim().isEmpty
             ? 'Preencha este campo.'
             : null,

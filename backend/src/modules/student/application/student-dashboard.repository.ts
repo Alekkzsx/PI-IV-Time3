@@ -1,5 +1,6 @@
 // Desenvolvido por: Rafael Henrique dos Santos Inácio
 import { ObjectId, type Db, type Document } from "mongodb";
+import { isAnnouncementVisibleToRole } from "../../../shared/academic/grade-formula.js";
 
 export interface StudentDashboardData {
   enrollments: Document[];
@@ -24,6 +25,7 @@ export interface StudentDashboardData {
   auditLogs: Document[];
   institutionalSettings: Document | null;
   profMap: Map<string, Document>;
+  studentMap: Map<string, Document>;
 }
 
 export class StudentDashboardRepository {
@@ -111,7 +113,8 @@ export class StudentDashboardRepository {
         .find({ $or: [{ isInstitutional: true }, { classCode: { $in: classCodes } }] })
         .sort({ createdAt: -1 })
         .limit(100)
-        .toArray(),
+        .toArray()
+        .then((list) => list.filter((ann) => isAnnouncementVisibleToRole(ann, "aluno"))),
       this.database
         .collection("academic_protocols")
         .find({ studentId: String(studentId) }, { projection: { attachmentBase64: 0 } })
@@ -151,6 +154,28 @@ export class StudentDashboardRepository {
             .toArray()
         : [];
 
+    const classmateIds = Array.from(
+      new Set(
+        classEnrollments
+          .map((enr) =>
+            typeof enr.studentId === "string" && ObjectId.isValid(enr.studentId)
+              ? enr.studentId
+              : null,
+          )
+          .filter(Boolean) as string[],
+      ),
+    );
+    const classmates =
+      classmateIds.length > 0
+        ? await this.database
+            .collection("auth_users")
+            .find(
+              { _id: { $in: classmateIds.map((id) => new ObjectId(id)) } },
+              { projection: { email: 1, preferences: 1 } },
+            )
+            .toArray()
+        : [];
+
     return {
       enrollments,
       classEnrollments,
@@ -174,6 +199,7 @@ export class StudentDashboardRepository {
       auditLogs,
       institutionalSettings,
       profMap: new Map(professors.map((professor) => [String(professor._id), professor])),
+      studentMap: new Map(classmates.map((student) => [String(student._id), student])),
     };
   }
 }

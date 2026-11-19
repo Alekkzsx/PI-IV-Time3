@@ -338,7 +338,7 @@ class UserListTable extends StatelessWidget {
                         const Icon(
                           Icons.badge_outlined,
                           size: 13,
-                          color: Color(0xFF1E3A8A),
+                          color: Color(0xFF18181B),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -346,7 +346,7 @@ class UserListTable extends StatelessWidget {
                           style: jakarta(
                             size: 12,
                             weight: FontWeight.w600,
-                            color: const Color(0xFF1E3A8A),
+                            color: const Color(0xFF18181B),
                           ),
                         ),
                       ],
@@ -469,9 +469,9 @@ class UserListTable extends StatelessWidget {
     Color textColor;
 
     if (profile == 'docente') {
-      bg = const Color(0xFFEFF6FF);
-      border = const Color(0xFFDBEAFE);
-      textColor = const Color(0xFF2563EB);
+      bg = const Color(0xFFF2F0EB);
+      border = const Color(0xFFD4D4D4);
+      textColor = const Color(0xFF18181B);
     } else if (profile == 'admin') {
       bg = const Color(0xFFFEF2F2);
       border = const Color(0xFFFEE2E2);

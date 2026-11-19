@@ -1,11 +1,11 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 
 /// Modal de Matriz Curricular & Ementário de um Curso
 class CourseMatrixSyllabusModal extends StatefulWidget {
@@ -89,46 +89,14 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
   }
 
   Future<void> _editComponents() async {
-    final controller = TextEditingController(
-      text: const JsonEncoder.withIndent('  ').convert(_components),
-    );
-    final value = await showDialog<String>(
+    final updatedComponents = await AcademicModalDialog.show<
+        List<Map<String, Object?>>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Editar componentes curriculares'),
-        content: SizedBox(
-          width: 560,
-          child: TextField(
-            controller: controller,
-            maxLines: 16,
-            decoration: const InputDecoration(
-              hintText: '[{"semestre":"1º","disciplina":"...","carga":"...","docente":"..."}]',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Salvar'),
-          ),
-        ],
-      ),
+      builder: (dialogCtx) =>
+          _StructuredComponentsEditorDialog(initialComponents: _components),
     );
-    controller.dispose();
-    if (value == null) return;
+    if (updatedComponents == null) return;
     try {
-      final decoded = jsonDecode(value);
-      if (decoded is! List || decoded.any((item) => item is! Map)) {
-        throw const FormatException('Informe uma lista JSON de componentes.');
-      }
-      final updatedComponents = decoded
-          .map((item) => Map<String, Object?>.from(item as Map))
-          .toList();
       setState(() => _saving = true);
       final ds = widget.dataSource ?? AdminAcademicRemoteDataSource();
       await ds.patchCourse(widget.course.code, {
@@ -136,8 +104,8 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
       });
       if (mounted) {
         setState(() {
-          _components = decoded
-              .map((item) => Map<String, dynamic>.from(item as Map))
+          _components = updatedComponents
+              .map((item) => Map<String, dynamic>.from(item))
               .toList();
         });
         widget.onUpdated?.call();
@@ -146,12 +114,6 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
         );
       }
     } on AdminAcademicApiException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
-      }
-    } on FormatException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error.message)),
@@ -366,6 +328,188 @@ class _CourseMatrixSyllabusModalState extends State<CourseMatrixSyllabusModal> {
           color: const Color(0xFF737373),
           letterSpacing: 0.5,
         ),
+      ),
+    );
+  }
+}
+
+class _StructuredComponentsEditorDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> initialComponents;
+
+  const _StructuredComponentsEditorDialog({required this.initialComponents});
+
+  @override
+  State<_StructuredComponentsEditorDialog> createState() =>
+      _StructuredComponentsEditorDialogState();
+}
+
+class _StructuredComponentsEditorDialogState
+    extends State<_StructuredComponentsEditorDialog> {
+  late final List<Map<String, TextEditingController>> _rows;
+
+  @override
+  void initState() {
+    super.initState();
+    _rows = widget.initialComponents.map((c) => _makeRow(c)).toList();
+    if (_rows.isEmpty) {
+      _rows.add(_makeRow({}));
+    }
+  }
+
+  Map<String, TextEditingController> _makeRow(Map<String, dynamic> c) {
+    final semRaw = (c['semestre'] ?? c['semester'] ?? '1º').toString();
+    final nameRaw = (c['disciplina'] ?? c['name'] ?? '').toString();
+    final codeRaw = (c['code'] ?? '').toString();
+    final cargaRaw = (c['carga'] ??
+            (c['workloadHours'] != null ? '${c['workloadHours']}h' : '80h'))
+        .toString();
+    final docRaw =
+        (c['docente'] ?? c['professor'] ?? c['professorName'] ?? '').toString();
+    return {
+      'semestre': TextEditingController(text: semRaw),
+      'code': TextEditingController(text: codeRaw),
+      'disciplina': TextEditingController(text: nameRaw),
+      'carga': TextEditingController(text: cargaRaw),
+      'docente': TextEditingController(text: docRaw),
+    };
+  }
+
+  @override
+  void dispose() {
+    for (final row in _rows) {
+      for (final ctrl in row.values) {
+        ctrl.dispose();
+      }
+    }
+    super.dispose();
+  }
+
+  void _addRow() {
+    setState(() {
+      _rows.add(_makeRow({'semestre': '${_rows.length + 1}º', 'carga': '80h'}));
+    });
+  }
+
+  void _removeRow(int index) {
+    final removed = _rows.removeAt(index);
+    for (final ctrl in removed.values) {
+      ctrl.dispose();
+    }
+    setState(() {});
+  }
+
+  void _save() {
+    final output = _rows
+        .where((r) => r['disciplina']!.text.trim().isNotEmpty)
+        .map(
+          (r) => <String, Object?>{
+            'semestre': r['semestre']!.text.trim(),
+            if (r['code']!.text.trim().isNotEmpty) 'code': r['code']!.text.trim(),
+            'disciplina': r['disciplina']!.text.trim(),
+            'carga': r['carga']!.text.trim(),
+            'docente': r['docente']!.text.trim(),
+          },
+        )
+        .toList();
+    Navigator.of(context).pop(output);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AcademicModalDialog(
+      title: 'Editar Componentes Curriculares',
+      subtitle: 'Adicione, edite ou remova disciplinas da matriz curricular sem JSON manual.',
+      icon: Icons.edit_note_rounded,
+      maxWidth: 740,
+      cancelLabel: 'Cancelar',
+      confirmLabel: 'Salvar Matriz',
+      onConfirm: _save,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (int i = 0; i < _rows.length; i++) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: InstColors.stone,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: InstColors.border),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 82,
+                        child: TextField(
+                          controller: _rows[i]['semestre'],
+                          decoration: InstText.inputDecoration(
+                            labelText: 'Período',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 110,
+                        child: TextField(
+                          controller: _rows[i]['code'],
+                          decoration: InstText.inputDecoration(
+                            labelText: 'Código',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _rows[i]['disciplina'],
+                          decoration: InstText.inputDecoration(
+                            labelText: 'Nome da Disciplina',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 82,
+                        child: TextField(
+                          controller: _rows[i]['carga'],
+                          decoration: InstText.inputDecoration(
+                            labelText: 'Carga',
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Remover componente',
+                        onPressed: () => _removeRow(i),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: InstColors.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _rows[i]['docente'],
+                    decoration: InstText.inputDecoration(
+                      labelText: 'Docente Homologado / Colegiado',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _addRow,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Adicionar componente'),
+            ),
+          ),
+        ],
       ),
     );
   }

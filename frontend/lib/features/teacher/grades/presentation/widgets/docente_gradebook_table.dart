@@ -491,13 +491,13 @@ class DocenteGradebookTable extends StatelessWidget {
     if (student.status == AcademicStatus.semNotas) {
       return const Color(0xFF71717A);
     }
-    if (student.attendanceRate < 75.0) {
+    if (student.attendanceRate < student.thresholds.minimumAttendance) {
       return const Color(0xFFD97706);
     }
-    if (student.finalAverage >= 7.0) {
+    if (student.finalAverage >= student.thresholds.minimumGrade) {
       return const Color(0xFF16A34A);
     }
-    if (student.finalAverage >= 4.0) {
+    if (student.finalAverage >= student.thresholds.specialExamGrade) {
       return const Color(0xFFD97706);
     }
     return const Color(0xFFDC2626);

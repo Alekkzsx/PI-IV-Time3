@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
@@ -70,13 +71,13 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2FF),
+                      color: InstColors.stoneActive,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE0E7FF)),
+                      border: Border.all(color: InstColors.border),
                     ),
                     child: const Icon(
                       Icons.assignment_ind_outlined,
-                      color: Color(0xFF4F46E5),
+                      color: InstColors.ink,
                       size: 22,
                     ),
                   ),
@@ -165,8 +166,7 @@ class _ClassAlocarDocenteModalState extends State<ClassAlocarDocenteModal> {
                 )
                     ? _selectedTeacherIdentity
                     : null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InstText.inputDecoration(
                   hintText: 'Selecione um docente',
                 ),
                 items: widget.teachers

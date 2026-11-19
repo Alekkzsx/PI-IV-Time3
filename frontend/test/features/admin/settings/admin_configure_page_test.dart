@@ -77,7 +77,7 @@ void main() {
       await tester.tap(find.text('Perfil Administrativo').first);
       await tester.pumpAndSettle();
       expect(find.byType(AdminProfileTab), findsOneWidget);
-      expect(find.text('Identidade Visual & Foto'), findsOneWidget);
+      expect(find.text('Identidade Visual & Avatar'), findsOneWidget);
       expect(find.text('Não informado'), findsWidgets);
 
       // 2. Security & Credentials Tab
@@ -91,8 +91,8 @@ void main() {
       await tester.tap(find.text('Alertas do Campus').first);
       await tester.pumpAndSettle();
       expect(find.byType(CampusAlertsTab), findsOneWidget);
-      expect(find.text('Canais de Comunicação'), findsOneWidget);
-      expect(find.text('Prazos de Tarefas & Trabalhos'), findsOneWidget);
+      expect(find.text('Canais de Monitoramento Institucional'), findsOneWidget);
+      expect(find.text('Protocolos & Requerimentos Pendentes'), findsOneWidget);
 
       // 4. System Preferences Tab
       await tester.tap(find.text('Preferências do Sistema').first);
@@ -106,14 +106,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(GovernanceLgpdTab), findsOneWidget);
       expect(
-        find.text('Visibilidade de Perfil & Dados entre Colegas'),
+        find.text('Política Institucional de Diretório & LGPD'),
         findsOneWidget,
       );
       expect(
         find.text('Privacidade & Direitos do Titular (LGPD)'),
         findsOneWidget,
       );
-      expect(find.text('Salvar Preferências de Privacidade'), findsOneWidget);
+      expect(
+        find.text('Salvar Políticas de Governança & LGPD'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders individual tabs directly in isolation', (

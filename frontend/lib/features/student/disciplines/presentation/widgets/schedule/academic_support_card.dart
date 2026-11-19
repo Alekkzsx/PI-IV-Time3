@@ -124,7 +124,11 @@ class AcademicSupportCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            (res['desc'] ?? res['description'] ?? '').toString(),
+                            (res['desc'] ??
+                                    res['description'] ??
+                                    res['subtitle'] ??
+                                    '')
+                                .toString(),
                             style: jakarta(
                               size: 11,
                               color: const Color(0xFF71717A),

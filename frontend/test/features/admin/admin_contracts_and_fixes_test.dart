@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/grade_record.dart';
 import 'package:pi_iv_time3/core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/admin/calendar/presentation/pages/calendar_page.dart';
@@ -45,6 +47,9 @@ class _StubCourseAcademicDataSource implements AdminAcademicDataSource {
     required String shift,
     required String location,
     required int maxCapacity,
+    String? subjectName,
+    String? schedule,
+    int? totalHours,
     String? professorIdentity,
   }) async {}
 
@@ -425,7 +430,7 @@ void main() {
 
       await tester.tap(find.text('Editar matriz'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Salvar'));
+      await tester.tap(find.text('Salvar Matriz'));
       await tester.pumpAndSettle();
 
       expect(stubDs.patchedCode, 'ES-2026');
@@ -462,7 +467,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Editar marco'), findsOneWidget);
+      expect(find.text('Editar Marco Acadêmico'), findsOneWidget);
       await tester.tap(find.text('Cancelar'));
       await tester.pumpAndSettle();
     });
@@ -656,10 +661,170 @@ void main() {
 
       final gradeField = find.byType(TextField).first;
       await tester.enterText(gradeField, '6,5');
+      await tester.ensureVisible(find.text('Salvar diretrizes'));
       await tester.tap(find.text('Salvar diretrizes'));
       await tester.pump();
 
       expect(find.text('Informe valores numéricos válidos.'), findsNothing);
+    });
+  });
+
+  group('Shared GradeCalculator & Admin Notifications/Rectifications', () {
+    test('GradeCalculator & GradeRecord apply ponderada, equitativa, aritmetica, and dynamic thresholds', () {
+      const custom = AcademicThresholds(
+        minimumGrade: 7.0,
+        minimumAttendance: 80.0,
+        specialExamGrade: 5.0,
+      );
+
+      // Ponderada (0.4 / 0.6): N1 = (10*0.4 + 5*0.6)=7.0, N2=10.0 -> MS=8.8
+      final pAvg = GradeCalculator.computeFinalAverage(
+        assignmentsScore: 10.0,
+        p1Score: 5.0,
+        projectsScore: 10.0,
+        p2Score: 10.0,
+        formula: '(N1 × 0.4) + (N2 × 0.6)',
+      );
+      expect(pAvg, 8.8);
+
+      // Equitativa (50% / 50%): (7.0*0.5) + (10.0*0.5) = 8.5
+      final eAvg = GradeCalculator.computeFinalAverage(
+        assignmentsScore: 10.0,
+        p1Score: 5.0,
+        projectsScore: 10.0,
+        p2Score: 10.0,
+        formula: 'Equitativa (N1 50% / N2 50%)',
+      );
+      expect(eAvg, 8.5);
+
+      // Aritmetica: (8+6+10+8)/4 = 8.0
+      final aAvg = GradeCalculator.computeFinalAverage(
+        assignmentsScore: 8.0,
+        p1Score: 6.0,
+        projectsScore: 10.0,
+        p2Score: 8.0,
+        formula: 'Média aritmética de instrumentos contínuos',
+      );
+      expect(aAvg, 8.0);
+
+      const examRecord = StudentGrade(
+        studentId: 's1',
+        ra: '1',
+        studentName: 'Ana',
+        attendanceRate: 85,
+        assignmentsScore: 6.5,
+        p1Score: 6.5,
+        projectsScore: 6.5,
+        p2Score: 6.5,
+        hasGrades: true,
+        thresholds: custom,
+      );
+      expect(examRecord.status, AcademicStatus.exame);
+
+      const attendanceFailRecord = StudentGrade(
+        studentId: 's2',
+        ra: '2',
+        studentName: 'Bia',
+        attendanceRate: 78,
+        assignmentsScore: 9.0,
+        p1Score: 9.0,
+        projectsScore: 9.0,
+        p2Score: 9.0,
+        hasGrades: true,
+        thresholds: custom,
+      );
+      expect(attendanceFailRecord.status, AcademicStatus.reprovadoPorFalta);
+    });
+
+    test('AdminPortalController builds notifications from campusAlerts, decides rectifications, and unlocks pauta', () async {
+      final calls = <String>[];
+      final client = MockClient((request) async {
+        calls.add('${request.method} ${request.url.path}');
+        if (request.url.path == '/api/admin/rectifications/rect-1/decision') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['approved'], isTrue);
+          expect(body['decisionNote'], 'Conferido');
+          return http.Response(jsonEncode({'ok': true}), 200);
+        }
+        if (request.url.path == '/api/admin/classes/IHC-305') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['gradeLocked'], isFalse);
+          expect(body['pautaHomologated'], isFalse);
+          return http.Response(jsonEncode({'ok': true}), 200);
+        }
+        if (request.url.path == '/api/admin/dashboard' ||
+            request.url.path == '/api/admin/settings') {
+          return http.Response(jsonEncode({}), 200);
+        }
+        return http.Response(jsonEncode([]), 200);
+      });
+      final api = AuthenticatedApiClient(client: client);
+      final controller = AdminPortalController.forTesting(
+        remote: AdminRemoteDataSource(api: api, authApi: api),
+        academicRemote: AdminAcademicRemoteDataSource(client: client),
+      );
+      controller.protocols = [
+        AdminProtocolModel(
+          id: 'p1',
+          code: 'PROT-1',
+          studentName: 'Ana',
+          studentRa: '1',
+          requestType: 'Abono',
+          date: '2026-11-18',
+          status: 'Aguardando Parecer',
+          attachmentName: '',
+          justification: 'Atestado',
+        ),
+      ];
+      controller.rectifications = const [
+        AdminGradeRectificationModel(
+          id: 'rect-1',
+          code: 'RET-1',
+          classCode: 'IHC-305',
+          subjectName: 'IHC',
+          studentId: 's1',
+          studentRa: '1',
+          studentName: 'Ana',
+          teacherId: 't1',
+          teacherName: 'Prof',
+          stage: 'p1',
+          previousScore: 5.0,
+          newScore: 8.0,
+          justification: 'Erro de digitação',
+          status: 'Pendente',
+          createdAt: '2026-11-18',
+        ),
+      ];
+      controller.institutionalSettings = {
+        'campusAlerts': {
+          'notifyPendingProtocols': true,
+          'notifyGradeRectifications': false,
+        },
+      };
+
+      expect(controller.pendingRectifications, hasLength(1));
+      expect(controller.institutionalNotifications.length, 1);
+      expect(
+        controller.institutionalNotifications.first['type'],
+        'protocol',
+      );
+
+      final decided = await controller.decideRectification(
+        id: 'rect-1',
+        approved: true,
+        decisionNote: 'Conferido',
+      );
+      final unlocked = await controller.unlockClassPauta('IHC-305');
+
+      expect(decided, isTrue);
+      expect(unlocked, isTrue);
+      expect(
+        calls,
+        containsAll([
+          'PATCH /api/admin/rectifications/rect-1/decision',
+          'PATCH /api/admin/classes/IHC-305',
+        ]),
+      );
     });
   });
 }

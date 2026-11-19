@@ -13,6 +13,8 @@ import 'package:pi_iv_time3/features/admin/secretary/presentation/pages/secretar
 import 'package:pi_iv_time3/features/admin/settings/presentation/pages/admin_configure_page.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/pages/users_page.dart';
 import 'package:pi_iv_time3/shared/layout/institutional_top_header.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import '../widgets/admin_sidebar.dart';
 
 /// Shell principal da Visão Administrativa / Gestão do Campus.
@@ -96,12 +98,95 @@ class _AdminShellPageState extends State<AdminShellPage> {
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
-  void _showInfo(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
-      );
+  void _openNotificationsModal() {
+    final notifications = _portal.institutionalNotifications;
+    AcademicModalDialog.show<void>(
+      context: context,
+      builder: (dialogCtx) => AcademicModalDialog(
+        title: 'Central de Alertas da Gestão',
+        subtitle: notifications.isEmpty
+            ? 'Nenhuma pendência operacional aberta no momento.'
+            : '${notifications.length} aviso(s) operacional(is) requerendo atenção.',
+        icon: Icons.notifications_none_outlined,
+        cancelLabel: 'Fechar',
+        confirmLabel: 'Atualizar',
+        onConfirm: () {
+          Navigator.of(dialogCtx).pop();
+          _portal.loadRemote();
+        },
+        child: notifications.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Protocolos de secretaria, solicitações de retificação pós-lacração e prazos do calendário estão em dia.',
+                  style: jakarta(size: 13.5, color: InstColors.muted),
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < notifications.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        Navigator.of(dialogCtx).pop();
+                        final target = notifications[i]['tab']?.toString();
+                        final targetTab = switch (target) {
+                          'secretaria' => AdminNavTab.secretaria,
+                          'turmas' => AdminNavTab.turmas,
+                          'calendario' => AdminNavTab.calendario,
+                          _ => AdminNavTab.painelGeral,
+                        };
+                        setState(() => _activeTab = targetTab);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: InstColors.stone,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: InstColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: InstColors.ink,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    notifications[i]['title']?.toString() ?? '',
+                                    style: jakarta(
+                                      size: 13.5,
+                                      weight: FontWeight.w600,
+                                      color: InstColors.ink,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    notifications[i]['subtitle']?.toString() ?? '',
+                                    style: jakarta(
+                                      size: 12,
+                                      color: InstColors.muted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
   }
 
   @override
@@ -190,35 +275,35 @@ class _AdminShellPageState extends State<AdminShellPage> {
                                 color: Color(0xFF18181B),
                               ),
                               tooltip: 'Notificações Institucionais',
-                              onPressed: () => _showInfo(
-                                'Não há novas notificações institucionais.',
-                              ),
+                              onPressed: _openNotificationsModal,
                             ),
-                            Positioned(
-                              right: 6,
-                              top: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF18181B),
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 14,
-                                  minHeight: 14,
-                                ),
-                                child: const Text(
-                                  '0',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.bold,
-                                    height: 1,
+                            if (_portal.institutionalNotifications.isNotEmpty)
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF18181B),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 14,
+                                    minHeight: 14,
+                                  ),
+                                  child: Text(
+                                    _portal.institutionalNotifications.length
+                                        .toString(),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ],

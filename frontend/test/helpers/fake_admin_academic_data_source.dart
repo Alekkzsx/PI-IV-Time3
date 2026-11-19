@@ -51,6 +51,9 @@ class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
     required String location,
     required int maxCapacity,
     String? professorIdentity,
+    String? subjectName,
+    String? schedule,
+    int? totalHours,
   }) async {
     final course = AdminMockData.courses.firstWhere(
       (item) => item.code == courseCode,
@@ -58,10 +61,13 @@ class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
     _classes.add(
       AdminClassModel(
         code: code,
-        subjectName: course.name,
+        subjectName: (subjectName != null && subjectName.trim().isNotEmpty)
+            ? subjectName.trim()
+            : course.name,
         courseName: course.name,
         semester: semester,
         shift: shift,
+        schedule: schedule ?? '',
         location: location,
         enrolled: 0,
         maxCapacity: maxCapacity,

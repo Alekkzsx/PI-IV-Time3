@@ -99,7 +99,7 @@ class _UsersPageState extends State<UsersPage> {
       onConfirm: () async {
         if (!await _controller.persistResetPassword(u.id)) {
           throw ApiException(
-            _controller.remoteError ?? 'Falha ao solicitar recupera??o.',
+            _controller.remoteError ?? 'Falha ao solicitar recuperação.',
           );
         }
       },

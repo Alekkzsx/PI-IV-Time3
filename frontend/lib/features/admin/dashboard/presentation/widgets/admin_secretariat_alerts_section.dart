@@ -1,17 +1,73 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
 /// Seção que exibe os alertas urgentes da Secretaria e avisos de fechamento de período.
 class AdminSecretariatAlertsSection extends StatelessWidget {
   const AdminSecretariatAlertsSection({super.key});
 
+  static const _monthsUpper = [
+    'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+    'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
+  ];
+
+  String _todayLabel() {
+    final now = DateTime.now();
+    return 'HOJE, ${now.day.toString().padLeft(2, '0')} ${_monthsUpper[now.month - 1]}';
+  }
+
+  String _closingStatusText(AdminPortalController portal) {
+    if (portal.isRegimentalLockActive) {
+      return 'Trava regimental global ativa: pautas docentes em modo leitura.';
+    }
+    final now = DateTime.now();
+    final upcomingClosing = portal.calendarEvents
+        .map((e) => MapEntry(e, DateTime.tryParse(e.startsAt)))
+        .where((entry) =>
+            entry.value != null &&
+            !entry.value!.isBefore(DateTime(now.year, now.month, now.day)) &&
+            (entry.key.type == 'closing' || entry.key.type == 'deadline'))
+        .toList()
+      ..sort((a, b) => a.value!.compareTo(b.value!));
+
+    if (upcomingClosing.isEmpty) {
+      return 'Sem trava regimental ativa • ${portal.academicThresholds.currentWeekLabel}';
+    }
+    final next = upcomingClosing.first;
+    final days = next.value!.difference(DateTime(now.year, now.month, now.day)).inDays;
+    final whenText = days == 0
+        ? 'vence hoje'
+        : days == 1
+            ? 'em 1 dia'
+            : 'em $days dias';
+    return '${next.key.title} ($whenText)';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return ListenableBuilder(
+      listenable: AdminPortalController.instance,
+      builder: (context, _) {
+        final portal = AdminPortalController.instance;
+        final pendingProtocols =
+            (portal.dashboard['pendingProtocols'] as num?)?.toInt() ??
+            portal.protocols
+                .where(
+                  (p) =>
+                      AdminPortalController.normalizeProtocolStatus(p.status) ==
+                      'Aguardando Parecer',
+                )
+                .length;
+        final pendingRectifications =
+            (portal.dashboard['pendingRectifications'] as num?)?.toInt() ??
+            portal.pendingRectifications.length;
+        final pendingTotal = pendingProtocols + pendingRectifications;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -27,7 +83,7 @@ class AdminSecretariatAlertsSection extends StatelessWidget {
               ),
             ),
             Text(
-              'HOJE, 20 SET',
+              _todayLabel(),
               style: jakarta(
                 size: 12,
                 weight: FontWeight.w700,
@@ -101,7 +157,9 @@ class AdminSecretariatAlertsSection extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
-                                  '• 2 PENDENTES',
+                                  pendingTotal > 0
+                                      ? '• $pendingTotal PENDENTE${pendingTotal == 1 ? '' : 'S'}'
+                                      : '• EM DIA',
                                   style: jakarta(
                                     size: 11,
                                     weight: FontWeight.w700,
@@ -184,7 +242,7 @@ class AdminSecretariatAlertsSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Trava regimental de diários e atas em 12 dias',
+                      _closingStatusText(portal),
                       textAlign: TextAlign.center,
                       style: jakarta(
                         size: 13,
@@ -199,6 +257,8 @@ class AdminSecretariatAlertsSection extends StatelessWidget {
           ],
         ),
       ],
+    );
+      },
     );
   }
 }

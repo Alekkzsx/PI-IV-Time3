@@ -69,6 +69,47 @@ class AdminRemoteDataSource {
     await request('POST', '/announcements', values) as Map,
   );
 
+  Future<void> deleteAnnouncement(String id) async {
+    await request('DELETE', '/announcements/${Uri.encodeComponent(id)}');
+  }
+
+  Future<List<AdminGradeRectificationModel>> rectifications({
+    String? classCode,
+    String? status,
+  }) async {
+    final query = <String>[];
+    if (classCode != null && classCode.trim().isNotEmpty) {
+      query.add('classCode=${Uri.encodeQueryComponent(classCode.trim())}');
+    }
+    if (status != null && status.trim().isNotEmpty) {
+      query.add('status=${Uri.encodeQueryComponent(status.trim())}');
+    }
+    final path = query.isEmpty ? '/rectifications' : '/rectifications?${query.join('&')}';
+    final rawList = await request('GET', path);
+    if (rawList is! List) {
+      throw const ApiException('A API retornou uma resposta inválida.');
+    }
+    return rawList
+        .whereType<Map>()
+        .map(
+          (item) => AdminGradeRectificationModel.fromJson(
+            Map<String, dynamic>.from(item),
+          ),
+        )
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> decideRectification(
+    String id, {
+    required bool approved,
+    required String decisionNote,
+  }) async => Map<String, dynamic>.from(
+    await request('PATCH', '/rectifications/${Uri.encodeComponent(id)}/decision', {
+      'approved': approved,
+      'decisionNote': decisionNote,
+    }) as Map,
+  );
+
   Future<Map<String, dynamic>> dossier(String id) async =>
       Map<String, dynamic>.from(
         await request('GET', '/users/${Uri.encodeComponent(id)}/dossier')

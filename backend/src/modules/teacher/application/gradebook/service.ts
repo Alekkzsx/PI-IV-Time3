@@ -303,7 +303,50 @@ export class TeacherGradebookService {
         input.newScore,
         input.justification,
       );
+      return { ok: true, pendingApproval: false };
     }
-    return { ok: true };
+
+    const existingGrade = await this.database.collection("academic_grades").findOne({
+      classCode: classroom.code,
+      studentId: input.studentId,
+    });
+    const stageUpper = input.stage.trim().toUpperCase();
+    const prevFieldMap: Record<string, string> = {
+      P1: "p1Score",
+      N1: "p1Score",
+      P2: "p2Score",
+      N2: "p2Score",
+      ATIVIDADES: "assignmentsScore",
+      TRAB: "assignmentsScore",
+      PROJETOS: "projectsScore",
+      PROJ: "projectsScore",
+    };
+    const prevField = prevFieldMap[stageUpper] ?? "p1Score";
+    const previousScore = Number(existingGrade?.[prevField] ?? 0);
+    const code = `RET-2026/${randomBytes(2).toString("hex").toUpperCase()}`;
+
+    const inserted = await this.database.collection("academic_rectifications").insertOne({
+      code,
+      classCode: classroom.code,
+      subjectName: String(classroom.subjectName ?? classroom.courseName ?? classroom.code),
+      studentId: input.studentId,
+      studentRa: String(enrollment?.studentIdentity ?? existingGrade?.ra ?? ""),
+      studentName: String(enrollment?.displayName ?? existingGrade?.studentName ?? input.studentId),
+      teacherId: userId,
+      teacherName: String(user.displayName ?? user.identity ?? userId),
+      stage: input.stage,
+      previousScore,
+      newScore: input.newScore,
+      justification: input.justification,
+      status: "Pendente",
+      createdAt: new Date(),
+    });
+
+    return {
+      ok: true,
+      pendingApproval: true,
+      rectificationId: String(inserted.insertedId),
+      code,
+    };
   }
 }

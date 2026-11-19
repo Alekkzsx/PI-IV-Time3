@@ -1,10 +1,13 @@
 // Desenvolvido por Guilherme Henrique Moreira
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 import '../../../shared/controllers/admin_portal_controller.dart';
 import '../../../shared/models/admin_models.dart';
 
 Future<bool?> showUserEditDialog(BuildContext context, AdminUserModel user) =>
-    showDialog<bool>(
+    AcademicModalDialog.show<bool>(
       context: context,
       builder: (_) => _UserEditDialog(user: user),
     );
@@ -26,6 +29,13 @@ class _UserEditDialogState extends State<_UserEditDialog> {
   late String _profile = widget.user.profile;
   bool _busy = false;
   String? _error;
+
+  static const _profileLabels = {
+    'aluno': 'Discente (Aluno)',
+    'docente': 'Docente (Professor)',
+    'admin': 'Administrador (Secretaria)',
+  };
+
   @override
   void dispose() {
     _name.dispose();
@@ -63,58 +73,75 @@ class _UserEditDialogState extends State<_UserEditDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Editar usuário'),
-    content: SizedBox(
-      width: 420,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _identity,
-              decoration: const InputDecoration(
-                labelText: 'Identidade institucional',
+  Widget build(BuildContext context) => AcademicModalDialog(
+    title: 'Editar Usuário Institucional',
+    subtitle: 'Atualize os dados cadastrais, lotação ou perfil de acesso.',
+    icon: Icons.manage_accounts_outlined,
+    cancelLabel: 'Cancelar',
+    confirmLabel: 'Salvar alterações',
+    isLoading: _busy,
+    onConfirm: _save,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _identity,
+          decoration: InstText.inputDecoration(
+            labelText: 'Identidade institucional (R.A. / Matrícula)',
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _name,
+          decoration: InstText.inputDecoration(labelText: 'Nome completo'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _email,
+          decoration: InstText.inputDecoration(labelText: 'E-mail institucional'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _department,
+          decoration: InstText.inputDecoration(labelText: 'Curso / Lotação'),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: _profileLabels.containsKey(_profile) ? _profile : 'aluno',
+          decoration: InstText.inputDecoration(labelText: 'Perfil de acesso'),
+          items: _profileLabels.entries
+              .map(
+                (entry) => DropdownMenuItem(
+                  value: entry.key,
+                  child: Text(entry.value),
+                ),
+              )
+              .toList(),
+          onChanged: _busy
+              ? null
+              : (value) {
+                  if (value != null) setState(() => _profile = value);
+                },
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: InstColors.dangerBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: InstColors.danger.withValues(alpha: 0.3),
               ),
             ),
-            TextField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Nome completo'),
+            child: Text(
+              _error!,
+              style: jakarta(size: 12.5, color: InstColors.danger),
             ),
-            TextField(
-              controller: _email,
-              decoration: const InputDecoration(labelText: 'E-mail'),
-            ),
-            TextField(
-              controller: _department,
-              decoration: const InputDecoration(labelText: 'Curso / lotação'),
-            ),
-            DropdownButtonFormField<String>(
-              initialValue: _profile,
-              items: ['aluno', 'docente', 'admin']
-                  .map(
-                    (role) => DropdownMenuItem(value: role, child: Text(role)),
-                  )
-                  .toList(),
-              onChanged: _busy
-                  ? null
-                  : (value) => setState(() => _profile = value!),
-            ),
-            if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     ),
-    actions: [
-      TextButton(
-        onPressed: _busy ? null : () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      FilledButton(
-        onPressed: _busy ? null : _save,
-        child: Text(_busy ? 'Salvando...' : 'Salvar'),
-      ),
-    ],
   );
 }

@@ -1,6 +1,9 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 import '../../../../../core/network/authenticated_api_client.dart';
 import '../../../../../core/network/auth_profile_remote_data_source.dart';
 import '../../../../../core/state/app_user_session.dart';
@@ -48,43 +51,77 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
     final current = TextEditingController();
     final next = TextEditingController();
     final confirm = TextEditingController();
-    final values = await showDialog<List<String>>(
+    String? modalError;
+    final values = await AcademicModalDialog.show<List<String>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Alterar senha'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: current,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Senha atual'),
-            ),
-            TextField(
-              controller: next,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Nova senha'),
-            ),
-            TextField(
-              controller: confirm,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirmar senha'),
-            ),
-          ],
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setModalState) => AcademicModalDialog(
+          title: 'Alterar senha',
+          subtitle:
+              'Informe a senha atual e defina uma nova credencial com ao menos 8 caracteres.',
+          icon: Icons.vpn_key_outlined,
+          maxWidth: 460,
+          confirmLabel: 'Salvar',
+          onConfirm: () {
+            if (current.text.isEmpty) {
+              setModalState(() => modalError = 'Informe sua senha atual.');
+              return;
+            }
+            if (next.text.length < 8) {
+              setModalState(
+                () => modalError = 'A nova senha deve ter ao menos 8 caracteres.',
+              );
+              return;
+            }
+            if (next.text != confirm.text) {
+              setModalState(() => modalError = 'As novas senhas não coincidem.');
+              return;
+            }
+            Navigator.pop(dialogContext, [current.text, next.text]);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: current,
+                obscureText: true,
+                style: jakarta(size: 13.5, color: InstColors.ink),
+                decoration: InstText.inputDecoration(labelText: 'Senha atual'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: next,
+                obscureText: true,
+                style: jakarta(size: 13.5, color: InstColors.ink),
+                decoration: InstText.inputDecoration(labelText: 'Nova senha'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirm,
+                obscureText: true,
+                style: jakarta(size: 13.5, color: InstColors.ink),
+                decoration: InstText.inputDecoration(
+                  labelText: 'Confirmar senha',
+                ),
+              ),
+              if (modalError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: InstColors.dangerBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    modalError!,
+                    style: jakarta(size: 12.5, color: InstColors.danger),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (next.text.length < 8 || next.text != confirm.text) return;
-              Navigator.pop(context, [current.text, next.text]);
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
       ),
     );
     if (values != null) {
@@ -108,25 +145,23 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
 
   Future<void> _toggleTwoFactor() async {
     final password = TextEditingController();
-    final entered = await showDialog<String>(
+    final entered = await AcademicModalDialog.show<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirme sua senha'),
-        content: TextField(
+      builder: (dialogContext) => AcademicModalDialog(
+        title: 'Confirme sua senha',
+        subtitle: _twoFactor == true
+            ? 'Informe sua senha atual para desativar o segundo fator por e-mail.'
+            : 'Informe sua senha atual para ativar o segundo fator por e-mail.',
+        icon: Icons.verified_user_outlined,
+        maxWidth: 440,
+        confirmLabel: 'Confirmar',
+        onConfirm: () => Navigator.pop(dialogContext, password.text),
+        child: TextField(
           controller: password,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'Senha atual'),
+          style: jakarta(size: 13.5, color: InstColors.ink),
+          decoration: InstText.inputDecoration(labelText: 'Senha atual'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, password.text),
-            child: const Text('Confirmar'),
-          ),
-        ],
       ),
     );
     password.dispose();
@@ -149,22 +184,37 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
     try {
       final codes = await _profileRemote.backupCodes();
       if (!mounted) return;
-      await showDialog<void>(
+      await AcademicModalDialog.show<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Códigos de recuperação'),
-          content: SizedBox(
-            width: 360,
-            child: codes.isEmpty
-                ? const Text('Nenhum código disponível.')
-                : SelectableText(codes.join('\n')),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
+        builder: (_) => AcademicModalDialog(
+          title: 'Códigos de recuperação',
+          subtitle: 'Guarde estes códigos em local seguro para acesso emergencial.',
+          icon: Icons.key_outlined,
+          maxWidth: 460,
+          cancelLabel: 'Fechar',
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: InstColors.stone,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: InstColors.border),
             ),
-          ],
+            child: codes.isEmpty
+                ? Text(
+                    'Nenhum código disponível.',
+                    style: jakarta(size: 13, color: InstColors.muted),
+                  )
+                : SelectableText(
+                    codes.join('\n'),
+                    style: jakarta(
+                      size: 13.5,
+                      weight: FontWeight.w600,
+                      color: InstColors.ink,
+                      height: 1.6,
+                    ),
+                  ),
+          ),
         ),
       );
     } on ApiException catch (error) {
@@ -185,21 +235,49 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
   Widget build(BuildContext context) => Column(
     children: [
       if (_error != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Text(_error!, style: const TextStyle(color: Colors.red)),
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: InstColors.dangerBg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: InstColors.danger.withValues(alpha: 0.25),
+            ),
+          ),
+          child: Text(
+            _error!,
+            style: jakarta(size: 13, color: InstColors.danger),
+          ),
         ),
       _buildSecurityCard(
         icon: Icons.vpn_key_rounded,
         title: 'Credencial de Acesso (Senha)',
         badgeText: 'Hash bcrypt',
-        badgeBg: const Color(0xFFECFDF5),
-        badgeBorder: const Color(0xFFA7F3D0),
-        badgeTextColor: const Color(0xFF059669),
+        badgeBg: InstColors.successBg,
+        badgeBorder: InstColors.success.withValues(alpha: 0.3),
+        badgeTextColor: InstColors.success,
         subtitle: 'Altere sua senha usando a credencial atual.',
-        actionButton: FilledButton(
+        actionButton: ElevatedButton(
           onPressed: _changePassword,
-          child: const Text('Alterar Senha'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: InstColors.ink,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Alterar Senha',
+            style: jakarta(
+              size: 13,
+              weight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
         ),
         child: _buildInfoColumn(
           'Senhas protegidas com bcrypt',
@@ -211,28 +289,51 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
         icon: Icons.key_outlined,
         title: 'Códigos de recuperação',
         badgeText: 'Protegidos',
-        badgeBg: const Color(0xFFEFF6FF),
-        badgeBorder: const Color(0xFFBFDBFE),
-        badgeTextColor: const Color(0xFF1D4ED8),
+        badgeBg: InstColors.stoneActive,
+        badgeBorder: InstColors.border,
+        badgeTextColor: InstColors.ink,
         subtitle: 'Consulte os códigos de recuperação emitidos para sua conta.',
         actionButton: OutlinedButton(
           onPressed: _showBackupCodes,
-          child: const Text('Consultar códigos'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: InstColors.ink,
+            side: const BorderSide(color: InstColors.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Consultar códigos',
+            style: jakarta(size: 13, weight: FontWeight.w600),
+          ),
         ),
-        child: const Text('Os códigos devem ser armazenados em local seguro.'),
+        child: Text(
+          'Os códigos devem ser armazenados em local seguro.',
+          style: jakarta(size: 12.5, color: InstColors.body),
+        ),
       ),
       const SizedBox(height: 20),
       _buildSecurityCard(
         icon: Icons.devices_outlined,
         title: 'Sessões e acessos recentes',
         badgeText: 'Gerenciar',
-        badgeBg: const Color(0xFFF1F5F9),
-        badgeBorder: const Color(0xFFE2E8F0),
-        badgeTextColor: const Color(0xFF334155),
+        badgeBg: InstColors.subtle,
+        badgeBorder: InstColors.border,
+        badgeTextColor: InstColors.body,
         subtitle: 'Revogue sessões que você não reconhece.',
         actionButton: OutlinedButton(
           onPressed: _logoutOthers,
-          child: const Text('Encerrar outras sessões'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: InstColors.ink,
+            side: const BorderSide(color: InstColors.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'Encerrar outras sessões',
+            style: jakarta(size: 13, weight: FontWeight.w600),
+          ),
         ),
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _profileRemote.sessions(),
@@ -241,10 +342,18 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
               return const LinearProgressIndicator();
             }
             if (snapshot.hasError) {
-              return Text('Falha ao carregar sessões: ${snapshot.error}');
+              return Text(
+                'Falha ao carregar sessões: ${snapshot.error}',
+                style: jakarta(size: 12.5, color: InstColors.danger),
+              );
             }
             final sessions = snapshot.data ?? const [];
-            if (sessions.isEmpty) return const Text('Nenhuma sessão ativa.');
+            if (sessions.isEmpty) {
+              return Text(
+                'Nenhuma sessão ativa.',
+                style: jakarta(size: 12.5, color: InstColors.muted),
+              );
+            }
             return Column(
               children: sessions.map((session) {
                 final id = session['id']?.toString() ?? '';
@@ -267,11 +376,17 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(
                     '${(device != null && device.isNotEmpty) ? device : 'Dispositivo autenticado'}${current ? ' · Esta sessão' : ''}',
+                    style: jakarta(
+                      size: 13.5,
+                      weight: FontWeight.w600,
+                      color: InstColors.ink,
+                    ),
                   ),
                   subtitle: Text(
                     subtitleParts.isEmpty
                         ? 'Sessão ativa'
                         : subtitleParts.join(' · '),
+                    style: jakarta(size: 12, color: InstColors.muted),
                   ),
                   trailing: current
                       ? null
@@ -282,11 +397,12 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                               await _profileRemote.revokeSession(id);
                               if (mounted) setState(() {});
                             } on ApiException catch (error) {
-                              if (mounted)
+                              if (mounted) {
                                 setState(() => _error = error.message);
+                              }
                             }
                           },
-                          icon: const Icon(Icons.logout),
+                          icon: const Icon(Icons.logout, color: InstColors.ink),
                         ),
                 );
               }).toList(),
@@ -299,9 +415,9 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
         icon: Icons.history,
         title: 'Registros de segurança',
         badgeText: 'Auditoria',
-        badgeBg: const Color(0xFFF1F5F9),
-        badgeBorder: const Color(0xFFE2E8F0),
-        badgeTextColor: const Color(0xFF334155),
+        badgeBg: InstColors.subtle,
+        badgeBorder: InstColors.border,
+        badgeTextColor: InstColors.body,
         subtitle: 'Atividades de segurança recentes da sua conta.',
         actionButton: const SizedBox.shrink(),
         child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -311,10 +427,18 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
               return const LinearProgressIndicator();
             }
             if (snapshot.hasError) {
-              return Text('Falha ao carregar os registros: ${snapshot.error}');
+              return Text(
+                'Falha ao carregar os registros: ${snapshot.error}',
+                style: jakarta(size: 12.5, color: InstColors.danger),
+              );
             }
             final logs = snapshot.data ?? const [];
-            if (logs.isEmpty) return const Text('Nenhum registro disponível.');
+            if (logs.isEmpty) {
+              return Text(
+                'Nenhum registro disponível.',
+                style: jakarta(size: 12.5, color: InstColors.muted),
+              );
+            }
             return Column(
               children: logs
                   .map(
@@ -322,9 +446,15 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                       contentPadding: EdgeInsets.zero,
                       title: Text(
                         '${log['action'] ?? log['event'] ?? 'Atividade de segurança'}',
+                        style: jakarta(
+                          size: 13.5,
+                          weight: FontWeight.w600,
+                          color: InstColors.ink,
+                        ),
                       ),
                       subtitle: Text(
                         '${log['createdAt'] ?? log['timestamp'] ?? ''}',
+                        style: jakarta(size: 12, color: InstColors.muted),
                       ),
                     ),
                   )
@@ -342,14 +472,26 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
             : _twoFactor!
             ? 'Ativada'
             : 'Desativada',
-        badgeBg: const Color(0xFFEFF6FF),
-        badgeBorder: const Color(0xFFBFDBFE),
-        badgeTextColor: const Color(0xFF1D4ED8),
+        badgeBg: _twoFactor == true ? InstColors.successBg : InstColors.stoneActive,
+        badgeBorder: _twoFactor == true
+            ? InstColors.success.withValues(alpha: 0.3)
+            : InstColors.border,
+        badgeTextColor: _twoFactor == true ? InstColors.success : InstColors.ink,
         subtitle:
             'Código de acesso enviado ao e-mail cadastrado, após validar a senha.',
         actionButton: OutlinedButton(
           onPressed: _twoFactor == null ? null : _toggleTwoFactor,
-          child: Text(_twoFactor == true ? 'Desativar' : 'Ativar'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: InstColors.ink,
+            side: const BorderSide(color: InstColors.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            _twoFactor == true ? 'Desativar' : 'Ativar',
+            style: jakarta(size: 13, weight: FontWeight.w600),
+          ),
         ),
         child: _buildInfoColumn(
           'Código temporário de seis dígitos',
@@ -372,9 +514,9 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -387,7 +529,7 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: InstColors.ink,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: Colors.white, size: 20),
@@ -404,10 +546,10 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                          style: jakarta(
+                            size: 15.5,
+                            weight: FontWeight.w700,
+                            color: InstColors.ink,
                           ),
                         ),
                         Container(
@@ -422,9 +564,9 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                           ),
                           child: Text(
                             badgeText,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                            style: jakarta(
+                              size: 10,
+                              weight: FontWeight.w700,
                               color: badgeTextColor,
                             ),
                           ),
@@ -434,10 +576,7 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                      ),
+                      style: jakarta(size: 12, color: InstColors.muted),
                     ),
                   ],
                 ),
@@ -462,18 +601,16 @@ class _SecurityCredentialsTabState extends State<SecurityCredentialsTab> {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.bold,
-            color: isHighlightGreen
-                ? const Color(0xFF059669)
-                : const Color(0xFF0F172A),
+          style: jakarta(
+            size: 12.5,
+            weight: FontWeight.w700,
+            color: isHighlightGreen ? InstColors.success : InstColors.ink,
           ),
         ),
         const SizedBox(height: 3),
         Text(
           subtitle,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+          style: jakarta(size: 11, color: InstColors.muted),
         ),
       ],
     );

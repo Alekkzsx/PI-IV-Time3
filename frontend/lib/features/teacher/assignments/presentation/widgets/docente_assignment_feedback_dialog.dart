@@ -267,7 +267,11 @@ class _DocenteAssignmentFeedbackDialogState
                     icon: const Icon(Icons.check_rounded, size: 16),
                     label: Text(
                       'Salvar & Enviar Feedback',
-                      style: jakarta(size: 13, weight: FontWeight.w700),
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E3A8A),

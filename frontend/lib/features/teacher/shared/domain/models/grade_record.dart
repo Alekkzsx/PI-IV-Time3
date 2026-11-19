@@ -1,5 +1,7 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
+
 /// Academic standing of a student in the official gradebook.
 enum AcademicStatus { semNotas, aprovado, exame, reprovadoPorNota, reprovadoPorFalta }
 
@@ -15,6 +17,8 @@ class StudentGrade {
   final double p2Score;
   final double attendanceRate;
   final bool hasGrades;
+  final String evaluationFormula;
+  final AcademicThresholds thresholds;
 
   const StudentGrade({
     required this.studentId,
@@ -27,31 +31,42 @@ class StudentGrade {
     required this.p2Score,
     required this.attendanceRate,
     this.hasGrades = true,
+    this.evaluationFormula = '(N1 × 0.4) + (N2 × 0.6)',
+    this.thresholds = AcademicThresholds.defaults,
   });
 
-  /// N1 = (assignmentsScore * 0.4) + (p1Score * 0.6)
-  double get n1Total => double.parse(
-    ((assignmentsScore * 0.4) + (p1Score * 0.6)).toStringAsFixed(1),
+  /// N1 calculada dinamicamente pela fórmula da turma.
+  double get n1Total => GradeCalculator.computeN1(
+    assignmentsScore,
+    p1Score,
+    formula: evaluationFormula,
   );
 
   /// Alias for n1Total.
   double get n1Score => n1Total;
 
-  /// N2 = (projectsScore * 0.4) + (p2Score * 0.6)
-  double get n2Total => double.parse(
-    ((projectsScore * 0.4) + (p2Score * 0.6)).toStringAsFixed(1),
+  /// N2 calculada dinamicamente pela fórmula da turma.
+  double get n2Total => GradeCalculator.computeN2(
+    projectsScore,
+    p2Score,
+    formula: evaluationFormula,
   );
 
   /// Alias for n2Total.
   double get n2Score => n2Total;
 
-  /// Final semester average: MS = (N1 * 0.4) + (N2 * 0.6)
-  double get finalAverage =>
-      double.parse(((n1Total * 0.4) + (n2Total * 0.6)).toStringAsFixed(1));
+  /// Média semestral calculada dinamicamente pela fórmula da turma.
+  double get finalAverage => GradeCalculator.computeFinalAverage(
+    assignmentsScore: assignmentsScore,
+    p1Score: p1Score,
+    projectsScore: projectsScore,
+    p2Score: p2Score,
+    formula: evaluationFormula,
+  );
 
-  /// Academic standing as an enum according to institutional regulation (PPC)
+  /// Academic standing as an enum according to institutional thresholds.
   AcademicStatus get status {
-    if (attendanceRate < 75.0) {
+    if (attendanceRate < thresholds.minimumAttendance) {
       return AcademicStatus.reprovadoPorFalta;
     }
     final hasAnyScore =
@@ -63,10 +78,10 @@ class StudentGrade {
     if (!hasAnyScore) {
       return AcademicStatus.semNotas;
     }
-    if (finalAverage >= 6.0) {
+    if (finalAverage >= thresholds.minimumGrade) {
       return AcademicStatus.aprovado;
     }
-    if (finalAverage >= 4.0) {
+    if (finalAverage >= thresholds.specialExamGrade) {
       return AcademicStatus.exame;
     }
     return AcademicStatus.reprovadoPorNota;
@@ -99,6 +114,8 @@ class StudentGrade {
     double? p2Score,
     double? attendanceRate,
     bool? hasGrades,
+    String? evaluationFormula,
+    AcademicThresholds? thresholds,
   }) {
     return StudentGrade(
       studentId: studentId ?? this.studentId,
@@ -111,6 +128,8 @@ class StudentGrade {
       p2Score: p2Score ?? this.p2Score,
       attendanceRate: attendanceRate ?? this.attendanceRate,
       hasGrades: hasGrades ?? this.hasGrades,
+      evaluationFormula: evaluationFormula ?? this.evaluationFormula,
+      thresholds: thresholds ?? this.thresholds,
     );
   }
 }

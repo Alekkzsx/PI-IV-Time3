@@ -423,7 +423,7 @@ class ClassListTable extends StatelessWidget {
                             const Icon(
                               Icons.balance,
                               size: 13,
-                              color: Color(0xFF4F46E5),
+                              color: Color(0xFF18181B),
                             ),
                             const SizedBox(width: 5),
                             Text(

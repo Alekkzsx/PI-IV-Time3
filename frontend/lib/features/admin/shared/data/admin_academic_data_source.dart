@@ -27,6 +27,9 @@ abstract interface class AdminAcademicDataSource {
     required String location,
     required int maxCapacity,
     String? professorIdentity,
+    String? subjectName,
+    String? schedule,
+    int? totalHours,
   });
   Future<void> assignTeacherToClass({
     required String classCode,
@@ -175,6 +178,9 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
     required String location,
     required int maxCapacity,
     String? professorIdentity,
+    String? subjectName,
+    String? schedule,
+    int? totalHours,
   }) async {
     await _request(
       'POST',
@@ -188,6 +194,11 @@ class AdminAcademicRemoteDataSource implements AdminAcademicDataSource {
         'maxCapacity': maxCapacity,
         if (professorIdentity != null && professorIdentity.trim().isNotEmpty)
           'professorIdentity': professorIdentity.trim(),
+        if (subjectName != null && subjectName.trim().isNotEmpty)
+          'subjectName': subjectName.trim(),
+        if (schedule != null && schedule.trim().isNotEmpty)
+          'schedule': schedule.trim(),
+        if (totalHours != null) 'totalHours': totalHours,
       },
     );
   }

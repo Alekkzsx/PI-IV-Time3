@@ -69,13 +69,13 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF2FF),
+                      color: const Color(0xFFF2F0EB),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE0E7FF)),
+                      border: Border.all(color: const Color(0xFFE5E5E5)),
                     ),
                     child: const Icon(
                       Icons.balance,
-                      color: Color(0xFF4F46E5),
+                      color: Color(0xFF18181B),
                       size: 22,
                     ),
                   ),
@@ -148,16 +148,16 @@ class _ClassRegimeFormulaModalState extends State<ClassRegimeFormulaModal> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
+                            color: const Color(0xFFF2F0EB),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFBFDBFE)),
+                            border: Border.all(color: const Color(0xFFE5E5E5)),
                           ),
                           child: Text(
                             c.courseName,
                             style: jakarta(
                               size: 12,
                               weight: FontWeight.w600,
-                              color: const Color(0xFF2563EB),
+                              color: const Color(0xFF18181B),
                             ),
                           ),
                         ),

@@ -289,3 +289,75 @@ class AdminCalendarMilestone {
     );
   }
 }
+
+class AdminGradeRectificationModel {
+  final String id;
+  final String code;
+  final String classCode;
+  final String subjectName;
+  final String studentId;
+  final String studentRa;
+  final String studentName;
+  final String teacherId;
+  final String teacherName;
+  final String stage;
+  final double previousScore;
+  final double newScore;
+  final String justification;
+  final String status;
+  final String? decisionNote;
+  final String? signedBy;
+  final String createdAt;
+
+  const AdminGradeRectificationModel({
+    required this.id,
+    required this.code,
+    required this.classCode,
+    required this.subjectName,
+    required this.studentId,
+    required this.studentRa,
+    required this.studentName,
+    required this.teacherId,
+    required this.teacherName,
+    required this.stage,
+    required this.previousScore,
+    required this.newScore,
+    required this.justification,
+    required this.status,
+    this.decisionNote,
+    this.signedBy,
+    this.createdAt = '',
+  });
+
+  bool get isPending {
+    final normalized = status.trim().toLowerCase();
+    return normalized == 'pendente' ||
+        normalized == 'aguardando' ||
+        normalized == 'aguardando parecer';
+  }
+
+  factory AdminGradeRectificationModel.fromJson(Map<String, dynamic> json) {
+    double toDouble(Object? v) =>
+        v is num ? v.toDouble() : (double.tryParse(v?.toString() ?? '') ?? 0.0);
+    return AdminGradeRectificationModel(
+      id: (json['id'] ?? json['_id'])?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+      classCode: json['classCode']?.toString() ?? '',
+      subjectName:
+          json['subjectName']?.toString() ?? json['classCode']?.toString() ?? '',
+      studentId: json['studentId']?.toString() ?? '',
+      studentRa: json['studentRa']?.toString() ?? '',
+      studentName: json['studentName']?.toString() ?? 'Discente',
+      teacherId: json['teacherId']?.toString() ?? '',
+      teacherName: json['teacherName']?.toString() ?? 'Docente',
+      stage: json['stage']?.toString() ?? 'P1',
+      previousScore: toDouble(json['previousScore']),
+      newScore: toDouble(json['newScore']),
+      justification: json['justification']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'Pendente',
+      decisionNote: json['decisionNote']?.toString(),
+      signedBy: json['signedBy']?.toString(),
+      createdAt: json['createdAt']?.toString() ?? '',
+    );
+  }
+}

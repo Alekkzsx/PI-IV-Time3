@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Configuration tab for Administrative Profile.
 ///
@@ -43,10 +45,12 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
         _loading = false;
       });
     } catch (error) {
-      if (mounted) setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = error.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -70,6 +74,27 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       ? _profile[key].toString()
       : fallback;
 
+  String _initials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'AD';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  String _formattedRole() {
+    final raw = _field('profile', 'admin').toLowerCase();
+    return switch (raw) {
+      'admin' => 'Administrador Institucional',
+      'docente' => 'Docente',
+      'aluno' => 'Discente',
+      _ => _field('profile', 'Administrador Institucional'),
+    };
+  }
+
   @override
   void dispose() {
     _socialNameController.dispose();
@@ -79,44 +104,81 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    final effectiveName = _field(
+      'displayName',
+      AppUserSession.instance.effectiveName,
+    );
     return Column(
       children: [
         if (_error != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: InstColors.dangerBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: InstColors.danger.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Text(
+              _error!,
+              style: jakarta(size: 13, color: InstColors.danger),
+            ),
           ),
         // 1. Visual Identity & Photo Card
         _buildSectionCard(
-          title: 'Identidade Visual & Foto',
+          title: 'Identidade Visual & Avatar',
           subtitle:
-              'Sua foto será exibida para professores e colegas nos fóruns, salas virtuais e trabalhos em grupo.',
+              'Identificador visual exibido em despachos administrativos e trilhas de auditoria.',
           child: Row(
             children: [
               Container(
                 width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0F172A),
+                  color: InstColors.ink,
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'C',
-                    style: TextStyle(
+                    _initials(effectiveName),
+                    style: jakarta(
                       color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      size: 20,
+                      weight: FontWeight.w700,
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 20),
               Expanded(
-                child: Text(
-                  _field('displayName', AppUserSession.instance.effectiveName),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      effectiveName,
+                      style: jakarta(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: InstColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formattedRole(),
+                      style: jakarta(size: 12.5, color: InstColors.muted),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -155,29 +217,33 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Official Academic Records Card
+        // 3. Official Institutional Records Card
         _buildSectionCard(
-          title: 'Informações Acadêmicas Oficiais',
+          title: 'Vínculo Funcional & Registros',
           subtitle:
-              'Dados vinculados ao seu registro perante o Ministério da Educação e Secretaria Acadêmica.',
+              'Dados vinculados ao cadastro institucional e lotação administrativa.',
           trailingBadge: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: InstColors.stoneActive,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: InstColors.border),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.school_outlined, size: 14, color: Color(0xFF475569)),
-                SizedBox(width: 6),
+              children: [
+                const Icon(
+                  Icons.admin_panel_settings_outlined,
+                  size: 14,
+                  color: InstColors.ink,
+                ),
+                const SizedBox(width: 6),
                 Text(
-                  'MATRÍCULA REGULAR',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF334155),
+                  'PERFIL ADMINISTRATIVO',
+                  style: jakarta(
+                    size: 10.5,
+                    weight: FontWeight.w700,
+                    color: InstColors.ink,
                   ),
                 ),
               ],
@@ -191,16 +257,19 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                   return isNarrow
                       ? Column(
                           children: [
-                            _buildInfoField('MATRÍCULA / RA', _field('identity')),
+                            _buildInfoField(
+                              'IDENTIDADE / REGISTRO',
+                              _field('identity'),
+                            ),
                             const SizedBox(height: 12),
                             _buildInfoField(
-                              'CURSO VINCULADO',
+                              'LOTAÇÃO / DEPARTAMENTO',
                               _field('departmentOrCourse'),
                             ),
                             const SizedBox(height: 12),
                             _buildInfoField(
-                              'PERÍODO LETIVO',
-                              _field('profile', 'Administrador'),
+                              'PERFIL DE ACESSO',
+                              _formattedRole(),
                             ),
                           ],
                         )
@@ -208,7 +277,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                           children: [
                             Expanded(
                               child: _buildInfoField(
-                                'MATRÍCULA / RA',
+                                'IDENTIDADE / REGISTRO',
                                 _field('identity'),
                               ),
                             ),
@@ -216,17 +285,17 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                             Expanded(
                               flex: 2,
                               child: _buildInfoField(
-                                'CURSO VINCULADO',
+                                'LOTAÇÃO / DEPARTAMENTO',
                                 _field('departmentOrCourse'),
-                                icon: Icons.school_outlined,
+                                icon: Icons.apartment_outlined,
                               ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               flex: 2,
                               child: _buildInfoField(
-                                'PERÍODO LETIVO',
-                                _field('profile', 'Administrador'),
+                                'PERFIL DE ACESSO',
+                                _formattedRole(),
                               ),
                             ),
                           ],
@@ -254,9 +323,9 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -270,19 +339,16 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A),
+                      style: jakarta(
+                        size: 16,
+                        weight: FontWeight.w700,
+                        color: InstColors.ink,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: Color(0xFF64748B),
-                      ),
+                      style: jakarta(size: 12.5, color: InstColors.muted),
                     ),
                   ],
                 ),
@@ -303,32 +369,36 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               'Nome de Registro Civil',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF334155),
+              style: jakarta(
+                size: 12.5,
+                weight: FontWeight.w600,
+                color: InstColors.body,
               ),
             ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: InstColors.subtle,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.lock_outline, size: 11, color: Color(0xFF64748B)),
-                  SizedBox(width: 4),
+                children: [
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 11,
+                    color: InstColors.muted,
+                  ),
+                  const SizedBox(width: 4),
                   Text(
                     'Oficial',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF64748B),
+                    style: jakarta(
+                      size: 10,
+                      weight: FontWeight.w600,
+                      color: InstColors.muted,
                     ),
                   ),
                 ],
@@ -337,28 +407,18 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: TextField(
-            controller: _civilNameController,
-            enabled: false,
-            style: const TextStyle(fontSize: 13.5, color: Color(0xFF475569)),
-            decoration: const InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.zero,
-            ),
+        TextField(
+          controller: _civilNameController,
+          enabled: false,
+          style: jakarta(size: 13.5, color: InstColors.muted),
+          decoration: InstText.inputDecoration().copyWith(
+            fillColor: InstColors.stone,
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Registro civil emitido no ato da matrícula acadêmica.',
-          style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+        Text(
+          'Nome civil registrado no cadastro institucional.',
+          style: jakarta(size: 11, color: InstColors.faint),
         ),
       ],
     );
@@ -370,65 +430,71 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       children: [
         Row(
           children: [
-            const Text(
+            Text(
               'Nome Social / Preferido',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF334155),
+              style: jakarta(
+                size: 12.5,
+                weight: FontWeight.w600,
+                color: InstColors.body,
               ),
             ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: InstColors.stoneActive,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
+              child: Text(
                 'Editável',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2563EB),
+                style: jakarta(
+                  size: 10,
+                  weight: FontWeight.w600,
+                  color: InstColors.ink,
                 ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFCBD5E1)),
+        TextField(
+          controller: _socialNameController,
+          style: jakarta(
+            size: 13.5,
+            weight: FontWeight.w500,
+            color: InstColors.ink,
           ),
-          child: TextField(
-            controller: _socialNameController,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF0F172A),
-            ),
-            decoration: const InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.zero,
-            ),
+          decoration: InstText.inputDecoration(
+            hintText: 'Como prefere ser identificado nos despachos',
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Nome utilizado em chamadas, listas públicas e fóruns de disciplina.',
-          style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+        Text(
+          'Nome exibido nos despachos de secretaria, homologações e cabeçalho.',
+          style: jakarta(size: 11, color: InstColors.faint),
         ),
         const SizedBox(height: 12),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton(
+          child: ElevatedButton(
             onPressed: _saveProfile,
-            child: const Text('Salvar perfil'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: InstColors.ink,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Salvar perfil',
+              style: jakarta(
+                size: 13,
+                weight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
           ),
         ),
       ],
@@ -440,9 +506,9 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: InstColors.stone,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,17 +516,17 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
           Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 12, color: const Color(0xFF64748B)),
+                Icon(icon, size: 12, color: InstColors.muted),
                 const SizedBox(width: 5),
               ],
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                  style: jakarta(
+                    size: 10,
+                    weight: FontWeight.w700,
                     letterSpacing: 0.5,
-                    color: Color(0xFF64748B),
+                    color: InstColors.muted,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -470,10 +536,10 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF0F172A),
+            style: jakarta(
+              size: 13,
+              weight: FontWeight.w600,
+              color: InstColors.ink,
             ),
             overflow: TextOverflow.ellipsis,
           ),

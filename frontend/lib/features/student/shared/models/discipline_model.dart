@@ -1,6 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/foundation.dart';
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 import 'material_item.dart';
 
 /// Modelo de domínio que representa uma disciplina acadêmica matriculada pelo estudante.
@@ -89,8 +90,14 @@ class DisciplineModel {
   /// Limite máximo regimental de faltas antes da reprovação por infrequência.
   final int maxAbsenceHours;
 
+  /// Regime de definição da fórmula ('admin' ou 'autonomia_docente').
+  final String formulaRegime;
+
   /// Fórmula regimental institucional utilizada para cômputo da média final.
   final String evaluationFormula;
+
+  /// Parâmetros regimentais aplicados à disciplina (nota mínima, frequência mínima, exame).
+  final AcademicThresholds academicThresholds;
 
   /// Período letivo correspondente (ex: "2026/1").
   final String semester;
@@ -163,7 +170,9 @@ class DisciplineModel {
     this.fullCode,
     this.hasPendingTask = false,
     this.maxAbsenceHours = 20,
+    this.formulaRegime = 'autonomia_docente',
     this.evaluationFormula = '(N1 × 0.4) + (N2 × 0.6)',
+    this.academicThresholds = AcademicThresholds.defaults,
     this.semester = '',
     this.isLab = false,
     this.ementa = '',
@@ -254,8 +263,13 @@ class DisciplineModel {
       officeLocation: json['officeLocation']?.toString() ?? 'Sala dos Professores (Bloco C) ou Sala Virtual Teams',
       maxAbsenceHours: intOrZero(json['maxAbsenceHours']),
       hasPendingTask: json['hasPendingTask'] == true,
+      formulaRegime:
+          json['formulaRegime']?.toString() ?? 'autonomia_docente',
       evaluationFormula:
           json['evaluationFormula']?.toString() ?? '(N1 × 0.4) + (N2 × 0.6)',
+      academicThresholds: AcademicThresholds.fromJson(
+        json['academicThresholds'],
+      ),
       semester: json['semester']?.toString() ?? '',
       isLab: json['isLab'] == true,
       ementa: json['ementa']?.toString() ?? '',
@@ -320,7 +334,9 @@ class DisciplineModel {
       officeLocation: officeLocation,
       hasPendingTask: hasPendingTask,
       maxAbsenceHours: maxAbsenceHours,
+      formulaRegime: formulaRegime,
       evaluationFormula: evaluationFormula,
+      academicThresholds: academicThresholds,
       semester: semester,
       isLab: isLab,
       ementa: ementa,

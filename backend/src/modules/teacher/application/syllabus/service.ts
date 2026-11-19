@@ -1,5 +1,6 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 import type { Db, Document } from "mongodb";
+import { AuthError } from "../../../../shared/auth-error.js";
 import { TeacherClassAccess } from "../teacher-class-access.js";
 import { createDefaultSyllabusUnits } from "./syllabus.defaults.js";
 
@@ -73,6 +74,18 @@ export class TeacherSyllabusService {
     },
   ) {
     const classroom = await this.classAccess.requireOwnedClass(userId, user, classCode);
+    const currentFormula = String(classroom.evaluationFormula ?? "(N1 × 0.4) + (N2 × 0.6)").trim();
+    if (
+      classroom.formulaRegime === "admin" &&
+      input.evaluationFormula !== undefined &&
+      input.evaluationFormula.trim() !== currentFormula
+    ) {
+      throw new AuthError(
+        403,
+        "formula_locked_by_admin",
+        "A fórmula de avaliação desta turma é imposta pela Administração e não pode ser alterada pelo docente.",
+      );
+    }
     const updateSet: Record<string, unknown> = { updatedAt: new Date() };
     if (input.syllabus !== undefined) {
       updateSet.syllabus = input.syllabus.trim();
@@ -80,7 +93,9 @@ export class TeacherSyllabusService {
     }
     if (input.objectives !== undefined) updateSet.objectives = input.objectives.trim();
     if (input.methodology !== undefined) updateSet.methodology = input.methodology.trim();
-    if (input.evaluationFormula !== undefined) updateSet.evaluationFormula = input.evaluationFormula.trim();
+    if (input.evaluationFormula !== undefined && classroom.formulaRegime !== "admin") {
+      updateSet.evaluationFormula = input.evaluationFormula.trim();
+    }
     if (input.bibliography !== undefined) updateSet.bibliography = input.bibliography;
 
     await this.database

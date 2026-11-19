@@ -290,7 +290,11 @@ class UserSessionsDialog extends StatelessWidget {
                       ),
                       label: Text(
                         'Encerrar Todas as Sessões',
-                        style: jakarta(size: 13, weight: FontWeight.w600),
+                        style: jakarta(
+                          size: 13,
+                          weight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFDC2626),

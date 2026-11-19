@@ -58,9 +58,9 @@ class _AuditPageState extends State<AuditPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32.0,
-                    vertical: 28.0,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.sizeOf(context).width >= 1100 ? 48.0 : 20.0,
+                    vertical: 36.0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +424,7 @@ class _AuditPageState extends State<AuditPage> {
                                               const Icon(
                                                 Icons.person_pin_rounded,
                                                 size: 12,
-                                                color: Color(0xFF2563EB),
+                                                color: Color(0xFF18181B),
                                               ),
                                               const SizedBox(width: 4),
                                               Expanded(
@@ -436,7 +436,7 @@ class _AuditPageState extends State<AuditPage> {
                                                   style: const TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w600,
-                                                    color: Color(0xFF2563EB),
+                                                    color: Color(0xFF18181B),
                                                   ),
                                                 ),
                                               ),

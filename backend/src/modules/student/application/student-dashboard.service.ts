@@ -19,6 +19,7 @@ import { StudentDashboardRepository } from "./student-dashboard.repository.js";
 import { StudentPortalOperationsService } from "./student-portal-operations.service.js";
 import { buildStudentTimeline } from "./timeline/student-timeline.builder.js";
 import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
+import { resolveInstitutionalThresholds } from "../../../shared/academic/grade-formula.js";
 
 export class StudentDashboardService {
   private readonly repository: StudentDashboardRepository;
@@ -56,6 +57,7 @@ export class StudentDashboardService {
       auditLogs,
       institutionalSettings,
       profMap,
+      studentMap,
     } = await this.repository.load(studentId);
 
     const submissionByAssignment = new Map(submissions.map((s) => [String(s.assignmentId), s]));
@@ -78,6 +80,8 @@ export class StudentDashboardService {
       studentId,
       studentIdentity: user.identity,
       professorById: profMap,
+      studentById: studentMap,
+      institutionalSettings,
     });
 
     // 2. Entregas / Atividades
@@ -87,7 +91,7 @@ export class StudentDashboardService {
     // 3. Eventos do Calendário do Aluno
     const mappedEvents = mapStudentEvents(classSessions, assignments, calendarEvents, personalReminders);
 
-    const historicalBoletim = mapStudentHistoricalBoletim(mappedDisciplines);
+    const historicalBoletim = mapStudentHistoricalBoletim(mappedDisciplines, institutionalSettings);
     const mappedMessages = mapStudentMessages(announcements, studentId);
     const mappedProtocols = mapStudentProtocols(protocols);
 
@@ -116,6 +120,7 @@ export class StudentDashboardService {
       forumTopics: mapStudentForumTopics(forumTopics),
       personalNotes: notesMap,
       academicResources,
+      academicThresholds: resolveInstitutionalThresholds(institutionalSettings),
       activeSessions: mapStudentSessions(activeSessions, currentSessionId),
       securityLogs: mapStudentSecurityLogs(auditLogs),
     };

@@ -310,7 +310,11 @@ class _UserSuspensionDialogState extends State<UserSuspensionDialog> {
                   ),
                   label: Text(
                     _willSuspend ? 'Confirmar Suspensão' : 'Reativar Usuário',
-                    style: jakarta(size: 13, weight: FontWeight.w600),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _willSuspend

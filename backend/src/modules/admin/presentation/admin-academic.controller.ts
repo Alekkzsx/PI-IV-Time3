@@ -8,6 +8,7 @@ import { AuthError } from "../../../shared/auth-error.js";
 import { parse, objectId } from "../../../shared/validation.js";
 import { adminOnly } from "../infrastructure/admin-auth.middleware.js";
 import { adminWrite, audit, publicRecord } from "../infrastructure/admin-support.js";
+import { computeSemesterGrades } from "../../../shared/academic/grade-formula.js";
 
 const codeSchema = z.string().trim().min(2).max(60).regex(/^[\p{L}\p{N}._\-\s]+$/u);
 const courseSchema = z.object({
@@ -224,6 +225,22 @@ export function createAdminAcademicRouter(database: Db, jwtSecret: string): Rout
         { session, returnDocument: "after" },
       );
       if (!record) throw new AuthError(404, "course_not_found", "Curso não encontrado.");
+      const cascadeSet: Document = {};
+      if (fields.name !== undefined) cascadeSet.courseName = fields.name;
+      if (fields.code !== undefined && fields.code !== code) cascadeSet.courseCode = fields.code;
+      if (Object.keys(cascadeSet).length > 0) {
+        await classes.updateMany({ courseCode: code }, { $set: { ...cascadeSet, updatedAt: new Date() } }, { session });
+        if (fields.code && fields.code !== code) {
+          await enrollments.updateMany({ courseCode: code }, { $set: { courseCode: fields.code } }, { session });
+        }
+      }
+      if (fields.formula !== undefined) {
+        await classes.updateMany(
+          { courseCode: fields.code ?? code, formulaRegime: "admin" },
+          { $set: { evaluationFormula: fields.formula, updatedAt: new Date() } },
+          { session },
+        );
+      }
       await audit(database, actor(response), "course_updated", code, fields, session);
       return publicRecord(record);
     });
@@ -256,9 +273,13 @@ export function createAdminAcademicRouter(database: Db, jwtSecret: string): Rout
       const p1Score = Number(g?.p1Score ?? 0);
       const projectsScore = Number(g?.projectsScore ?? 0);
       const p2Score = Number(g?.p2Score ?? 0);
-      const n1 = Number((assignmentsScore * 0.4 + p1Score * 0.6).toFixed(1));
-      const n2 = Number((projectsScore * 0.4 + p2Score * 0.6).toFixed(1));
-      const finalAverage = Number((n1 * 0.4 + n2 * 0.6).toFixed(1));
+      const { n1, n2, finalAverage } = computeSemesterGrades({
+        assignmentsScore,
+        p1Score,
+        projectsScore,
+        p2Score,
+        evaluationFormula: classroom.evaluationFormula,
+      });
       return {
         studentId: String(enrollment.studentId),
         ra: String(enrollment.studentIdentity ?? ""),
@@ -375,7 +396,13 @@ export function createAdminAcademicRouter(database: Db, jwtSecret: string): Rout
               lockedAt: new Date(),
               lockedBy: actor(response),
             }
-          : {};
+          : fields.gradeLocked === false
+            ? {
+                pautaHomologated: false,
+                unlockedAt: new Date(),
+                unlockedBy: actor(response),
+              }
+            : {};
       const record = await classes.findOneAndUpdate(
         { code },
         { $set: { ...fields, ...prof, ...chancelaUpdate, updatedAt: new Date() } },

@@ -1,6 +1,7 @@
 // Desenvolvido por Guilherme Henrique Moreira
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Callback para conclusão de cadastro de usuário institucional.
@@ -277,13 +278,16 @@ class _UserFormModalState extends State<UserFormModal> {
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _identityController,
+                            style: jakarta(
+                              size: 13.5,
+                              color: const Color(0xFF18181B),
+                            ),
                             validator: (value) =>
                                 (value?.trim().length ?? 0) >= 3
                                 ? null
                                 : 'Informe uma identidade institucional.',
-                            decoration: const InputDecoration(
+                            decoration: InstText.inputDecoration(
                               hintText: 'Identidade institucional',
-                              border: OutlineInputBorder(),
                             ),
                           ),
                         ],
@@ -295,7 +299,9 @@ class _UserFormModalState extends State<UserFormModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Curso de Ingresso',
+                            _selectedRole == 'Discente (Aluno)'
+                                ? 'Curso de Ingresso'
+                                : 'Departamento / Unidade',
                             style: jakarta(
                               size: 13.5,
                               weight: FontWeight.w700,
@@ -313,29 +319,10 @@ class _UserFormModalState extends State<UserFormModal> {
                               size: 13.5,
                               color: const Color(0xFF18181B),
                             ),
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF18181B),
-                                ),
-                              ),
+                            decoration: InstText.inputDecoration(
+                              hintText: _selectedRole == 'Discente (Aluno)'
+                                  ? 'Curso e semestre'
+                                  : 'Departamento / Setor',
                             ),
                           ),
                         ],
@@ -345,28 +332,96 @@ class _UserFormModalState extends State<UserFormModal> {
                 ),
                 const SizedBox(height: 18),
 
+                Text(
+                  'Senha Inicial Provisória',
+                  style: jakarta(
+                    size: 13.5,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
+                  style: jakarta(
+                    size: 13.5,
+                    color: const Color(0xFF18181B),
+                  ),
                   validator: (value) => (value?.length ?? 0) >= 8
                       ? null
                       : 'Use pelo menos oito caracteres.',
-                  decoration: const InputDecoration(
-                    labelText: 'Senha inicial',
-                    border: OutlineInputBorder(),
+                  decoration: InstText.inputDecoration(
+                    hintText: 'Senha inicial (mínimo 8 caracteres)',
                   ),
                 ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Exigir segundo fator por e-mail'),
-                  subtitle: const Text('Requer serviço de e-mail configurado.'),
-                  value: _require2FA,
-                  onChanged: _busy
-                      ? null
-                      : (value) => setState(() => _require2FA = value),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: InstColors.stone,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: InstColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Exigir segundo fator por e-mail',
+                              style: jakarta(
+                                size: 13.5,
+                                weight: FontWeight.w600,
+                                color: InstColors.ink,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Requer serviço de e-mail configurado.',
+                              style: jakarta(
+                                size: 12,
+                                color: InstColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: _require2FA,
+                        activeTrackColor: InstColors.ink,
+                        onChanged: _busy
+                            ? null
+                            : (value) => setState(() => _require2FA = value),
+                      ),
+                    ],
+                  ),
                 ),
-                if (_error != null)
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: InstColors.dangerBg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: InstColors.danger.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _error!,
+                      style: jakarta(size: 12.5, color: InstColors.danger),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 // Orienta??o de primeiro acesso
                 Container(

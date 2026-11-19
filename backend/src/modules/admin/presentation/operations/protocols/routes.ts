@@ -6,6 +6,7 @@ import { z } from "zod";
 import { AuthError } from "../../../../../shared/auth-error.js";
 import { objectId, parse } from "../../../../../shared/validation.js";
 import { adminWrite, audit, publicRecord } from "../../../infrastructure/admin-support.js";
+import { extractClassCodeCandidates } from "../../../../../shared/academic/grade-formula.js";
 import type { UnifiedEmailService } from "../../../../notifications/domain/notification.types.js";
 import {
 	dispatchNotificationSafe,
@@ -88,12 +89,41 @@ export function registerAdminProtocolRoutes(
 			const requestType = String(updated.requestType ?? "").toLowerCase();
 			if (input.approved && ["abono", "atestado", "falta"].some((term) => requestType.includes(term))) {
 				const targetFilter: Document = { studentId: String(updated.studentId), status: "active" };
-				if (updated.targetComponent) targetFilter.classCode = updated.targetComponent;
+				const codeCandidates = extractClassCodeCandidates(updated.targetComponent);
+				if (codeCandidates.length > 0) {
+					targetFilter.classCode = { $in: codeCandidates };
+				}
+				const matchedEnrollments = await database.collection("academic_enrollments").find(targetFilter, { session }).toArray();
 				await database.collection("academic_enrollments").updateMany(
 					targetFilter,
 					{ $inc: { excusedAbsences: 2 } },
 					{ session },
 				);
+				for (const enrollment of matchedEnrollments) {
+					const classCode = String(enrollment.classCode);
+					const existingGrade = await database
+						.collection("academic_grades")
+						.findOne({ classCode, studentId: String(updated.studentId) }, { session });
+					if (existingGrade && Number(existingGrade.absences ?? 0) > 0) {
+						const classroom = await database.collection("academic_classes").findOne({ code: classCode }, { session });
+						const totalHours = Number(classroom?.totalHours ?? 80);
+						const nextAbsences = Math.max(0, Number(existingGrade.absences) - 2);
+						const nextAttendanceRate = Number(
+							Math.max(0, ((totalHours - nextAbsences) / totalHours) * 100).toFixed(1),
+						);
+						await database.collection("academic_grades").updateOne(
+							{ _id: existingGrade._id },
+							{
+								$set: {
+									absences: nextAbsences,
+									attendanceRate: nextAttendanceRate,
+									updatedAt: new Date(),
+								},
+							},
+							{ session },
+						);
+					}
+				}
 			}
 			await audit(database, response.locals.adminId, "protocol_decided", String(id), { approved: input.approved }, session);
 			return publicRecord(updated);

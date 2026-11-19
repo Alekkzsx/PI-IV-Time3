@@ -52,7 +52,12 @@ class DocenteGradesTab extends StatelessWidget {
                             selectedCourse: selectedCourse,
                           ),
                           const SizedBox(height: 20),
-                          const DocenteGradesFormulaBanner(),
+                          DocenteGradesFormulaBanner(
+                            evaluationFormula: selectedCourse.evaluationFormula,
+                            thresholds: controller.academicThresholds,
+                            isLockedByAdmin:
+                                selectedCourse.isFormulaLockedByAdmin,
+                          ),
                           const SizedBox(height: 24),
                           DocenteGradebookTable(
                             controller: controller,

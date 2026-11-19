@@ -181,4 +181,49 @@ describe("Teacher grading batch & flexible evaluation flows", () => {
     assert.equal(revised.consolidatedStageGrade, 9.2);
     assert.equal(store.academic_grades?.[0]?.assignmentsScore, 9.2);
   });
+
+  it("cria registro acionável em academic_rectifications se pauta estiver lacrada e bloqueia edição de fórmula sob regime admin", async () => {
+    const teacherId = new ObjectId();
+    const studentId = new ObjectId();
+    const { db, store } = makeFakeDb({
+      academic_classes: [
+        {
+          _id: new ObjectId(),
+          code: "LOCKED-2",
+          subjectName: "Sistemas Distribuídos",
+          professorId: String(teacherId),
+          gradeLocked: true,
+          formulaRegime: "admin",
+          evaluationFormula: "(N1 + N2) / 2",
+        },
+      ],
+      academic_enrollments: [
+        { classCode: "LOCKED-2", studentId: String(studentId), studentIdentity: "20261", displayName: "Aluno 1", status: "active" },
+      ],
+      academic_grades: [
+        { classCode: "LOCKED-2", studentId: String(studentId), assignmentsScore: 7, p1Score: 6.5, projectsScore: 8, p2Score: 7 },
+      ],
+    });
+    const service = new TeacherService(db);
+    const teacherDoc = { _id: teacherId, identity: "professor.test", displayName: "Prof.", profile: "docente" };
+
+    const recRes = await service.requestGradeRectification(String(teacherId), teacherDoc, "LOCKED-2", {
+      studentId: String(studentId),
+      stage: "P1",
+      newScore: 8.5,
+      justification: "Recurso deferido em revisão presencial.",
+    });
+    assert.equal(recRes.ok, true);
+    assert.equal(recRes.pendingApproval, true);
+    assert.equal(store.academic_rectifications?.length, 1);
+    assert.equal(store.academic_rectifications?.[0]?.status, "Pendente");
+
+    await assert.rejects(
+      () =>
+        service.updateSyllabusPlan(String(teacherId), teacherDoc, "LOCKED-2", {
+          evaluationFormula: "(N1 × 0.4) + (N2 × 0.6)",
+        }),
+      (err: any) => err?.statusCode === 403 && err?.code === "formula_locked_by_admin",
+    );
+  });
 });

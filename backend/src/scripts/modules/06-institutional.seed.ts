@@ -62,14 +62,25 @@ export async function seedInstitutional(
           : "Coordenação de Curso (Sistemas de Informação)")
       : teacher.displayName;
 
+    const audience = ann.isInst
+      ? (ann.category === "CPA" || ann.category === "Secretaria"
+          ? "Toda a Comunidade Acadêmica"
+          : ann.category === "Bancas" || ann.category === "Estágio"
+            ? "Somente Discentes"
+            : "Toda a Comunidade Acadêmica")
+      : "Alunos Matriculados";
+    const contextualBody = ann.isInst
+      ? `${ann.title}. Consulte os prazos, regulamentos e orientações operacionais publicados pela ${authorName} diretamente no calendário e na aba de Secretaria.`
+      : `${ann.title}. Documento e instruções publicados na sala virtual pelo docente ${authorName} para acompanhamento da turma.`;
+
     await upsertSync(
       "academic_announcements",
       { seedKey: `ann-eco-${i + 1}` },
       {
         seedKey: `ann-eco-${i + 1}`,
         title: ann.title,
-        body: `Comunicado oficial da plataforma acadêmica: "${ann.title}". Acompanhem as orientações no portal.`,
-        audience: ann.isInst ? "Todos" : "Alunos Matriculados",
+        body: contextualBody,
+        audience,
         classCode: ann.isInst ? undefined : "PI4-2026-4N",
         category: ann.category,
         priority: ann.priority,
@@ -151,11 +162,27 @@ export async function seedInstitutional(
     {
       institutionName: "AGMRM — Plataforma Universitária Integrada",
       academicPeriod: "2026/2",
+      currentSemesterLabel: "2026/2",
+      currentWeekLabel: "Calendário Vigente 2026/2",
+      resolutionCode: "RESOLUÇÃO CONSEPE 2026/04",
       minimumAttendance: 75,
-      passingGrade: 6.0,
-      defaultFormula: "(N1 × 0.4) + (N2 × 0.6)",
+      minimumGrade: 6.0,
+      specialExamGrade: 4.0,
+      evaluationFormula: "(N1 × 0.4) + (N2 × 0.6)",
       regimentalLockActive: false,
       campusAlertsEnabled: true,
+      campusAlerts: {
+        notifyPendingProtocols: true,
+        notifyGradeRectifications: true,
+        notifyRegimentalDeadlines: true,
+        emailUrgentEscalations: false,
+      },
+      governanceLgpd: {
+        showInstitutionalEmailInClassLists: false,
+        showPeerPresenceStatus: true,
+        lgpdRetentionMonths: 60,
+        dpoEmail: "dpo@agmrm.edu.br",
+      },
       lgpdRetentionMonths: 60,
       dpoEmail: "dpo@agmrm.edu.br",
       updatedAt: now,
@@ -164,6 +191,7 @@ export async function seedInstitutional(
           id: "res-biblioteca-virtual",
           title: "Biblioteca Virtual Pearson & Minha Biblioteca",
           subtitle: "Acervo completo de Engenharia, Arquitetura e Computação",
+          description: "Acervo completo de Engenharia, Arquitetura e Computação",
           category: "ACERVO DIGITAL",
           actionLabel: "Acessar Acervo",
           url: "https://biblioteca.agmrm.edu.br",
@@ -173,6 +201,7 @@ export async function seedInstitutional(
           id: "res-labs-docker",
           title: "Laboratórios Remotos Cloud & Containers",
           subtitle: "Ambientes Linux, Docker, PostgreSQL e MongoDB sob demanda",
+          description: "Ambientes Linux, Docker, PostgreSQL e MongoDB sob demanda",
           category: "INFRAESTRUTURA",
           actionLabel: "Provisionar Lab",
           url: "https://labs.agmrm.edu.br",
@@ -182,6 +211,7 @@ export async function seedInstitutional(
           id: "res-monitoria-nivelamento",
           title: "Central de Monitoria & Nivelamento Acadêmico",
           subtitle: "Plantões semanais com monitores bolsistas das disciplinas",
+          description: "Plantões semanais com monitores bolsistas das disciplinas",
           category: "SUPORTE DISCENTE",
           actionLabel: "Ver Horários",
           url: "https://monitoria.agmrm.edu.br",
@@ -191,6 +221,7 @@ export async function seedInstitutional(
           id: "res-templates-abnt",
           title: "Guias Regimentais, Normas ABNT & Templates",
           subtitle: "Modelos oficiais LaTeX/DOCX para relatórios técnicos e PI",
+          description: "Modelos oficiais LaTeX/DOCX para relatórios técnicos e PI",
           category: "INSTITUCIONAL",
           actionLabel: "Baixar Modelos",
           url: "https://normas.agmrm.edu.br",

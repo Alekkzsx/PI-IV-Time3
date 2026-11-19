@@ -210,7 +210,7 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                               ? Icons.table_chart_outlined
                               : Icons.code_rounded,
                           size: 15,
-                          color: const Color(0xFF2563EB),
+                          color: const Color(0xFF18181B),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -220,7 +220,7 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                           style: jakarta(
                             size: 12,
                             weight: FontWeight.w600,
-                            color: const Color(0xFF2563EB),
+                            color: const Color(0xFF18181B),
                           ),
                         ),
                       ],
@@ -247,7 +247,7 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
+                    backgroundColor: const Color(0xFF18181B),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -260,7 +260,11 @@ class _AuditDiffDialogState extends State<AuditDiffDialog> {
                   ),
                   child: Text(
                     'Concluir Inspeção',
-                    style: jakarta(size: 13, weight: FontWeight.w600),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],

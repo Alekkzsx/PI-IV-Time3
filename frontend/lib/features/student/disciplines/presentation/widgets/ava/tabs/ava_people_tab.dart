@@ -42,8 +42,14 @@ class _AvaPeopleTabState extends State<AvaPeopleTab> {
     final allParticipants = discipline?.participants ?? const <Map<String, dynamic>>[];
 
     // Extrai monitores e colegas
-    final monitors = allParticipants.where((p) => (p['role'] ?? '').toString() == 'monitor').toList();
-    final classmates = allParticipants.where((p) => (p['role'] ?? '').toString() == 'aluno').toList();
+    final monitors = allParticipants.where((p) {
+      final role = (p['role'] ?? '').toString().toLowerCase();
+      return role == 'monitor' || role.contains('monitor');
+    }).toList();
+    final classmates = allParticipants.where((p) {
+      final role = (p['role'] ?? '').toString().toLowerCase();
+      return role == 'aluno' || role == 'estudante';
+    }).toList();
 
     // Filtra pela busca
     final filteredClassmates = classmates.where((c) {
@@ -205,6 +211,11 @@ class _AvaPeopleTabState extends State<AvaPeopleTab> {
                 children: filteredClassmates.map((c) {
                   final name = (c['name'] ?? 'Estudante').toString();
                   final ra = (c['ra'] ?? '218131').toString();
+                  final peerEmail = c['email']?.toString();
+                  final peerStatus = (c['status'] ?? 'Matriculado').toString();
+                  final isPrivatePresence =
+                      peerStatus.toLowerCase() == 'privado' ||
+                      c['showPresenceStatus'] == false;
 
                   return SizedBox(
                     width: colWidth,
@@ -241,7 +252,11 @@ class _AvaPeopleTabState extends State<AvaPeopleTab> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'RA: $ra',
+                                  peerEmail != null && peerEmail.isNotEmpty
+                                      ? 'RA: $ra • $peerEmail'
+                                      : 'RA: $ra',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: jakarta(
                                     size: 11.5,
                                     color: const Color(0xFF71717A),
@@ -251,9 +266,11 @@ class _AvaPeopleTabState extends State<AvaPeopleTab> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const AvaStatusBadge(
-                            label: 'Matriculado',
-                            variant: AvaBadgeVariant.success,
+                          AvaStatusBadge(
+                            label: isPrivatePresence ? 'Discreto' : 'Matriculado',
+                            variant: isPrivatePresence
+                                ? AvaBadgeVariant.neutral
+                                : AvaBadgeVariant.success,
                             isPill: false,
                           ),
                         ],

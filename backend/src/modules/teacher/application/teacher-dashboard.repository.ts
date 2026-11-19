@@ -1,6 +1,11 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 import { ObjectId, type Db, type Document } from "mongodb";
 import { TeacherClassAccess } from "./teacher-class-access.js";
+import { isAnnouncementVisibleToRole } from "../../../shared/academic/grade-formula.js";
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export class TeacherDashboardRepository {
   constructor(
@@ -63,7 +68,14 @@ export class TeacherDashboardRepository {
         })
         .sort({ createdAt: -1 })
         .limit(100)
-        .toArray(),
+        .toArray()
+        .then((list) =>
+          list.filter(
+            (ann) =>
+              String(ann.createdBy ?? "") === userId ||
+              isAnnouncementVisibleToRole(ann, "docente"),
+          ),
+        ),
       classCodes.length > 0
         ? this.database
             .collection("academic_protocols")
@@ -71,6 +83,11 @@ export class TeacherDashboardRepository {
               {
                 $or: [
                   { targetComponent: { $in: classCodes } },
+                  {
+                    targetComponent: {
+                      $regex: `^(?:${classCodes.map(escapeRegExp).join("|")})(?:\\s+-\\s+|$)`,
+                    },
+                  },
                   { classCode: { $in: classCodes } },
                   { classCodes: { $in: classCodes } },
                 ],

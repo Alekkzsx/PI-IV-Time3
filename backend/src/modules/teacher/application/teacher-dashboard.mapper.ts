@@ -2,6 +2,7 @@
 import type { Document } from "mongodb";
 import { sanitizeRoomCode } from "../../../shared/formatting/room-code.js";
 import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
+import { computeSemesterGrades } from "../../../shared/academic/grade-formula.js";
 
 export function mapTeacherCourses(input: {
   classes: Document[];
@@ -141,15 +142,29 @@ export function mapTeacherEvents(teacherEvents: Document[], calendarEvents: Docu
       location: String(event.location ?? "Campus Central"),
       isSynced: true,
     })),
-    ...calendarEvents.map((event) => ({
-      id: String(event._id),
-      title: String(event.title),
-      date: formatShortDate(new Date(event.startsAt ?? Date.now())),
-      time: "Dia inteiro",
-      type: event.type === "deadline" ? "entrega" : "reuniao",
-      location: "Calendário Institucional",
-      isSynced: true,
-    })),
+    ...calendarEvents.map((event) => {
+      const startsAt = event.startsAt ? new Date(event.startsAt) : new Date();
+      const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+      const pad2 = (n: number) => String(n).padStart(2, "0");
+      const hasTime =
+        startsAt.getHours() !== 0 ||
+        startsAt.getMinutes() !== 0 ||
+        (endsAt !== null && (endsAt.getHours() !== 0 || endsAt.getMinutes() !== 0));
+      const time = hasTime
+        ? endsAt
+          ? `${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())} - ${pad2(endsAt.getHours())}:${pad2(endsAt.getMinutes())}`
+          : `${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())}`
+        : "Dia inteiro";
+      return {
+        id: String(event._id),
+        title: String(event.title),
+        date: formatShortDate(startsAt),
+        time,
+        type: event.type === "deadline" ? "entrega" : "reuniao",
+        location: "Calendário Institucional",
+        isSynced: true,
+      };
+    }),
   ];
 }
 
@@ -264,7 +279,9 @@ export function mapTeacherProtocols(protocols: Document[]) {
         ? String(protocol.resolution)
         : protocol.officialResponse
           ? String(protocol.officialResponse)
-          : null,
+          : protocol.decisionNote
+            ? String(protocol.decisionNote)
+            : null,
     };
   });
 }
@@ -404,6 +421,18 @@ export function mapTeacherGrades(
             Number(existing.p2Score ?? 0) > 0),
       );
 
+      const assignmentsScore = Number(existing?.assignmentsScore ?? 0);
+      const p1Score = Number(existing?.p1Score ?? 0);
+      const projectsScore = Number(existing?.projectsScore ?? 0);
+      const p2Score = Number(existing?.p2Score ?? 0);
+      const { n1, n2, finalAverage } = computeSemesterGrades({
+        assignmentsScore,
+        p1Score,
+        projectsScore,
+        p2Score,
+        evaluationFormula: classroom.evaluationFormula,
+      });
+
       mappedGrades.push({
         id: existing ? String(existing._id) : `${classCode}-${studentId}`,
         courseId: classCode,
@@ -411,10 +440,14 @@ export function mapTeacherGrades(
         studentId,
         ra: String(enrollment.studentIdentity ?? existing?.ra ?? ""),
         studentName: String(enrollment.displayName ?? existing?.studentName ?? ""),
-        assignmentsScore: Number(existing?.assignmentsScore ?? 0),
-        p1Score: Number(existing?.p1Score ?? 0),
-        projectsScore: Number(existing?.projectsScore ?? 0),
-        p2Score: Number(existing?.p2Score ?? 0),
+        assignmentsScore,
+        p1Score,
+        projectsScore,
+        p2Score,
+        n1,
+        n2,
+        finalAverage,
+        evaluationFormula: String(classroom.evaluationFormula ?? "(N1 × 0.4) + (N2 × 0.6)"),
         attendanceRate: existing?.attendanceRate !== undefined ? Number(existing.attendanceRate) : computedAttendance,
         absences: rawAbsences,
         hasGrades,

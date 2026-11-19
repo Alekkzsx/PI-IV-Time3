@@ -1,6 +1,7 @@
 // Desenvolvido por Rafael Henrique dos Santos Inácio - RA: 25009719
 
 import 'dart:convert';
+import '../../../../core/academic/grade_calculator.dart';
 import '../../../../core/network/authenticated_api_client.dart';
 import '../models/models.dart' as models;
 
@@ -49,6 +50,9 @@ class DashboardSnapshot {
   /// Recursos institucionais de apoio acadêmico e infraestrutura discente.
   final List<Map<String, dynamic>> academicResources;
 
+  /// Parâmetros regimentais institucionais (média mínima, frequência, exame).
+  final AcademicThresholds academicThresholds;
+
   /// Cria uma nova instância imutável do snapshot do dashboard.
   const DashboardSnapshot({
     required this.studentInfo,
@@ -64,6 +68,7 @@ class DashboardSnapshot {
     required this.protocols,
     required this.forumTopics,
     this.academicResources = const [],
+    this.academicThresholds = AcademicThresholds.defaults,
   });
 
   /// Instancia [DashboardSnapshot] a partir do mapa JSON retornado pelo endpoint de bootstrap.
@@ -108,6 +113,9 @@ class DashboardSnapshot {
       protocols: _asMaps(json['protocols']),
       forumTopics: _asMaps(json['forumTopics']),
       academicResources: _asMaps(json['academicResources']),
+      academicThresholds: AcademicThresholds.fromJson(
+        json['academicThresholds'],
+      ),
     );
   }
 

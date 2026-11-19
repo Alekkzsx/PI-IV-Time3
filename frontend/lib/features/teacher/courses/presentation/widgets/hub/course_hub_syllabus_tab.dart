@@ -135,11 +135,54 @@ class CourseHubSyllabusTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
+            if (course.isFormulaLockedByAdmin) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: InstColors.stone,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: InstColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.lock_outline_rounded,
+                      size: 16,
+                      color: InstColors.ink,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Fórmula imposta pela Administração (regime Impor pelo Admin). Edição bloqueada neste AVA.',
+                        style: jakarta(
+                          size: 12,
+                          weight: FontWeight.w500,
+                          color: InstColors.body,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             TextField(
               controller: formulaCtrl,
-              style: jakarta(size: 13, color: InstColors.ink),
+              enabled: !course.isFormulaLockedByAdmin,
+              readOnly: course.isFormulaLockedByAdmin,
+              style: jakarta(
+                size: 13,
+                color: course.isFormulaLockedByAdmin
+                    ? InstColors.muted
+                    : InstColors.ink,
+              ),
               decoration: courseHubInputDecoration(
-                labelText: 'Fórmula de Avaliação PPC',
+                labelText: course.isFormulaLockedByAdmin
+                    ? 'Fórmula de Avaliação PPC (Travada pelo Admin)'
+                    : 'Fórmula de Avaliação PPC',
               ),
             ),
             const SizedBox(height: 18),
@@ -165,7 +208,9 @@ class CourseHubSyllabusTab extends StatelessWidget {
                             syllabus: syllabusCtrl.text.trim(),
                             objectives: objectivesCtrl.text.trim(),
                             methodology: methodologyCtrl.text.trim(),
-                            evaluationFormula: formulaCtrl.text.trim(),
+                            evaluationFormula: course.isFormulaLockedByAdmin
+                                ? null
+                                : formulaCtrl.text.trim(),
                           );
                           if (!modalCtx.mounted) return;
                           Navigator.of(modalCtx).pop();
@@ -302,9 +347,20 @@ class CourseHubSyllabusTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Nota mínima para aprovação direta: 6.0 • Exame: 4.0 a 5.9 • Frequência mínima regimental: 75%.',
+                      'Nota mínima para aprovação direta: ${controller.academicThresholds.minimumGrade.toStringAsFixed(1)} • Exame: ${controller.academicThresholds.specialExamGrade.toStringAsFixed(1)} a ${(controller.academicThresholds.minimumGrade - 0.1).toStringAsFixed(1)} • Frequência mínima regimental: ${controller.academicThresholds.minimumAttendance.toStringAsFixed(0)}%.',
                       style: jakarta(size: 12.5, color: const Color(0xFF52525B)),
                     ),
+                    if (course.isFormulaLockedByAdmin) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Regime vigente: Fórmula definida pela Administração (somente leitura para o docente).',
+                        style: jakarta(
+                          size: 11.5,
+                          weight: FontWeight.w600,
+                          color: InstColors.ink,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/features/student/shell/presentation/navigation/nav_item.dart';
@@ -138,6 +139,10 @@ abstract class _PortalControllerBase extends ChangeNotifier {
   /// Recursos institucionais de apoio acadêmico vindos de `admin_settings` no MongoDB.
   List<Map<String, dynamic>> get academicResources =>
       remoteDashboard?.academicResources ?? const [];
+
+  /// Diretrizes regimentais institucionais configuradas pelo Admin.
+  AcademicThresholds get academicThresholds =>
+      remoteDashboard?.academicThresholds ?? AcademicThresholds.defaults;
 
   /// Atualiza o item de navegação ativo e notifica os ouvintes da interface.
   void setNavItem(StudentNavItem item) {

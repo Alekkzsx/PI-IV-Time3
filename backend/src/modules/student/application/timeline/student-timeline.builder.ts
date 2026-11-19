@@ -275,7 +275,13 @@ export function buildStudentTimeline(input: BuildTimelineInput): StudentTimeline
 
   // Marcos institucionais (academic_calendar)
   const milestoneItems = input.calendarEvents
-    .filter((e) => e.type === "closing" || e.type === "institutional" || e.isMilestone === true)
+    .filter(
+      (e) =>
+        e.type === "closing" ||
+        e.type === "institutional" ||
+        e.type === "deadline" ||
+        e.isMilestone === true,
+    )
     .map((e) => ({
       date: normalizeDay(new Date(e.startsAt ?? e.date ?? now)),
       label: e.customDateLabel ?? formatDayHeader(new Date(e.startsAt ?? e.date ?? now), now).toLowerCase(),

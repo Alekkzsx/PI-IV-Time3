@@ -10,7 +10,8 @@ const eventSchema = z.object({
   title: z.string().trim().min(2).max(160),
   startsAt: z.string().datetime({ offset: true }),
   endsAt: z.string().datetime({ offset: true }).nullable().optional(),
-  type: z.enum(["academic", "deadline", "holiday"]).default("academic"),
+  type: z.enum(["academic", "deadline", "holiday", "closing", "institutional"]).default("academic"),
+  isMilestone: z.boolean().optional(),
   statusLabel: z.string().trim().max(40).optional(),
   description: z.string().trim().max(2000).default(""),
 }).strict();

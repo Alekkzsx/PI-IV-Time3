@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
@@ -187,7 +187,11 @@ class DocenteChancelaDialog extends StatelessWidget {
                   ),
                   label: Text(
                     'Aplicar Chancela & Homologar',
-                    style: jakarta(size: 13, weight: FontWeight.w700),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A8A),

@@ -1,12 +1,21 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Card descritivo da fórmula de ponderação regimental e órgão deliberador.
 class GuidelinesFormulaCard extends StatelessWidget {
   final TextEditingController formulaController;
+  final TextEditingController? resolutionController;
+  final String lastUpdatedLabel;
 
-  const GuidelinesFormulaCard({super.key, required this.formulaController});
+  const GuidelinesFormulaCard({
+    super.key,
+    required this.formulaController,
+    this.resolutionController,
+    this.lastUpdatedLabel = 'Aguardando sincronização',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,145 +24,150 @@ class GuidelinesFormulaCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: InstColors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: InstColors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Descrição da Fórmula Regimental e Ponderação',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+                style: jakarta(
+                  size: 14,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Texto explicativo exibido para os professores no diário de notas e para os alunos na consulta de rendimento.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              Text(
+                'Parâmetro exibido para os professores no diário de notas e para os alunos na consulta de rendimento.',
+                style: jakarta(size: 12, color: InstColors.muted),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+              TextField(
+                controller: formulaController,
+                style: jakarta(
+                  size: 14,
+                  weight: FontWeight.w500,
+                  color: InstColors.ink,
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: TextField(
-                  controller: formulaController,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF0F172A),
-                  ),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+                decoration: InstText.inputDecoration(
+                  hintText: 'Média Semestral (MS) = (N1 x 0.4) + (N2 x 0.6)',
+                ).copyWith(fillColor: InstColors.stone),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.menu_book_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Resolução / Órgão Deliberador',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Administração Central & Resolução CONSU nº 14/2023',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 680;
+            final resolutionCard = Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: InstColors.stone,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: InstColors.border),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 20,
-                      color: Color(0xFF64748B),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.menu_book_outlined,
+                    size: 20,
+                    color: InstColors.muted,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Resolução / Órgão Deliberador',
+                          style: jakarta(size: 11, color: InstColors.muted),
+                        ),
+                        const SizedBox(height: 4),
+                        if (resolutionController != null)
+                          TextField(
+                            controller: resolutionController,
+                            style: jakarta(
+                              size: 13,
+                              weight: FontWeight.w700,
+                              color: InstColors.ink,
+                            ),
+                            decoration: InstText.inputDecoration(
+                              hintText: 'RESOLUÇÃO CONSEPE 2026/04',
+                            ),
+                          )
+                        else
                           Text(
-                            'Última Homologação Registrada',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF64748B),
+                            'RESOLUÇÃO CONSEPE 2026/04',
+                            style: jakarta(
+                              size: 13,
+                              weight: FontWeight.w700,
+                              color: InstColors.ink,
                             ),
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            '15 de Agosto de 2026',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            );
+            final updatedCard = Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: InstColors.stone,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: InstColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 20,
+                    color: InstColors.muted,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Última Homologação Registrada',
+                          style: jakarta(size: 11, color: InstColors.muted),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          lastUpdatedLabel,
+                          style: jakarta(
+                            size: 13,
+                            weight: FontWeight.w700,
+                            color: InstColors.ink,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+            return isNarrow
+                ? Column(
+                    children: [
+                      resolutionCard,
+                      const SizedBox(height: 12),
+                      updatedCard,
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: resolutionCard),
+                      const SizedBox(width: 16),
+                      Expanded(child: updatedCard),
+                    ],
+                  );
+          },
         ),
       ],
     );

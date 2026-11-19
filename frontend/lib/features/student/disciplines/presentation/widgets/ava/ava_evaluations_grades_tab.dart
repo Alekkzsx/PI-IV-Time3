@@ -34,7 +34,7 @@ class AvaEvaluationsGradesTab extends StatelessWidget {
         AvaOpenSectionHeader(
           title: 'Boletim de Avaliações Contínuas (PPC)',
           subtitle:
-              'Fórmula de Homologação: Média = (N1 x 0.4) + (N2 x 0.6) • Presença Mínima: 75%',
+              'Fórmula de Homologação: ${discipline.evaluationFormula} • Presença Mínima: ${discipline.academicThresholds.minimumAttendance.toStringAsFixed(0)}% • Média Mínima: ${discipline.academicThresholds.minimumGrade.toStringAsFixed(1)}',
           trailing: AvaActionPillButton(
             label: 'Solicitar Esclarecimento',
             icon: Icons.help_outline_rounded,
