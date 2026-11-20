@@ -8,7 +8,7 @@ import '../../../../../core/network/authenticated_api_client.dart';
 import '../../../../../core/network/auth_profile_remote_data_source.dart';
 import '../../../../../core/state/app_user_session.dart';
 
-/// Configuration tab for Administrator Security & Credentials.
+/// Aba de configuração de Segurança e Credenciais do Administrador.
 ///
 /// Consulta a conta real e permite alterar a senha e o segundo fator por e-mail.
 class SecurityCredentialsTab extends StatefulWidget {
