@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +14,7 @@ TextStyle jakarta({
   double? letterSpacing,
   double? height,
   TextDecoration? decoration,
+  FontStyle? fontStyle,
 }) {
   try {
     return GoogleFonts.plusJakartaSans(
@@ -23,6 +24,7 @@ TextStyle jakarta({
       letterSpacing: letterSpacing,
       height: height,
       decoration: decoration,
+      fontStyle: fontStyle,
     );
   } catch (_) {
     return TextStyle(
@@ -33,6 +35,7 @@ TextStyle jakarta({
       letterSpacing: letterSpacing,
       height: height,
       decoration: decoration,
+      fontStyle: fontStyle,
     );
   }
 }

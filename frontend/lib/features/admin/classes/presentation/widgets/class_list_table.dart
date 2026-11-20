@@ -1,8 +1,8 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Tabela responsiva de turmas ativas com indicadores de ensalamento, regime e ações de supervisão.
 class ClassListTable extends StatelessWidget {
@@ -10,6 +10,7 @@ class ClassListTable extends StatelessWidget {
   final ValueChanged<AdminClassModel> onSupervise;
   final ValueChanged<AdminClassModel> onOpenRegime;
   final ValueChanged<AdminClassModel> onOpenAlocar;
+  final ValueChanged<AdminClassModel> onManageRecords;
   final bool canManageClasses;
   final bool canManageVideoCalls;
 
@@ -19,6 +20,7 @@ class ClassListTable extends StatelessWidget {
     required this.onSupervise,
     required this.onOpenRegime,
     required this.onOpenAlocar,
+    required this.onManageRecords,
     required this.canManageClasses,
     required this.canManageVideoCalls,
   });
@@ -355,6 +357,14 @@ class ClassListTable extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      tooltip: 'Matrículas e aulas',
+                      onPressed: canManageClasses
+                          ? () => onManageRecords(c)
+                          : null,
+                      icon: const Icon(Icons.event_note_outlined, size: 18),
+                      color: const Color(0xFF18181B),
+                    ),
                     // Botão Supervisionar
                     InkWell(
                       onTap: canManageVideoCalls ? () => onSupervise(c) : null,
@@ -413,7 +423,7 @@ class ClassListTable extends StatelessWidget {
                             const Icon(
                               Icons.balance,
                               size: 13,
-                              color: Color(0xFF4F46E5),
+                              color: Color(0xFF18181B),
                             ),
                             const SizedBox(width: 5),
                             Text(

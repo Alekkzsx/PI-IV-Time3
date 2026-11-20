@@ -3,13 +3,13 @@
 import 'package:flutter/material.dart';
 import '../policies/generic_feedback_policy.dart';
 
-/// Presentation widget displaying an interactive lockout countdown banner.
-/// Visualizes the 30-second cooldown period when the user triggers brute-force rate limiting.
+/// Widget de apresentação que exibe um banner interativo de contagem regressiva de bloqueio.
+/// Visualiza o período de espera (cooldown) de 30 segundos quando o usuário aciona a limitação de taxa por força bruta.
 class LockoutCountdownBanner extends StatelessWidget {
-  /// Remaining lockout duration in seconds.
+  /// Duração restante do bloqueio em segundos.
   final int remainingSeconds;
 
-  /// Optional custom message override.
+  /// Mensagem personalizada opcional de substituição.
   final String? customMessage;
 
   const LockoutCountdownBanner({

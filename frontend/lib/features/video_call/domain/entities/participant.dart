@@ -1,11 +1,7 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Papéis de usuário suportados na conferência P2P.
-enum ParticipantRole {
-  host,
-  presenter,
-  participant,
-}
+enum ParticipantRole { host, presenter, participant }
 
 /// Entidade representativa de um participante real conectado na reunião.
 ///
@@ -67,14 +63,17 @@ class Participant {
     bool? isSpeaking,
     DateTime? joinedAt,
     DateTime? lastHeartbeat,
-  })  : role = role is ParticipantRole ? role.name : (role?.toString() ?? 'participant'),
-        isHost = isHost ?? (role == 'host' || role == ParticipantRole.host),
-        joinedAt = joinedAt ?? DateTime.now(),
-        lastHeartbeat = lastHeartbeat ?? joinedAt ?? DateTime.now(),
-        _isSpeakingExplicit = isSpeaking;
+  }) : role = role is ParticipantRole
+           ? role.name
+           : (role?.toString() ?? 'participant'),
+       isHost = isHost ?? (role == 'host' || role == ParticipantRole.host),
+       joinedAt = joinedAt ?? DateTime.now(),
+       lastHeartbeat = lastHeartbeat ?? joinedAt ?? DateTime.now(),
+       _isSpeakingExplicit = isSpeaking;
 
   /// Determina dinamicamente se o participante está falando (nível RMS > 0.15 e não mutado).
-  bool get isSpeaking => _isSpeakingExplicit ?? (!isAudioMuted && audioLevel > 0.15);
+  bool get isSpeaking =>
+      _isSpeakingExplicit ?? (!isAudioMuted && audioLevel > 0.15);
 
   /// Retorna o [ParticipantRole] tipado correspondente ao [role].
   ParticipantRole get participantRole {
@@ -137,18 +136,18 @@ class Participant {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        name,
-        ra,
-        role,
-        isAudioMuted,
-        isVideoOff,
-        isScreenSharing,
-        isHandRaised,
-        isHost,
-        isLocal,
-        audioLevel,
-      );
+    id,
+    name,
+    ra,
+    role,
+    isAudioMuted,
+    isVideoOff,
+    isScreenSharing,
+    isHandRaised,
+    isHost,
+    isLocal,
+    audioLevel,
+  );
 
   @override
   String toString() {

@@ -1,0 +1,160 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+import { randomUUID } from "node:crypto";
+import type { Router } from "express";
+import { type Db, type Document } from "mongodb";
+import { z } from "zod";
+import { AuthError } from "../../../../../shared/auth-error.js";
+import { objectId, parse } from "../../../../../shared/validation.js";
+import { adminWrite, audit, publicRecord } from "../../../infrastructure/admin-support.js";
+import { extractClassCodeCandidates } from "../../../../../shared/academic/grade-formula.js";
+import type { UnifiedEmailService } from "../../../../notifications/domain/notification.types.js";
+import {
+	dispatchNotificationSafe,
+	resolveActiveRegisteredRecipientById,
+} from "../../../../notifications/domain/recipient-guard.js";
+
+export function registerAdminProtocolRoutes(
+	router: Router,
+	database: Db,
+	emailService?: UnifiedEmailService,
+): void {
+	const protocols = database.collection("academic_protocols");
+
+	router.get("/protocols", async (_request, response) => {
+		const list = await protocols
+			.find({}, { projection: { attachmentBase64: 0 } })
+			.sort({ createdAt: -1 })
+			.limit(500)
+			.toArray();
+		response.json(list.map(publicRecord));
+	});
+
+	router.post("/protocols", async (request, response) => {
+		const input = parse(
+			z.object({
+				studentIdentity: z.string().trim().min(1).max(254),
+				requestType: z.string().trim().min(2).max(120),
+				targetComponent: z.string().trim().max(120).default(""),
+				justification: z.string().trim().min(5).max(3000),
+				attachmentName: z.string().trim().max(200).default(""),
+			}).strict(),
+			request.body,
+		);
+		const created = await adminWrite(database, response.locals.adminId, async (session) => {
+			const student = await database
+				.collection("auth_users")
+				.findOne({ normalizedIdentity: input.studentIdentity.toLowerCase(), profile: "aluno", active: true }, { session });
+			if (!student) throw new AuthError(404, "student_not_found", "Aluno ativo não encontrado.");
+			const record = {
+				...input,
+				code: `PROT-${randomUUID().slice(0, 8).toUpperCase()}`,
+				studentId: String(student._id),
+				studentRa: student.identity,
+				studentName: student.displayName,
+				status: "Aguardando Parecer",
+				createdAt: new Date(),
+				createdBy: response.locals.adminId,
+			};
+			const saved = await protocols.insertOne(record, { session });
+			await audit(database, response.locals.adminId, "protocol_created", String(saved.insertedId), {}, session);
+			return publicRecord({ _id: saved.insertedId, ...record });
+		});
+		response.status(201).json(created);
+	});
+
+	router.patch("/protocols/:id/decision", async (request, response) => {
+		const id = objectId(request.params.id);
+		const input = parse(
+			z.object({ approved: z.boolean(), decisionNote: z.string().trim().min(5).max(3000) }).strict(),
+			request.body,
+		);
+		const adminUser = response.locals.user as Document | undefined;
+		const signedBy = adminUser?.displayName ?? "Secretaria Geral Acadêmica";
+		const record = await adminWrite(database, response.locals.adminId, async (session) => {
+			const updated = await protocols.findOneAndUpdate(
+				{ _id: id, status: { $regex: /^(aguardando parecer|aguardando|pendente)$/i } },
+				{
+					$set: {
+						status: input.approved ? "Deferido" : "Indeferido",
+						decisionNote: input.decisionNote,
+						decidedBy: response.locals.adminId,
+						signedBy,
+						decidedAt: new Date(),
+					},
+				},
+				{ session, returnDocument: "after" },
+			);
+			if (!updated) throw new AuthError(409, "protocol_unavailable", "Protocolo inexistente ou já decidido.");
+
+			const requestType = String(updated.requestType ?? "").toLowerCase();
+			if (input.approved && ["abono", "atestado", "falta"].some((term) => requestType.includes(term))) {
+				const targetFilter: Document = { studentId: String(updated.studentId), status: "active" };
+				const codeCandidates = extractClassCodeCandidates(updated.targetComponent);
+				if (codeCandidates.length > 0) {
+					targetFilter.classCode = { $in: codeCandidates };
+				}
+				const matchedEnrollments = await database.collection("academic_enrollments").find(targetFilter, { session }).toArray();
+				await database.collection("academic_enrollments").updateMany(
+					targetFilter,
+					{ $inc: { excusedAbsences: 2 } },
+					{ session },
+				);
+				for (const enrollment of matchedEnrollments) {
+					const classCode = String(enrollment.classCode);
+					const existingGrade = await database
+						.collection("academic_grades")
+						.findOne({ classCode, studentId: String(updated.studentId) }, { session });
+					if (existingGrade && Number(existingGrade.absences ?? 0) > 0) {
+						const classroom = await database.collection("academic_classes").findOne({ code: classCode }, { session });
+						const totalHours = Number(classroom?.totalHours ?? 80);
+						const nextAbsences = Math.max(0, Number(existingGrade.absences) - 2);
+						const nextAttendanceRate = Number(
+							Math.max(0, ((totalHours - nextAbsences) / totalHours) * 100).toFixed(1),
+						);
+						await database.collection("academic_grades").updateOne(
+							{ _id: existingGrade._id },
+							{
+								$set: {
+									absences: nextAbsences,
+									attendanceRate: nextAttendanceRate,
+									updatedAt: new Date(),
+								},
+							},
+							{ session },
+						);
+					}
+				}
+			}
+			await audit(database, response.locals.adminId, "protocol_decided", String(id), { approved: input.approved }, session);
+			return publicRecord(updated);
+		});
+
+		if (emailService && record) {
+			void resolveActiveRegisteredRecipientById(database, String(record.studentId))
+				.then((student) => {
+					if (!student) {
+						console.warn(
+							`[admin-protocols] Discente ${String(record.studentId)} sem conta ativa ou e-mail válido em auth_users; e-mail de parecer ignorado.`,
+						);
+						return;
+					}
+					dispatchNotificationSafe("admin-protocols", student.email, () =>
+						emailService.sendProtocolDecided({
+							to: student.email,
+							studentName: student.displayName || record.studentName,
+							protocolCode: record.code,
+							requestType: record.requestType,
+							approved: input.approved,
+							decisionNote: input.decisionNote,
+							signedBy,
+						}),
+					);
+				})
+				.catch((err) => {
+					console.warn(`[admin-protocols] Falha ao localizar discente em auth_users: ${err?.message}`);
+				});
+		}
+
+		response.json(record);
+	});
+}

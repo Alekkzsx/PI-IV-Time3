@@ -1,34 +1,335 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/role_permission_policy.dart';
-import '../data/admin_mock_data.dart';
+import '../data/admin_remote_data_source.dart';
+import '../data/admin_academic_data_source.dart';
+import '../models/admin_models.dart';
+import '../../../../core/network/authenticated_api_client.dart';
 
 /// Controlador reativo unificado em memória para o Portal do Administrador.
 class AdminPortalController extends ChangeNotifier {
+  final AdminRemoteDataSource remote;
+  final AdminAcademicRemoteDataSource academicRemote;
+  bool isLoadingRemote = false;
+  bool isSavingRemote = false;
+  bool isLoadingSupervision = false;
+  String? remoteError;
+  String? supervisionError;
+  Map<String, dynamic> dashboard = {};
+  Map<String, dynamic> institutionalSettings = {};
+  List<AdminCalendarMilestone> calendarEvents = [];
+  List<Map<String, dynamic>> announcements = [];
+  List<AdminGradeAuditRow> supervisedGrades = [];
+  List<AdminEnrolledStudent> supervisedEnrollments = [];
+  List<AdminGradeRectificationModel> rectifications = [];
+  List<AdminCourseModel> courses = [];
+  bool get usesRemote => true;
+
+  AcademicThresholds get academicThresholds =>
+      AcademicThresholds.fromJson(institutionalSettings);
+
+  List<AdminGradeRectificationModel> get pendingRectifications =>
+      rectifications.where((r) => r.isPending).toList();
+
+  List<Map<String, dynamic>> get institutionalNotifications {
+    final alertsConfig = institutionalSettings['campusAlerts'] is Map
+        ? Map<String, dynamic>.from(
+            institutionalSettings['campusAlerts'] as Map,
+          )
+        : <String, dynamic>{};
+    final showProtocols = alertsConfig['notifyPendingProtocols'] != false;
+    final showRects = alertsConfig['notifyGradeRectifications'] != false;
+    final showDeadlines = alertsConfig['notifyRegimentalDeadlines'] != false;
+
+    final items = <Map<String, dynamic>>[];
+    if (showProtocols) {
+      final pendingProtocols = protocols
+          .where((p) => normalizeProtocolStatus(p.status) == 'Aguardando Parecer')
+          .length;
+      if (pendingProtocols > 0) {
+        items.add({
+          'type': 'protocol',
+          'title': '$pendingProtocols requerimento(s) aguardando parecer',
+          'subtitle': 'Secretaria Acadêmica · Despacho pendente',
+          'tab': 'secretaria',
+        });
+      }
+    }
+    if (showRects) {
+      final pendingRectCount = pendingRectifications.length;
+      if (pendingRectCount > 0) {
+        items.add({
+          'type': 'rectification',
+          'title': '$pendingRectCount solicitação(ões) de retificação pós-lacração',
+          'subtitle': 'Cockpit de Turmas · Revisão de notas pendente',
+          'tab': 'turmas',
+        });
+      }
+    }
+    if (showDeadlines && isRegimentalLockActive) {
+      items.add({
+        'type': 'lock',
+        'title': 'Trava Regimental Global Ativa',
+        'subtitle': 'Edição de notas no Diário Docente bloqueada',
+        'tab': 'calendario',
+      });
+    }
+    if (showDeadlines && calendarEvents.isNotEmpty) {
+      final now = DateTime.now();
+      final upcoming = calendarEvents.where((e) {
+        final d = DateTime.tryParse(e.startsAt);
+        return d != null &&
+            !d.isBefore(DateTime(now.year, now.month, now.day)) &&
+            d.difference(now).inDays <= 14;
+      }).length;
+      if (upcoming > 0) {
+        items.add({
+          'type': 'calendar',
+          'title': '$upcoming marco(s) acadêmico(s) nos próximos 14 dias',
+          'subtitle': 'Calendário Acadêmico Institucional',
+          'tab': 'calendario',
+        });
+      }
+    }
+    return items;
+  }
+
+  Future<void> loadRemote({bool clear = false}) async {
+    final requestedToken = AppUserSession.instance.accessToken;
+    if (requestedToken == null || requestedToken.isEmpty) {
+      users = [];
+      classes = [];
+      protocols = [];
+      auditLogs = [];
+      courses = [];
+      calendarEvents = [];
+      announcements = [];
+      rectifications = [];
+      dashboard = {};
+      institutionalSettings = {};
+      remoteError = 'Entre como administrador para carregar os dados.';
+      notifyListeners();
+      return;
+    }
+    if (clear) {
+      users = [];
+      classes = [];
+      protocols = [];
+      auditLogs = [];
+      courses = [];
+      rectifications = [];
+      dashboard = {};
+      institutionalSettings = {};
+    }
+    isLoadingRemote = true;
+    remoteError = null;
+    notifyListeners();
+    try {
+      final values = await Future.wait<dynamic>([
+        remote.users(),
+        remote.protocols(),
+        remote.auditLogs(),
+        remote.request('GET', '/settings'),
+        remote.request('GET', '/dashboard'),
+        academicRemote.getCourses(),
+        academicRemote.getClasses(),
+        remote.calendar(),
+        remote.request('GET', '/announcements'),
+        remote.rectifications().catchError((_) => <AdminGradeRectificationModel>[]),
+      ]);
+      if (AppUserSession.instance.accessToken != requestedToken) return;
+      users = values[0] as List<AdminUserModel>;
+      protocols = values[1] as List<AdminProtocolModel>;
+      auditLogs = values[2] as List<AdminAuditLogModel>;
+      institutionalSettings = Map<String, dynamic>.from(values[3] as Map);
+      isRegimentalLockActive =
+          institutionalSettings['regimentalLockActive'] == true;
+      dashboard = Map<String, dynamic>.from(values[4] as Map);
+      courses = values[5] as List<AdminCourseModel>;
+      classes = values[6] as List<AdminClassModel>;
+      calendarEvents = values[7] as List<AdminCalendarMilestone>;
+      announcements = (values[8] as List)
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+      rectifications = values[9] as List<AdminGradeRectificationModel>;
+      _gradeLocksByClass.clear();
+      for (final classroom in classes) {
+        _gradeLocksByClass[classroom.code.trim().toUpperCase()] =
+            classroom.gradeLocked;
+      }
+      if (activeSupervisedClass != null) {
+        final refreshed = classes
+            .where((item) => item.code == activeSupervisedClass!.code)
+            .firstOrNull;
+        if (refreshed != null) {
+          activeSupervisedClass = refreshed;
+        }
+      }
+    } catch (error) {
+      remoteError = _formatError(
+        error,
+        fallback: 'Não foi possível carregar o portal administrativo.',
+      );
+    } finally {
+      isLoadingRemote = false;
+      notifyListeners();
+    }
+  }
+
+  String _formatError(Object error, {required String fallback}) {
+    if (error is ApiException) return error.message;
+    if (error is AdminAcademicApiException) return error.message;
+    return fallback;
+  }
+
+  void clearRemoteError({bool notify = true}) {
+    if (remoteError == null) return;
+    remoteError = null;
+    if (notify) notifyListeners();
+  }
+
+  void clearSupervisionError({bool notify = true}) {
+    if (supervisionError == null) return;
+    supervisionError = null;
+    if (notify) notifyListeners();
+  }
+
+  Future<bool> persist(
+    Future<dynamic> Function() operation, {
+    VoidCallback? onSuccess,
+  }) async {
+    if (isSavingRemote) return false;
+    isSavingRemote = true;
+    remoteError = null;
+    notifyListeners();
+    try {
+      await operation();
+      onSuccess?.call();
+      await loadRemote();
+      return true;
+    } catch (error) {
+      remoteError = _formatError(
+        error,
+        fallback: 'A operação não pôde ser concluída.',
+      );
+      return false;
+    } finally {
+      isSavingRemote = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> persistUserStatus(
+    String id, {
+    required bool active,
+    String? reason,
+  }) => persist(
+    () => remote.request('PATCH', '/users/$id/status', {
+      'active': active,
+      if (reason != null) 'reason': reason,
+    }),
+  );
+  Future<bool> persistRevokeSessions(String id) =>
+      persist(() => remote.request('POST', '/users/$id/revoke-sessions', {}));
+  Future<bool> persistResetPassword(String id) =>
+      persist(() => remote.request('POST', '/users/$id/reset-password', {}));
+  Future<bool> persistClass(String code, Map<String, Object?> fields) =>
+      persist(
+        () => remote.request(
+          'PATCH',
+          '/classes/${Uri.encodeComponent(code)}',
+          fields,
+        ),
+      );
+  Future<bool> persistProtocol(String id, bool approved, String note) =>
+      persist(
+        () => remote.request('PATCH', '/protocols/$id/decision', {
+          'approved': approved,
+          'decisionNote': note,
+        }),
+      );
+  Future<bool> persistRegimentalLock() => persist(
+    () => remote.request('PATCH', '/settings', {
+      'regimentalLockActive': !isRegimentalLockActive,
+    }),
+  );
+
+  Future<bool> createCalendarEvent(Map<String, Object?> values) =>
+      persist(() => remote.createCalendarEvent(values));
+
+  Future<bool> updateCalendarEvent(String id, Map<String, Object?> values) =>
+      persist(() => remote.updateCalendarEvent(id, values));
+
+  Future<bool> deleteCalendarEvent(String id) =>
+      persist(() => remote.deleteCalendarEvent(id));
+
+  Future<void> loadClassSupervision(String classCode) async {
+    isLoadingSupervision = true;
+    supervisionError = null;
+    notifyListeners();
+
+    String? gradesError;
+    String? enrollmentsError;
+
+    await Future.wait<void>([
+      academicRemote
+          .classGrades(classCode)
+          .then((value) {
+            supervisedGrades = value;
+          })
+          .catchError((Object error) {
+            supervisedGrades = [];
+            gradesError = _formatError(
+              error,
+              fallback: 'Não foi possível carregar os registros de notas.',
+            );
+          }),
+      academicRemote
+          .getEnrollments(classCode)
+          .then((value) {
+            supervisedEnrollments = value;
+          })
+          .catchError((Object error) {
+            supervisedEnrollments = [];
+            enrollmentsError = _formatError(
+              error,
+              fallback: 'Não foi possível carregar os discentes da turma.',
+            );
+          }),
+    ]);
+
+    supervisionError = gradesError ?? enrollmentsError;
+    isLoadingSupervision = false;
+    notifyListeners();
+  }
   static final AdminPortalController instance =
       AdminPortalController._internal();
-  AdminPortalController._internal() {
-    _initAcademicBridge();
-  }
+  AdminPortalController._internal({
+    AdminRemoteDataSource? remote,
+    AdminAcademicRemoteDataSource? academicRemote,
+  }) : remote = remote ?? AdminRemoteDataSource(),
+       academicRemote = academicRemote ?? AdminAcademicRemoteDataSource();
+
+  /// Instância isolada para testes unitários com fontes de dados injetadas.
+  AdminPortalController.forTesting({
+    AdminRemoteDataSource? remote,
+    AdminAcademicRemoteDataSource? academicRemote,
+  }) : remote = remote ?? AdminRemoteDataSource(),
+       academicRemote = academicRemote ?? AdminAcademicRemoteDataSource();
+
   factory AdminPortalController() => instance;
 
-  void _initAcademicBridge() {
-    AcademicBridgeService.instance.onAdminProtocolReceived = (newProtocol) {
-      protocols.insert(0, newProtocol);
-      notifyListeners();
-    };
-  }
-
   // Usuários
-  late List<AdminUserModel> users = List.from(AdminMockData.users);
+  List<AdminUserModel> users = [];
   String userFilter = 'Todos';
   String userSearchQuery = '';
 
   // Turmas e Supervisão
-  late List<AdminClassModel> classes = List.from(AdminMockData.classes);
+  List<AdminClassModel> classes = [];
   AdminClassModel? activeSupervisedClass;
   int supervisionTabIndex = 0;
   final Map<String, bool> _gradeLocksByClass = {};
@@ -55,14 +356,14 @@ class AdminPortalController extends ChangeNotifier {
   }
 
   // Protocolos de Secretaria
-  late List<AdminProtocolModel> protocols = List.from(AdminMockData.protocols);
+  List<AdminProtocolModel> protocols = [];
   String protocolFilter = 'Aguardando Parecer';
 
   // Calendário Oficial & Travas CONSEPE
-  bool isRegimentalLockActive = true;
+  bool isRegimentalLockActive = false;
 
   // Auditoria
-  late List<AdminAuditLogModel> auditLogs = List.from(AdminMockData.auditLogs);
+  List<AdminAuditLogModel> auditLogs = [];
   String auditSearchQuery = '';
 
   // --- MÉTODOS DE GESTÃO DE USUÁRIOS ---
@@ -90,79 +391,26 @@ class AdminPortalController extends ChangeNotifier {
               u.profile == RolePermissionPolicy.admin);
       final matchesSearch =
           u.name.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
+          u.identity.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.id.toLowerCase().contains(userSearchQuery.toLowerCase()) ||
           u.email.toLowerCase().contains(userSearchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     }).toList();
   }
 
-  bool toggleUserStatus(String id) {
+  Future<bool> toggleUserStatus(String id) {
     if (!canPerform('manage_users')) {
       _denyPermission('manage_users');
-      return false;
+      return Future.value(false);
     }
-    final index = users.indexWhere((u) => u.id == id);
-    if (index != -1) {
-      users[index].status = users[index].status == 'Ativo'
-          ? 'Suspenso'
-          : 'Ativo';
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        'ALTERAÇÃO STATUS',
-        'Status do usuário $id alterado para ${users[index].status}',
-      );
-      notifyListeners();
-      return true;
-    }
-    return false;
-  }
-
-  bool addUser({
-    required String name,
-    required String email,
-    required String profile,
-    required String department,
-    required bool require2FA,
-  }) {
-    if (!canPerform('manage_users')) {
-      _denyPermission('manage_users');
-      return false;
-    }
-    if (!RolePermissionPolicy.roles.contains(profile)) {
-      debugPrint(
-        '[AdminPortal] Cadastro recusado: perfil inválido "$profile".',
-      );
-      return false;
-    }
-    final newId = profile == RolePermissionPolicy.student
-        ? '2024.2.0${1040 + users.length}'
-        : profile == RolePermissionPolicy.teacher
-        ? 'DOC-${88420 + users.length}'
-        : 'ADM-${10000 + users.length}';
-    users.insert(
-      0,
-      AdminUserModel(
-        id: newId,
-        name: name,
-        email: email,
-        profile: profile,
-        departmentOrCourse: department,
-        status: 'Ativo',
-        twoFactorRequired: require2FA,
-      ),
-    );
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'NOVO CADASTRO',
-      'Criação de credencial institucional para $name ($newId)',
-    );
-    notifyListeners();
-    return true;
+    final user = users.where((item) => item.id == id).firstOrNull;
+    if (user == null) return Future.value(false);
+    return persistUserStatus(id, active: user.status != 'Ativo');
   }
 
   // --- MÉTODOS DE COMUNICADOS ---
 
-  bool broadcastAnnouncement({
+  Future<bool> broadcastAnnouncement({
     required String title,
     required String audience,
     required String category,
@@ -170,25 +418,79 @@ class AdminPortalController extends ChangeNotifier {
   }) {
     if (!canPerform('publish_announcements')) {
       _denyPermission('publish_announcements');
+      return Future.value(false);
+    }
+    return persist(
+      () => remote.createAnnouncement({
+        'title': title.trim(),
+        'body': body.trim(),
+        'audience': audience,
+        'category': category,
+      }),
+    );
+  }
+
+  Future<bool> updateAnnouncement(String id, Map<String, Object?> fields) {
+    if (!canPerform('publish_announcements') || id.isEmpty || fields.isEmpty) {
+      _denyPermission('publish_announcements');
+      return Future.value(false);
+    }
+    return persist(
+      () => remote.request(
+        'PATCH',
+        '/announcements/${Uri.encodeComponent(id)}',
+        fields,
+      ),
+    );
+  }
+
+  Future<bool> deleteAnnouncement(String id) {
+    if (!canPerform('publish_announcements') || id.isEmpty) {
+      _denyPermission('publish_announcements');
+      return Future.value(false);
+    }
+    return persist(() => remote.deleteAnnouncement(id));
+  }
+
+  Future<bool> updateSettings(Map<String, Object?> fields) {
+    if (!canPerform('system_settings_2fa') || fields.isEmpty) {
+      _denyPermission('system_settings_2fa');
+      return Future.value(false);
+    }
+    return persist(() => remote.patchSettings(fields));
+  }
+
+  Future<bool> decideRectification({
+    required String id,
+    required bool approved,
+    required String decisionNote,
+  }) async {
+    if (!canPerform('manage_classes') || id.isEmpty) {
+      _denyPermission('manage_classes');
       return false;
     }
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'COMUNICADO CAMPUS',
-      'Disparo de comunicado: "$title" para $audience ($category)',
+    final ok = await persist(
+      () => remote.decideRectification(
+        id,
+        approved: approved,
+        decisionNote: decisionNote,
+      ),
     );
+    if (ok && activeSupervisedClass != null) {
+      await loadClassSupervision(activeSupervisedClass!.code);
+    }
+    return ok;
+  }
 
-    // Dispara institucionalmente para os murais discentes
-    AcademicBridgeService.instance.broadcastNotice(
-      title: title.trim(),
-      content: body.trim(),
-      senderRole: 'admin',
-      senderName: 'Administrador institucional ($audience)',
-      targetCourse: 'Institucional',
-    );
-
-    notifyListeners();
-    return true;
+  Future<bool> unlockClassPauta(String classCode) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return Future.value(false);
+    }
+    return persistClass(classCode, {
+      'gradeLocked': false,
+      'pautaHomologated': false,
+    });
   }
 
   // --- MÉTODOS DE GESTÃO DE TURMAS & SUPERVISÃO ---
@@ -201,12 +503,16 @@ class AdminPortalController extends ChangeNotifier {
     }
     activeSupervisedClass = classModel;
     supervisionTabIndex = 0;
+    supervisionError = null;
     notifyListeners();
   }
 
   void closeSupervision() {
     if (!AppUserSession.instance.hasRole(RolePermissionPolicy.admin)) return;
     activeSupervisedClass = null;
+    supervisionError = null;
+    supervisedGrades = [];
+    supervisedEnrollments = [];
     notifyListeners();
   }
 
@@ -219,64 +525,40 @@ class AdminPortalController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool updateFormulaRegime(String classCode, String newRegime) {
+  Future<bool> updateFormulaRegime(String classCode, String newRegime) {
     if (!canPerform('manage_classes')) {
       _denyPermission('manage_classes');
-      return false;
+      return Future.value(false);
     }
-    final index = classes.indexWhere((c) => c.code == classCode);
-    if (index != -1) {
-      classes[index].formulaRegime = newRegime;
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        'REGIME AVALIAÇÃO',
-        'Regime de notas da turma $classCode alterado para $newRegime',
-      );
-      notifyListeners();
-      return true;
-    }
-    return false;
+    return persistClass(classCode, {
+      'formulaRegime': newRegime == 'Impor pelo Admin'
+          ? 'admin'
+          : 'autonomia_docente',
+    });
   }
 
-  bool reallocateProfessor(String classCode, String newProfessor) {
+  Future<bool> reallocateProfessor(String classCode, String newProfessor) {
     if (!canPerform('manage_classes')) {
       _denyPermission('manage_classes');
-      return false;
+      return Future.value(false);
     }
-    final index = classes.indexWhere((c) => c.code == classCode);
-    if (index != -1) {
-      final oldProfessor = classes[index].professor;
-      classes[index].professor = newProfessor;
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        'ATRIBUIÇÃO DOCENTE',
-        'Substituição na turma $classCode: $oldProfessor -> $newProfessor',
-      );
-      notifyListeners();
-      return true;
-    }
-    return false;
-  }
-
-  bool lockAndHomologateClassPauta(String classCode) {
-    if (!canPerform('manage_classes')) {
-      _denyPermission('manage_classes');
-      return false;
-    }
-    final normalizedClassCode = classCode.trim().toUpperCase();
-    if (!classes.any(
-      (classModel) => classModel.code.toUpperCase() == normalizedClassCode,
-    )) {
-      return false;
-    }
-    _gradeLocksByClass[normalizedClassCode] = true;
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'FECHAMENTO ATA',
-      'Pauta oficial e notas da turma $classCode homologadas e lacradas.',
+    return persist(
+      () => academicRemote.assignTeacherToClass(
+        classCode: classCode,
+        professorIdentity: newProfessor,
+      ),
     );
-    notifyListeners();
-    return true;
+  }
+
+  Future<bool> lockAndHomologateClassPauta(String classCode) {
+    if (!canPerform('manage_classes')) {
+      _denyPermission('manage_classes');
+      return Future.value(false);
+    }
+    return persistClass(classCode, {
+      'gradeLocked': true,
+      'pautaHomologated': true,
+    });
   }
 
   // --- MÉTODOS DE SECRETARIA ACADÊMICA ---
@@ -284,6 +566,25 @@ class AdminPortalController extends ChangeNotifier {
   void setProtocolFilter(String filter) {
     protocolFilter = filter;
     notifyListeners();
+  }
+
+  static String normalizeProtocolStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    if (normalized == 'aguardando' ||
+        normalized == 'aguardando parecer' ||
+        normalized == 'pendente') {
+      return 'Aguardando Parecer';
+    }
+    if (normalized == 'deferido') {
+      return 'Deferido';
+    }
+    if (normalized == 'indeferido') {
+      return 'Indeferido';
+    }
+    if (normalized == 'concluido' || normalized == 'concluído') {
+      return 'Concluído';
+    }
+    return status.trim();
   }
 
   List<AdminProtocolModel> get filteredProtocols {
@@ -294,225 +595,43 @@ class AdminPortalController extends ChangeNotifier {
         protocolFilter == 'Aguardando Parecer') {
       return protocols
           .where(
-            (p) => p.status == 'Aguardando' || p.status == 'Aguardando Parecer',
+            (p) => normalizeProtocolStatus(p.status) == 'Aguardando Parecer',
           )
           .toList();
     }
     if (protocolFilter == 'Deferidos' || protocolFilter == 'Deferido') {
-      return protocols.where((p) => p.status == 'Deferido').toList();
+      return protocols
+          .where((p) => normalizeProtocolStatus(p.status) == 'Deferido')
+          .toList();
     }
     if (protocolFilter == 'Indeferidos' || protocolFilter == 'Indeferido') {
-      return protocols.where((p) => p.status == 'Indeferido').toList();
+      return protocols
+          .where((p) => normalizeProtocolStatus(p.status) == 'Indeferido')
+          .toList();
     }
-    return protocols.where((p) => p.status == protocolFilter).toList();
+    return protocols
+        .where(
+          (p) =>
+              normalizeProtocolStatus(p.status) ==
+              normalizeProtocolStatus(protocolFilter),
+        )
+        .toList();
   }
 
-  bool decideProtocol({
+  Future<bool> decideProtocol({
     required String protocolId,
     required bool defer,
     required String parecerNote,
   }) {
     if (!canPerform('dispatch_protocols')) {
       _denyPermission('dispatch_protocols');
-      return false;
+      return Future.value(false);
     }
-    final index = protocols.indexWhere((p) => p.id == protocolId);
-    if (index != -1) {
-      protocols[index].status = defer ? 'Deferido' : 'Indeferido';
-      protocols[index].decisionNote = parecerNote;
-      protocols[index].signedBy = 'Administrador institucional';
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        defer ? 'DEFERIMENTO PROTOCOLO' : 'INDEFERIMENTO PROTOCOLO',
-        'Protocolo $protocolId decidido: ${protocols[index].status}',
-      );
-
-      // Transmite a decisão homologada com parecer oficial para o Portal do Aluno
-      AcademicBridgeService.instance.dispatchProtocolDecision(
-        protocolCode: protocolId,
-        isApproved: defer,
-        decisionNote: parecerNote,
-        approverName: 'Administrador institucional',
-      );
-
-      notifyListeners();
-      return true;
-    }
-    return false;
+    return persistProtocol(protocolId, defer, parecerNote);
   }
-
-  // Suporte & Impersonation
-  AdminUserModel? activeImpersonatedUser;
 
   Map<String, Map<String, bool>> get rbacMatrix =>
       RolePermissionPolicy.permissions;
-
-  // --- MÉTODOS DE GOVERNANÇA AVANÇADA DE USUÁRIOS ---
-
-  void terminateUserSessions(String userId) {
-    if (!canPerform('reset_passwords')) {
-      _denyPermission('reset_passwords');
-      return;
-    }
-    final index = users.indexWhere((u) => u.id == userId);
-    if (index != -1) {
-      final user = users[index];
-      final previousCount = user.activeSessionsCount;
-      user.activeSessionsCount = 0;
-
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        'ENCERRAMENTO DE SESSÕES',
-        'Revogação imediata de todas as sessões ativas do usuário ${user.name} (${user.id}). Dispositivos desconectados.',
-        targetUserId: user.id,
-        targetUserName: user.name,
-        diffBefore: {
-          'sessoesAtivas': previousCount,
-          'estadoSessao': previousCount > 0
-              ? 'Conectado em dispositivos'
-              : 'Sem sessões ativas',
-        },
-        diffAfter: {
-          'sessoesAtivas': 0,
-          'estadoSessao': 'Todas as sessões encerradas (Logout forçado)',
-          'exigirNovaAutenticacao': true,
-        },
-        severity: 'ATENCAO',
-      );
-      notifyListeners();
-    }
-  }
-
-  void suspendUserWithReason(
-    String userId, {
-    required String reason,
-    required bool suspend,
-  }) {
-    if (!canPerform('manage_users')) {
-      _denyPermission('manage_users');
-      return;
-    }
-    final index = users.indexWhere((u) => u.id == userId);
-    if (index != -1) {
-      final user = users[index];
-      final previousStatus = user.status;
-      final previousReason = user.suspensionReason;
-
-      user.status = suspend ? 'Suspenso' : 'Ativo';
-      user.suspensionReason = suspend ? reason : null;
-      if (suspend) {
-        user.activeSessionsCount = 0;
-      }
-
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        suspend ? 'BLOQUEIO ADMINISTRATIVO' : 'REATIVAÇÃO DE CONTA',
-        suspend
-            ? 'Usuário ${user.name} (${user.id}) foi suspenso. Motivo: $reason'
-            : 'Usuário ${user.name} (${user.id}) foi reativado para acesso regular.',
-        targetUserId: user.id,
-        targetUserName: user.name,
-        diffBefore: {
-          'status': previousStatus,
-          'motivoSuspensao': previousReason ?? 'Nenhum',
-          'sessoesPermitidas': previousStatus == 'Ativo',
-        },
-        diffAfter: {
-          'status': user.status,
-          'motivoSuspensao': user.suspensionReason ?? 'Nenhum (Liberado)',
-          'sessoesPermitidas': !suspend,
-        },
-        severity: suspend ? 'CRITICO' : 'INFO',
-      );
-      notifyListeners();
-    }
-  }
-
-  void impersonateUser(AdminUserModel user) {
-    if (!canPerform('impersonate_support')) {
-      _denyPermission('impersonate_support');
-      return;
-    }
-    activeImpersonatedUser = user;
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'MODO SUPORTE (IMPERSONATION)',
-      'Abertura de visualização espelho como ${user.name} (${user.id}) para diagnóstico de atendimento.',
-      targetUserId: user.id,
-      targetUserName: user.name,
-      diffBefore: {
-        'contextoVisualizacao': 'Painel Administrativo Pleno',
-        'perfilOperador': 'Administrador institucional',
-      },
-      diffAfter: {
-        'contextoVisualizacao': 'Espelho Diagnóstico: ${user.profile}',
-        'usuarioDiagnosticado': '${user.name} (${user.id})',
-        'permissaoModo': 'Somente Leitura (Auditada LGPD)',
-      },
-      severity: 'ATENCAO',
-    );
-    notifyListeners();
-  }
-
-  void exitImpersonation() {
-    if (!canPerform('impersonate_support')) {
-      _denyPermission('impersonate_support');
-      return;
-    }
-    if (activeImpersonatedUser != null) {
-      final user = activeImpersonatedUser!;
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        'ENCERRAMENTO MODO SUPORTE',
-        'Encerramento do modo espelho de suporte para o usuário ${user.name} (${user.id}).',
-        targetUserId: user.id,
-        targetUserName: user.name,
-      );
-      activeImpersonatedUser = null;
-      notifyListeners();
-    }
-  }
-
-  void resetUserPasswordAdvanced(
-    String userId, {
-    required bool forceNextLogin,
-    required bool sendRecoveryEmail,
-    required bool revokeActiveSessions,
-  }) {
-    if (!canPerform('reset_passwords')) {
-      _denyPermission('reset_passwords');
-      return;
-    }
-    final index = users.indexWhere((u) => u.id == userId);
-    if (index != -1) {
-      final user = users[index];
-      final previousSessions = user.activeSessionsCount;
-      if (revokeActiveSessions) {
-        user.activeSessionsCount = 0;
-      }
-
-      _logAudit(
-        'Carlos Eduardo Mendes',
-        'RESET AVANÇADO DE CREDENCIAIS',
-        'Redefinição de senha institucional para ${user.name} (${user.id}). E-mail enviado: $sendRecoveryEmail | Forçar troca: $forceNextLogin | Revogar sessões: $revokeActiveSessions',
-        targetUserId: user.id,
-        targetUserName: user.name,
-        diffBefore: {
-          'senhaTemporaria': false,
-          'forcarTrocaNoProximoLogin': false,
-          'sessoesAtivas': previousSessions,
-        },
-        diffAfter: {
-          'senhaTemporaria': true,
-          'forcarTrocaNoProximoLogin': forceNextLogin,
-          'emailRecuperacaoEnviado': sendRecoveryEmail,
-          'sessoesAtivas': user.activeSessionsCount,
-        },
-        severity: 'ATENCAO',
-      );
-      notifyListeners();
-    }
-  }
 
   List<AdminAuditLogModel> getUserAuditLogs(String userId) {
     return auditLogs
@@ -524,49 +643,11 @@ class AdminPortalController extends ChangeNotifier {
 
   // --- MÉTODOS DE CALENDÁRIO & AUDITORIA ---
 
-  void toggleRegimentalLock() {
+  Future<bool> toggleRegimentalLock() {
     if (!canPerform('system_settings_2fa')) {
       _denyPermission('system_settings_2fa');
-      return;
+      return Future.value(false);
     }
-    isRegimentalLockActive = !isRegimentalLockActive;
-    _logAudit(
-      'Carlos Eduardo Mendes',
-      'TRAVA REGIMENTAL',
-      'Status da trava CONSEPE alterado para: $isRegimentalLockActive',
-      diffBefore: {'travaConsepeAtiva': !isRegimentalLockActive},
-      diffAfter: {'travaConsepeAtiva': isRegimentalLockActive},
-      severity: 'ATENCAO',
-    );
-    notifyListeners();
-  }
-
-  void _logAudit(
-    String actor,
-    String action,
-    String desc, {
-    String? targetUserId,
-    String? targetUserName,
-    Map<String, dynamic>? diffBefore,
-    Map<String, dynamic>? diffAfter,
-    String severity = 'INFO',
-  }) {
-    auditLogs.insert(
-      0,
-      AdminAuditLogModel(
-        id: 'LOG-${1000 + auditLogs.length}',
-        timestamp:
-            '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year} ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-        actor: actor,
-        actionType: action,
-        description: desc,
-        ipAddress: '192.168.10.45',
-        severity: severity,
-        targetUserId: targetUserId,
-        targetUserName: targetUserName,
-        diffBefore: diffBefore,
-        diffAfter: diffAfter,
-      ),
-    );
+    return persistRegimentalLock();
   }
 }

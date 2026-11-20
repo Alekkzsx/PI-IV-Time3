@@ -95,22 +95,15 @@ void main() {
       ),
     );
 
-    session.signIn(identity: '2024.1.00901', profile: 'aluno');
+    session.signIn(identity: '202610401', profile: 'aluno');
     await tester.tap(find.byKey(const Key('open_student_portal')));
     await tester.pumpAndSettle();
-    expect(
-      find.text(
-        'Não há dados acadêmicos de demonstração vinculados a esta conta.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Acesso restrito'), findsOneWidget);
-    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
-    expect(find.text('Voltar ao login'), findsOneWidget);
+    expect(find.text('Painel Geral'), findsWidgets);
+    expect(find.text('Acesso restrito'), findsNothing);
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
-    session.signIn(identity: '2024.1.00892', profile: 'aluno');
+    session.signIn(identity: '202610401', profile: 'aluno');
     await tester.tap(find.byKey(const Key('open_teacher_portal')));
     await tester.pumpAndSettle();
     expect(
@@ -119,7 +112,7 @@ void main() {
     );
     expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open_video_call_with_forged_role')));
     await tester.pumpAndSettle();
@@ -127,7 +120,7 @@ void main() {
     final nameField = tester.widget<TextFormField>(
       find.byKey(const Key('lobby_name_field')),
     );
-    expect(nameField.controller?.text, '2024.1.00892');
+    expect(nameField.controller?.text, '202610401');
     expect(
       tester
           .widget<EditableText>(
@@ -140,7 +133,7 @@ void main() {
       isTrue,
     );
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle();
     session.signOut();
     await tester.tap(find.byKey(const Key('open_video_call_with_forged_role')));

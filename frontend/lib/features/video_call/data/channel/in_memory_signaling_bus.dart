@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'dart:async';
 import 'signaling_channel.dart';
@@ -9,7 +9,8 @@ import 'signaling_channel.dart';
 /// - Mensagens enviadas por um canal são entregues a todos os outros canais registrados
 ///   sob o mesmo [channelName], mas NUNCA ao próprio emissor.
 class InMemorySignalingBus {
-  static final InMemorySignalingBus _instance = InMemorySignalingBus._internal();
+  static final InMemorySignalingBus _instance =
+      InMemorySignalingBus._internal();
   factory InMemorySignalingBus() => _instance;
   InMemorySignalingBus._internal();
 
@@ -17,7 +18,9 @@ class InMemorySignalingBus {
 
   /// Registra uma nova instância de canal no barramento.
   void register(String channelName, InMemorySignalingChannel channel) {
-    _channels.putIfAbsent(channelName, () => <InMemorySignalingChannel>{}).add(channel);
+    _channels
+        .putIfAbsent(channelName, () => <InMemorySignalingChannel>{})
+        .add(channel);
   }
 
   /// Remove uma instância de canal do barramento.
@@ -32,7 +35,11 @@ class InMemorySignalingBus {
   }
 
   /// Despacha uma mensagem para todos os canais inscritos em [channelName], exceto o [sender].
-  void postMessage(String channelName, InMemorySignalingChannel sender, String data) {
+  void postMessage(
+    String channelName,
+    InMemorySignalingChannel sender,
+    String data,
+  ) {
     final subscribers = _channels[channelName];
     if (subscribers == null) return;
 
@@ -58,12 +65,13 @@ class InMemorySignalingBus {
 class InMemorySignalingChannel implements ISignalingChannel {
   final String channelName;
   final InMemorySignalingBus _bus;
-  final StreamController<String> _controller = StreamController<String>.broadcast();
+  final StreamController<String> _controller =
+      StreamController<String>.broadcast();
   bool _isClosed = false;
   void Function()? _teardownHook;
 
   InMemorySignalingChannel(this.channelName, [InMemorySignalingBus? bus])
-      : _bus = bus ?? InMemorySignalingBus() {
+    : _bus = bus ?? InMemorySignalingBus() {
     _bus.register(channelName, this);
   }
 
@@ -75,7 +83,9 @@ class InMemorySignalingChannel implements ISignalingChannel {
   @override
   Future<void> send(String data) async {
     if (_isClosed) {
-      throw StateError('Cannot send message on a closed InMemorySignalingChannel.');
+      throw StateError(
+        'Cannot send message on a closed InMemorySignalingChannel.',
+      );
     }
     _bus.postMessage(channelName, this, data);
   }

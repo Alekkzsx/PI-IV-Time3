@@ -1,7 +1,10 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 import '../widgets/academic_guidelines_tab.dart';
 import '../widgets/admin_profile_tab.dart';
 import '../widgets/campus_alerts_tab.dart';
@@ -10,10 +13,10 @@ import '../widgets/rbac_matrix_tab.dart';
 import '../widgets/security_credentials_tab.dart';
 import '../widgets/system_preferences_tab.dart';
 
-/// Main Administration Account Configuration page.
+/// Página principal de Configurações da Conta de Administração.
 ///
-/// Coordinates the 7 managerial navigation tabs with responsive desktop layout
-/// supporting academic guidelines, profile, security, campus alerts, preferences, LGPD, and RBAC matrix.
+/// Coordena as 7 abas gerenciais de navegação com layout desktop responsivo
+/// oferecendo suporte a diretrizes acadêmicas, perfil, segurança, alertas do campus, preferências, LGPD e matriz RBAC.
 class AdminConfigurePage extends StatefulWidget {
   const AdminConfigurePage({super.key});
 
@@ -86,7 +89,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: InstColors.stone,
       body: Column(
         children: [
           Expanded(
@@ -95,24 +98,24 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Main Section Header
-                  const Text(
+                  // 1. Cabeçalho da Seção Principal
+                  Text(
                     'Configurações da Conta de Administração',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                      letterSpacing: -0.5,
+                    style: jakarta(
+                      size: 22,
+                      weight: FontWeight.w700,
+                      color: InstColors.ink,
+                      height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Gestão de credenciais com permissões elevadas, autenticação multifator e parâmetros corporativos.',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                    style: jakarta(size: 13, color: InstColors.muted),
                   ),
                   const SizedBox(height: 28),
 
-                  // 2. Two-Column Layout (Sidebar Navigation + Active Tab Content)
+                  // 2. Layout em Duas Colunas (Menu Lateral de Navegação + Conteúdo da Aba Ativa)
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isStacked = constraints.maxWidth < 980;
@@ -164,17 +167,17 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
     required String title,
     required String message,
   }) {
-    showDialog<void>(
+    AcademicModalDialog.show<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Entendi'),
-          ),
-        ],
+      builder: (_) => AcademicModalDialog(
+        title: title,
+        icon: Icons.info_outline_rounded,
+        maxWidth: 460,
+        cancelLabel: 'Entendi',
+        child: Text(
+          message,
+          style: jakarta(size: 13.5, color: InstColors.body, height: 1.5),
+        ),
       ),
     );
   }
@@ -182,9 +185,9 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
   Widget _buildNavigationMenu() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -204,9 +207,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF0F172A)
-                      : Colors.transparent,
+                  color: isSelected ? InstColors.ink : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -214,9 +215,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
                     Icon(
                       item.icon,
                       size: 20,
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF475569),
+                      color: isSelected ? Colors.white : InstColors.toggleIcon,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -225,22 +224,20 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
                         children: [
                           Text(
                             item.title,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF0F172A),
+                            style: jakarta(
+                              size: 13,
+                              weight: FontWeight.w700,
+                              color: isSelected ? Colors.white : InstColors.ink,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             item.subtitle,
-                            style: TextStyle(
-                              fontSize: 10.5,
+                            style: jakarta(
+                              size: 10.5,
                               color: isSelected
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B),
+                                  ? InstColors.faint
+                                  : InstColors.muted,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

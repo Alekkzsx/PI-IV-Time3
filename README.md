@@ -1,30 +1,32 @@
-# Integrated Educational Platform (AGMRM)
+# Plataforma Educacional Integrada (AGMRM)
 
-> Integrated repository of the Integrated Educational Platform (*Projeto Interdisciplinar IV - PI-IV Time 3 - PUC-Campinas 2026*)
-
----
-
-## About
-
-**Integrated Educational Platform (AGMRM)** is an integrated academic education platform developed for the Integrated Project IV course.
-
-The platform solves the fragmentation of educational tools by integrating presence tracking, digital class diary, grade calculation, assignment submission with automated late penalties, video conference with WebRTC, and deep cyber defense architecture.
-
-### Key Features
-
-- **Multi-Role Portals (Student, Teacher, Admin)**: Dedicated interfaces with distinct permission levels.
-- **Student Portal**: Academic history with weighted averages, absences, schedule, notices, and virtual desk.
-- **Teacher Portal**: Grade entry, digital attendance log, attendance approval, and virtual classroom management.
-- **Admin Portal**: User identity management, audit cockpit, academic registry, and CONSEPE official lock.
-- **Institutional Video Call (`video_call`)**: P2P WebRTC video conference integrated into the native Java server (`server/`). Active speaker detection, FIFO doubt queue (raised hands), real-time chat, and presence tracking by connected time.
-- **Native Java SE HTTP Server (`server/`)**: Zero-dependency native server on port 8080. 15 endpoints for academic logic, WebRTC signaling, and real OTP email recovery via SMTP SSL/TLS.
-- **Cyber Defense in Depth (`security/`)**: Brute-force lockout (5 attempts $\rightarrow$ 30s lockout), side-channel timing attack mitigation, opaque anti-enumeration responses, input sanitization against XSS/SQLi, and OTP token lifecycle.
+> Repositório integrado da Plataforma Educacional Integrada (*Projeto Interdisciplinar IV - PI-IV Time 3 - PUC-Campinas 2026*)
 
 ---
 
-## Team
+## Sobre
 
-| Full Name | Academic ID (RA) |
+A **Plataforma Educacional Integrada (AGMRM)** é uma plataforma educacional acadêmica integrada desenvolvida para a disciplina Projeto Interdisciplinar IV.
+
+A plataforma resolve a fragmentação de ferramentas educacionais ao integrar controle de presença, diário de classe digital, cálculo de notas, entrega de atividades com penalidades automáticas por atraso, videoconferência com WebRTC e arquitetura de ciberdefesa em profundidade.
+
+### Principais Funcionalidades
+
+- **Portais Multi-Perfil (Discente, Docente, Administrador)**: Interfaces dedicadas com níveis de permissão distintos.
+- **Portal do Discente**: Histórico acadêmico com médias ponderadas, faltas, grade de horários, avisos e secretaria virtual.
+- **Portal do Docente**: Lançamento de notas, diário de presença digital, homologação de frequência e gestão de sala de aula virtual.
+- **Portal Administrativo**: Gestão de identidade de usuários, cockpit de auditoria, secretaria acadêmica e trava regimental do CONSEPE.
+- **Videochamada Institucional (`video_call`)**: Videoconferência P2P WebRTC hospedada no servidor Java nativo (`server/` na porta `8080`) com lobby pré-chamada em tema monocromático de alto contraste (`VideoCallColors`), salas e presenças persistidas (`academic_live_sessions`, `video_call_attendance_logs`), tíquetes WS de uso único (`video_call_ws_tickets`), detecção de orador ativo, fila FIFO de dúvidas (mãos levantadas) e chat em tempo real sincronizado com o hub WebSocket.
+- **Servidor Java SE Nativo (`server/` na porta `8080`)**: Fronteira autoritativa de Identidade e Comunicação em Tempo Real (Login com validação estrita de compatibilidade de perfil `aluno`/`docente`/`admin`, 2FA, recuperação via OTP de uso único, Perfil/Sessões/exportação LGPD, Gestão Administrativa de Usuários, `/api/video-call/rooms*` persistido + `/ws/video-call/{roomCode}`, `/health` e monitor proativo `MonitorBackendAcademico`). Comunica-se com `backend/` via `/api/internal/academic/*` (`X-Internal-Service-Secret`).
+- **API do Núcleo Acadêmico (`backend/` na porta `3001`)**: Serviço acadêmico modular em TypeScript + Express + MongoDB responsável pelos portais Discente/Docente, operações acadêmicas administrativas, downloads de arquivos (`/api/files/*`), validação passiva de JWT HS256 + `auth_sessions` e ponte interna `/api/internal/academic/*`.
+- **Guarda Fail-Closed de Disponibilidade (`ServerUnavailableGuard`)**: Monitoramento contínuo dos serviços Java (`:8080/health`) e TypeScript (`:3001/health`) no cliente Flutter, bloqueando operações órfãs quando qualquer servidor estiver indisponível (com opção de desativação para desenvolvimento via `--dart-define=ENABLE_SERVER_GUARD=false` ou `.github/setup` `--no-guard` / `-NoGuard`).
+- **Ciberdefesa em Profundidade (`security/`)**: Bloqueio contra força bruta (5 tentativas $\rightarrow$ bloqueio de 30s), mitigação de ataques de temporização (side-channel timing), respostas opacas anti-enumeração, sanitização contra XSS/SQLi, ciclo de vida de tokens OTP e submódulo de proteção discente (verificação SHA-256 de entregas, inspeção de *magic bytes* de uploads, validador de repositórios Git e limitador de ações).
+
+---
+
+## Equipe
+
+| Nome Completo | RA |
 |---|---|
 | Alex Gabriel Soares Sousa | 24802449 |
 | Guilherme Henrique Moreira | 25006702 |
@@ -34,60 +36,69 @@ The platform solves the fragmentation of educational tools by integrating presen
 
 ---
 
-## Tech Stack
+## Stack Tecnológica
 
-| Layer | Technology |
+| Camada | Tecnologia |
 |---|---|
-| **Application (Client)** | Flutter (Desktop: Windows / Mobile / Web) |
-| **Backend Core (Server)** | Java SE — Pure Native HTTP Server (No external libraries) |
-| **Security & Defenses** | agmrm_security (Dart) + Java Security Middleware (Defense-in-Depth) |
-| **Persistence Layer** | Relational (PostgreSQL) / Document (MongoDB) |
-| **Version Control** | Git & GitHub |
+| **Aplicação (Cliente)** | Flutter (Desktop: Windows / Mobile / Web) |
+| **Servidor de Identidade, Usuários e WS de Videochamada** | Java SE (`server/` na porta `8080`) — HTTP Nativo Puro + WebSocket RFC 6455 + MongoDB Sync Driver |
+| **Núcleo Acadêmico e API de Ponte Interna** | TypeScript + Express + MongoDB (`backend/` na porta `3001`) |
+| **Segurança e Defesas** | agmrm_security (Dart) + Defesa em Profundidade Nativa com JWT/Rate-Limit |
+| **Camada de Persistência** | Orientada a Documentos (MongoDB) |
+| **Controle de Versão** | Git & GitHub |
 
 ---
 
-## Repository Structure
+## Estrutura do Repositório
 
 ```
 .../PI-IV-Time3/
-├── .github/          # CI/CD workflows, CODEOWNERS, GOVERNANCE.md, and shared IDE configs (.vscode)
-├── frontend/         # Multi-platform Flutter app (Feature-First Clean Architecture, 396 tests)
+├── .github/          # Fluxos de CI/CD, CODEOWNERS, GOVERNANCE.md, perfis .vscode e orquestrador multiplataforma (setup/)
+├── frontend/         # Aplicativo Flutter multiplataforma (Clean Architecture Feature-First, 57 arquivos de teste)
 │   ├── lib/
-│   │   ├── core/     # Theme, design tokens, routes, and transparent backend launcher
+│   │   ├── core/     # Tema, tokens de design, rotas, guarda Fail-Closed (ServerHealthMonitor) e launcher de backend
 │   │   ├── features/ # auth, student, teacher, admin, video_call, multiperfil
-│   │   └── main.dart # App entry point with automated parent modules startup
-│   └── test/         # Comprehensive test suite (396 tests)
-├── server/           # Native autonomous Java HTTP server (zero external frameworks)
+│   │   └── main.dart # Ponto de entrada do app com inicialização automatizada e guarda de disponibilidade
+│   └── test/         # Suíte abrangente de testes de unidade, widget e integração
+├── server/           # Servidor Java SE na porta 8080 (104 arquivos Java: Identidade, Admin, Videochamada REST + WS)
 │   ├── src/
-│   │   ├── Main.java # Central orchestrator on port 8080
-│   │   ├── core/     # Low-level TCP sockets, HTTP handlers, and CORS
-│   │   ├── academic/ # Grades, Attendance, Tasks, and Data Types
-│   │   ├── auth/     # Real email OTP recovery via SMTP SSL/TLS and HTTPS webhook
-│   │   └── videocall/# Virtual rooms, WebRTC signaling, Chat, Raised hands, Attendance
-│   └── tests/        # Documented cURL validation commands (testeServidor.txt)
-├── security/         # Enterprise cyber defense module (37 tests)
-│   ├── lib/          # Client-side defenses (lockout, rate limiter, timing, entropy)
-│   ├── test/         # Security test suite (37 tests)
-│   └── server/       # Server-side security filters (rate limiter, headers, sanitizers)
-├── backend/          # Enterprise persistence and orchestration configuration
-│   ├── backend-config.json # Declarative configuration for parent modules
-│   └── target/classes/     # Compiled entity models and repositories
-└── .env-example      # Unified master environment template for all modules
+│   │   ├── Main.java # Orquestrador central na porta 8080
+│   │   ├── core/     # Sockets TCP HTTP/1.1, CORS, failover MongoDB/DoH e MonitorBackendAcademico
+│   │   ├── auth/     # Autenticação, 2FA, Recuperação OTP, Perfil, Sessões, Usuários Admin, E-mail e validação JWT
+│   │   ├── bridge/   # Cliente HTTP autenticado para /api/internal/academic/* do backend
+│   │   ├── utils/    # BsonUtils, ConfigEnv, Json, JsonSimples e RedeUtils
+│   │   ├── websocket/# Handshake WebSocket RFC 6455, enquadramento (framing) e ciclo de vida
+│   │   └── videocall/# Salas persistidas (/api/video-call/rooms*), hub WebRTC e Frequência
+│   └── tests/        # Suíte nativa de testes Java sem dependências externas (SuiteTestesServidor - 17 suítes)
+├── security/         # Módulo corporativo de ciberdefesa (agmrm_security: 125 testes Dart + 20 cenários Java)
+│   ├── lib/          # Defesas de autenticação e proteção discente (SHA-256, magic bytes, rate-limit, entropia)
+│   ├── test/         # 21 suítes de testes automatizados em Dart/Flutter
+│   └── server/       # Filtros de segurança do lado do servidor Java (limitador de taxa, cabeçalhos, sanitizadores)
+├── backend/          # Núcleo Acadêmico em TypeScript + Express + MongoDB na porta 3001 (61 testes automatizados)
+│   ├── src/
+│   │   ├── config/   # Carregamento de ambiente e validação estrita
+│   │   ├── shared/   # Cliente MongoDB, middleware passivo JWT+sessão, índices e erros
+│   │   ├── modules/  # Módulos acadêmicos: admin/, student/, teacher/, notifications/, internal/
+│   │   ├── scripts/  # Provisionamento de usuários via CLI e 6 seeds modulares idempotentes
+│   │   └── tests/    # Suítes centralizadas de testes unitários (unit/) e de integração (integration/)
+│   └── backend-config.json # Configuração declarativa para os módulos principais
+└── .env-example      # Modelo mestre unificado de variáveis de ambiente para todos os módulos
 ```
 
 ---
 
-## Running Locally (Dev Environment)
+## Executando Localmente (Ambiente de Desenvolvimento)
 
-### Prerequisites
+### Pré-requisitos
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x or higher)
-- [Java JDK](https://www.oracle.com/java/technologies/downloads/) (JDK 8 or higher / JDK 17 or 21 recommended)
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.x ou superior)
+- [Java JDK](https://www.oracle.com/java/technologies/downloads/) (JDK 8 ou superior / JDK 17 ou 21 recomendado)
+- [Node.js](https://nodejs.org/) (20.x ou superior, para `backend/`)
 - Git
 
 ---
 
-### 1. Clone the Repository
+### 1. Clonar o Repositório
 
 ```bash
 git clone https://github.com/Alekkzsx/PI-IV-Time3.git
@@ -96,93 +107,111 @@ cd .../PI-IV-Time3
 
 ---
 
-### 2. Configure Environment Credentials
+### 2. Configurar Credenciais de Ambiente
 
-Create your environment configuration file from the template at the project root:
+Crie seu arquivo de configuração de ambiente a partir do modelo na raiz do projeto:
 
 ```bash
 cp .env-example .env
 ```
 
-| Variable | Description | Default Value |
+Todos os módulos do projeto (`backend/`, `server/`, `frontend/`, `security/`) carregam a configuração **exclusivamente** deste único arquivo `.env` mestre na raiz.
+
+| Variável | Descrição | Valor Padrão |
 |---|---|---|
-| `SERVER_PORT` | HTTP Server port | `8080` |
-| `REQUEST_TIMEOUT_SECONDS` | Request timeout for socket connection | `30` |
-| `MAX_FAILED_LOGIN_ATTEMPTS` | Maximum failed logins before lockout | `5` |
-| `LOCKOUT_DURATION_SECONDS` | Lockout duration in seconds | `30` |
-| `STANDARDIZED_AUTH_LATENCY_MS` | Constant-time execution baseline | `1000` |
-| `RECOVERY_TOKEN_TTL_SECONDS` | Ephemeral OTP recovery token lifespan | `300` |
-| `MAX_VERIFICATION_ATTEMPTS` | Maximum invalid OTP attempts allowed | `3` |
-| `SMTP_HOST` | Outgoing SMTP email host | `smtp.gmail.com` |
-| `SMTP_PORT` | Outgoing SMTP SSL port | `465` |
-| `SMTP_USER` | Dedicated email sender account | `staff.notadez@gmail.com` |
+| `SERVER_PORT` | Porta do servidor HTTP/WS em Java | `8080` |
+| `AUTH_JWT_SECRET` | Segredo compartilhado JWT HS256 (mín. 32 caracteres) | *(configurado no `.env`)* |
+| `REQUEST_TIMEOUT_SECONDS` | Tempo limite de requisição para conexão de socket | `30` |
+| `MAX_FAILED_LOGIN_ATTEMPTS` | Máximo de tentativas de login malsucedidas antes do bloqueio | `5` |
+| `LOCKOUT_DURATION_SECONDS` | Duração do bloqueio em segundos | `30` |
+| `STANDARDIZED_AUTH_LATENCY_MS` | Linha de base de execução em tempo constante | `1000` |
+| `RECOVERY_TOKEN_TTL_SECONDS` | Tempo de vida efêmero do token de recuperação OTP | `300` |
+| `MAX_VERIFICATION_ATTEMPTS` | Máximo de tentativas inválidas de OTP permitidas | `3` |
 
 ---
 
-### 3. Install Project Dependencies
+### 3. Instalar Dependências do Projeto
 
-Install dependencies for both Flutter and Dart packages:
+Instale as dependências dos pacotes Flutter, de segurança em Dart e do backend em TypeScript:
 
 ```bash
 cd frontend
 flutter pub get
 cd ../security
 flutter pub get
+cd ../backend
+npm install
 cd ..
 ```
 
 ---
 
-### 4. Start the Backend Server
+### 4. Iniciar os Serviços (Automático via `.github/setup` ou Manual)
 
-The Java server is automatically launched when running `flutter run`, or can be executed manually:
+#### Opção A: Orquestrador Multiplataforma Automatizado (Recomendado)
+Inicia automaticamente o Servidor Java (`:8080`), o Backend TypeScript (`:3001`) e o Frontend Flutter em 3 terminais dedicados:
 
-#### On Windows:
 ```bash
-cd server
-javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
-java -cp bin Main
+# Linux / macOS / WSL2:
+./.github/setup/setup.sh
+
+# Para iniciar com a trava Fail-Closed desativada:
+./.github/setup/setup.sh --no-guard
 ```
 
-#### On Linux / macOS:
-```bash
-cd server
-javac --release 8 -encoding UTF-8 -d bin src/Main.java src/core/*.java src/academic/*.java src/auth/*.java src/videocall/*.java
-java -cp bin Main
-```
-
-*The server will start on port 8080.*
-
-#### Automated Full Build and Verification:
-To build and run tests across all parent modules:
-
-##### On Windows / PowerShell:
 ```powershell
-cd frontend
-flutter test
-cd ../security
-flutter test
+# Windows (CMD ou PowerShell):
+.\.github\setup\setup.bat
+
+# Para iniciar com a trava Fail-Closed desativada:
+.\.github\setup\setup.bat -NoGuard
 ```
 
-##### On Linux / macOS:
+#### Opção B: Inicialização Manual dos Serviços
+Inicie o Núcleo Acadêmico em TypeScript e a API de Ponte Interna na porta `3001`:
+
 ```bash
-cd frontend
-flutter test
-cd ../security
-flutter test
+cd backend
+npm run dev
+```
+
+Compile e inicie o servidor Java nativo na porta `8080`:
+
+```bash
+cd server
+mkdir -p bin
+javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin $(find src -name "*.java")
+java -Dfile.encoding=UTF-8 -cp "bin:lib/*" Main
+```
+
+#### Build e Verificação Completa Automatizada:
+Para compilar e executar as suítes de testes em todos os módulos:
+
+```bash
+# 1. Backend Acadêmico (61 testes)
+cd backend && npm test
+
+# 2. Servidor Java Nativo (17 suítes nativas)
+cd ../server && mkdir -p /tmp/server_test_bin && javac --release 8 -encoding UTF-8 -cp "lib/*" -d /tmp/server_test_bin $(find src tests -name "*.java") && java -Dfile.encoding=UTF-8 -cp "/tmp/server_test_bin:lib/*" SuiteTestesServidor
+
+# 3. Módulo de Ciberdefesa (125 testes Dart)
+cd ../security && flutter test
+
+# 4. Frontend Flutter
+cd ../frontend && flutter test
 ```
 
 ---
 
-### 5. Run the App
+### 5. Executar o Aplicativo
 
-In the `frontend` directory:
+No diretório `frontend`:
 
 ```bash
 cd frontend
 ```
 
-#### Windows Desktop (Recommended):
+#### Windows Desktop (Recomendado):
 ```bash
 flutter run -d windows
 ```
@@ -192,35 +221,34 @@ flutter run -d windows
 flutter run -d chrome
 ```
 
-#### Available Devices List:
+#### Lista de Dispositivos Disponíveis:
 ```bash
 flutter devices
 ```
 
 ---
 
-## API Endpoints
+## Endpoints da API
 
-The native Java server provides 15 endpoints on port 8080:
+Os serviços seguem uma separação estrita de contextos delimitados entre Identidade/Videochamada (`server/` na `8080`) e Núcleo Acadêmico (`backend/` na `3001`):
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` / `POST` | `/api/teste-tipos` | Diagnostic and echo of primitive types (text, numeric, boolean) |
-| `POST` | `/api/presenca` | Calculates presence percentage and excused absence allowance |
-| `POST` | `/api/tarefas/calcular-nota` | Computes final task grade deducting penalty for late submissions |
-| `POST` | `/api/notas/boletim` | Calculates semester weighted average and passing status |
-| `GET` | `/api/videocall/rooms` | Lists active virtual classrooms and room health status |
-| `POST` | `/api/videocall/open` | Opens virtual classroom (**Teacher or Admin only**) |
-| `POST` | `/api/videocall/close` | Closes virtual classroom (**Teacher or Admin only**) |
-| `POST` | `/api/videocall/join` | Joins session and records attendance telemetry |
-| `POST` | `/api/videocall/leave` | Leaves session and logs connected duration |
-| `POST` | `/api/videocall/signal` | P2P WebRTC signaling (SDP offer/answer, ICE candidates) |
-| `POST` | `/api/videocall/hand-raise` | Manages FIFO queue of raised hands and doubts |
-| `POST` | `/api/videocall/chat` | Real-time chat messages with room timestamps |
-| `POST` | `/api/videocall/attendance` | Homologates presence based on connected duration |
-| `POST` | `/api/auth/send-recovery-otp` | Generates 6-digit OTP and dispatches real SMTP email (5-min TTL) |
-| `POST` | `/api/auth/verify-recovery-otp` | Validates OTP with 300s TTL and 3-attempt brute-force limit |
+| Método | Endpoint | Serviço | Descrição |
+|---|---|---|---|
+| `GET` | `/health` | Java (`8080`) | Verificação de integridade do servidor de Identidade e Videochamada |
+| `POST` | `/api/auth/login` | Java (`8080`) | Login institucional com emissão de JWT HS256 (com 2FA e `requirePasswordChange`) |
+| `POST` | `/api/auth/verify-two-factor` | Java (`8080`) | Verifica código OTP 2FA ou código de backup e persiste a sessão |
+| `GET` / `PATCH` | `/api/auth/me` / `/profile` / `/lgpd-export` | Java (`8080`) | Inspeção de sessão, atualização de perfil e exportação de dados LGPD |
+| `GET` / `DELETE` | `/api/auth/sessions` / `/logout-others` | Java (`8080`) | Inspeção e revogação de sessões ativas |
+| `GET` / `POST` / `PATCH` | `/api/admin/users*` & `POST /api/admin/teachers` | Java (`8080`) | Gestão administrativa do ciclo de vida de usuários, dossiê e provisionamento de docentes |
+| `GET` / `POST` | `/api/video-call/rooms*` | Java (`8080`) | Consulta de sala ao vivo persistida, emissão de tíquete WS de uso único, encerramento e frequência |
+| `GET` / `POST` | `/api/videocall/*` | Java (`8080`) | Endpoints legados de compatibilidade para sala ao vivo, sinalização e telemetria de chat |
+| `GET` | `/health` | TS (`3001`) | Verificação de integridade da API Acadêmica (`agmrm-academic-api`) |
+| `GET` / `POST` / `PATCH` | `/api/student/*`, `/api/teacher/*`, `/api/files/*` | TS (`3001`) | Portal AVA do Discente, cockpit do Docente e downloads de arquivos acadêmicos |
+| `GET` / `POST` / `PATCH` | `/api/admin/courses*`, `/classes*`, `GET /teachers`, `/protocols*`, `/settings`, `/announcements*`, `/calendar*`, `/audit-logs`, `/system/*` | TS (`3001`) | Gestão acadêmica administrativa e operações institucionais |
+| `GET` / `POST` | `/api/internal/academic/*` | TS (`3001`) | Ponte HTTP serviço-a-serviço protegida por `X-Internal-Service-Secret` |
+
+As rotas públicas `/api/auth/*`, `/api/admin/users*`, `POST /api/admin/teachers` e `/api/video-call/*` não são mais servidas na porta `3001` (`404`). O cliente Flutter utiliza `AUTH_API_BASE_URL` (`http://127.0.0.1:8080`), `ACADEMIC_API_BASE_URL` (`http://127.0.0.1:3001`) e `VIDEO_CALL_WS_BASE_URL` (`ws://127.0.0.1:8080/ws/video-call/{roomCode}?ticket=...`).
 
 ---
 
-*Software Engineering • Systems Architecture & Security • PUC-Campinas • 2026*
+*Engenharia de Software • PUC-Campinas • 2026*

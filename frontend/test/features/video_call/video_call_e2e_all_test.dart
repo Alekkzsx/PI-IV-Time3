@@ -18,7 +18,7 @@ import 'tier4_real_world_scenarios/unexpected_disconnect_recovery_e2e_test.dart'
 import 'presentation/production_presentation_test.dart' as prod_pres;
 import 'tier4_real_world_scenarios/zero_bots_multi_user_e2e_test.dart' as t4_zero_bots;
 
-/// Master test runner for the complete 4-tier P2P Video Conferencing test suite.
+/// Executor principal de testes para a suíte completa de 4 camadas de videoconferência P2P.
 void main() {
   group('P2P Video Conferencing — Comprehensive 4-Tier Opaque-Box Test Suite', () {
     group('Tier 1: Category-Partition (Equivalence Classes)', () {

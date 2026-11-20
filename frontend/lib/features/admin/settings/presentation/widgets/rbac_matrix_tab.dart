@@ -1,8 +1,9 @@
 // Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
-import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/state/role_permission_policy.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
 
 /// Aba de Configuração da Matriz de Permissões RBAC (Role-Based Access Control).
@@ -92,13 +93,6 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
       category: 'Segurança',
     ),
     _RbacPermissionItem(
-      key: 'impersonate_support',
-      label: 'Modo Suporte / Impersonation',
-      description:
-          'Visualização diagnóstica sob a perspectiva exata do discente/docente.',
-      category: 'Segurança',
-    ),
-    _RbacPermissionItem(
       key: 'audit_diff_inspect',
       label: 'Auditoria & Trilha Forense (Diff)',
       description:
@@ -146,16 +140,9 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,13 +155,13 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: InstColors.stoneActive,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                  border: Border.all(color: InstColors.border),
                 ),
                 child: const Icon(
                   Icons.security_outlined,
-                  color: Color(0xFF1D4ED8),
+                  color: InstColors.ink,
                   size: 22,
                 ),
               ),
@@ -183,21 +170,47 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Matriz de Permissões por Perfil',
-                      style: jakarta(
-                        size: 19,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Matriz de Permissões por Perfil',
+                            style: jakarta(
+                              size: 19,
+                              weight: FontWeight.w700,
+                              color: InstColors.ink,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: InstColors.stoneActive,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: InstColors.border),
+                          ),
+                          child: Text(
+                            'SOMENTE LEITURA',
+                            style: jakarta(
+                              size: 10,
+                              weight: FontWeight.w700,
+                              color: InstColors.body,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Permissões aplicadas aos três perfis existentes: aluno, docente e admin.',
+                      'Política oficial aplicada em RolePermissionPolicy para os três perfis existentes: aluno, docente e admin.',
                       style: jakarta(
                         size: 13,
                         weight: FontWeight.w400,
-                        color: const Color(0xFF64748B),
+                        color: InstColors.muted,
                       ),
                     ),
                   ],
@@ -211,25 +224,25 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: InstColors.stone,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: InstColors.border),
             ),
             child: Row(
               children: [
                 const Icon(
-                  Icons.info_outline_rounded,
+                  Icons.verified_user_outlined,
                   size: 18,
-                  color: Color(0xFF2563EB),
+                  color: InstColors.ink,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Discente é a denominação acadêmica do aluno. As permissões exibidas são as regras efetivas da aplicação e não criam perfis ou cargos adicionais.',
+                    'Auditoria oficial somente leitura: as permissões refletem exatamente os guardas de acesso aplicados no servidor e não criam perfis ou cargos adicionais.',
                     style: jakarta(
                       size: 12.5,
                       weight: FontWeight.w500,
-                      color: const Color(0xFF1E293B),
+                      color: InstColors.ink,
                     ),
                   ),
                 ),
@@ -238,11 +251,11 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
           ),
           const SizedBox(height: 24),
 
-          // Tabela Interativa RBAC
+          // Tabela Somente Leitura RBAC
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              border: Border.all(color: InstColors.border),
             ),
             clipBehavior: Clip.antiAlias,
             child: SingleChildScrollView(
@@ -257,17 +270,17 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                         horizontal: 16,
                         vertical: 12,
                       ),
-                      color: const Color(0xFFF1F5F9),
+                      color: InstColors.headerBg,
                       child: Row(
                         children: [
-                          const SizedBox(
+                          SizedBox(
                             width: 300,
                             child: Text(
                               'CAPACIDADE / OPERAÇÃO',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF475569),
+                              style: jakarta(
+                                size: 11,
+                                weight: FontWeight.w700,
+                                color: InstColors.muted,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -277,12 +290,10 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                               child: Center(
                                 child: Text(
                                   _roleLabel(role),
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: role == RolePermissionPolicy.admin
-                                        ? const Color(0xFF1D4ED8)
-                                        : const Color(0xFF0F172A),
+                                  style: jakarta(
+                                    size: 11.5,
+                                    weight: FontWeight.w700,
+                                    color: InstColors.ink,
                                   ),
                                 ),
                               ),
@@ -318,8 +329,8 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isEven ? Colors.white : const Color(0xFFF8FAFC),
-        border: const Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+        color: isEven ? Colors.white : InstColors.hoverSurface,
+        border: const Border(top: BorderSide(color: InstColors.border)),
       ),
       child: Row(
         children: [
@@ -329,17 +340,13 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      item.label,
-                      style: jakarta(
-                        size: 13,
-                        weight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                  ],
+                Text(
+                  item.label,
+                  style: jakarta(
+                    size: 13,
+                    weight: FontWeight.w700,
+                    color: InstColors.ink,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -347,14 +354,14 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
                   style: jakarta(
                     size: 11.5,
                     weight: FontWeight.w400,
-                    color: const Color(0xFF64748B),
+                    color: InstColors.muted,
                   ),
                 ),
               ],
             ),
           ),
 
-          // Colunas dos Perfis com Checkboxes Interativos
+          // Indicadores somente leitura por perfil
           for (final role in _roles)
             Expanded(child: Center(child: _buildCheckbox(role, item.key))),
         ],
@@ -371,16 +378,10 @@ class _RbacMatrixTabState extends State<RbacMatrixTab> {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: isAllowed
-              ? (role == RolePermissionPolicy.admin
-                    ? const Color(0xFF1D4ED8)
-                    : const Color(0xFF2563EB))
-              : Colors.white,
+          color: isAllowed ? InstColors.ink : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: isAllowed
-                ? const Color(0xFF2563EB)
-                : const Color(0xFFCBD5E1),
+            color: isAllowed ? InstColors.ink : InstColors.borderStrong,
             width: 1.5,
           ),
         ),

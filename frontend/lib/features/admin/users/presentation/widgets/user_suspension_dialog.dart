@@ -1,8 +1,8 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Diálogo para bloqueio/suspensão ou reativação de usuário com exigência de justificativa regimental.
 class UserSuspensionDialog extends StatefulWidget {
@@ -310,7 +310,11 @@ class _UserSuspensionDialogState extends State<UserSuspensionDialog> {
                   ),
                   label: Text(
                     _willSuspend ? 'Confirmar Suspensão' : 'Reativar Usuário',
-                    style: jakarta(size: 13, weight: FontWeight.w600),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _willSuspend

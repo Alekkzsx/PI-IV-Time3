@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
@@ -6,36 +6,36 @@ import '../theme/video_call_theme.dart';
 import 'participant_video_tile.dart';
 import 'screen_share_view.dart';
 
-/// Responsive dynamic video conferencing grid with Zero Bots assurance.
+/// Grade dinâmica e responsiva de videoconferência com garantia de zero bots.
 ///
-/// Strictly adapts layout presentation according to connected real participants:
-/// - N = 0: Renders centered notice 'Nenhum participante conectado'.
-/// - N = 1: Renders exactly 1 highlighted central tile (Zero Bots).
-/// - N = 2: Horizontal dual-split layout with equitable space distribution.
-/// - N = 3 or 4: 2x2 grid via [GridView] with ergonomic aspect ratio (1.3).
-/// - N > 4: Expandable scrolling grid.
-/// - Screen Sharing Mode: Transitions to spotlight mode with [ScreenShareView]
-///   as primary stage and horizontal filmstrip on the bottom.
+/// Adapta estritamente a apresentação do layout conforme os participantes reais conectados:
+/// - N = 0: Renderiza o aviso centralizado 'Nenhum participante conectado'.
+/// - N = 1: Renderiza exatamente 1 bloco central em destaque (zero bots).
+/// - N = 2: Layout dividido horizontalmente em duas partes com distribuição equitativa de espaço.
+/// - N = 3 ou 4: Grade 2x2 via [GridView] com proporção ergonômica (1.3).
+/// - N > 4: Grade expansível com rolagem.
+/// - Modo de Compartilhamento de Tela: Transiciona para o modo destaque com [ScreenShareView]
+///   como palco principal e faixa horizontal de miniaturas na parte inferior.
 class DynamicVideoGrid extends StatelessWidget {
-  /// Strict list of real participants currently connected to the room.
+  /// Lista estrita de participantes reais atualmente conectados à sala.
   final List<Participant> participants;
 
-  /// Indicates whether active screen sharing is displayed on the main stage.
+  /// Indica se o compartilhamento de tela ativo está sendo exibido no palco principal.
   final bool isScreenSharing;
 
-  /// Optional builder to resolve HTML5 video viewType for each participant.
+  /// Construtor opcional para resolver o viewType de vídeo HTML5 para cada participante.
   final String? Function(Participant)? videoViewTypeBuilder;
 
-  /// Optional viewType of the active screen share stream.
+  /// viewType opcional do stream de compartilhamento de tela ativo.
   final String? screenShareViewType;
 
-  /// Optional display name of the participant currently sharing screen.
+  /// Nome de exibição opcional do participante que está compartilhando a tela.
   final String? activePresenterName;
 
-  /// Identifier of the pinned (spotlight) participant, if any.
+  /// Identificador do participante fixado (em destaque), se houver.
   final String? pinnedParticipantId;
 
-  /// Optional callback triggered when tapping a participant video tile.
+  /// Callback opcional acionado ao tocar no bloco de vídeo de um participante.
   final void Function(Participant)? onParticipantTap;
 
   const DynamicVideoGrid({
@@ -54,8 +54,9 @@ class DynamicVideoGrid extends StatelessWidget {
       participant: participant,
       videoViewType: videoViewTypeBuilder?.call(participant),
       isPinned: pinnedParticipantId == participant.id,
-      onTap:
-          onParticipantTap != null ? () => onParticipantTap!(participant) : null,
+      onTap: onParticipantTap != null
+          ? () => onParticipantTap!(participant)
+          : null,
     );
   }
 
@@ -78,10 +79,7 @@ class DynamicVideoGrid extends StatelessWidget {
               itemCount: participants.length,
               itemBuilder: (context, index) {
                 final participant = participants[index];
-                return SizedBox(
-                  width: 180,
-                  child: _buildTile(participant),
-                );
+                return SizedBox(width: 180, child: _buildTile(participant));
               },
             ),
           ),
@@ -104,11 +102,7 @@ class DynamicVideoGrid extends StatelessWidget {
 
     if (participants.length == 1) {
       final soleParticipant = participants.first;
-      return Center(
-        child: SizedBox.expand(
-          child: _buildTile(soleParticipant),
-        ),
-      );
+      return Center(child: SizedBox.expand(child: _buildTile(soleParticipant)));
     }
 
     if (participants.length == 2) {

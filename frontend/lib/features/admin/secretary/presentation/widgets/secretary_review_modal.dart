@@ -1,9 +1,12 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Modal de Análise e Despacho de Requerimento da Secretaria Acadêmica
 class SecretaryReviewModal extends StatefulWidget {
@@ -178,7 +181,9 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            p.attachmentName,
+                            p.attachmentName.trim().isEmpty
+                                ? 'Extrato digital do protocolo (${p.code})'
+                                : p.attachmentName,
                             style: jakarta(
                               size: 13,
                               weight: FontWeight.w700,
@@ -197,16 +202,48 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                       ),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Anexo ${p.attachmentName} está disponível para conferência no prontuário.',
-                              style: jakarta(size: 13, color: Colors.white),
+                      onPressed: () async {
+                        try {
+                          final file = await widget.controller.remote
+                              .downloadProtocol(p.id);
+                          final encoded = file['contentBase64'];
+                          if (encoded is! String || encoded.isEmpty) {
+                            throw Exception('A API não retornou o anexo.');
+                          }
+                          final apiFileName =
+                              (file['attachmentName'] ?? file['fileName'])
+                                  ?.toString()
+                                  .trim();
+                          final resolvedFileName =
+                              (apiFileName != null && apiFileName.isNotEmpty)
+                                  ? apiFileName
+                                  : (p.attachmentName.trim().isNotEmpty
+                                        ? p.attachmentName.trim()
+                                        : '${p.code.replaceAll(RegExp(r'[^\w\-.]'), '_')}.txt');
+                          final path =
+                              await PlatformFileHelper.saveOrDownloadFile(
+                                fileName: resolvedFileName,
+                                bytes: base64Decode(encoded),
+                                mimeType:
+                                    file['mimeType']?.toString() ??
+                                    'application/octet-stream',
+                              );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                path == null
+                                    ? 'Não foi possível salvar o anexo.'
+                                    : 'Anexo salvo: $path',
+                              ),
                             ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                          );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.toString())),
+                          );
+                        }
                       },
                       icon: const Icon(
                         Icons.file_download_outlined,
@@ -335,12 +372,30 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                   ),
                   const Spacer(),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      widget.controller.decideProtocol(
-                        protocolId: p.id,
-                        defer: false,
-                        parecerNote: _parecerController.text,
-                      );
+                    onPressed: () async {
+                      final ok = widget.controller.usesRemote
+                          ? await widget.controller.persistProtocol(
+                              p.id,
+                              false,
+                              _parecerController.text,
+                            )
+                          : await widget.controller.decideProtocol(
+                              protocolId: p.id,
+                              defer: false,
+                              parecerNote: _parecerController.text,
+                            );
+                      if (!context.mounted) return;
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              widget.controller.remoteError ??
+                                  'Não foi possível decidir.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -378,12 +433,30 @@ class _SecretaryReviewModalState extends State<SecretaryReviewModal> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      widget.controller.decideProtocol(
-                        protocolId: p.id,
-                        defer: true,
-                        parecerNote: _parecerController.text,
-                      );
+                    onPressed: () async {
+                      final ok = widget.controller.usesRemote
+                          ? await widget.controller.persistProtocol(
+                              p.id,
+                              true,
+                              _parecerController.text,
+                            )
+                          : await widget.controller.decideProtocol(
+                              protocolId: p.id,
+                              defer: true,
+                              parecerNote: _parecerController.text,
+                            );
+                      if (!context.mounted) return;
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              widget.controller.remoteError ??
+                                  'Não foi possível decidir.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

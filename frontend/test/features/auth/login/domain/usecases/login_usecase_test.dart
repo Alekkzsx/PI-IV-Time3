@@ -21,7 +21,16 @@ class MockAuthRepository implements AuthRepository {
   bool shouldFail = false;
 
   @override
-  Future<void> recoverPassword({required String identity}) async {}
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {}
+
+  @override
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async => {};
 
   @override
   Future<String> login({
@@ -51,6 +60,12 @@ class MockAuthRepository implements AuthRepository {
   }) async => 'test-reset-token';
 
   @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async => currentSession.withResetToken('test-reset-token');
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
@@ -76,14 +91,14 @@ void main() {
   test(
     'Deve executar login com sucesso e repassar dados ao repositório',
     () async {
-      // Arrange & Act
+      // Preparação e Ação
       await useCase(
         identity: 'ADM-00123',
         password: 'password123',
         profile: 'admin',
       );
 
-      // Assert
+      // Verificação
       expect(mockRepository.lastIdentity, 'ADM-00123');
       expect(mockRepository.lastPassword, 'password123');
       expect(mockRepository.lastProfile, 'admin');
@@ -91,7 +106,7 @@ void main() {
   );
 
   test('Deve lançar erro quando o identificador for vazio', () async {
-    // Act & Assert
+    // Ação e Verificação
     expect(
       () => useCase(identity: '   ', password: 'password123', profile: 'admin'),
       throwsA(isA<Exception>()),
@@ -99,7 +114,7 @@ void main() {
   });
 
   test('Deve lançar erro quando a senha for menor que 8 caracteres', () async {
-    // Act & Assert
+    // Ação e Verificação
     expect(
       () => useCase(identity: 'ADM-00123', password: '123', profile: 'admin'),
       throwsA(isA<Exception>()),
@@ -107,10 +122,10 @@ void main() {
   });
 
   test('Deve propagar erro do repositório em falha de autenticação', () async {
-    // Arrange
+    // Preparação
     mockRepository.shouldFail = true;
 
-    // Act & Assert
+    // Ação e Verificação
     expect(
       () => useCase(
         identity: 'ADM-00123',

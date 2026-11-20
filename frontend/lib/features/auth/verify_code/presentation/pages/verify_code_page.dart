@@ -5,7 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../shared/widgets/top_header_bar.dart';
 import '../../../shared/domain/auth_repository.dart';
-import '../../../shared/domain/models/recovery_session.dart';
+import '../../../shared/external/auth_remote_datasource_impl.dart';
+import '../widgets/otp_code_input_section.dart';
 
 /// Tela de conferência de token de segurança OTP (One-Time Password) de 6 dígitos.
 ///
@@ -49,12 +50,21 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
   @override
   void initState() {
     super.initState();
-    // Auto-focus no primeiro campo ao carregar
+    for (final node in _focusNodes) {
+      node.addListener(_handleFocusChange);
+    }
+    // Foco automático no primeiro campo ao carregar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focusNodes[0].requestFocus();
       }
     });
+  }
+
+  void _handleFocusChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -63,6 +73,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       controller.dispose();
     }
     for (final node in _focusNodes) {
+      node.removeListener(_handleFocusChange);
       node.dispose();
     }
     super.dispose();
@@ -84,6 +95,22 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
 
     if (value.length > 1) {
       final rawDigits = value.replaceAll(RegExp(r'\D'), '');
+      // Digitação de substituição em um bloco intermediário/final já preenchido
+      if (index > 0 && rawDigits.length == 2) {
+        final replacement = rawDigits[rawDigits.length - 1];
+        _controllers[index].text = replacement;
+        _controllers[index].selection = const TextSelection.collapsed(
+          offset: 1,
+        );
+        setState(() => _errorMessage = null);
+        if (index < _codeLength - 1) {
+          _focusNodes[index + 1].requestFocus();
+        } else {
+          _focusNodes[index].unfocus();
+        }
+        return;
+      }
+
       final digits = rawDigits.length > _codeLength
           ? rawDigits.substring(0, _codeLength)
           : rawDigits;
@@ -113,6 +140,18 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
         _focusNodes[index].unfocus();
       }
     }
+  }
+
+  /// Limpa os 6 campos de código, remove mensagens de erro e devolve o foco ao 1º bloco.
+  void _handleClearCode() {
+    if (_isVerifying || _isResending || _isNavigating) return;
+    for (final controller in _controllers) {
+      controller.clear();
+    }
+    setState(() {
+      _errorMessage = null;
+    });
+    _focusNodes[0].requestFocus();
   }
 
   /// Intercepta a tecla Backspace para limpar o campo anterior e recuar o foco
@@ -146,13 +185,22 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     });
 
     try {
-      final resetToken = await widget.repository.verifyPasswordRecoveryCode(
-        identity: session.identity,
-        code: code,
-      );
+      RecoverySession nextSession;
+      try {
+        nextSession = await widget.repository.verifyRecoverySession(
+          currentSession: session,
+          code: code,
+        );
+      } catch (_) {
+        final resetToken = await widget.repository.verifyPasswordRecoveryCode(
+          identity: session.identity,
+          code: code,
+        );
+        nextSession = session.withResetToken(resetToken);
+      }
       if (!mounted) return;
 
-      if (resetToken.isNotEmpty) {
+      if (nextSession.resetToken != null && nextSession.resetToken!.isNotEmpty) {
         _isNavigating = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -181,7 +229,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
           if (mounted) {
             Navigator.of(context).pushReplacementNamed(
               '/reset-password',
-              arguments: session.withResetToken(resetToken),
+              arguments: nextSession,
             );
           }
         });
@@ -232,7 +280,20 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     if (_isResending || _isVerifying || _isNavigating) return;
     setState(() => _isResending = true);
     try {
-      await widget.repository.recoverPassword(identity: session.identity);
+      String masked = session.maskedEmail;
+      try {
+        final details = await widget.repository.recoverPasswordDetails(
+          identity: session.identity,
+          profile: session.profile.name,
+        );
+        final m = details['maskedEmail']?.toString();
+        if (m != null && m.isNotEmpty) masked = m;
+      } catch (_) {
+        await widget.repository.recoverPassword(
+          identity: session.identity,
+          profile: session.profile.name,
+        );
+      }
       if (!mounted) return;
       for (final controller in _controllers) {
         controller.clear();
@@ -250,7 +311,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Novo código enviado para ${session.maskedEmail}!',
+                  'Novo código enviado para $masked!',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -262,6 +323,14 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
           duration: const Duration(seconds: 2),
         ),
       );
+    } on AuthApiException catch (error) {
+      if (!mounted) return;
+      final allowed = const {400, 403, 404, 422, 429, 503, 504};
+      setState(() {
+        _errorMessage = allowed.contains(error.statusCode) && error.message.trim().isNotEmpty
+            ? error.message.trim()
+            : 'Não foi possível reenviar o código. Tente novamente em instantes.';
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -295,7 +364,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Navigation & Branding Header
+            // Cabeçalho Superior de Navegação e Marca
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -313,7 +382,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
               ),
             ),
 
-            // Central Content Area
+            // Área de Conteúdo Central
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -418,103 +487,19 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
                         ),
                         const SizedBox(height: 28),
 
-                        // Grade dos 6 Inputs OTP
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final availableWidth = constraints.maxWidth
-                                .clamp(0.0, 336.0)
-                                .toDouble();
-                            final gap = availableWidth >= 336
-                                ? (availableWidth - 6 * 48) / 5
-                                : 4.0;
-                            final digitWidth =
-                                (availableWidth - 5 * gap) / _codeLength;
-
-                            return SizedBox(
-                              width: availableWidth,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: List.generate(_codeLength, (index) {
-                                  final isFocused = _focusNodes[index].hasFocus;
-                                  final hasError = _errorMessage != null;
-
-                                  return Focus(
-                                    onKeyEvent: (node, event) {
-                                      _onKey(event, index);
-                                      return KeyEventResult.ignored;
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 150,
-                                      ),
-                                      width: digitWidth,
-                                      height: 54,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: hasError
-                                              ? const Color(0xFFEF4444)
-                                              : isFocused
-                                              ? const Color(0xFF0F172A)
-                                              : const Color(0xFFE2E8F0),
-                                          width: isFocused || hasError
-                                              ? 1.6
-                                              : 1.0,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: isFocused
-                                                ? const Color(
-                                                    0xFF0F172A,
-                                                  ).withValues(alpha: 0.06)
-                                                : Colors.black.withValues(
-                                                    alpha: 0.02,
-                                                  ),
-                                            blurRadius: isFocused ? 6 : 3,
-                                            offset: const Offset(0, 1),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: TextField(
-                                          controller: _controllers[index],
-                                          focusNode: _focusNodes[index],
-                                          enabled:
-                                              !_isVerifying &&
-                                              !_isResending &&
-                                              !_isNavigating,
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF0F172A),
-                                          ),
-                                          inputFormatters: [
-                                            FilteringTextInputFormatter
-                                                .digitsOnly,
-                                          ],
-                                          decoration: const InputDecoration(
-                                            counterText: '',
-                                            border: InputBorder.none,
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.zero,
-                                          ),
-                                          onChanged: (val) =>
-                                              _onFieldChanged(val, index),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ),
-                            );
-                          },
+                        // Seção dedicada dos 6 blocos OTP com centralização óptica e sinalização
+                        OtpCodeInputSection(
+                          controllers: _controllers,
+                          focusNodes: _focusNodes,
+                          enabled:
+                              !_isVerifying && !_isResending && !_isNavigating,
+                          isComplete: isComplete,
+                          isVerifying: _isVerifying,
+                          errorMessage: _errorMessage,
+                          onDigitChanged: _onFieldChanged,
+                          onKeyEvent: _onKey,
+                          onClear: _handleClearCode,
                         ),
-                        const SizedBox(height: 14),
-
                         const SizedBox(height: 24),
 
                         // Botão Confirmar Código

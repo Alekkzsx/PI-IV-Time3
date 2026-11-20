@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -40,8 +40,8 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   void initState() {
     super.initState();
     _controller = widget.controller;
-    // The controller is shared by routes; never submit an identity that is no
-    // longer visible after returning to this page.
+    // O controlador é compartilhado entre rotas; nunca envie uma identidade que não
+    // está mais visível após retornar para esta página.
     _controller.reset();
     _controller.addListener(_onControllerChanged);
   }
@@ -85,11 +85,11 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   String _getInputExample() {
     switch (_selectedProfile) {
       case UserProfile.aluno:
-        return 'ex: 2024.1.00892';
+        return 'Informe seu R.A. ou e-mail acadêmico';
       case UserProfile.docente:
-        return 'ex: DOC-40892';
+        return 'Informe sua matrícula ou e-mail institucional';
       case UserProfile.admin:
-        return 'ex: ADM-00123';
+        return 'Informe sua identificação ou e-mail corporativo';
     }
   }
 
@@ -110,12 +110,20 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
   void _handleSubmit() async {
     final identity = _controller.identity.trim();
     final profile = _selectedProfile;
-    final success = await _controller.submit();
-    if (success && mounted) {
-      final session = RecoverySession.fromProfileAndIdentity(
-        profile: profile,
-        identity: identity,
-      );
+    final success = await _controller.submit(profile: profile.name);
+    if (!mounted) return;
+    if (success) {
+      final responseData = _controller.lastRecoveryResponse;
+      final session = responseData != null
+          ? RecoverySession.fromServerData(
+              fallbackProfile: profile,
+              fallbackIdentity: identity,
+              data: responseData,
+            )
+          : RecoverySession.fromProfileAndIdentity(
+              profile: profile,
+              identity: identity,
+            );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -144,6 +152,28 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
           ).pushReplacementNamed('/verify-code', arguments: session);
         }
       });
+    } else if (_controller.errorMessage != null &&
+        _controller.errorMessage!.trim().isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _controller.errorMessage!,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -154,7 +184,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Navigation & Branding Header
+            // Cabeçalho Superior de Navegação e Marca
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
@@ -168,7 +198,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
                 },
               ),
             ),
-            // Central Content Area
+            // Área de Conteúdo Central
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -203,6 +233,7 @@ class _RecoverPasswordPageState extends State<RecoverPasswordPage> {
                           selectedProfile: _selectedProfile,
                           onProfileChanged: (profile) {
                             if (_controller.isLoading) return;
+                            _controller.clearError();
                             setState(() {
                               _selectedProfile = profile;
                             });

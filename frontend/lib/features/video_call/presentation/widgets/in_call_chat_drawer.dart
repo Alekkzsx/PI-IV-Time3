@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../controllers/video_call_controller.dart';
@@ -91,8 +91,10 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
               itemBuilder: (context, index) {
                 final msg = widget.controller.chatMessages[index];
                 return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -158,15 +160,17 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
                     style: const TextStyle(color: VideoCallColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Digite uma mensagem...',
-                      hintStyle:
-                          const TextStyle(color: VideoCallColors.textMuted),
+                      hintStyle: const TextStyle(
+                        color: VideoCallColors.textMuted,
+                      ),
                       counterText: '',
                       filled: true,
                       fillColor: VideoCallColors.background,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                            const BorderSide(color: VideoCallColors.border),
+                        borderSide: const BorderSide(
+                          color: VideoCallColors.border,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),

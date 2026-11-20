@@ -1,11 +1,10 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
-/// Configuration tab for System Preferences and Accessibility.
-///
-/// Allows toggling interface themes (Light, Dark, OS default), table density,
-/// typography scale, high-contrast mode, and academic calendar initial views.
+/// Aba visual de preferências de leitura e interface do Portal Gestão.
 class SystemPreferencesTab extends StatefulWidget {
   const SystemPreferencesTab({super.key});
 
@@ -14,9 +13,9 @@ class SystemPreferencesTab extends StatefulWidget {
 }
 
 class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
-  int _selectedThemeIndex = 0; // 0: Light, 1: Dark, 2: OS
-  int _typographyIndex = 0; // 0: Normal, 1: Medium (+10%), 2: Large (+20%)
-  int _densityIndex = 0; // 0: Comfortable, 1: Compact
+  int _selectedThemeIndex = 0; // 0: Claro, 1: Escuro, 2: SO
+  int _typographyIndex = 0; // 0: Normal, 1: Média (+10%), 2: Grande (+20%)
+  int _densityIndex = 0; // 0: Confortável, 1: Compacto
 
   bool _highContrast = false;
   bool _reduceMotion = false;
@@ -28,30 +27,67 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Appearance & Theme
+        // 1. Aparência e Tema
         _buildSectionCard(
           title: 'Aparência & Tema',
-          subtitle: 'Personalize a experiência visual do Portal e Ambiente Virtual de Aprendizagem.',
+          subtitle:
+              'Parâmetros visuais de leitura e contraste do Portal Gestão.',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 650;
               return isNarrow
                   ? Column(
                       children: [
-                        _buildThemeCard(0, Icons.wb_sunny_outlined, 'Claro (Padrão)', 'Ideal para ambientes luminosos'),
+                        _buildThemeCard(
+                          0,
+                          Icons.wb_sunny_outlined,
+                          'Claro (Padrão)',
+                          'Ideal para ambientes luminosos',
+                        ),
                         const SizedBox(height: 12),
-                        _buildThemeCard(1, Icons.dark_mode_outlined, 'Modo Escuro', 'Menos fadiga visual noturna'),
+                        _buildThemeCard(
+                          1,
+                          Icons.dark_mode_outlined,
+                          'Modo Escuro',
+                          'Menos fadiga visual noturna',
+                        ),
                         const SizedBox(height: 12),
-                        _buildThemeCard(2, Icons.desktop_windows_outlined, 'Sincronizar com SO', 'Ajusta conforme seu dispositivo'),
+                        _buildThemeCard(
+                          2,
+                          Icons.desktop_windows_outlined,
+                          'Sincronizar com SO',
+                          'Ajusta conforme seu dispositivo',
+                        ),
                       ],
                     )
                   : Row(
                       children: [
-                        Expanded(child: _buildThemeCard(0, Icons.wb_sunny_outlined, 'Claro (Padrão)', 'Ideal para ambientes luminosos')),
+                        Expanded(
+                          child: _buildThemeCard(
+                            0,
+                            Icons.wb_sunny_outlined,
+                            'Claro (Padrão)',
+                            'Ideal para ambientes luminosos',
+                          ),
+                        ),
                         const SizedBox(width: 14),
-                        Expanded(child: _buildThemeCard(1, Icons.dark_mode_outlined, 'Modo Escuro', 'Menos fadiga visual noturna')),
+                        Expanded(
+                          child: _buildThemeCard(
+                            1,
+                            Icons.dark_mode_outlined,
+                            'Modo Escuro',
+                            'Menos fadiga visual noturna',
+                          ),
+                        ),
                         const SizedBox(width: 14),
-                        Expanded(child: _buildThemeCard(2, Icons.desktop_windows_outlined, 'Sincronizar com SO', 'Ajusta conforme seu dispositivo')),
+                        Expanded(
+                          child: _buildThemeCard(
+                            2,
+                            Icons.desktop_windows_outlined,
+                            'Sincronizar com SO',
+                            'Ajusta conforme seu dispositivo',
+                          ),
+                        ),
                       ],
                     );
             },
@@ -60,10 +96,11 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Accessibility & Reading
+        // 2. Acessibilidade e Leitura
         _buildSectionCard(
           title: 'Acessibilidade & Leitura',
-          subtitle: 'Ajustes para facilitar a visualização de textos, notas e materiais acadêmicos.',
+          subtitle:
+              'Ajustes visuais para facilitar a leitura de tabelas administrativas, pautas e auditorias.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -91,20 +128,22 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
               ),
 
               const SizedBox(height: 24),
-              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const Divider(height: 1, color: InstColors.border),
               const SizedBox(height: 18),
 
-              // Accessibility Toggles
+              // Alternadores de Acessibilidade
               _buildToggleRow(
                 title: 'Modo de Alto Contraste',
-                subtitle: 'Realça as bordas e aumenta o contraste entre textos e planos de fundo.',
+                subtitle:
+                    'Realça as bordas e aumenta o contraste entre textos e planos de fundo.',
                 value: _highContrast,
                 onChanged: (val) => setState(() => _highContrast = val),
               ),
               const SizedBox(height: 14),
               _buildToggleRow(
                 title: 'Reduzir Movimento & Animações',
-                subtitle: 'Desativa transições rápidas e efeitos visuais animados.',
+                subtitle:
+                    'Desativa transições rápidas e efeitos visuais animados.',
                 value: _reduceMotion,
                 onChanged: (val) => setState(() => _reduceMotion = val),
               ),
@@ -114,37 +153,66 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Academic Calendar Preferences
+        // 3. Preferências do Calendário Acadêmico
         _buildSectionCard(
           title: 'Preferências do Calendário Acadêmico',
-          subtitle: 'Defina o comportamento inicial da sua agenda de aulas e entregas.',
+          subtitle:
+              'Defina o comportamento inicial da grade do Calendário Acadêmico institucional.',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 650;
               return isNarrow
                   ? Column(
                       children: [
-                        _buildDropdownCard('Primeiro Dia da Semana', _firstDayOfWeek, ['Segunda-feira', 'Domingo'], (val) {
-                          if (val != null) setState(() => _firstDayOfWeek = val);
-                        }),
+                        _buildDropdownCard(
+                          'Primeiro Dia da Semana',
+                          _firstDayOfWeek,
+                          ['Segunda-feira', 'Domingo'],
+                          (val) {
+                            if (val != null) {
+                              setState(() => _firstDayOfWeek = val);
+                            }
+                          },
+                        ),
                         const SizedBox(height: 12),
-                        _buildDropdownCard('Visualização Padrão ao Abrir', _defaultCalendarView, ['Mês Atual', 'Semana Atual', 'Agenda Diária'], (val) {
-                          if (val != null) setState(() => _defaultCalendarView = val);
-                        }),
+                        _buildDropdownCard(
+                          'Visualização Padrão ao Abrir',
+                          _defaultCalendarView,
+                          ['Mês Atual', 'Semana Atual', 'Agenda Diária'],
+                          (val) {
+                            if (val != null) {
+                              setState(() => _defaultCalendarView = val);
+                            }
+                          },
+                        ),
                       ],
                     )
                   : Row(
                       children: [
                         Expanded(
-                          child: _buildDropdownCard('Primeiro Dia da Semana', _firstDayOfWeek, ['Segunda-feira', 'Domingo'], (val) {
-                            if (val != null) setState(() => _firstDayOfWeek = val);
-                          }),
+                          child: _buildDropdownCard(
+                            'Primeiro Dia da Semana',
+                            _firstDayOfWeek,
+                            ['Segunda-feira', 'Domingo'],
+                            (val) {
+                              if (val != null) {
+                                setState(() => _firstDayOfWeek = val);
+                              }
+                            },
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _buildDropdownCard('Visualização Padrão ao Abrir', _defaultCalendarView, ['Mês Atual', 'Semana Atual', 'Agenda Diária'], (val) {
-                            if (val != null) setState(() => _defaultCalendarView = val);
-                          }),
+                          child: _buildDropdownCard(
+                            'Visualização Padrão ao Abrir',
+                            _defaultCalendarView,
+                            ['Mês Atual', 'Semana Atual', 'Agenda Diária'],
+                            (val) {
+                              if (val != null) {
+                                setState(() => _defaultCalendarView = val);
+                              }
+                            },
+                          ),
                         ),
                       ],
                     );
@@ -162,9 +230,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: InstColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: InstColors.border),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -172,16 +240,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0F172A),
+            style: jakarta(
+              size: 16,
+              weight: FontWeight.w700,
+              color: InstColors.ink,
             ),
           ),
           const SizedBox(height: 3),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+            style: jakarta(size: 12.5, color: InstColors.muted),
           ),
           const SizedBox(height: 20),
           child,
@@ -190,7 +258,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     );
   }
 
-  Widget _buildThemeCard(int index, IconData icon, String title, String subtitle) {
+  Widget _buildThemeCard(
+    int index,
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
     final isSelected = _selectedThemeIndex == index;
     return InkWell(
       onTap: () => setState(() => _selectedThemeIndex = index),
@@ -198,10 +271,10 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? InstColors.stone : InstColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
+            color: isSelected ? InstColors.ink : InstColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -210,7 +283,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: const Color(0xFF0F172A)),
+                Icon(icon, size: 20, color: InstColors.ink),
                 const Spacer(),
                 Container(
                   width: 16,
@@ -218,7 +291,9 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFCBD5E1),
+                      color: isSelected
+                          ? InstColors.ink
+                          : InstColors.borderStrong,
                       width: 2,
                     ),
                   ),
@@ -228,7 +303,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
                             width: 8,
                             height: 8,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF0F172A),
+                              color: InstColors.ink,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -240,16 +315,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             const SizedBox(height: 14),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
+              style: jakarta(
+                size: 13.5,
+                weight: FontWeight.w700,
+                color: InstColors.ink,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              style: jakarta(size: 11, color: InstColors.muted),
             ),
           ],
         ),
@@ -262,13 +337,21 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
-            Icon(Icons.text_fields_rounded, size: 16, color: Color(0xFF475569)),
-            SizedBox(width: 6),
+          children: [
+            const Icon(
+              Icons.text_fields_rounded,
+              size: 16,
+              color: InstColors.body,
+            ),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Escala de Tipografia',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.body,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -278,14 +361,29 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: InstColors.subtle,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
-              _buildSegmentItem('Normal', 0, _typographyIndex, (idx) => setState(() => _typographyIndex = idx)),
-              _buildSegmentItem('Média (+10%)', 1, _typographyIndex, (idx) => setState(() => _typographyIndex = idx)),
-              _buildSegmentItem('Grande (+20%)', 2, _typographyIndex, (idx) => setState(() => _typographyIndex = idx)),
+              _buildSegmentItem(
+                'Normal',
+                0,
+                _typographyIndex,
+                (idx) => setState(() => _typographyIndex = idx),
+              ),
+              _buildSegmentItem(
+                'Média (+10%)',
+                1,
+                _typographyIndex,
+                (idx) => setState(() => _typographyIndex = idx),
+              ),
+              _buildSegmentItem(
+                'Grande (+20%)',
+                2,
+                _typographyIndex,
+                (idx) => setState(() => _typographyIndex = idx),
+              ),
             ],
           ),
         ),
@@ -298,13 +396,21 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
-            Icon(Icons.table_rows_outlined, size: 16, color: Color(0xFF475569)),
-            SizedBox(width: 6),
+          children: [
+            const Icon(
+              Icons.table_rows_outlined,
+              size: 16,
+              color: InstColors.body,
+            ),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Densidade das Tabelas & Listas',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                style: jakarta(
+                  size: 12.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.body,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -314,13 +420,23 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: InstColors.subtle,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
             children: [
-              _buildSegmentItem('Confortável', 0, _densityIndex, (idx) => setState(() => _densityIndex = idx)),
-              _buildSegmentItem('Compacto', 1, _densityIndex, (idx) => setState(() => _densityIndex = idx)),
+              _buildSegmentItem(
+                'Confortável',
+                0,
+                _densityIndex,
+                (idx) => setState(() => _densityIndex = idx),
+              ),
+              _buildSegmentItem(
+                'Compacto',
+                1,
+                _densityIndex,
+                (idx) => setState(() => _densityIndex = idx),
+              ),
             ],
           ),
         ),
@@ -328,7 +444,12 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     );
   }
 
-  Widget _buildSegmentItem(String text, int index, int selectedIndex, ValueChanged<int> onSelect) {
+  Widget _buildSegmentItem(
+    String text,
+    int index,
+    int selectedIndex,
+    ValueChanged<int> onSelect,
+  ) {
     final isSelected = selectedIndex == index;
     return Expanded(
       child: InkWell(
@@ -337,16 +458,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF0F172A) : Colors.transparent,
+            color: isSelected ? InstColors.ink : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Center(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : const Color(0xFF64748B),
+              style: jakarta(
+                size: 12,
+                weight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : InstColors.muted,
               ),
             ),
           ),
@@ -370,12 +491,16 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                style: jakarta(
+                  size: 13.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                style: jakarta(size: 11.5, color: InstColors.muted),
               ),
             ],
           ),
@@ -383,7 +508,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
         const SizedBox(width: 14),
         Checkbox(
           value: value,
-          activeColor: const Color(0xFF0F172A),
+          activeColor: InstColors.ink,
           onChanged: (val) => onChanged(val ?? false),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         ),
@@ -391,26 +516,46 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
     );
   }
 
-  Widget _buildDropdownCard(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownCard(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: InstColors.stone,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: InstColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+          Text(
+            label,
+            style: jakarta(
+              size: 10.5,
+              weight: FontWeight.w700,
+              color: InstColors.muted,
+            ),
+          ),
           const SizedBox(height: 4),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
               isDense: true,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-              items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+              style: jakarta(
+                size: 13,
+                weight: FontWeight.w600,
+                color: InstColors.ink,
+              ),
+              items: items
+                  .map(
+                    (item) => DropdownMenuItem(value: item, child: Text(item)),
+                  )
+                  .toList(),
               onChanged: onChanged,
             ),
           ),

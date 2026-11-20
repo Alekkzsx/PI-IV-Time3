@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 // Design tokens compartilhados (cores, medidas e tipografia) dos portais institucionais
 
 import 'package:flutter/material.dart';
@@ -17,8 +17,10 @@ class InstColors {
   static const Color stone = Color(0xFFFAF9F6);
   static const Color stoneActive = Color(0xFFF2F0EB);
   static const Color headerBg = Color(0xFFF5F5F5);
+  static const Color subtle = Color(0xFFF5F5F5);
   static const Color hoverSurface = Color(0xFFFAFAFA);
   static const Color toggleIcon = Color(0xFF525252);
+  static const Color body = Color(0xFF525252);
   static const Color danger = Color(0xFFB91C1C);
   static const Color dangerBg = Color(0xFFFEF2F2);
   static const Color live = Color(0xFF16A34A);
@@ -66,4 +68,43 @@ class InstText {
       jakarta(size: 12.5, color: color, height: 1.15);
 
   static TextStyle pageTitle() => jakarta(size: 18, weight: FontWeight.w500);
+
+  static InputDecoration inputDecoration({
+    String? hintText,
+    String? labelText,
+    Widget? prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    const borderSide = BorderSide(color: InstColors.border);
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: borderSide,
+    );
+    return InputDecoration(
+      hintText: hintText,
+      labelText: labelText,
+      prefixIcon: prefixIcon,
+      suffixIcon: suffixIcon,
+      hintStyle: jakarta(size: 13.5, color: InstColors.faint),
+      labelStyle: jakarta(size: 13, color: InstColors.muted),
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: InstColors.ink, width: 1.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: InstColors.danger),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: InstColors.danger, width: 1.4),
+      ),
+    );
+  }
 }

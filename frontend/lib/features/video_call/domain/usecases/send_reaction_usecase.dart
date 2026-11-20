@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/emoji_reaction.dart';
 import '../errors/video_call_failures.dart';
@@ -20,11 +20,15 @@ class SendReactionUseCase {
   }) async {
     final cleanRoomId = roomId.trim();
     if (cleanRoomId.isEmpty) {
-      throw const VideoCallValidationException('Identificador da sala não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador da sala não pode ser vazio.',
+      );
     }
 
     if (reaction.senderId.trim().isEmpty) {
-      throw const VideoCallValidationException('Identificador do remetente não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador do remetente não pode ser vazio.',
+      );
     }
 
     if (!EmojiReaction.isValidEmoji(reaction.emoji)) {

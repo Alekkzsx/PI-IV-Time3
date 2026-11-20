@@ -1,11 +1,12 @@
-﻿// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 
-/// Configuration tab for Campus Alerts and Communication Channels.
-///
-/// Defines dispatch rules for push notifications on the portal, institutional emails,
-/// task deadlines, and automated tutor/faculty notifications.
+/// Aba de configuração para alertas operacionais da gestão administrativa.
 class CampusAlertsTab extends StatefulWidget {
   const CampusAlertsTab({super.key});
 
@@ -14,86 +15,149 @@ class CampusAlertsTab extends StatefulWidget {
 }
 
 class _CampusAlertsTabState extends State<CampusAlertsTab> {
-  String _selectedLeadTime = '24 horas antes (1 dia)';
-  bool _portalTasks = true;
-  bool _emailTasks = true;
+  final AdminPortalController _portal = AdminPortalController.instance;
 
-  bool _portalGrades = true;
-  bool _emailGrades = true;
+  bool _notifyPendingProtocols = true;
+  bool _notifyGradeRectifications = true;
+  bool _notifyRegimentalDeadlines = true;
+  bool _emailUrgentEscalations = false;
+  bool _saving = false;
+  String? _error;
 
-  bool _portalForums = true;
-  bool _emailForums = false;
+  @override
+  void initState() {
+    super.initState();
+    _hydrateFromSettings(_portal.institutionalSettings);
+    _loadSettingsIfNeeded();
+  }
 
-  bool _portalMessages = true;
-  bool _emailMessages = true;
+  void _hydrateFromSettings(Map<String, dynamic> settings) {
+    final raw = settings['campusAlerts'];
+    if (raw is! Map) return;
+    _notifyPendingProtocols = raw['notifyPendingProtocols'] != false;
+    _notifyGradeRectifications = raw['notifyGradeRectifications'] != false;
+    _notifyRegimentalDeadlines = raw['notifyRegimentalDeadlines'] != false;
+    _emailUrgentEscalations = raw['emailUrgentEscalations'] == true;
+  }
+
+  Future<void> _loadSettingsIfNeeded() async {
+    if (_portal.institutionalSettings.isNotEmpty ||
+        AppUserSession.instance.accessToken == null) {
+      return;
+    }
+    try {
+      final settings = await _portal.remote.request('GET', '/settings') as Map;
+      if (!mounted) return;
+      setState(() {
+        _portal.institutionalSettings = Map<String, dynamic>.from(settings);
+        _hydrateFromSettings(_portal.institutionalSettings);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final payload = <String, dynamic>{
+      'notifyPendingProtocols': _notifyPendingProtocols,
+      'notifyGradeRectifications': _notifyGradeRectifications,
+      'notifyRegimentalDeadlines': _notifyRegimentalDeadlines,
+      'emailUrgentEscalations': _emailUrgentEscalations,
+    };
+    final ok = await _portal.updateSettings({'campusAlerts': payload});
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _error = ok ? null : _portal.remoteError;
+    });
+    if (ok) {
+      _portal.institutionalSettings = {
+        ..._portal.institutionalSettings,
+        'campusAlerts': payload,
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Alertas do campus atualizados.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 1. Communication Channels
+        if (_error != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: InstColors.dangerBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: InstColors.danger.withValues(alpha: 0.25),
+              ),
+            ),
+            child: Text(
+              _error!,
+              style: jakarta(size: 13, color: InstColors.danger),
+            ),
+          ),
+
+        // 1. Canais de Alerta da Gestão
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: InstColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: InstColors.border),
           ),
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Canais de Comunicação',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+              Text(
+                'Canais de Monitoramento Institucional',
+                style: jakarta(
+                  size: 16,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
                 ),
               ),
               const SizedBox(height: 3),
-              const Text(
-                'Escolha onde deseja ser avisado sobre eventos acadêmicos, prazos e notas.',
-                style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+              Text(
+                'Defina quais pendências operacionais disparam alertas no sino da gestão e escalonamento por e-mail.',
+                style: jakarta(size: 12.5, color: InstColors.muted),
               ),
               const SizedBox(height: 20),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final isNarrow = constraints.maxWidth < 650;
+                  final portalCard = _buildChannelCard(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Central do Portal Gestão',
+                    description:
+                        'Sinalizações exibidas em tempo real no sino superior e no Painel Geral.',
+                  );
+                  final emailCard = _buildChannelCard(
+                    icon: Icons.mail_outline_rounded,
+                    title: 'Escalonamento para Secretaria',
+                    description:
+                        'Alertas críticos encaminhados por e-mail quando houver retenções ou pendências.',
+                  );
                   return isNarrow
                       ? Column(
                           children: [
-                            _buildChannelCard(
-                              icon: Icons.notifications_active_rounded,
-                              title: 'Alertas no Portal (AVA)',
-                              description: 'Notificações instantâneas exibidas no sino superior do seu painel de estudos.',
-                            ),
+                            portalCard,
                             const SizedBox(height: 14),
-                            _buildChannelCard(
-                              icon: Icons.mail_rounded,
-                              title: 'Notificações por E-mail',
-                              description: 'Mensagens enviadas para o seu e-mail institucional e alternativo.',
-                            ),
+                            emailCard,
                           ],
                         )
                       : Row(
                           children: [
-                            Expanded(
-                              child: _buildChannelCard(
-                                icon: Icons.notifications_active_rounded,
-                                title: 'Alertas no Portal (AVA)',
-                                description:
-                                    'Notificações instantâneas exibidas no sino superior do seu painel de estudos.',
-                              ),
-                            ),
+                            Expanded(child: portalCard),
                             const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildChannelCard(
-                                icon: Icons.mail_rounded,
-                                title: 'Notificações por E-mail',
-                                description:
-                                    'Mensagens enviadas para o seu e-mail institucional e alternativo.',
-                              ),
-                            ),
+                            Expanded(child: emailCard),
                           ],
                         );
                 },
@@ -104,122 +168,96 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Alert Categories & Frequency
+        // 2. Gatilhos Operacionais
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: InstColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: InstColors.border),
           ),
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Categorias & Frequência de Alertas',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+              Text(
+                'Gatilhos Operacionais do Campus',
+                style: jakarta(
+                  size: 16,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Estas preferências controlam os alertas exibidos para a equipe administrativa.',
+                style: jakarta(size: 12.5, color: InstColors.muted),
               ),
               const SizedBox(height: 20),
-
-              // Item 1: Task & Assignment Deadlines
-              _buildAlertRow(
-                icon: Icons.near_me_outlined,
-                title: 'Prazos de Tarefas & Trabalhos',
-                description: 'Lembretes automáticos antes do encerramento do prazo de submissão.',
-                customLeadTime: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    const Text(
-                      'Lembrar-me com antecedência de:',
-                      style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+              _buildToggleRow(
+                icon: Icons.inbox_outlined,
+                title: 'Protocolos & Requerimentos Pendentes',
+                description:
+                    'Exibe alertas quando há solicitações discentes aguardando parecer na Secretaria.',
+                value: _notifyPendingProtocols,
+                onChanged: (val) =>
+                    setState(() => _notifyPendingProtocols = val),
+              ),
+              const Divider(height: 28, color: InstColors.border),
+              _buildToggleRow(
+                icon: Icons.rule_folder_outlined,
+                title: 'Solicitações de Retificação Pós-Trava',
+                description:
+                    'Sinaliza pedidos docentes de alteração de nota ou destravamento de pauta.',
+                value: _notifyGradeRectifications,
+                onChanged: (val) =>
+                    setState(() => _notifyGradeRectifications = val),
+              ),
+              const Divider(height: 28, color: InstColors.border),
+              _buildToggleRow(
+                icon: Icons.event_available_outlined,
+                title: 'Marcos e Prazos Regimentais',
+                description:
+                    'Destaca marcos do Calendário Acadêmico e janelas próximas de fechamento semestral.',
+                value: _notifyRegimentalDeadlines,
+                onChanged: (val) =>
+                    setState(() => _notifyRegimentalDeadlines = val),
+              ),
+              const Divider(height: 28, color: InstColors.border),
+              _buildToggleRow(
+                icon: Icons.mark_email_unread_outlined,
+                title: 'Escalonamento Crítico por E-mail',
+                description:
+                    'Envia resumo prioritário por e-mail em caso de acúmulo de retificações ou fechamento.',
+                value: _emailUrgentEscalations,
+                onChanged: (val) =>
+                    setState(() => _emailUrgentEscalations = val),
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: InstColors.ink,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedLeadTime,
-                          isDense: true,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F172A),
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                              value: '24 horas antes (1 dia)',
-                              child: Text('24 horas antes (1 dia)'),
-                            ),
-                            DropdownMenuItem(
-                              value: '48 horas antes (2 dias)',
-                              child: Text('48 horas antes (2 dias)'),
-                            ),
-                            DropdownMenuItem(
-                              value: '6 horas antes',
-                              child: Text('6 horas antes'),
-                            ),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedLeadTime = val);
-                          },
-                        ),
-                      ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                  ),
+                  child: Text(
+                    _saving ? 'Salvando...' : 'Salvar Alertas do Campus',
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-                portalVal: _portalTasks,
-                emailVal: _emailTasks,
-                onPortalChanged: (val) => setState(() => _portalTasks = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailTasks = val ?? false),
-              ),
-
-              const Divider(height: 32, color: Color(0xFFF1F5F9)),
-
-              // Item 2: Faculty Grades & Review Notices
-              _buildAlertRow(
-                icon: Icons.assignment_turned_in_outlined,
-                title: 'Notas & Correções de Professores',
-                description: 'Aviso imediato assim que uma nota de prova ou trabalho for publicada.',
-                portalVal: _portalGrades,
-                emailVal: _emailGrades,
-                onPortalChanged: (val) => setState(() => _portalGrades = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailGrades = val ?? false),
-              ),
-
-              const Divider(height: 32, color: Color(0xFFF1F5F9)),
-
-              // Item 3: Discussion Forums & Replies
-              _buildAlertRow(
-                icon: Icons.chat_bubble_outline_rounded,
-                title: 'Fóruns & Respostas',
-                description: 'Quando alguém responder ou curtir uma mensagem em tópicos que você participa.',
-                portalVal: _portalForums,
-                emailVal: _emailForums,
-                onPortalChanged: (val) => setState(() => _portalForums = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailForums = val ?? false),
-              ),
-
-              const Divider(height: 32, color: Color(0xFFF1F5F9)),
-
-              // Item 4: Direct Messages & Tutor Announcements
-              _buildAlertRow(
-                icon: Icons.message_outlined,
-                title: 'Mensagens Diretas & Avisos de Tutores',
-                description: 'Comunicações diretas individuais enviadas por coordenadores e tutores.',
-                portalVal: _portalMessages,
-                emailVal: _emailMessages,
-                onPortalChanged: (val) => setState(() => _portalMessages = val ?? false),
-                onEmailChanged: (val) => setState(() => _emailMessages = val ?? false),
               ),
             ],
           ),
@@ -236,9 +274,9 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: InstColors.stone,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: InstColors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,7 +285,7 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
+              color: InstColors.ink,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: Colors.white, size: 20),
@@ -259,16 +297,20 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                  style: jakarta(
+                    size: 14,
+                    weight: FontWeight.w700,
+                    color: InstColors.ink,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   description,
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B), height: 1.3),
+                  style: jakarta(
+                    size: 11.5,
+                    color: InstColors.muted,
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
@@ -278,27 +320,24 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
     );
   }
 
-  Widget _buildAlertRow({
+  Widget _buildToggleRow({
     required IconData icon,
     required String title,
     required String description,
-    Widget? customLeadTime,
-    required bool portalVal,
-    required bool emailVal,
-    required ValueChanged<bool?> onPortalChanged,
-    required ValueChanged<bool?> onEmailChanged,
+    required bool value,
+    required ValueChanged<bool> onChanged,
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(6),
+            color: InstColors.stoneActive,
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 16, color: const Color(0xFF475569)),
+          child: Icon(icon, size: 17, color: InstColors.ink),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -307,50 +346,26 @@ class _CampusAlertsTabState extends State<CampusAlertsTab> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+                style: jakarta(
+                  size: 13.5,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 description,
-                style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                style: jakarta(size: 11.5, color: InstColors.muted),
               ),
-              if (customLeadTime != null) ...[
-                const SizedBox(height: 8),
-                customLeadTime,
-              ],
             ],
           ),
         ),
         const SizedBox(width: 16),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Checkbox(
-              value: portalVal,
-              activeColor: const Color(0xFF0F172A),
-              onChanged: onPortalChanged,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-            const Text(
-              'No Portal',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
-            ),
-            const SizedBox(width: 16),
-            Checkbox(
-              value: emailVal,
-              activeColor: const Color(0xFF0F172A),
-              onChanged: onEmailChanged,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            ),
-            const Text(
-              'Por E-mail',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
-            ),
-          ],
+        Switch(
+          value: value,
+          activeThumbColor: InstColors.ink,
+          activeTrackColor: InstColors.stoneActive,
+          onChanged: onChanged,
         ),
       ],
     );

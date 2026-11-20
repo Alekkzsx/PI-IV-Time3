@@ -1,7 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 1 & Tier 2: Ephemeral Token Lifecycle & OTP Invalidation Test Suite
-/// Tests Features 19, 20, 21 and Acceptance Criteria AC-07, AC-08.
+/// Camadas 1 e 2: Suíte de Testes de Ciclo de Vida de Token Efêmero e Invalidação de OTP
+/// Testa as Funcionalidades 19, 20, 21 e os Critérios de Aceitação AC-07, AC-08.
 
 enum RecoverySessionStatus { active, expired, revoked, consumed }
 
@@ -38,7 +38,7 @@ class RecoverySession {
 }
 
 class TokenLifecycleManager {
-  static const int defaultTtlSeconds = 300; // 5 minutes
+  static const int defaultTtlSeconds = 300; // 5 minutos
   static const int maxOtpAttempts = 3;
 
   final Map<String, RecoverySession> _sessions = {};
@@ -161,7 +161,7 @@ class VerifyResult {
       VerifyResult(isSuccess: false, status: 'CONSUMED', message: msg);
 }
 
-// Assertion Helpers
+// Auxiliares de Asserção
 void assertTrue(bool condition, String message) {
   if (!condition) throw Exception('Assertion failed: $message');
 }
@@ -198,7 +198,7 @@ void main() {
   final manager = TokenLifecycleManager();
 
   // -------------------------------------------------------------
-  // TIER 1: FEATURE COVERAGE
+  // CAMADA 1: COBERTURA DE FUNCIONALIDADES
   // -------------------------------------------------------------
   runTest('T1-01: Session creation generates 300s TTL token', () {
     manager.clearAll();
@@ -242,7 +242,7 @@ void main() {
   });
 
   // -------------------------------------------------------------
-  // TIER 2: BOUNDARY & CORNER CASES
+  // CAMADA 2: CASOS DE BORDA E LIMITES
   // -------------------------------------------------------------
   runTest('T2-01: Boundary TTL: 299s (valid) vs 300s vs 301s (expired) (AC-07)', () {
     manager.clearAll();
@@ -254,11 +254,11 @@ void main() {
       now: t0,
     );
 
-    // At 299 seconds: valid
+    // Em 299 segundos: válido
     final t299 = t0.add(const Duration(seconds: 299));
     assertTrue(manager.isSessionValid('sess_ttl', now: t299), 'Must be valid at 299s');
 
-    // At 301 seconds: expired
+    // Em 301 segundos: expirado
     final t301 = t0.add(const Duration(seconds: 301));
     assertFalse(manager.isSessionValid('sess_ttl', now: t301), 'Must be expired at 301s');
 
@@ -277,26 +277,26 @@ void main() {
       now: t0,
     );
 
-    // Attempt 1: wrong code
+    // Tentativa 1: código incorreto
     final res1 = manager.verifyCode('sess_attempts', '000001', now: t0);
     assertFalse(res1.isSuccess, 'Attempt 1 should fail');
     assertEqual(res1.status, 'INVALID_CODE', 'Status should be INVALID_CODE');
     assertEqual(res1.remainingAttempts, 2, '2 attempts remaining');
     assertTrue(manager.isSessionValid('sess_attempts', now: t0), 'Session still valid');
 
-    // Attempt 2: wrong code
+    // Tentativa 2: código incorreto
     final res2 = manager.verifyCode('sess_attempts', '000002', now: t0);
     assertFalse(res2.isSuccess, 'Attempt 2 should fail');
     assertEqual(res2.remainingAttempts, 1, '1 attempt remaining');
     assertTrue(manager.isSessionValid('sess_attempts', now: t0), 'Session still valid');
 
-    // Attempt 3: wrong code -> Permanent REVOCATION
+    // Tentativa 3: código incorreto -> REVOGAÇÃO permanente
     final res3 = manager.verifyCode('sess_attempts', '000003', now: t0);
     assertFalse(res3.isSuccess, 'Attempt 3 should fail');
     assertEqual(res3.status, 'REVOKED', 'Session must transition to REVOKED on 3rd failure');
     assertFalse(manager.isSessionValid('sess_attempts', now: t0), 'Revoked session is invalid');
 
-    // Attempt 4: submitting the CORRECT code after revocation
+    // Tentativa 4: envio do código CORRETO após a revogação
     final res4 = manager.verifyCode('sess_attempts', '998877', now: t0);
     assertFalse(res4.isSuccess, 'Correct code on revoked session MUST be rejected');
     assertEqual(res4.status, 'REVOKED', 'Must remain permanently revoked');
@@ -312,11 +312,11 @@ void main() {
       now: t0,
     );
 
-    // 2 failures
+    // 2 falhas
     manager.verifyCode('sess_3rd', '000000', now: t0);
     manager.verifyCode('sess_3rd', '111111', now: t0);
 
-    // 3rd attempt is correct code
+    // 3ª tentativa é o código correto
     final res3 = manager.verifyCode('sess_3rd', '445566', now: t0);
     assertTrue(res3.isSuccess, '3rd attempt with correct code must succeed');
   });

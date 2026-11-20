@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/chat_message.dart';
 import '../entities/emoji_reaction.dart';
@@ -69,8 +69,5 @@ abstract class WebRtcSignalingRepository implements VideoCallRepository {
   Stream<Map<String, dynamic>> get webRtcSignalStream;
 
   /// Transmite sinal WebRTC (Offer, Answer ou ICE Candidate) no canal da sala.
-  Future<void> sendWebRtcSignal(
-    String roomId,
-    Map<String, dynamic> signalData,
-  );
+  Future<void> sendWebRtcSignal(String roomId, Map<String, dynamic> signalData);
 }

@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/auth/shared/external/auth_remote_datasource_impl.dart';
+import 'package:pi_iv_time3/features/auth/shared/data/auth_repository_impl.dart';
 import '../../domain/usecases/login_usecase.dart';
 
 /// Controlador reativo de estado da interface de login baseado em [ChangeNotifier].
@@ -13,6 +14,7 @@ import '../../domain/usecases/login_usecase.dart';
 class LoginController extends ChangeNotifier {
   /// Caso de uso que encapsula as regras de validação e autenticação do login.
   final LoginUseCase loginUseCase;
+  final Future<bool> Function() _refreshProfile;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -26,7 +28,11 @@ class LoginController extends ChangeNotifier {
   String? _pendingAccessToken;
 
   /// Cria uma nova instância de [LoginController] injetando [loginUseCase].
-  LoginController({required this.loginUseCase});
+  LoginController({
+    required this.loginUseCase,
+    Future<bool> Function()? refreshProfile,
+  }) : _refreshProfile =
+           refreshProfile ?? AppUserSession.instance.refreshProfileFromServer;
 
   /// Indica se uma operação de autenticação está em andamento.
   bool get isLoading => _isLoading;
@@ -102,10 +108,18 @@ class LoginController extends ChangeNotifier {
         profile: profile,
         accessToken: accessToken,
       );
+      await _refreshProfile();
       _isSuccess = true;
       _isLoading = false;
       notifyListeners();
       return true;
+    } on TwoFactorChallenge catch (challenge) {
+      if (operationId != _operationId) return false;
+      _requiresTwoFactor = true;
+      _pendingAccessToken = challenge.challengeToken;
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } on AuthApiException catch (error) {
       if (operationId != _operationId) return false;
       _errorMessage = error.message;
@@ -137,6 +151,25 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final repository = loginUseCase.repository;
+      if (repository is AuthRepositoryImpl && _pendingAccessToken != null) {
+        final token = await repository.completeTwoFactor(
+          challengeToken: _pendingAccessToken!,
+          code: code,
+        );
+        if (operationId != _operationId) return false;
+        AppUserSession.instance.signIn(
+          identity: _pendingIdentity!,
+          profile: _pendingProfile!,
+          accessToken: token,
+        );
+        await _refreshProfile();
+        _isSuccess = true;
+        _requiresTwoFactor = false;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
       final valid = await loginUseCase.repository.verifyOtpToken(
         identity: identity,
         code: code,
@@ -160,6 +193,7 @@ class LoginController extends ChangeNotifier {
           profile: profile,
           accessToken: accessToken,
         );
+        await _refreshProfile();
         _isSuccess = true;
         _requiresTwoFactor = false;
         _isLoading = false;
@@ -171,6 +205,12 @@ class LoginController extends ChangeNotifier {
         notifyListeners();
         return false;
       }
+    } on AuthApiException catch (error) {
+      if (operationId != _operationId) return false;
+      _errorMessage = error.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (_) {
       if (operationId != _operationId) return false;
       _errorMessage = 'Não foi possível validar o código. Tente novamente.';

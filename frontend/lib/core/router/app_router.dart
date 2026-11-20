@@ -11,17 +11,16 @@ import 'package:pi_iv_time3/features/auth/login/presentation/pages/login_page.da
 import 'package:pi_iv_time3/features/auth/reset_password/presentation/pages/reset_password_page.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 import 'package:pi_iv_time3/features/auth/verify_code/presentation/pages/verify_code_page.dart';
-import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
-import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
-import 'package:pi_iv_time3/features/student/shared/data/student_mock_data.dart';
-import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
-import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
-import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/student_secretariat_page.dart';
-import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/pages/student_portal_shell.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/widgets/student_sidebar.dart';
+import 'package:pi_iv_time3/features/teacher/teacher.dart';
+import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
+import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/deliveries_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/disciplines_page.dart';
+import 'package:pi_iv_time3/features/student/messages/presentation/pages/messages_page.dart';
+import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/secretariat_page.dart';
+import 'package:pi_iv_time3/features/student/settings/presentation/pages/settings_page.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/pages/portal_shell.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/widgets/navigation/portal_sidebar.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_lobby_page.dart';
 
 /// Nomes padronizados das rotas do Portal Acadêmico.
@@ -40,6 +39,13 @@ class AppRoutes {
   static const String studentDeliveries = '/student/entregas';
   static const String studentSettings = '/student/configuracoes';
   static const String docenteHome = '/docente/home';
+  static const String docenteTurmas = '/docente/turmas';
+  static const String docenteDiario = '/docente/diario';
+  static const String docenteAtividades = '/docente/atividades';
+  static const String docenteNotas = '/docente/notas';
+  static const String docenteAgenda = '/docente/agenda';
+  static const String docenteComunicados = '/docente/comunicados';
+  static const String docenteConfiguracoes = '/docente/configuracoes';
   static const String adminShell = '/admin-shell';
   static const String videoCall = '/video-call';
 }
@@ -51,59 +57,90 @@ class AppRouter {
   static Map<String, WidgetBuilder> buildRoutes() {
     return {
       AppRoutes.studentHome: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Painel Geral',
           activeNavItem: StudentNavItem.painelGeral,
-          child: StudentDashboardPage(),
+          child: DashboardPage(),
         ),
       ),
       // Todas as rotas do aluno usam o mesmo shell. Isso evita que links
       // diretos renderizem uma página sem navegação, cabeçalho e rodapé.
       AppRoutes.studentMessages: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Mensagens',
           activeNavItem: StudentNavItem.mensagens,
-          child: StudentMessagesPage(),
+          child: MessagesPage(),
         ),
       ),
       AppRoutes.studentSecretaria: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Secretaria Virtual',
           activeNavItem: StudentNavItem.secretaria,
-          child: StudentSecretariatPage(),
+          child: SecretariatPage(),
         ),
       ),
       AppRoutes.studentDisciplines: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Disciplinas',
           activeNavItem: StudentNavItem.disciplinas,
-          child: StudentDisciplinesPage(),
+          child: DisciplinesPage(),
         ),
       ),
       AppRoutes.studentCalendar: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Calendário',
           activeNavItem: StudentNavItem.calendario,
-          child: StudentCalendarPage(),
+          child: CalendarPage(),
         ),
       ),
       AppRoutes.studentDeliveries: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Entregas',
           activeNavItem: StudentNavItem.entregas,
-          child: StudentDeliveriesPage(),
+          child: DeliveriesPage(),
         ),
       ),
       AppRoutes.studentSettings: _studentRoute(
-        const StudentPortalShell(
+        const PortalShell(
           headerTitle: 'Configurações',
           activeNavItem: StudentNavItem.configuracoes,
-          child: StudentSettingsPage(),
+          child: SettingsPage(),
         ),
       ),
       AppRoutes.videoCall: _buildVideoCallRoute,
       AppRoutes.adminShell: _roleRoute('admin', const AdminShellPage()),
-      AppRoutes.docenteHome: _roleRoute('docente', const DocenteShellPage()),
+      AppRoutes.docenteHome: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.painel),
+      ),
+      AppRoutes.docenteTurmas: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.turmas),
+      ),
+      AppRoutes.docenteDiario: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.diario),
+      ),
+      AppRoutes.docenteAtividades: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.atividades),
+      ),
+      AppRoutes.docenteNotas: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.notas),
+      ),
+      AppRoutes.docenteAgenda: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.agenda),
+      ),
+      AppRoutes.docenteComunicados: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.comunicados),
+      ),
+      AppRoutes.docenteConfiguracoes: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.configuracoes),
+      ),
     };
   }
 
@@ -114,15 +151,12 @@ class AppRouter {
 
   static WidgetBuilder _studentRoute(Widget child) => (context) {
     final session = AppUserSession.instance;
+
+    // Verifica se o usuário está autenticado como aluno.
     if (!session.hasRole('aluno')) {
       return _accessDenied(context, 'Esta área é exclusiva do perfil aluno.');
     }
-    if (!StudentMockData.ownsDemoRecords(session.identity ?? '')) {
-      return _accessDenied(
-        context,
-        'Não há dados acadêmicos de demonstração vinculados a esta conta.',
-      );
-    }
+
     return child;
   };
 
@@ -139,11 +173,9 @@ class AppRouter {
     final roomCode = arguments is Map
         ? arguments['roomCode']?.toString()
         : null;
-    if (roomCode == null || roomCode.trim().isEmpty) {
-      return _accessDenied(context, 'Selecione uma turma para continuar.');
-    }
-
-    return VideoCallLobbyPage(initialRoomCode: roomCode);
+    return VideoCallLobbyPage(
+      initialRoomCode: roomCode?.trim().isNotEmpty == true ? roomCode : null,
+    );
   }
 
   static Widget _accessDenied(BuildContext context, String message) {

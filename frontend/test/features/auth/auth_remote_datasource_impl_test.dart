@@ -8,6 +8,48 @@ import 'package:pi_iv_time3/features/auth/shared/external/auth_remote_datasource
 
 void main() {
   test(
+    '2FA requires a real challenge before obtaining an access token',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login')) {
+            return http.Response(
+              jsonEncode({
+                'requiresTwoFactor': true,
+                'challengeToken': 'opaque-login-challenge',
+              }),
+              202,
+            );
+          }
+          expect(request.url.path, '/api/auth/verify-two-factor');
+          expect(jsonDecode(request.body), {
+            'challengeToken': 'opaque-login-challenge',
+            'code': '456789',
+          });
+          return http.Response(
+            jsonEncode({'accessToken': 'verified-token'}),
+            200,
+          );
+        }),
+      );
+      await expectLater(
+        source.authenticateUser(
+          identity: 'admin.test',
+          password: 'test-password',
+          profile: 'admin',
+        ),
+        throwsA(isA<TwoFactorChallenge>()),
+      );
+      expect(
+        await source.completeTwoFactor(
+          challengeToken: 'opaque-login-challenge',
+          code: '456789',
+        ),
+        'verified-token',
+      );
+    },
+  );
+  test(
     'login envia credenciais ao serviço e devolve o token emitido',
     () async {
       late http.Request capturedRequest;
@@ -111,6 +153,113 @@ void main() {
                 'message',
                 'Credenciais inválidas.',
               ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'sendPasswordResetInstructions returns server metadata with maskedEmail and profile',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient((request) async {
+          expect(request.url.path, '/api/auth/send-recovery-otp');
+          expect(jsonDecode(request.body), {'identity': '24802449'});
+          return http.Response(
+            jsonEncode({
+              'status': 200,
+              'success': true,
+              'maskedEmail': 'a***1@gmail.com',
+              'identity': '24802449',
+              'displayName': 'Alex Gabriel Soares Sousa',
+              'profile': 'aluno',
+              'departmentOrCourse': 'Engenharia de Software',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final result = await source.sendPasswordResetInstructions(identity: '24802449');
+      expect(result['maskedEmail'], 'a***1@gmail.com');
+      expect(result['displayName'], 'Alex Gabriel Soares Sousa');
+      expect(result['profile'], 'aluno');
+      expect(result['departmentOrCourse'], 'Engenharia de Software');
+    },
+  );
+
+  test(
+    'verifyRecoverySessionRemote returns complete verified user details from MongoDB',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient((request) async {
+          expect(request.url.path, '/api/auth/verify-recovery-otp');
+          expect(jsonDecode(request.body), {
+            'identity': '24802449',
+            'code': '654321',
+          });
+          return http.Response(
+            jsonEncode({
+              'status': 200,
+              'valid': true,
+              'resetToken': 'valid-mongo-recovery-token',
+              'identity': '24802449',
+              'displayName': 'Alex Gabriel Soares Sousa',
+              'email': 'alex.soares.gabriel111@gmail.com',
+              'profile': 'aluno',
+              'departmentOrCourse': 'Engenharia de Software',
+              'campus': 'Unidade Sede',
+              'semester': '2026/2 - 4º Semestre',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+
+      final sessionResult = await source.verifyRecoverySessionRemote(
+        identity: '24802449',
+        code: '654321',
+      );
+
+      expect(sessionResult.resetToken, 'valid-mongo-recovery-token');
+      expect(sessionResult.displayName, 'Alex Gabriel Soares Sousa');
+      expect(sessionResult.email, 'alex.soares.gabriel111@gmail.com');
+      expect(sessionResult.departmentOrCourse, 'Engenharia de Software');
+      expect(sessionResult.profile, 'aluno');
+      expect(sessionResult.campus, 'Unidade Sede');
+    },
+  );
+
+  test(
+    'propaga mensagem diagnostica HTTP 503 quando rede corporativa bloqueia MongoDB',
+    () async {
+      final source = AuthRemoteDataSourceImpl(
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'status': 503,
+              'code': 'database_network_blocked',
+              'message':
+                  'Banco de dados inacessivel a partir desta rede (verifique se a porta 27017 ou VPN esta bloqueada no Wi-Fi).',
+            }),
+            503,
+            headers: {'content-type': 'application/json'},
+          ),
+        ),
+      );
+
+      await expectLater(
+        source.authenticateUser(
+          identity: '2024.1.00001',
+          password: 'valid-password',
+          profile: 'aluno',
+        ),
+        throwsA(
+          isA<AuthApiException>()
+              .having((e) => e.statusCode, 'statusCode', 503)
+              .having((e) => e.message, 'message', contains('porta 27017')),
         ),
       );
     },

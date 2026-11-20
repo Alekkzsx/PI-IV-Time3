@@ -1,7 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 3: Cross-Feature Pairwise Security & Defense-in-Depth Synergy Test Suite
-/// Tests multi-layer defense interactions across Features 1-24.
+/// Camada 3: Suíte de Testes de Segurança em Pares Entre Funcionalidades e Defesa em Profundidade
+/// Testa interações de defesa em múltiplas camadas entre as Funcionalidades 1-24.
 
 import 'dart:convert';
 import 'rate_limiter_test.dart';
@@ -59,62 +59,62 @@ Future<void> main() async {
   final tokenManager = TokenLifecycleManager();
 
   // -------------------------------------------------------------
-  // PAIRWISE 1: Rate Limiter Lockout + Input Sanitization
+  // PAR 1: Bloqueio do Limitador de Taxa + Sanitização de Entrada
   // -------------------------------------------------------------
   runTest('T3-01: Injection attack during active lockout is rejected by lockout guard', () {
     final victimId = 'user_locked_out@test.com';
     rateLimiter.resetAll();
 
-    // Trigger lockout
+    // Aciona o bloqueio
     for (int i = 0; i < 5; i++) {
       rateLimiter.recordFailure(victimId);
     }
     assertTrue(rateLimiter.getState(victimId).isLockedOut, 'User must be locked out');
 
-    // Attacker submits malicious SQLi/XSS payload while locked out
+    // Atacante envia payload malicioso de SQLi/XSS enquanto bloqueado
     final maliciousPayload = "<script>alert('pwned')</script>";
     final isAllowed = rateLimiter.checkAllowed(victimId);
 
-    // Defense-in-depth: lockout rejects the request immediately before sanitization/query
+    // Defesa em profundidade: o bloqueio rejeita a requisição imediatamente antes da sanitização/consulta
     assertFalse(isAllowed, 'Request must be blocked by rate limiter before parsing');
     assertTrue(InputSanitizer.hasDangerousPatterns(maliciousPayload), 'Payload is also detected');
   });
 
   // -------------------------------------------------------------
-  // PAIRWISE 2: Expired Token + OTP Brute-Force Replay
+  // PAR 2: Token Expirado + Repetição de Força Bruta de OTP
   // -------------------------------------------------------------
   runTest('T3-02: OTP brute-force on expired token prioritized as EXPIRED', () {
     tokenManager.clearAll();
     final t0 = DateTime(2026, 10, 15, 12, 0, 0);
     tokenManager.createSession('student_p2', fixedSessionId: 'sess_p2', fixedOtp: '123456', now: t0);
 
-    // Advance beyond 300 seconds TTL
+    // Avança além do TTL de 300 segundos
     final t305 = t0.add(const Duration(seconds: 305));
 
-    // Submit invalid code after expiration
+    // Envia código inválido após a expiração
     final result = tokenManager.verifyCode('sess_p2', '999999', now: t305);
     assertFalse(result.isSuccess, 'Expired session must reject verification');
     assertEqual(result.status, 'EXPIRED', 'Must return EXPIRED status rather than attempt decrement');
   });
 
   // -------------------------------------------------------------
-  // PAIRWISE 3: Password Entropy + Token Lifecycle Preservation
+  // PAR 3: Entropia de Senha + Preservação do Ciclo de Vida do Token
   // -------------------------------------------------------------
   runTest('T3-03: Weak password rejection does NOT consume or revoke valid token', () {
     tokenManager.clearAll();
     final t0 = DateTime(2026, 10, 15, 12, 0, 0);
     tokenManager.createSession('student_p3', fixedSessionId: 'sess_p3', fixedOtp: '555666', now: t0);
 
-    // Step 1: Verify OTP code successfully
+    // Passo 1: Verifica o código OTP com sucesso
     final verifyResult = tokenManager.verifyCode('sess_p3', '555666', now: t0);
     assertTrue(verifyResult.isSuccess, 'Valid OTP must verify');
 
-    // Step 2: User attempts to set a weak password ("weakpass" -> Score 1)
+    // Passo 2: Usuário tenta definir uma senha fraca ("weakpass" -> Pontuação 1)
     final weakPassword = 'weakpass';
     final isStrong = PasswordEntropyValidator.isEligibleForSubmission(weakPassword);
     assertFalse(isStrong, 'Weak password must be rejected');
 
-    // Step 3: User corrects to strong password ("P@ssw0rd2026" -> Score 4)
+    // Passo 3: Usuário corrige para senha forte ("P@ssw0rd2026" -> Pontuação 4)
     final strongPassword = 'P@ssw0rd2026';
     assertTrue(
       PasswordEntropyValidator.isEligibleForSubmission(strongPassword),
@@ -123,13 +123,13 @@ Future<void> main() async {
   });
 
   // -------------------------------------------------------------
-  // PAIRWISE 4: Anti-Enumeration + Rate Limiting Isolation
+  // PAR 4: Anti-Enumeração + Isolamento de Limitação de Taxa
   // -------------------------------------------------------------
   runTest('T3-04: Non-existent accounts are rate-limited independently with generic feedback', () {
     rateLimiter.resetAll();
     final nonExistentId = 'ghost_student_99999999';
 
-    // 5 failed logins for non-existent account
+    // 5 tentativas de login com falha para conta inexistente
     for (int i = 0; i < 5; i++) {
       rateLimiter.recordFailure(nonExistentId);
     }
@@ -137,7 +137,7 @@ Future<void> main() async {
     final state = rateLimiter.getState(nonExistentId);
     assertTrue(state.isLockedOut, 'Non-existent account must also trigger lockout to prevent DoS/enumeration');
 
-    // Output response remains generic
+    // A resposta de saída permanece genérica
     final response = GenericFeedbackPolicy.createAuthFailureResponse();
     assertEqual(response['statusCode'], 401, 'Status 401');
     assertEqual(
@@ -148,18 +148,18 @@ Future<void> main() async {
   });
 
   // -------------------------------------------------------------
-  // PAIRWISE 5: Timing Attack Defense with Malicious Payloads
+  // PAR 5: Defesa contra Ataque de Temporização com Payloads Maliciosos
   // -------------------------------------------------------------
   await runAsyncTest('T3-05: Timing normalization holds across clean and malicious inputs', () async {
     final timing = TimingAttackMitigation(targetLatencyMs: 30, varianceToleranceMs: 20);
 
-    // Clean input path
+    // Caminho de entrada limpa
     final swClean = Stopwatch()..start();
     final cleanInput = '24802449';
     InputSanitizer.sanitizeIdentity(cleanInput);
     final elapsedClean = await timing.normalizeLatency(swClean);
 
-    // Malicious input path
+    // Caminho de entrada maliciosa
     final swMalicious = Stopwatch()..start();
     final maliciousInput = "<script>alert('xss')</script>";
     try {
@@ -175,20 +175,20 @@ Future<void> main() async {
   });
 
   // -------------------------------------------------------------
-  // PAIRWISE 6: Multi-User Concurrency & State Isolation
+  // PAR 6: Concorrência Multiusuário e Isolamento de Estado
   // -------------------------------------------------------------
   runTest('T3-06: 20 independent users maintain strict state isolation', () {
     rateLimiter.resetAll();
-    // Simulate 20 students
+    // Simula 20 alunos
     for (int i = 1; i <= 20; i++) {
       final studentId = 'student_$i';
       if (i % 2 == 0) {
-        // Even students have 5 failures -> locked out
+        // Alunos pares têm 5 falhas -> bloqueados
         for (int k = 0; k < 5; k++) {
           rateLimiter.recordFailure(studentId);
         }
       } else {
-        // Odd students have 2 failures -> unlocked
+        // Alunos ímpares têm 2 falhas -> desbloqueados
         for (int k = 0; k < 2; k++) {
           rateLimiter.recordFailure(studentId);
         }

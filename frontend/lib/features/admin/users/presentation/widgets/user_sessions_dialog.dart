@@ -1,17 +1,21 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import '../../../../../core/network/authenticated_api_client.dart';
+import '../../../../../core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Diálogo para inspeção e encerramento forçado de sessões ativas do usuário.
 class UserSessionsDialog extends StatelessWidget {
   final AdminUserModel user;
+  final List<Map<String, dynamic>>? sessions;
   final VoidCallback onTerminateAll;
 
   const UserSessionsDialog({
     super.key,
     required this.user,
+    this.sessions,
     required this.onTerminateAll,
   });
 
@@ -19,18 +23,44 @@ class UserSessionsDialog extends StatelessWidget {
     required BuildContext context,
     required AdminUserModel user,
     required VoidCallback onTerminateAll,
-  }) {
+  }) async {
+    List<Map<String, dynamic>>? sessions;
+    if (AppUserSession.instance.accessToken != null) {
+      try {
+        sessions =
+            (await AuthenticatedApiClient.auth().request(
+                      "GET",
+                      "/api/admin/users/${user.id}/sessions",
+                    )
+                    as List)
+                .map((value) => Map<String, dynamic>.from(value as Map))
+                .toList();
+      } on ApiException catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error.message)));
+        }
+        return;
+      }
+    }
+    if (!context.mounted) return;
     return showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) =>
-          UserSessionsDialog(user: user, onTerminateAll: onTerminateAll),
+      builder: (ctx) => UserSessionsDialog(
+        user: user,
+        onTerminateAll: onTerminateAll,
+        sessions: sessions,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasSessions = user.activeSessionsCount > 0;
+    final hasSessions = sessions != null
+        ? sessions!.isNotEmpty
+        : user.activeSessionsCount > 0;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -102,22 +132,50 @@ class UserSessionsDialog extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildDeviceRow(
-                      icon: Icons.computer_rounded,
-                      device: 'Navegador Web (Chrome / Linux x86_64)',
-                      ip: '177.136.24.10 (São Paulo - SP)',
-                      lastActive: 'Sessão ativa agora',
-                      isCurrent: true,
-                    ),
-                    if (user.activeSessionsCount > 1) ...[
-                      const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                    if (sessions != null) ...[
+                      for (final session in sessions!)
+                        _buildDeviceRow(
+                          icon: Icons.web,
+                          device:
+                              (session['device']
+                                      ?.toString()
+                                      .trim()
+                                      .isNotEmpty ==
+                                  true)
+                              ? session['device'].toString().trim()
+                              : 'Sessão autenticada',
+                          ip:
+                              (session['ipAddress']
+                                      ?.toString()
+                                      .trim()
+                                      .isNotEmpty ==
+                                  true)
+                              ? session['ipAddress'].toString().trim()
+                              : 'Origem não registrada',
+                          lastActive:
+                              'Criada: ${session['createdAt'] ?? '-'}\nExpira: ${session['expiresAt'] ?? '-'}',
+                          isCurrent:
+                              session['current'] == true ||
+                              session['isCurrent'] == true,
+                        ),
+                    ] else ...[
                       _buildDeviceRow(
-                        icon: Icons.phone_android_rounded,
-                        device: 'AVA Mobile App (Android 14)',
-                        ip: '189.40.112.5 (Rede Móvel 5G)',
-                        lastActive: 'Última sincronização há 42 min',
-                        isCurrent: false,
+                        icon: Icons.computer_rounded,
+                        device: 'Navegador Web (Chrome / Linux x86_64)',
+                        ip: '177.136.24.10 (São Paulo - SP)',
+                        lastActive: 'Sessão ativa agora',
+                        isCurrent: true,
                       ),
+                      if (user.activeSessionsCount > 1) ...[
+                        const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                        _buildDeviceRow(
+                          icon: Icons.phone_android_rounded,
+                          device: 'AVA Mobile App (Android 14)',
+                          ip: '189.40.112.5 (Rede Móvel 5G)',
+                          lastActive: 'Última sincronização há 42 min',
+                          isCurrent: false,
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -195,57 +253,64 @@ class UserSessionsDialog extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Ações
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF71717A),
-                    side: const BorderSide(color: Color(0xFFE4E4E7)),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Fechar',
-                    style: jakarta(size: 13, weight: FontWeight.w600),
-                  ),
-                ),
-                if (hasSessions) ...[
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onTerminateAll();
-                    },
-                    icon: const Icon(
-                      Icons.power_settings_new_rounded,
-                      size: 16,
-                    ),
-                    label: Text(
-                      'Encerrar Todas as Sessões',
-                      style: jakarta(size: 13, weight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDC2626),
-                      foregroundColor: Colors.white,
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF71717A),
+                      side: const BorderSide(color: Color(0xFFE4E4E7)),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
+                        horizontal: 18,
                         vertical: 12,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      elevation: 0,
+                    ),
+                    child: Text(
+                      'Fechar',
+                      style: jakarta(size: 13, weight: FontWeight.w600),
                     ),
                   ),
+                  if (hasSessions)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onTerminateAll();
+                      },
+                      icon: const Icon(
+                        Icons.power_settings_new_rounded,
+                        size: 16,
+                      ),
+                      label: Text(
+                        'Encerrar Todas as Sessões',
+                        style: jakarta(
+                          size: 13,
+                          weight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
                 ],
-              ],
+              ),
             ),
           ],
         ),
@@ -279,12 +344,15 @@ class UserSessionsDialog extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
-                    device,
-                    style: jakarta(
-                      size: 13,
-                      weight: FontWeight.w600,
-                      color: const Color(0xFF0F172A),
+                  Flexible(
+                    child: Text(
+                      device,
+                      overflow: TextOverflow.ellipsis,
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF0F172A),
+                      ),
                     ),
                   ),
                   if (isCurrent) ...[

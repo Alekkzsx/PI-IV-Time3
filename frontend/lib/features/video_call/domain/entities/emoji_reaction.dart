@@ -1,9 +1,16 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Reação de emoji flutuante disparada durante a conferência.
 class EmojiReaction {
   /// Conjunto formal de emojis suportados pelo sistema de reações.
-  static const Set<String> supportedEmojis = {'❤️', '👍', '👏', '😂', '😮', '🎉'};
+  static const Set<String> supportedEmojis = {
+    '❤️',
+    '👍',
+    '👏',
+    '😂',
+    '😮',
+    '🎉',
+  };
 
   /// Validador estático de emoji compatível.
   static bool isValidEmoji(String emoji) => supportedEmojis.contains(emoji);
@@ -35,8 +42,8 @@ class EmojiReaction {
     required this.emoji,
     required this.timestamp,
     this.startX = 0.5,
-  })  : senderId = senderId ?? peerId ?? '',
-        senderName = senderName ?? peerName ?? '';
+  }) : senderId = senderId ?? peerId ?? '',
+       senderName = senderName ?? peerName ?? '';
 
   /// Aliases de conveniência para integração com controladores e widgets.
   String get peerId => senderId;
@@ -75,7 +82,8 @@ class EmojiReaction {
   }
 
   @override
-  int get hashCode => Object.hash(id, senderId, senderName, emoji, timestamp, startX);
+  int get hashCode =>
+      Object.hash(id, senderId, senderName, emoji, timestamp, startX);
 
   @override
   String toString() {

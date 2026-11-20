@@ -63,10 +63,13 @@ class VideoCallController extends ChangeNotifier {
 
   Participant get localParticipant => _localParticipant;
   bool get canManageMeeting {
+    final role = _localParticipant.role.toLowerCase();
+    if (role != 'docente' && role != 'admin') return false;
+
     final bridge = AcademicBridgeService.instance;
     return !bridge.hasSession(room.code) ||
         bridge.canUserOpenSessionForCourse(
-          role: _localParticipant.role,
+          role: role,
           rawCourseCode: room.code,
           teacherIdentity: _localParticipant.ra,
         );

@@ -2,10 +2,10 @@
 
 import '../policies/security_constants.dart';
 
-/// Lifecycle statuses for an ephemeral password recovery session.
+/// Status do ciclo de vida de uma sessão efêmera de recuperação de senha.
 enum RecoverySessionStatus { active, expired, revoked, consumed }
 
-/// Model representing an active or completed password recovery session.
+/// Modelo que representa uma sessão de recuperação de senha ativa ou concluída.
 class RecoverySession {
   final String sessionId;
   final String identifier;
@@ -25,13 +25,13 @@ class RecoverySession {
     this.status = RecoverySessionStatus.active,
   });
 
-  /// Evaluates whether the session has exceeded its 5-minute Time-To-Live.
+  /// Avalia se a sessão excedeu seu tempo de vida (TTL) de 5 minutos.
   bool isExpired({DateTime? now}) {
     final currentTime = now ?? DateTime.now();
     return currentTime.isAfter(createdAt.add(Duration(seconds: ttlSeconds)));
   }
 
-  /// Calculates remaining seconds before expiration.
+  /// Calcula os segundos restantes antes da expiração.
   int remainingSeconds({DateTime? now}) {
     final currentTime = now ?? DateTime.now();
     final expiry = createdAt.add(Duration(seconds: ttlSeconds));
@@ -40,7 +40,7 @@ class RecoverySession {
   }
 }
 
-/// Verification result envelope with status and user feedback message.
+/// Envelope de resultado de verificação com status e mensagem de feedback ao usuário.
 class VerifyResult {
   final bool isSuccess;
   final String status;
@@ -77,14 +77,14 @@ class VerifyResult {
       VerifyResult(isSuccess: false, status: 'CONSUMED', message: msg);
 }
 
-/// Manages ephemeral token lifecycles with strict 5-minute (300s) TTL and 3-attempt OTP invalidation.
+/// Gerencia ciclos de vida de tokens efêmeros com TTL estrito de 5 minutos (300s) e invalidação de OTP após 3 tentativas.
 class TokenLifecycleManager {
   static const int defaultTtlSeconds = SecurityConstants.defaultTokenTtlSeconds;
   static const int maxOtpAttempts = SecurityConstants.maxOtpVerificationAttempts;
 
   final Map<String, RecoverySession> _sessions = {};
 
-  /// Creates and registers a new recovery session with a 300s TTL.
+  /// Cria e registra uma nova sessão de recuperação com TTL de 300s.
   RecoverySession createSession(
     String identifier, {
     String? fixedSessionId,
@@ -105,7 +105,7 @@ class TokenLifecycleManager {
     return session;
   }
 
-  /// Verifies if a session is active and not expired.
+  /// Verifica se uma sessão está ativa e não expirada.
   bool isSessionValid(String sessionId, {DateTime? now}) {
     final session = _sessions[sessionId];
     if (session == null) return false;
@@ -117,8 +117,8 @@ class TokenLifecycleManager {
     return true;
   }
 
-  /// Verifies a submitted OTP code against the session.
-  /// Automatically revokes session if invalid attempts reach [maxOtpAttempts].
+  /// Verifica um código OTP enviado em relação à sessão.
+  /// Revoga a sessão automaticamente se as tentativas inválidas atingirem [maxOtpAttempts].
   VerifyResult verifyCode(
     String sessionId,
     String submittedCode, {
@@ -165,7 +165,7 @@ class TokenLifecycleManager {
     }
   }
 
-  /// Clears all active sessions.
+  /// Limpa todas as sessões ativas.
   void clearAll() {
     _sessions.clear();
   }

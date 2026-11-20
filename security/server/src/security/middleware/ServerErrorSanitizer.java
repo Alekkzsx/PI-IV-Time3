@@ -3,21 +3,21 @@
 package security.middleware;
 
 /**
- * Server-side error sanitizer preventing information disclosure and stack trace leakage.
- * Converts raw Java runtime exceptions into opaque, standardized JSON payloads.
+ * Sanitizador de erros no lado do servidor que previne divulgação de informações e vazamento de stack traces.
+ * Converte exceções brutas de execução Java em payloads JSON opacos e padronizados.
  */
 public class ServerErrorSanitizer {
 
     /**
-     * Sanitizes client-side input errors and malformed requests into RFC compliant JSON.
-     * Never exposes JVM stack traces, file paths, or internal class names.
+     * Sanitiza erros de entrada do cliente e requisições malformadas em JSON compatível com a RFC.
+     * Nunca expõe stack traces da JVM, caminhos de arquivos ou nomes de classes internas.
      */
     public static String sanitizeException(Throwable t) {
         return "{\"status\": 400, \"error\": \"Bad Request\", \"message\": \"Dados invalidos\"}";
     }
 
     /**
-     * Sanitizes unhandled internal exceptions into opaque HTTP 500 JSON payloads.
+     * Sanitiza exceções internas não tratadas em payloads JSON opacos de HTTP 500.
      */
     public static String sanitizeInternalError(Throwable t) {
         return "{\"status\": 500, \"error\": \"Internal Server Error\", \"message\": \"Ocorreu um erro interno\"}";

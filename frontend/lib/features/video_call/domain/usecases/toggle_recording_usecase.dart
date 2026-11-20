@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/participant.dart';
 import '../entities/recording_state.dart';
@@ -28,12 +28,16 @@ class ToggleRecordingUseCase {
   }) async {
     final cleanRoomId = roomId.trim();
     if (cleanRoomId.isEmpty) {
-      throw const VideoCallValidationException('Identificador da sala não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador da sala não pode ser vazio.',
+      );
     }
 
     final cleanPeerId = localParticipant.id.trim();
     if (cleanPeerId.isEmpty) {
-      throw const VideoCallValidationException('Identificador do participante não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador do participante não pode ser vazio.',
+      );
     }
 
     if (currentRecordingState.isRecording) {
@@ -45,7 +49,10 @@ class ToggleRecordingUseCase {
           isRecording: false,
           outputPath: outputPath,
         );
-        await videoCallRepository.updateRecordingState(cleanRoomId, stoppedState);
+        await videoCallRepository.updateRecordingState(
+          cleanRoomId,
+          stoppedState,
+        );
         return stoppedState;
       } catch (e) {
         final errorState = currentRecordingState.copyWith(
@@ -72,7 +79,10 @@ class ToggleRecordingUseCase {
           startedAt: DateTime.now(),
           elapsedDuration: Duration.zero,
         );
-        await videoCallRepository.updateRecordingState(cleanRoomId, startedState);
+        await videoCallRepository.updateRecordingState(
+          cleanRoomId,
+          startedState,
+        );
         return startedState;
       } catch (e) {
         final errorState = currentRecordingState.copyWith(

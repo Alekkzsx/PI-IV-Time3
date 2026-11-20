@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -6,6 +6,7 @@ import '../../../../../shared/widgets/recovery_footer_links.dart';
 import '../../../../../shared/widgets/top_header_bar.dart';
 import '../../../shared/domain/models/recovery_session.dart';
 import '../../../shared/domain/auth_repository.dart';
+import '../../../shared/external/auth_remote_datasource_impl.dart';
 import '../widgets/academic_identity_card.dart';
 import '../widgets/password_reset_field.dart';
 import '../widgets/password_strength_indicator.dart';
@@ -115,6 +116,20 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         newPassword: password,
         resetToken: session.resetToken,
       );
+    } on AuthApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      final msg = error.statusCode == 503 || error.statusCode == 504
+          ? error.message
+          : 'Não foi possível atualizar a senha. Tente novamente.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSaving = false);

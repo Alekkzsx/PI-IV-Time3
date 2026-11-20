@@ -1,7 +1,9 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
 
 /// Rodapé institucional padronizado e reutilizável para todas as telas do Painel Administrativo.
 /// Mantém a identidade corporativa do portal AVA AGMRM com links de Ajuda e Privacidade.
@@ -21,7 +23,8 @@ class AdminFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFE5E5E5), width: 1)),
@@ -69,7 +72,8 @@ class AdminFooter extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               InkWell(
-                onTap: onHelpTap ??
+                onTap:
+                    onHelpTap ??
                     () => _showInformationDialog(
                       context,
                       title: 'Central de ajuda',
@@ -78,7 +82,10 @@ class AdminFooter extends StatelessWidget {
                     ),
                 borderRadius: BorderRadius.circular(4),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   child: Text(
                     'Ajuda',
                     style: jakarta(
@@ -91,7 +98,8 @@ class AdminFooter extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               InkWell(
-                onTap: onPrivacyTap ??
+                onTap:
+                    onPrivacyTap ??
                     () => _showInformationDialog(
                       context,
                       title: 'Privacidade',
@@ -100,7 +108,10 @@ class AdminFooter extends StatelessWidget {
                     ),
                 borderRadius: BorderRadius.circular(4),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   child: Text(
                     'Privacidade',
                     style: jakarta(
@@ -143,17 +154,16 @@ class AdminFooter extends StatelessWidget {
     required String title,
     required String message,
   }) {
-    showDialog<void>(
+    AcademicModalDialog.show<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Entendi'),
-          ),
-        ],
+      builder: (dialogContext) => AcademicModalDialog(
+        title: title,
+        icon: Icons.info_outline_rounded,
+        cancelLabel: 'Entendi',
+        child: Text(
+          message,
+          style: jakarta(size: 13.5, color: InstColors.body, height: 1.45),
+        ),
       ),
     );
   }

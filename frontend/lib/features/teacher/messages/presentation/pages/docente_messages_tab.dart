@@ -8,9 +8,9 @@ import '../widgets/create_notice_modal.dart';
 import '../widgets/docente_notice_card.dart';
 import '../widgets/science_tracking_dialog.dart';
 
-/// Tab page for managing official institutional announcements and tracking student read receipts.
+/// Aba para gerenciamento de comunicados institucionais oficiais e rastreamento de confirmação de leitura dos alunos.
 class DocenteMessagesTab extends StatefulWidget {
-  /// Reactive controller for state access and mutations.
+  /// Controlador reativo para acesso e alterações de estado.
   final DocenteController controller;
 
   const DocenteMessagesTab({super.key, required this.controller});
@@ -69,10 +69,7 @@ class _DocenteMessagesTabState extends State<DocenteMessagesTab> {
                                 ScienceTrackingDialog.show(
                                   context,
                                   notice: notice,
-                                  attendanceList: widget
-                                      .controller
-                                      .currentSession
-                                      .attendanceList,
+                                  controller: widget.controller,
                                 );
                               },
                             ),

@@ -1,37 +1,39 @@
-﻿// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+// Atualizado com fidelidade estrita aos tokens institucionais (InstColors)
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 
-/// Design tokens and institutional color palette for the Docente Portal.
+/// Design tokens e paleta institucional para o Portal Docente.
 class DocenteColors {
   DocenteColors._();
 
-  static const Color background = Color(0xFFFAF9F6);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color headerBackground = Color(0xFFF4F4F4);
-  static const Color border = Color(0xFFE5E5E5);
-  static const Color borderDark = Color(0xFFD4D4D4);
+  static const Color background = InstColors.stone;
+  static const Color surface = InstColors.surface;
+  static const Color headerBackground = InstColors.headerBg;
+  static const Color border = InstColors.border;
+  static const Color borderDark = InstColors.borderStrong;
 
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF737373);
-  static const Color textMuted = Color(0xFFA3A3A3);
+  static const Color textPrimary = InstColors.ink;
+  static const Color textSecondary = InstColors.muted;
+  static const Color textMuted = InstColors.faint;
 
-  static const Color navActiveBackground = Color(0xFFF2F0EB);
-  static const Color navHoverBackground = Color(0xFFFAF9F6);
+  static const Color navActiveBackground = InstColors.stoneActive;
+  static const Color navHoverBackground = InstColors.stone;
 
-  static const Color success = Color(0xFF059669);
-  static const Color successLight = Color(0xFFECFDF5);
+  static const Color success = InstColors.success;
+  static const Color successLight = InstColors.successBg;
 
-  static const Color warning = Color(0xFFD97706);
-  static const Color warningLight = Color(0xFFFFFBEB);
+  static const Color warning = InstColors.warning;
+  static const Color warningLight = InstColors.warningBg;
 
-  static const Color danger = Color(0xFFDC2626);
-  static const Color dangerLight = Color(0xFFFEF2F2);
+  static const Color danger = InstColors.danger;
+  static const Color dangerLight = InstColors.dangerBg;
 
   static const Color info = Color(0xFF2563EB);
   static const Color infoLight = Color(0xFFEFF6FF);
 
-  // Semantic color aliases for high consistency across all widgets
+  // Aliases semânticos de cores para alta consistência em todos os widgets
   static const Color charcoal = textPrimary;
   static const Color emerald = success;
   static const Color crimson = danger;

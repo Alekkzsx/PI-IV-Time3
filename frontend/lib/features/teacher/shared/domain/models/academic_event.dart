@@ -1,14 +1,14 @@
 ﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
-/// Type of institutional or academic event in the professor's agenda.
+/// Tipo de evento institucional ou acadêmico na agenda do docente.
 enum EventType { aula, avaliacao, plantao, colegiado, reuniao }
 
-/// Represents an event or appointment in the academic calendar.
+/// Representa um evento ou compromisso no calendário acadêmico.
 class AcademicEvent {
   final String id;
   final String title;
-  final String date; // YYYY-MM-DD
-  final String time; // e.g., '19:10 - 20:50'
+  final String date; // AAAA-MM-DD
+  final String time; // ex.: '19:10 - 20:50'
   final EventType type;
   final String location;
   final bool isSynced;

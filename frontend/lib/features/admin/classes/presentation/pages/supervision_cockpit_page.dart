@@ -1,4 +1,6 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
@@ -6,8 +8,11 @@ import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_modal_dialog.dart';
+import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
 
 /// Console Avançado de Supervisão Institucional da Turma na Visão Administrativa.
 /// Permite auditar notas em tempo real, configurar regimes de avaliação, reatribuir
@@ -28,6 +33,48 @@ class SupervisionCockpitPage extends StatefulWidget {
 
 class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   final AdminPortalController _controller = AdminPortalController.instance;
+  late final TextEditingController _justificationController;
+  late final TextEditingController _profController;
+
+  AdminClassModel get _activeClass =>
+      _controller.classes
+          .where((item) => item.code == widget.classModel.code)
+          .firstOrNull ??
+      widget.classModel;
+
+  static String _initialProfessorInput(String professor) {
+    final normalized = professor.trim();
+    if (normalized.isEmpty ||
+        normalized == 'Não alocado' ||
+        normalized == 'Não atribuído') {
+      return '';
+    }
+    return normalized;
+  }
+
+  static String _formulaChoiceFromExpression(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('equitativa') ||
+        lower.contains('/ 2') ||
+        lower.contains('0.5')) {
+      return 'Equitativa (N1 50% / N2 50%)';
+    }
+    if (lower.contains('aritm') || lower.contains('contínu')) {
+      return 'Aritmética Simples';
+    }
+    return 'Ponderada (N1 40% / N2 60%)';
+  }
+
+  static String _formulaExpressionFor(String selected) {
+    switch (selected) {
+      case 'Equitativa (N1 50% / N2 50%)':
+        return '(N1 + N2) / 2';
+      case 'Aritmética Simples':
+        return 'Média aritmética de instrumentos contínuos';
+      default:
+        return '(N1 × 0.4) + (N2 × 0.6)';
+    }
+  }
 
   final List<String> _tabs = [
     'Diretriz & Regime Avaliativo',
@@ -48,12 +95,28 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
   @override
   void initState() {
     super.initState();
+    final initialClass = _activeClass;
+    _justificationController = TextEditingController();
+    _profController = TextEditingController(
+      text: _initialProfessorInput(initialClass.professor),
+    );
+    _controller.selectedEvaluationFormula = _formulaChoiceFromExpression(
+      initialClass.evaluationFormula,
+    );
     _controller.addListener(_onUpdate);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.loadClassSupervision(widget.classModel.code);
+      }
+    });
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onUpdate);
+    _controller.clearSupervisionError(notify: false);
+    _justificationController.dispose();
+    _profController.dispose();
     super.dispose();
   }
 
@@ -61,8 +124,43 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _exportGrades() async {
+    final activeClass = _activeClass;
+    final rows = [
+      ['RA', 'Discente', 'N1', 'N2', 'Média', 'Faltas'],
+      ..._controller.supervisedGrades.map(
+        (grade) => [
+          grade.ra,
+          grade.studentName,
+          grade.n1.toStringAsFixed(2),
+          grade.n2.toStringAsFixed(2),
+          grade.finalAverage.toStringAsFixed(2),
+          grade.absences.toString(),
+        ],
+      ),
+    ];
+    final csv = rows
+        .map((row) => row.map((field) => '"${field.replaceAll('"', '""')}"').join(';'))
+        .join('\n');
+    final saved = await PlatformFileHelper.saveOrDownloadFile(
+      fileName: 'pauta-${activeClass.code}.csv',
+      bytes: utf8.encode(csv),
+      mimeType: 'text/csv',
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            saved == null ? 'Não foi possível exportar a pauta.' : 'Pauta exportada: $saved',
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final activeClass = _activeClass;
     return Container(
       color: InstColors.stone,
       child: SingleChildScrollView(
@@ -76,7 +174,15 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildCockpitHeader(),
+                  _buildCockpitHeader(activeClass),
+                  if (_controller.isLoadingSupervision) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(),
+                  ],
+                  if (_controller.supervisionError != null) ...[
+                    const SizedBox(height: 12),
+                    _buildSupervisionErrorBanner(activeClass),
+                  ],
                   const SizedBox(height: 16),
                   _buildTabBar(),
                   const SizedBox(height: 16),
@@ -90,10 +196,45 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     );
   }
 
+  Widget _buildSupervisionErrorBanner(AdminClassModel activeClass) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFDC2626),
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _controller.supervisionError!,
+              style: jakarta(
+                size: 12.5,
+                weight: FontWeight.w500,
+                color: const Color(0xFF991B1B),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _controller.loadClassSupervision(activeClass.code),
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ==========================================
   // CABEÇALHO DO CONSOLE DE SUPERVISÃO
   // ==========================================
-  Widget _buildCockpitHeader() {
+  Widget _buildCockpitHeader(AdminClassModel activeClass) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -118,7 +259,10 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             spacing: 12,
             children: [
               OutlinedButton.icon(
-                onPressed: widget.onBack,
+                onPressed: () {
+                  _controller.clearSupervisionError();
+                  widget.onBack();
+                },
                 icon: const Icon(Icons.arrow_back_rounded, size: 16),
                 label: const Text('Voltar para Gestão de Turmas'),
                 style: OutlinedButton.styleFrom(
@@ -142,7 +286,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     animation: AcademicBridgeService.instance,
                     builder: (context, _) {
                       final isLive = AcademicBridgeService.instance
-                          .isSessionOpen(widget.classModel.code);
+                          .isSessionOpen(activeClass.code);
                       return ElevatedButton.icon(
                         key: const Key('btn_admin_supervisionar_chamada'),
                         onPressed: _controller.canPerform('manage_video_calls')
@@ -150,7 +294,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                                 Navigator.of(context).pushNamed(
                                   '/video-call',
                                   arguments: {
-                                    'roomCode': widget.classModel.code,
+                                    'roomCode': activeClass.code,
                                   },
                                 );
                               }
@@ -185,9 +329,8 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     },
                   ),
                   _buildStatusBadge(
-                    isLocked: _controller.isGradeLockedFor(
-                      widget.classModel.code,
-                    ),
+                    isLocked: activeClass.gradeLocked ||
+                        _controller.isGradeLockedFor(activeClass.code),
                   ),
                 ],
               ),
@@ -227,7 +370,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      widget.classModel.subjectName,
+                      activeClass.subjectName,
                       style: jakarta(
                         size: 21,
                         weight: FontWeight.w700,
@@ -237,7 +380,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      '${widget.classModel.code}  ·  ${widget.classModel.courseAndTerm}',
+                      '${activeClass.code}  ·  ${activeClass.courseAndTerm}',
                       style: jakarta(
                         size: 12,
                         weight: FontWeight.w500,
@@ -246,7 +389,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      widget.classModel.location,
+                      activeClass.location,
                       style: jakarta(size: 12, color: InstColors.muted),
                     ),
                   ],
@@ -264,17 +407,17 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               _buildHeaderStat(
                 Icons.person_outline_rounded,
                 'Docente regente',
-                widget.classModel.professor,
+                activeClass.professor,
               ),
               _buildHeaderStat(
                 Icons.groups_outlined,
                 'Ocupação de vagas',
-                '${widget.classModel.enrolled} / ${widget.classModel.maxCapacity} alunos',
+                '${_controller.supervisedEnrollments.isNotEmpty ? _controller.supervisedEnrollments.length : activeClass.enrolled} / ${activeClass.maxCapacity} alunos',
               ),
               _buildHeaderStat(
                 Icons.rule_rounded,
                 'Regime vigente',
-                widget.classModel.formulaRegime,
+                activeClass.formulaRegime,
               ),
             ],
           ),
@@ -528,9 +671,10 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             ],
           ),
           const SizedBox(height: 12),
-          const TextField(
+          TextField(
+            controller: _justificationController,
             maxLines: 3,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText:
                   'Registro de autorização da Secretaria Geral ou justificativa da alteração...',
               filled: true,
@@ -552,11 +696,34 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: () {
-              _controller.updateFormulaRegime(
-                widget.classModel.code,
-                'Impor pelo Admin',
+            onPressed: () async {
+              final activeClass = _activeClass;
+              final justification = _justificationController.text.trim();
+              final formulaExpression = _formulaExpressionFor(
+                _controller.selectedEvaluationFormula,
               );
+              final ok = _controller.usesRemote
+                  ? await _controller.persistClass(activeClass.code, {
+                      'formulaRegime': 'admin',
+                      'evaluationFormula': formulaExpression,
+                      if (justification.isNotEmpty)
+                        'justificationNote': justification,
+                    })
+                  : await _controller.updateFormulaRegime(
+                      activeClass.code,
+                      'Impor pelo Admin',
+                    );
+              if (!mounted) return;
+              if (!ok) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _controller.remoteError ?? 'Falha ao salvar.',
+                    ),
+                  ),
+                );
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Diretriz de cálculo gravada e homologada.'),
@@ -720,48 +887,40 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       );
     }
 
-    final gradeRows = [
-      {
-        'nome': 'Gabriel Soares de Oliveira',
-        'ra': '2024.1.00892',
-        'p1': '8.5',
-        'p2': '9.0',
-        'trab': '9.5',
-        'media': '8.9',
-        'faltas': '4',
-        'parecer': 'Aprovado por Média e Freq.',
-      },
-      {
-        'nome': 'Mariana Rios Costa',
-        'ra': '2024.1.00912',
-        'p1': '9.0',
-        'p2': '9.5',
-        'trab': '9.8',
-        'media': '9.4',
-        'faltas': '2',
-        'parecer': 'Aprovado por Média e Freq.',
-      },
-      {
-        'nome': 'Lucas Silva Santos',
-        'ra': '2024.1.00940',
-        'p1': '4.0',
-        'p2': '5.0',
-        'trab': '6.0',
-        'media': '5.0',
-        'faltas': '14',
-        'parecer': 'Exame Final Necessário',
-      },
-      {
-        'nome': 'Beatriz Castro Lima',
-        'ra': '2024.1.00955',
-        'p1': '8.0',
-        'p2': '8.5',
-        'trab': '9.0',
-        'media': '8.4',
-        'faltas': '6',
-        'parecer': 'Aprovado por Média e Freq.',
-      },
-    ];
+    final thresholds = _controller.academicThresholds;
+    final classRectifications = _controller.rectifications
+        .where((r) => r.classCode == _activeClass.code)
+        .toList();
+
+    final gradeRows = _controller.supervisedGrades.map((grade) {
+      final approved =
+          grade.hasGrades &&
+          grade.finalAverage >= thresholds.minimumGrade &&
+          grade.attendanceRate >= thresholds.minimumAttendance;
+      final inExam =
+          grade.hasGrades &&
+          grade.attendanceRate >= thresholds.minimumAttendance &&
+          grade.finalAverage < thresholds.minimumGrade &&
+          grade.finalAverage >= thresholds.specialExamGrade;
+      return <String, String>{
+        'nome': grade.studentName,
+        'ra': grade.ra,
+        'p1': grade.p1Score.toStringAsFixed(1),
+        'p2': grade.p2Score.toStringAsFixed(1),
+        'trab': grade.assignmentsScore.toStringAsFixed(1),
+        'media': grade.finalAverage.toStringAsFixed(1),
+        'faltas': grade.absences.toString(),
+        'parecer': !grade.hasGrades
+            ? 'Sem notas lançadas'
+            : approved
+                ? 'Aprovado'
+                : inExam
+                    ? 'Em Exame'
+                    : grade.attendanceRate < thresholds.minimumAttendance
+                        ? 'Reprovado por Falta'
+                        : 'Abaixo da Média',
+      };
+    }).toList();
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -776,190 +935,265 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Pauta Consolidada em Tempo Real',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Ata consolidada exportada com carimbo digital.',
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pauta Consolidada em Tempo Real',
+                    style: jakarta(
+                      size: 18,
+                      weight: FontWeight.w700,
+                      color: InstColors.ink,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Média mínima ${thresholds.minimumGrade.toStringAsFixed(1)} • Frequência mínima ${thresholds.minimumAttendance.toStringAsFixed(0)}% • Fórmula: ${_activeClass.evaluationFormula}',
+                    style: jakarta(size: 12, color: InstColors.muted),
+                  ),
+                ],
+              ),
+              OutlinedButton.icon(
+                onPressed: _exportGrades,
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Exportar Ata de Notas'),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 780,
-              child: Table(
-                border: TableBorder.all(color: InstColors.border),
-                children: [
-                  const TableRow(
-                    decoration: BoxDecoration(color: InstColors.hoverSurface),
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'DISCENTE / R.A.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'P1',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'P2',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'TRAB',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'MÉDIA',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'FALTAS',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          'PARECER AUDITORIA',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: InstColors.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: 820,
+                child: Table(
+                  border: const TableBorder(
+                    horizontalInside: BorderSide(color: Color(0xFFF0F0F0)),
                   ),
-                  ...gradeRows.map((r) {
-                    final isApproved = r['parecer']!.contains('Aprovado');
-                    return TableRow(
+                  children: [
+                    TableRow(
+                      decoration: const BoxDecoration(color: InstColors.stone),
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            '${r['nome']}\n${r['ra']}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            r['p1']!,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            r['p2']!,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            r['trab']!,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            r['media']!,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            r['faltas']!,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Text(
-                            r['parecer']!,
-                            style: TextStyle(
-                              color: isApproved
-                                  ? InstColors.success
-                                  : InstColors.warning,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
+                        _tableHeaderCell('DISCENTE / R.A.'),
+                        _tableHeaderCell('P1'),
+                        _tableHeaderCell('P2'),
+                        _tableHeaderCell('TRAB'),
+                        _tableHeaderCell('MÉDIA'),
+                        _tableHeaderCell('FALTAS'),
+                        _tableHeaderCell('PARECER AUDITORIA'),
                       ],
-                    );
-                  }),
-                ],
+                    ),
+                    ...gradeRows.map((r) {
+                      return TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r['nome']!,
+                                  style: jakarta(
+                                    size: 12.5,
+                                    weight: FontWeight.w600,
+                                    color: InstColors.ink,
+                                  ),
+                                ),
+                                Text(
+                                  r['ra']!,
+                                  style: jakarta(
+                                    size: 11.5,
+                                    color: InstColors.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _tableCell(r['p1']!),
+                          _tableCell(r['p2']!),
+                          _tableCell(r['trab']!),
+                          _tableCell(r['media']!, bold: true),
+                          _tableCell(r['faltas']!),
+                          Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: AcademicStatusBadge.fromString(
+                                r['parecer']!,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
               ),
             ),
           ),
           const SizedBox(height: 24),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
-          const Text(
-            'Trilha de Auditoria da Pauta (Audit Trail)',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          const Divider(height: 1, color: InstColors.border),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Solicitações de Retificação Pós-Lacração',
+                style: jakarta(
+                  size: 15,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: InstColors.stoneActive,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: InstColors.border),
+                ),
+                child: Text(
+                  '${classRectifications.where((r) => r.isPending).length} pendente(s)',
+                  style: jakarta(
+                    size: 11.5,
+                    weight: FontWeight.w600,
+                    color: InstColors.ink,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          const ListTile(
-            leading: Icon(Icons.history, color: InstColors.ink),
-            title: Text(
-              'Última alteração de nota registrada por Profa. Dra. Helena Bittencourt',
+          const SizedBox(height: 12),
+          if (classRectifications.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: InstColors.stone,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: InstColors.border),
+              ),
+              child: Text(
+                'Nenhuma solicitação de retificação registrada para esta turma.',
+                style: jakarta(size: 13, color: InstColors.muted),
+              ),
+            )
+          else
+            for (final rec in classRectifications) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: InstColors.stone,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: InstColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${rec.code} • ${rec.studentName} (${rec.studentRa})',
+                            style: jakarta(
+                              size: 13.5,
+                              weight: FontWeight.w700,
+                              color: InstColors.ink,
+                            ),
+                          ),
+                        ),
+                        AcademicStatusBadge.fromString(rec.status),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Etapa: ${rec.stage} • Alteração: ${rec.previousScore.toStringAsFixed(1)} → ${rec.newScore.toStringAsFixed(1)} • Solicitante: ${rec.teacherName}',
+                      style: jakarta(
+                        size: 12.5,
+                        weight: FontWeight.w600,
+                        color: InstColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      rec.justification,
+                      style: jakarta(size: 12.5, color: InstColors.body),
+                    ),
+                    if (rec.decisionNote != null &&
+                        rec.decisionNote!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Parecer (${rec.signedBy ?? 'Secretaria'}): ${rec.decisionNote}',
+                        style: jakarta(size: 12, color: InstColors.muted),
+                      ),
+                    ],
+                    if (rec.isPending) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () =>
+                                _decideRectificationDialog(rec, approved: true),
+                            icon: const Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 16,
+                            ),
+                            label: const Text('Deferir e Aplicar Nota'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: InstColors.ink,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                _decideRectificationDialog(rec, approved: false),
+                            icon: const Icon(
+                              Icons.cancel_outlined,
+                              size: 16,
+                              color: InstColors.danger,
+                            ),
+                            label: Text(
+                              'Indeferir',
+                              style: jakarta(
+                                size: 13,
+                                weight: FontWeight.w600,
+                                color: InstColors.danger,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: InstColors.hoverSurface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: InstColors.border),
             ),
-            subtitle: Text(
-              '20/10/2026 às 14:22 • IP: 177.136.24.10 • Chancela Digital: #AGR-CHANC-9981',
+            child: Row(
+              children: [
+                const Icon(Icons.history, size: 18, color: InstColors.ink),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${_controller.supervisedGrades.length} registros de pauta carregados do servidor.${_controller.supervisionError == null ? '' : ' (${_controller.supervisionError})'}',
+                    style: jakarta(size: 12.5, color: InstColors.body),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -967,11 +1201,89 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
     );
   }
 
+  Future<void> _decideRectificationDialog(
+    AdminGradeRectificationModel rec, {
+    required bool approved,
+  }) async {
+    final noteCtrl = TextEditingController(
+      text: approved
+          ? 'Retificação deferida e aplicada à pauta pela Secretaria Acadêmica.'
+          : 'Solicitação indeferida após conferência de pauta.',
+    );
+    final note = await AcademicModalDialog.show<String>(
+      context: context,
+      builder: (dialogCtx) => AcademicModalDialog(
+        title: approved
+            ? 'Deferir Retificação (${rec.code})'
+            : 'Indeferir Retificação (${rec.code})',
+        subtitle:
+            '${rec.studentName} • ${rec.stage}: ${rec.previousScore.toStringAsFixed(1)} → ${rec.newScore.toStringAsFixed(1)}',
+        icon: approved ? Icons.verified_outlined : Icons.gavel_outlined,
+        cancelLabel: 'Cancelar',
+        confirmLabel: approved ? 'Aplicar Nota na Pauta' : 'Confirmar Indeferimento',
+        isConfirmDestructive: !approved,
+        onConfirm: () {
+          if (noteCtrl.text.trim().length < 5) return;
+          Navigator.of(dialogCtx).pop(noteCtrl.text.trim());
+        },
+        child: TextField(
+          controller: noteCtrl,
+          maxLines: 3,
+          decoration: InstText.inputDecoration(
+            labelText: 'Parecer administrativo (mínimo 5 caracteres)',
+          ),
+        ),
+      ),
+    );
+    noteCtrl.dispose();
+    if (note == null || !mounted) return;
+    final ok = await _controller.decideRectification(
+      id: rec.id,
+      approved: approved,
+      decisionNote: note,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? (approved
+                    ? 'Nota retificada na pauta e partes notificadas.'
+                    : 'Solicitação de retificação indeferida.')
+              : (_controller.remoteError ?? 'Não foi possível despachar.'),
+        ),
+      ),
+    );
+  }
+
+  Widget _tableHeaderCell(String label) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Text(
+      label,
+      style: jakarta(
+        size: 11,
+        weight: FontWeight.w700,
+        color: InstColors.muted,
+        letterSpacing: 0.4,
+      ),
+    ),
+  );
+
+  Widget _tableCell(String value, {bool bold = false}) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Text(
+      value,
+      style: jakarta(
+        size: 12.5,
+        weight: bold ? FontWeight.w700 : FontWeight.w500,
+        color: InstColors.ink,
+      ),
+    ),
+  );
+
   // --- ABA 3: Atribuição Docente (Print 51) ---
   Widget _buildFacultyTab() {
-    final profController = TextEditingController(
-      text: widget.classModel.professor,
-    );
+    final activeClass = _activeClass;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -983,45 +1295,107 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Atribuição e Substituição Docente',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: jakarta(
+              size: 18,
+              weight: FontWeight.w700,
+              color: InstColors.ink,
+            ),
           ),
           const SizedBox(height: 16),
-          ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: InstColors.ink,
-              child: Icon(Icons.person, color: Colors.white),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: InstColors.stone,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: InstColors.border),
             ),
-            title: Text(
-              widget.classModel.professor,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: const Text(
-              'Docente Titular Homologado • Carga Horária: 80h/semestre',
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  backgroundColor: InstColors.ink,
+                  child: Icon(Icons.person, color: Colors.white),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        activeClass.professor,
+                        style: jakarta(
+                          size: 14.5,
+                          weight: FontWeight.w700,
+                          color: InstColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Docente Titular Homologado • ${activeClass.semester} • ${activeClass.shift}',
+                        style: jakarta(size: 12.5, color: InstColors.muted),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
-          const Divider(height: 1),
+          const Divider(height: 1, color: InstColors.border),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Reatribuir Turma para Novo Docente:',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: jakarta(
+              size: 13.5,
+              weight: FontWeight.w700,
+              color: InstColors.ink,
+            ),
           ),
           const SizedBox(height: 8),
           TextField(
-            controller: profController,
-            decoration: const InputDecoration(
-              labelText: 'Nome do Docente Substituto',
-              border: OutlineInputBorder(),
+            controller: _profController,
+            decoration: InstText.inputDecoration(
+              labelText: 'Nome, e-mail ou matrícula do docente substituto',
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              _controller.reallocateProfessor(
-                widget.classModel.code,
-                profController.text,
+            onPressed: () async {
+              final profInput = _profController.text.trim();
+              if (profInput.isEmpty ||
+                  profInput == 'Não alocado' ||
+                  profInput == 'Não atribuído') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Informe o nome, e-mail ou matrícula de um docente válido.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              final ok = _controller.usesRemote
+                  ? await _controller.persistClass(activeClass.code, {
+                      'professorIdentity': profInput,
+                    })
+                  : await _controller.reallocateProfessor(
+                      activeClass.code,
+                      profInput,
+                    );
+              if (!mounted) return;
+              if (!ok) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _controller.remoteError ?? 'Falha ao salvar.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              _profController.text = _initialProfessorInput(
+                _activeClass.professor,
               );
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -1042,13 +1416,13 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 4: Discentes & Vagas (Print 52) ---
   Widget _buildStudentsTab() {
-    final enrolledStudents = AdminMockData.users
-        .where(
-          (user) =>
-              user.profile == 'aluno' &&
-              widget.classModel.enrolledStudentRas.contains(user.id),
-        )
-        .toList();
+    final activeClass = _activeClass;
+    final enrolledStudents = _controller.supervisedEnrollments;
+    final enrolledCount = enrolledStudents.isNotEmpty
+        ? enrolledStudents.length
+        : activeClass.enrolled;
+    final availableSeats = (activeClass.maxCapacity - enrolledCount)
+        .clamp(0, activeClass.maxCapacity);
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1064,55 +1438,81 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Discentes Matriculados (${widget.classModel.enrolled} / ${widget.classModel.maxCapacity} vagas)',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                'Discentes Matriculados ($enrolledCount / ${activeClass.maxCapacity} vagas)',
+                style: jakarta(
+                  size: 18,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
                 ),
               ),
-              Chip(
-                label: const Text(
-                  '6 Vagas Disponíveis',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
-                ),
-                backgroundColor: const Color(0xFFDCFCE7),
+              AcademicStatusBadge(
+                label:
+                    '$availableSeats ${availableSeats == 1 ? 'Vaga Disponível' : 'Vagas Disponíveis'}',
+                type: availableSeats > 0
+                    ? AcademicStatusType.aprovado
+                    : AcademicStatusType.pendente,
               ),
             ],
           ),
           const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
+          const Divider(height: 1, color: InstColors.border),
+          const SizedBox(height: 12),
           Text(
-            'Cadastros de demonstração vinculados: ${enrolledStudents.length}',
-            style: TextStyle(fontSize: 12, color: InstColors.muted),
+            'Estudantes matriculados: ${enrolledStudents.length}',
+            style: jakarta(size: 12.5, color: InstColors.muted),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (enrolledStudents.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('Nenhum cadastro de demonstração vinculado à turma.'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'Nenhum estudante matriculado nesta turma.',
+                style: jakarta(size: 13.5, color: InstColors.muted),
+              ),
             )
           else
-            ...enrolledStudents.map((u) {
-              return ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: InstColors.stoneActive,
-                  child: Icon(Icons.school, color: InstColors.ink),
+            for (final u in enrolledStudents)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
-                title: Text(
-                  u.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                decoration: BoxDecoration(
+                  color: InstColors.stone,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: InstColors.border),
                 ),
-                subtitle: Text('R.A.: ${u.id} • ${u.email}'),
-                trailing: Chip(
-                  label: Text(u.status),
-                  backgroundColor: const Color(0xFFDCFCE7),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: InstColors.stoneActive,
+                      child: Icon(Icons.school, size: 17, color: InstColors.ink),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            u.displayName,
+                            style: jakarta(
+                              size: 13.5,
+                              weight: FontWeight.w700,
+                              color: InstColors.ink,
+                            ),
+                          ),
+                          Text(
+                            'R.A.: ${u.ra}',
+                            style: jakarta(size: 12, color: InstColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            }),
+              ),
         ],
       ),
     );
@@ -1120,6 +1520,19 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
 
   // --- ABA 5: Fechamento de Pauta & Homologação (Print 53) ---
   Widget _buildClosingTab() {
+    final grades = _controller.supervisedGrades;
+    final hasEnrolledStudents =
+        _controller.supervisedEnrollments.isNotEmpty ||
+        _activeClass.enrolled > 0;
+    final allGradesEntered =
+        grades.isNotEmpty && grades.every((g) => g.hasGrades);
+    final noPendingRectifications = _controller.rectifications
+        .where((r) => r.classCode == _activeClass.code && r.isPending)
+        .isEmpty;
+    final isLocked =
+        _activeClass.gradeLocked ||
+        _controller.isGradeLockedFor(_activeClass.code);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1130,63 +1543,120 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Fechamento de Pauta & Lacração Oficial',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: jakarta(
+              size: 18,
+              weight: FontWeight.w700,
+              color: InstColors.ink,
+            ),
           ),
           const SizedBox(height: 16),
-          const CheckboxListTile(
-            value: true,
-            onChanged: null,
-            title: Text(
-              '100% das avaliações regimentais (N1 e N2) lançadas no diário',
-            ),
+          _closingCheckRow(
+            checked: allGradesEntered,
+            label:
+                'Avaliações regimentais lançadas (${grades.where((g) => g.hasGrades).length}/${grades.length} discentes)',
           ),
-          const CheckboxListTile(
-            value: true,
-            onChanged: null,
-            title: Text(
-              'Carga horária mínima exigida pelo MEC (80h) integralmente registrada',
-            ),
+          const SizedBox(height: 8),
+          _closingCheckRow(
+            checked: hasEnrolledStudents,
+            label:
+                'Turma com matrículas ativas registradas (${_activeClass.enrolled} discentes)',
           ),
-          const CheckboxListTile(
-            value: true,
-            onChanged: null,
-            title: Text(
-              'Frequências apuradas e abonos de atestados médicos deferidos computados',
-            ),
+          const SizedBox(height: 8),
+          _closingCheckRow(
+            checked: noPendingRectifications,
+            label: noPendingRectifications
+                ? 'Nenhuma solicitação de retificação pendente nesta turma'
+                : 'Há retificação(ões) aguardando parecer antes do encerramento',
           ),
           const SizedBox(height: 20),
-          const Divider(height: 1),
+          const Divider(height: 1, color: InstColors.border),
           const SizedBox(height: 20),
-          if (_controller.isGradeLockedFor(widget.classModel.code)) ...[
+          if (isLocked) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: InstColors.successBg,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: InstColors.success.withValues(alpha: 0.25),
+                ),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.verified, color: InstColors.success),
-                  SizedBox(width: 12),
+                  const Icon(Icons.verified, color: InstColors.success),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Esta pauta foi homologada e lacrada pela Secretaria Geral Acadêmica. Nenhuma alteração de nota ou frequência é permitida sem processo formal de retificação.',
-                      style: TextStyle(
+                      'Esta pauta foi homologada e lacrada pela Secretaria Geral Acadêmica. Nenhuma alteração direta pelo docente é permitida sem retificação deferida ou destravamento administrativo.',
+                      style: jakarta(
+                        size: 13,
+                        weight: FontWeight.w600,
                         color: InstColors.success,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final confirmed = await AcademicModalDialog.show<bool>(
+                  context: context,
+                  builder: (dialogCtx) => AcademicModalDialog(
+                    title: 'Destravar Pauta da Turma',
+                    subtitle: '${_activeClass.code} · ${_activeClass.subjectName}',
+                    icon: Icons.lock_open_rounded,
+                    cancelLabel: 'Cancelar',
+                    confirmLabel: 'Confirmar Destravamento',
+                    onConfirm: () => Navigator.of(dialogCtx).pop(true),
+                    child: Text(
+                      'Deseja reabrir a pauta para o docente titular editar notas diretamente?',
+                      style: jakarta(size: 13.5, color: InstColors.ink),
+                    ),
+                  ),
+                );
+                if (confirmed != true || !mounted) return;
+                final ok = await _controller.unlockClassPauta(_activeClass.code);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok
+                          ? 'Pauta destravada. O docente já pode editar notas no diário.'
+                          : (_controller.remoteError ??
+                                'Não foi possível destravar a pauta.'),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.lock_open_rounded, size: 17),
+              label: const Text('Destravar Pauta'),
+            ),
           ] else ...[
             ElevatedButton.icon(
-              onPressed: () {
-                _controller.lockAndHomologateClassPauta(widget.classModel.code);
+              onPressed: () async {
+                final activeClass = _activeClass;
+                final ok = _controller.usesRemote
+                    ? await _controller.persistClass(activeClass.code, {
+                        'gradeLocked': true,
+                      })
+                    : await _controller.lockAndHomologateClassPauta(
+                        activeClass.code,
+                      );
+                if (!mounted) return;
+                if (!ok) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _controller.remoteError ?? 'Falha ao salvar.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
@@ -1198,7 +1668,7 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               icon: const Icon(Icons.lock, size: 16),
               label: const Text('Homologar e Lacrar Pauta'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
+                backgroundColor: InstColors.danger,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -1207,6 +1677,37 @@ class _SupervisionCockpitPageState extends State<SupervisionCockpitPage> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _closingCheckRow({required bool checked, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: InstColors.stone,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: InstColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            checked ? Icons.check_circle_rounded : Icons.schedule_rounded,
+            size: 18,
+            color: checked ? InstColors.success : InstColors.warning,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: jakarta(
+                size: 13,
+                weight: FontWeight.w500,
+                color: InstColors.ink,
+              ),
+            ),
+          ),
         ],
       ),
     );

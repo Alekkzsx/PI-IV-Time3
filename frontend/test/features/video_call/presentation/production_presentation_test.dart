@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/state/academic_bridge_service.dart';
+import 'package:pi_iv_time3/core/theme/app_theme.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/chat_message.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/emoji_reaction.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/hand_raise_item.dart';
@@ -13,16 +14,46 @@ import 'package:pi_iv_time3/features/video_call/domain/entities/meeting_room.dar
 import 'package:pi_iv_time3/features/video_call/domain/entities/participant.dart';
 import 'package:pi_iv_time3/features/video_call/domain/entities/recording_state.dart';
 import 'package:pi_iv_time3/features/video_call/domain/repositories/video_call_repository.dart';
+import 'package:pi_iv_time3/features/video_call/data/datasources/video_call_room_remote_data_source.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/controllers/video_call_controller.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/controllers/video_call_lobby_controller.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_lobby_page.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_room_page.dart';
+import 'package:pi_iv_time3/features/video_call/presentation/theme/video_call_theme.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/audio_level_meter.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/dynamic_video_grid.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/floating_reactions_overlay.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/participant_video_tile.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/raised_hands_banner.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/screen_share_view.dart';
+
+class FakeVideoCallRoomRemoteDataSource extends VideoCallRoomRemoteDataSource {
+  final List<VideoCallRoomSummary> _rooms;
+
+  FakeVideoCallRoomRemoteDataSource({
+    List<VideoCallRoomSummary> rooms = const [
+      VideoCallRoomSummary(
+        roomCode: 'APS-II',
+        classCode: 'APS-II',
+        title: 'APS-II',
+        isOpen: true,
+      ),
+      VideoCallRoomSummary(
+        roomCode: 'SALA-101',
+        classCode: 'SALA-101',
+        title: 'Sala 101',
+        isOpen: true,
+      ),
+    ],
+  }) : _rooms = rooms;
+
+  @override
+  Future<List<VideoCallRoomSummary>> listRooms() async => _rooms;
+
+  @override
+  Future<VideoCallRoomAccess> enterRoom(String roomCode) async =>
+      const VideoCallRoomAccess(opened: false, webSocketTicket: 'test-ticket');
+}
 
 /// Implementação de teste para VideoCallRepository da camada de domínio.
 class FakeDomainVideoCallRepository implements VideoCallRepository {
@@ -151,17 +182,21 @@ void main() {
 
     setUp(() {
       fakeRepo = FakeDomainVideoCallRepository();
-      controller = VideoCallLobbyController(repository: fakeRepo);
+      controller = VideoCallLobbyController(
+        repository: fakeRepo,
+        roomDataSource: FakeVideoCallRoomRemoteDataSource(rooms: const []),
+      );
     });
 
     tearDown(() async {
+      controller.dispose();
       await fakeRepo.dispose();
     });
 
     test('Initial state values and setters', () {
       expect(controller.name, isEmpty);
       expect(controller.ra, isEmpty);
-      expect(controller.roomCode, 'SALA-101');
+      expect(controller.roomCode, isEmpty);
       expect(controller.isAudioMuted, isFalse);
       expect(controller.isVideoOff, isFalse);
       expect(controller.audioLevel, 0.05);
@@ -202,7 +237,7 @@ void main() {
 
       expect(controller.validateRoomCode(null), 'Informe o código da sala');
       expect(controller.validateRoomCode(''), 'Informe o código da sala');
-      expect(controller.validateRoomCode('AB'), 'Código da sala inválido');
+      expect(controller.validateRoomCode('A'), 'Código da sala inválido');
       expect(
         controller.validateRoomCode('SALA_INVALID@'),
         'Código da sala inválido',
@@ -238,6 +273,7 @@ void main() {
         id: 'peer_1',
         name: 'Alex Sousa',
         ra: '24802449',
+        role: 'docente',
         isLocal: true,
       );
       controller = VideoCallController(
@@ -286,7 +322,7 @@ void main() {
       controller.setAudioLevel(0.20);
       expect(controller.localParticipant.isSpeaking, isTrue);
 
-      // Dropping below 0.15 enters hysteresis
+      // Cair abaixo de 0.15 entra em histerese
       controller.setAudioLevel(0.05);
       expect(controller.localParticipant.isSpeaking, isTrue);
     });
@@ -387,7 +423,7 @@ void main() {
         expect(controller.remoteParticipants.first.isHandRaised, isTrue);
         expect(controller.raisedHandsQueue.length, 1);
 
-        // Lower hand
+        // Abaixa a mão
         fakeRepo.emitHandRaise(
           HandRaiseItem(
             peerId: 'peer_remote',
@@ -418,7 +454,7 @@ void main() {
         expect(controller.recordingState.isRecording, isTrue);
         expect(controller.recordingState.startedByName, 'Maria Silva');
 
-        // Stop recording
+        // Para a gravação
         fakeRepo.emitRecordingState(
           RecordingState(
             isRecording: false,
@@ -444,7 +480,7 @@ void main() {
         controller.registerRemoteParticipant(remotePeer);
         expect(controller.remoteParticipants.first.isAudioMuted, isTrue);
 
-        // Send audioLevel update without isAudioMuted field
+        // Envia atualização de audioLevel sem o campo isAudioMuted
         fakeRepo.emitMediaState(
           MediaStateUpdate(
             peerId: 'peer_muted',
@@ -552,7 +588,7 @@ void main() {
       final p1 = Participant(id: 'p1', name: 'User 1', ra: '11111');
       final p2 = Participant(id: 'p2', name: 'User 2', ra: '22222');
 
-      // Empty
+      // Vazio
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(body: DynamicVideoGrid(participants: [])),
@@ -576,7 +612,7 @@ void main() {
       );
       expect(find.byType(ParticipantVideoTile), findsNWidgets(2));
 
-      // Screen Share
+      // Compartilhamento de Tela
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -675,6 +711,7 @@ void main() {
                 settings: RouteSettings(name: initialRoute),
                 builder: (_) => VideoCallLobbyPage(
                   initialRoomCode: 'APS-II',
+                  roomDataSource: FakeVideoCallRoomRemoteDataSource(),
                   onJoin: (name, ra, room, muted, videoOff) {
                     submittedName = name;
                     submittedRa = ra;
@@ -705,6 +742,90 @@ void main() {
     );
 
     testWidgets(
+      'VideoCallLobbyPage aplica alto contraste no seletor de sala sob AppTheme.lightTheme',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1280, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: VideoCallLobbyPage(
+              roomDataSource: FakeVideoCallRoomRemoteDataSource(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final dropdownFinder = find.byKey(const Key('lobby_room_code_field'));
+        expect(dropdownFinder, findsOneWidget);
+
+        final dropdownButton = tester.widget<DropdownButton<String>>(
+          find.descendant(
+            of: dropdownFinder,
+            matching: find.byType(DropdownButton<String>),
+          ),
+        );
+        expect(dropdownButton.dropdownColor, VideoCallColors.surfaceElevated);
+        expect(dropdownButton.style?.color, VideoCallColors.textPrimary);
+        expect(dropdownButton.iconEnabledColor, VideoCallColors.textPrimary);
+        expect(dropdownButton.iconDisabledColor, VideoCallColors.textMuted);
+
+        final selectedText = tester.widget<Text>(
+          find.descendant(
+            of: dropdownFinder,
+            matching: find.text('APS-II (APS-II)'),
+          ),
+        );
+        expect(selectedText.style?.color, VideoCallColors.textPrimary);
+
+        // Abre o menu suspenso e seleciona a segunda sala
+        await tester.tap(dropdownFinder);
+        await tester.pumpAndSettle();
+
+        final secondOptionFinder = find.text('Sala 101 (SALA-101)').last;
+        final secondOptionText = tester.widget<Text>(secondOptionFinder);
+        expect(secondOptionText.style?.color, VideoCallColors.textPrimary);
+
+        await tester.tap(secondOptionFinder);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.descendant(
+            of: dropdownFinder,
+            matching: find.text('Sala 101 (SALA-101)'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'VideoCallLobbyPage exibe estado vazio legível no seletor quando não há salas',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1280, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: VideoCallLobbyPage(
+              roomDataSource: FakeVideoCallRoomRemoteDataSource(
+                rooms: const [],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final emptyHintFinder = find.text('Nenhuma sala disponível');
+        expect(emptyHintFinder, findsOneWidget);
+        final emptyHintText = tester.widget<Text>(emptyHintFinder);
+        expect(emptyHintText.style?.color, VideoCallColors.textMuted);
+      },
+    );
+
+    testWidgets(
       'VideoCallRoomPage renders grid, toolbar, and handles drawers',
       (tester) async {
         final fakeRepo = FakeDomainVideoCallRepository();
@@ -717,6 +838,7 @@ void main() {
           id: 'peer_local',
           name: 'Alex Sousa',
           ra: '24802449',
+          role: 'docente',
           isLocal: true,
         );
         final controller = VideoCallController(
@@ -739,29 +861,29 @@ void main() {
         );
         expect(find.text('Sala 101 (SALA-101)'), findsOneWidget);
 
-        // Open Chat Drawer
+        // Abre a Gaveta de Chat
         await tester.tap(find.byKey(const Key('toolbar_chat_button')));
         await tester.pump();
         expect(find.byKey(const Key('in_call_chat_drawer')), findsOneWidget);
 
-        // Close Chat Drawer
+        // Fecha a Gaveta de Chat
         await tester.tap(find.byKey(const Key('close_chat_drawer_button')));
         await tester.pump();
         expect(find.byKey(const Key('in_call_chat_drawer')), findsNothing);
 
-        // Open Participants Drawer
+        // Abre a Gaveta de Participantes
         await tester.tap(find.byKey(const Key('toolbar_participants_button')));
         await tester.pump();
         expect(find.byKey(const Key('participants_drawer')), findsOneWidget);
 
-        // Close Participants Drawer
+        // Fecha a Gaveta de Participantes
         await tester.tap(
           find.byKey(const Key('close_participants_drawer_button')),
         );
         await tester.pump();
         expect(find.byKey(const Key('participants_drawer')), findsNothing);
 
-        // Toggle recording shows banner and REC timer badge
+        // Alternar gravação exibe o banner e o emblema de temporizador REC
         controller.toggleRecording();
         await tester.pump();
         expect(

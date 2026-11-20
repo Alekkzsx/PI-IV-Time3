@@ -1,26 +1,29 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
+import '../../../../core/network/resilient_http_client.dart';
+import '../../../../core/network/server_health_monitor.dart';
+import '../../../../core/network/service_endpoints.dart';
 import '../data/auth_remote_datasource.dart';
 
-/// Datasource HTTP para o serviço de autenticação TypeScript.
+/// Datasource HTTP para o serviço de autenticação nativo Java (porta 8080).
 ///
 /// A URL pode ser substituída em builds com
 /// `--dart-define=AUTH_API_BASE_URL=https://...`.
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  static const String _baseUrl = String.fromEnvironment(
-    'AUTH_API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:3001',
-  );
-  static const Duration _requestTimeout = Duration(seconds: 8);
+  static String get _baseUrl => ServiceEndpoints.authBaseUrl;
+  static const Duration _requestTimeout = Duration(seconds: 12);
 
   final http.Client _client;
+  final String? _baseUrlOverride;
 
-  AuthRemoteDataSourceImpl({http.Client? client})
-    : _client = client ?? http.Client();
+  AuthRemoteDataSourceImpl({http.Client? client, String? baseUrl})
+    : _client = client ?? createResilientHttpClient(),
+      _baseUrlOverride = baseUrl;
 
   @override
   Future<String> authenticateUser({
@@ -34,6 +37,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'profile': profile,
     });
     final payload = _decodeResponse(response);
+    if (payload['requiresTwoFactor'] == true &&
+        payload['challengeToken'] is String) {
+      throw TwoFactorChallenge(payload['challengeToken'] as String);
+    }
     final accessToken = payload['accessToken'];
 
     if (accessToken is! String || accessToken.isEmpty) {
@@ -46,11 +53,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> sendPasswordResetInstructions({required String identity}) async {
-    final response = await _post('/api/auth/send-recovery-otp', {
-      'identity': identity,
+  Future<String> completeTwoFactor({
+    required String challengeToken,
+    required String code,
+  }) async {
+    final response = await _post('/api/auth/verify-two-factor', {
+      'challengeToken': challengeToken,
+      'code': code,
     });
-    _decodeResponse(response);
+    final payload = _decodeResponse(response);
+    final token = payload['accessToken'];
+    if (token is! String || token.isEmpty) {
+      throw const AuthApiException('Resposta de autenticação inválida.');
+    }
+    return token;
+  }
+
+  @override
+  Future<Map<String, dynamic>> sendPasswordResetInstructions({
+    required String identity,
+    String? profile,
+  }) async {
+    final payload = <String, Object?>{'identity': identity};
+    if (profile != null && profile.trim().isNotEmpty) {
+      payload['profile'] = profile.trim().toLowerCase();
+    }
+    final response = await _post('/api/auth/send-recovery-otp', payload);
+    return _decodeResponse(response);
   }
 
   @override
@@ -58,12 +87,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String identity,
     required String code,
   }) async {
-    final response = await _post('/api/auth/verify-recovery-otp', {
+    final result = await verifyRecoverySessionRemote(
+      identity: identity,
+      code: code,
+    );
+    return result.resetToken;
+  }
+
+  @override
+  Future<RecoveryVerificationResult> verifyRecoverySessionRemote({
+    required String identity,
+    required String code,
+    String? profile,
+  }) async {
+    final requestBody = <String, Object?>{
       'identity': identity,
       'code': code,
-    });
+    };
+    if (profile != null && profile.trim().isNotEmpty) {
+      requestBody['profile'] = profile.trim().toLowerCase();
+    }
+    final response = await _post('/api/auth/verify-recovery-otp', requestBody);
     final payload = _decodeResponse(response);
-    final resetToken = payload['resetToken'];
+    final resetToken = payload['resetToken'] ?? payload['recoveryToken'];
 
     if (payload['valid'] != true ||
         resetToken is! String ||
@@ -73,7 +119,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
 
-    return resetToken;
+    return RecoveryVerificationResult.fromMap(payload, resetToken);
   }
 
   @override
@@ -116,7 +162,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   Future<http.Response> _post(String path, Map<String, Object?> body) async {
-    final uri = Uri.parse('$_baseUrl$path');
+    final targetBase = _baseUrlOverride ?? _baseUrl;
+    final uri = Uri.parse('$targetBase$path');
 
     try {
       return await _client
@@ -126,9 +173,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             body: jsonEncode(body),
           )
           .timeout(_requestTimeout);
-    } on http.ClientException {
+    } on TimeoutException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
       throw const AuthApiException(
-        'Não foi possível conectar ao serviço de autenticação.',
+        'O serviço de autenticação demorou para responder. Verifique se a rede atual não está bloqueando o acesso.',
+        statusCode: 504,
+      );
+    } on http.ClientException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
+      throw AuthApiException(
+        'Não foi possível conectar ao serviço de autenticação ($targetBase). Verifique se o servidor (porta 8080) está ativo e se não há bloqueio de rede/CORS.',
       );
     } on FormatException {
       throw const AuthApiException(
@@ -158,13 +212,35 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
 
     var message = 'O serviço de autenticação não concluiu a solicitação.';
+    String? errorCode;
     try {
       final decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic> && decoded['message'] is String) {
-        message = decoded['message'] as String;
+      if (decoded is Map<String, dynamic>) {
+        if (decoded['code'] is String) {
+          errorCode = decoded['code'] as String;
+        }
+        if (decoded['message'] is String) {
+          message = decoded['message'] as String;
+        } else if (decoded['erro'] is String) {
+          message = decoded['erro'] as String;
+        }
       }
     } on FormatException {
       // O erro de status continua sendo explícito mesmo se o corpo não for JSON.
+    }
+
+    if (response.statusCode == 503) {
+      if (errorCode == 'academic_service_unavailable') {
+        ServerHealthMonitor.instance.reportTransportFailure(
+          isAuthServer: false,
+          detail: message,
+        );
+      } else if (errorCode == 'identity_service_unavailable') {
+        ServerHealthMonitor.instance.reportTransportFailure(
+          isAuthServer: true,
+          detail: message,
+        );
+      }
     }
 
     throw AuthApiException(message, statusCode: response.statusCode);
@@ -180,4 +256,10 @@ class AuthApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class TwoFactorChallenge extends AuthApiException {
+  final String challengeToken;
+  const TwoFactorChallenge(this.challengeToken)
+    : super('Informe o código enviado ao seu e-mail.');
 }

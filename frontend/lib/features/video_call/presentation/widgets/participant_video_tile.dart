@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../domain/entities/participant.dart';
@@ -6,22 +6,22 @@ import '../theme/video_call_theme.dart';
 import 'audio_level_meter.dart';
 import 'real_video_renderer.dart';
 
-/// Individual video/avatar display tile for a real conference participant.
+/// Bloco individual de exibição de vídeo/avatar para um participante real da conferência.
 ///
-/// Renders real HTML5 camera stream via [RealVideoRenderer] or fallback avatar with
-/// monochromatic gradient and initials, institutional name and RA badge, mute indicators,
-/// screen sharing badge, hand-raise icon, and active speaker spotlight border.
+/// Renderiza o stream real de câmera HTML5 via [RealVideoRenderer] ou avatar alternativo com
+/// gradiente monocromático e iniciais, emblema de nome institucional e RA, indicadores de mudo,
+/// emblema de compartilhamento de tela, ícone de mão levantada e borda de destaque para quem está falando.
 class ParticipantVideoTile extends StatelessWidget {
-  /// Real participant entity to be rendered.
+  /// Entidade de participante real a ser renderizada.
   final Participant participant;
 
-  /// Optional identifier of the HTML5 `<video>` view registered in `platformViewRegistry`.
+  /// Identificador opcional da visualização HTML5 `<video>` registrada em `platformViewRegistry`.
   final String? videoViewType;
 
-  /// Indicates whether this participant is pinned (spotlight) in the grid.
+  /// Indica se este participante está fixado (em destaque) na grade.
   final bool isPinned;
 
-  /// Optional callback when clicking/tapping the participant tile (for spotlight/pin).
+  /// Callback opcional ao clicar/tocar no bloco do participante (para destacar/fixar).
   final VoidCallback? onTap;
 
   const ParticipantVideoTile({
@@ -126,10 +126,7 @@ class ParticipantVideoTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: VideoCallColors.background.withValues(alpha: 0.80),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: VideoCallColors.border,
-                    width: 0.8,
-                  ),
+                  border: Border.all(color: VideoCallColors.border, width: 0.8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -159,8 +156,8 @@ class ParticipantVideoTile extends StatelessWidget {
                           participant.role.toLowerCase() == 'host'
                               ? 'Anfitrião'
                               : participant.role.toLowerCase() == 'presenter'
-                                  ? 'Apresentador'
-                                  : participant.role.toUpperCase(),
+                              ? 'Apresentador'
+                              : participant.role.toUpperCase(),
                           style: const TextStyle(
                             color: VideoCallColors.accentWhite,
                             fontSize: 9,
@@ -199,8 +196,10 @@ class ParticipantVideoTile extends StatelessWidget {
                 top: 12,
                 left: 12,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: VideoCallColors.background.withValues(alpha: 0.80),
                     borderRadius: BorderRadius.circular(6),

@@ -1,48 +1,53 @@
-# Governance, CI/CD Automation & IDE Configurations — `.github`
+# Governança, Automação de CI/CD e Configurações de IDE — `.github`
 
-> **Institutional Module**: `.../PI-IV-Time3/.github/`  
-> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
-> **Engineering Standards**: Strict Gitflow, Defense-in-Depth, Transparent Automation, Mandatory Peer Reviews  
+> **Módulo Institucional**: `.../PI-IV-Time3/.github/`  
+> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
+> **Padrões de Engenharia**: Gitflow Estrito, Defesa em Profundidade, Automação Transparente, Revisões por Pares Obrigatórias  
 
-The `.github` directory centralizes repository governance, code ownership rules (*Code Ownership*), CI/CD branch protection guardrails, and shared IDE profiles for the **Integrated Educational Platform AGMRM**.
+O diretório `.github` centraliza a governança do repositório, as regras de propriedade de código (*Code Ownership*), as barreiras de proteção de branches de CI/CD e os perfis compartilhados de IDE para a **Plataforma Educacional Integrada AGMRM**.
 
 ---
 
-## 🏛️ Governance Directory Structure
+## 🏛️ Estrutura do Diretório de Governança
 
 ```
 .../PI-IV-Time3/.github/
-├── .vscode/                      # Shared IDE configuration templates (VS Code)
-│   ├── launch.json               # Debugging and launch configurations (Flutter Desktop/Web + Java)
-│   └── tasks.json                # Background build tasks and non-blocking server execution
+├── .vscode/                      # Modelos compartilhados de configuração de IDE (VS Code)
+│   ├── launch.json               # Configurações de depuração e inicialização (Flutter Desktop/Web + Java)
+│   └── tasks.json                # Tarefas de build em segundo plano e execução não bloqueante do servidor
+├── setup/                        # Orquestrador multiplataforma de setup e inicialização (Windows, Linux e macOS)
+│   ├── setup.bat                 # Disparador 1-clique / terminal para Windows
+│   ├── setup.sh                  # Disparador POSIX para Linux, WSL2 e macOS
+│   ├── README.md                 # Documentação do orquestrador, parâmetros (-NoGuard / --no-guard) e console Java
+│   └── modules/                  # Scripts modulares (setup.*, service-runner.* e java-server-console.*)
 ├── workflows/
-│   └── restrict-main.yml         # Automated GitHub Actions workflow protecting main branch
-├── CODEOWNERS                    # Formal engineering team code review assignments
-└── GOVERNANCE.md                 # Consolidated governance, CI/CD, and lifecycle manual (this file)
+│   └── restrict-main.yml         # Fluxo automatizado do GitHub Actions protegendo a branch main
+├── CODEOWNERS                    # Atribuições formais de revisão de código da equipe de engenharia
+└── GOVERNANCE.md                 # Manual consolidado de governança, CI/CD e ciclo de vida (este arquivo)
 ```
 
 ---
 
-## 🛠️ Shared IDE Configurations (`.github/.vscode/`)
+## 🛠️ Configurações Compartilhadas de IDE (`.github/.vscode/`)
 
-To guarantee environment uniformity across all engineering team members without relying on manual local setups, institutional VS Code configurations are versioned in `.../PI-IV-Time3/.github/.vscode/`:
+Para garantir uniformidade de ambiente entre todos os membros da equipe de engenharia sem depender de configurações locais manuais, as configurações institucionais do VS Code são versionadas em `.../PI-IV-Time3/.github/.vscode/`:
 
 1. **`launch.json`**:
-   - `Portal AVA (Flutter + Backend Java)`: Executes the Flutter client with simultaneous startup of native Java services (`server/`).
-   - `Portal AVA - Web Chrome`: Targeted execution in Google Chrome for web verification.
-   - `Portal AVA - Windows Desktop`: Native Windows desktop execution.
+   - `Portal AVA (Flutter + Backend Java)`: Executa o cliente Flutter com inicialização simultânea dos serviços Java nativos (`server/`).
+   - `Portal AVA - Web Chrome`: Execução direcionada no Google Chrome para verificação na web.
+   - `Portal AVA - Windows Desktop`: Execução nativa para desktop Windows.
 2. **`tasks.json`**:
-   - Defines the `start-backend-server` task, ensuring the native Java server in `server/` starts quietly in the background without blocking the development environment.
+   - Define a tarefa `start-backend-server`, garantindo que o servidor Java nativo em `server/` seja iniciado silenciosamente em segundo plano sem bloquear o ambiente de desenvolvimento.
 
 ---
 
-## 🛡️ Main Branch Protection Workflow (`restrict-main.yml`)
+## 🛡️ Fluxo de Proteção da Branch Main (`restrict-main.yml`)
 
-The automated GitHub Actions workflow at `.../PI-IV-Time3/.github/workflows/restrict-main.yml` enforces strict Gitflow integrity:
+O fluxo automatizado do GitHub Actions em `.../PI-IV-Time3/.github/workflows/restrict-main.yml` impõe integridade estrita ao Gitflow:
 
-- The `main` branch represents stable production and deployment releases.
-- **Pull Requests targeting `main` are accepted strictly and exclusively from the `develop` branch**.
-- Direct merge attempts from feature branches trigger an automated failure, blocking the PR merge.
+- A branch `main` representa versões estáveis de produção e implantação.
+- **Pull Requests direcionados à `main` são aceitos estrita e exclusivamente a partir da branch `develop`**.
+- Tentativas de merge direto a partir de branches de funcionalidade disparam uma falha automática, bloqueando o merge do PR.
 
 ```yaml
 name: Restrict PRs to main
@@ -66,90 +71,90 @@ jobs:
         run: echo "Branch origem é develop. Permitido!"
 ```
 
-### Technical Workflow Mechanics:
-1. **Trigger Condition (`on.pull_request`)**:
-   - Triggers automatically whenever a Pull Request is opened, synchronized, or targeted against `main`.
-2. **Isolated Runner (`runs-on: ubuntu-latest`)**:
-   - Runs in a clean, deterministic Linux container within the GitHub Actions infrastructure.
-3. **Branch Origin Evaluation (`github.head_ref`)**:
-   - If the head branch is not `develop`, exits with status `1`, blocking merge actions in the pull request.
-   - If originating from `develop`, exits with status `0`, allowing peer review and status checks to continue.
+### Mecânica Técnica do Fluxo:
+1. **Condição de Disparo (`on.pull_request`)**:
+   - Dispara automaticamente sempre que um Pull Request é aberto, sincronizado ou direcionado contra a `main`.
+2. **Runner Isolado (`runs-on: ubuntu-latest`)**:
+   - Executa em um contêiner Linux limpo e determinístico na infraestrutura do GitHub Actions.
+3. **Avaliação da Origem da Branch (`github.head_ref`)**:
+   - Se a branch de origem não for `develop`, encerra com status `1`, bloqueando ações de merge no pull request.
+   - Se originado de `develop`, encerra com status `0`, permitindo que a revisão por pares e as verificações de status continuem.
 
 ---
 
-## 🌿 Gitflow Branching Strategy & Lifecycle
+## 🌿 Estratégia de Ramificação Gitflow e Ciclo de Vida
 
-The repository follows standard **Gitflow** branching conventions:
+O repositório segue as convenções padrão do **Gitflow**:
 
 ```
-[Developer / Task]
+[Desenvolvedor / Tarefa]
        │
        ▼
-feature/new-feature ────────► PR to develop ────────► Peer Technical Review
+feature/new-feature ────────► PR para develop ────────► Revisão Técnica por Pares
                                     │                         │
                                     ▼                         ▼
-                            Merge to develop ◄─────── Approved & Tested
+                            Merge para develop ◄─────── Aprovado e Testado
                                     │
                                     ▼
-                           develop ───► PR to main
+                           develop ───► PR para main
                                              │
                                              ▼
-                                 restrict-main.yml (Pass)
+                                 restrict-main.yml (Aprovado)
                                              │
                                              ▼
-                                Final Engineering Approval
+                                Aprovação Final de Engenharia
                                              │
                                              ▼
-                                  Merge to main (Release)
+                                  Merge para main (Release)
 ```
 
-### Branch Hierarchy and Permissions
+### Hierarquia de Branches e Permissões
 
-| Branch | Purpose & Lifecycle | Protection Policy | Permitted PR Sources |
+| Branch | Propósito e Ciclo de Vida | Política de Proteção | Origens de PR Permitidas |
 |---|---|---|---|
-| **`main`** | Production-ready stable release codebase. | **Strictly Protected**: Direct pushes disabled; gatekeeper workflow enforced. | **Exclusively `develop`** |
-| **`develop`** | Integration branch where verified features converge. | **Protected**: Requires PR and passing automated test suites. | `feature/*`, `fix/*`, `refactor/*` |
-| **`feature/*`** | Isolated development of new features or UI views. | Short-lived feature branch. | Branched from `develop` |
-| **`fix/*`** | Bug fixes identified in QA or automated testing. | Short-lived bugfix branch. | Branched from `develop` |
-| **`hotfix/*`** | Emergency production patches. | Emergency patch branch. | Branched from `main`; merged to `main` & `develop` |
+| **`main`** | Base de código estável pronta para produção. | **Estritamente Protegida**: Pushes diretos desabilitados; fluxo controlador imposto. | **Exclusivamente `develop`** |
+| **`develop`** | Branch de integração onde funcionalidades verificadas convergem. | **Protegida**: Requer PR e aprovação nas suítes de testes automatizados. | `feature/*`, `fix/*`, `refactor/*` |
+| **`feature/*`** | Desenvolvimento isolado de novas funcionalidades ou telas de interface. | Branch de funcionalidade de curta duração. | Ramificada a partir de `develop` |
+| **`fix/*`** | Correções de defeitos identificados em QA ou testes automatizados. | Branch de correção de curta duração. | Ramificada a partir de `develop` |
+| **`hotfix/*`** | Correções emergenciais em produção. | Branch de correção emergencial. | Ramificada a partir de `main`; mergeada para `main` e `develop` |
 
 ---
 
-## 👥 Code Ownership & Reviews (`CODEOWNERS`)
+## 👥 Propriedade de Código e Revisões (`CODEOWNERS`)
 
-Code reviews and merge authorizations are coordinated formally by the technical team members registered in `.../PI-IV-Time3/.github/CODEOWNERS`:
+As revisões de código e autorizações de merge são coordenadas formalmente pelos membros da equipe técnica registrados em `.../PI-IV-Time3/.github/CODEOWNERS`:
 
 ```text
 * @Alekkzsx @GuilhermeMoreira07
 ```
 
-- **Universal Scope (`*`)**: The wildcard selector assigns shared stewardship across all repository directories (`frontend/`, `server/`, `backend/`, `security/`, and `.github/`).
-- **Mandatory Quality Gate**: No pull request can be merged into protected branches without formal peer review approval from designated team maintainers.
+- **Escopo Universal (`*`)**: O seletor curinga atribui responsabilidade compartilhada em todos os diretórios do repositório (`frontend/`, `server/`, `backend/`, `security/` e `.github/`).
+- **Portão de Qualidade Obrigatório**: Nenhum pull request pode ser mergeado em branches protegidas sem aprovação formal de revisão por pares dos mantenedores designados da equipe.
 
 ---
 
-## 📝 Contribution Standards & Conventional Commits
+## 📝 Padrões de Contribuição e Conventional Commits
 
-### 1. Commit Message Format (Conventional Commits)
-All commit messages must follow standard conventions:
-- `feat:` Introduces a new feature (e.g. `feat(server): add real smtp email dispatch for otp recovery`).
-- `fix:` Fixes a defect or bug (e.g. `fix(security): resolve test suite path references`).
-- `docs:` Documentation changes (e.g. `docs(root): align readme with project presentation standards`).
-- `refactor:` Code modifications that neither fix bugs nor add new features.
-- `test:` Addition or update of automated test suites.
-- `ci:` Pipeline and repository automation workflow adjustments.
+### 1. Formato de Mensagem de Commit (Conventional Commits)
+Todas as mensagens de commit devem seguir as convenções padrão:
+- `feat:` Introduz uma nova funcionalidade (ex.: `feat(server): adiciona envio real de e-mail smtp para recuperacao otp`).
+- `fix:` Corrige um defeito ou bug (ex.: `fix(auth): valida compatibilidade de perfil no login e recuperacao`).
+- `docs:` Alterações na documentação (ex.: `docs(readme): atualiza documentacao dos modulos em pt-br`).
+- `refactor:` Modificações de código que não corrigem bugs nem adicionam novas funcionalidades.
+- `test:` Adição ou atualização de suítes de testes automatizados.
+- `ci:` Ajustes de pipeline e fluxos de automação do repositório.
 
-### 2. Pre-Submission Pull Request Checklist
-Before opening a Pull Request for review:
-- [ ] Code strictly follows architectural boundaries (Feature-First Clean Architecture in `frontend/`, native POJO in `server/`).
-- [ ] Source branch is rebased or updated with `develop`.
-- [ ] All automated tests pass locally (`cd frontend && flutter test`, `cd security && flutter test`).
-- [ ] Static analysis completes with 0 warnings (`flutter analyze`).
-- [ ] No local credentials or active `.env` files are tracked (only `.env-example` as a template).
+### 2. Checklist Pré-Submissão de Pull Request
+Antes de abrir um Pull Request para revisão:
+- [ ] O código segue estritamente as fronteiras arquiteturais (Clean Architecture Feature-First em `frontend/`, Java SE modular em `server/`, TypeScript modular em `backend/`).
+- [ ] A branch de origem está com rebase realizado ou atualizada com `develop`.
+- [ ] Todos os testes automatizados passam localmente (`cd backend && npm test`, `SuiteTestesServidor` em `server/`, `cd security && flutter test`, `cd frontend && flutter test`).
+- [ ] A análise estática é concluída com 0 avisos (`flutter analyze`).
+- [ ] Nenhuma credencial local ou arquivo `.env` ativo está versionado (apenas `.env-example` como modelo).
 
 ---
 
-## 🔒 Security Governance Alignment
+## 🔒 Alinhamento com Governança de Segurança
 
-- All CI/CD workflows, secrets management, and socket networking policies follow the enterprise standards documented in [`.../PI-IV-Time3/security/`](../security/README.md).
-- Any security vulnerabilities or edge-case exploits must be disclosed responsibly to the project engineering team.
+- Todos os fluxos de CI/CD, gerenciamento de segredos e políticas de rede por sockets seguem os padrões corporativos documentados em [`.../PI-IV-Time3/security/`](../security/README.md).
+- Quaisquer vulnerabilidades de segurança ou falhas em casos extremos devem ser divulgadas de forma responsável à equipe de engenharia do projeto.

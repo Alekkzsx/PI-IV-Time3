@@ -83,7 +83,7 @@ void main() {
       final ch2Messages = <String>[];
       final sub2 = ch2.messageStream.listen(ch2Messages.add);
 
-      // Since bus was reset, ch1 cannot send to ch2
+      // Como o barramento foi reiniciado, ch1 não consegue enviar para ch2
       await ch1.send('msg');
       await Future<void>.delayed(const Duration(milliseconds: 10));
 

@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Snapshot e registro contábil da sessão gravada da reunião para fins de auditoria acadêmica.
 class SessionExport {
@@ -39,16 +39,16 @@ class SessionExport {
 
   /// Serialização para JSON no padrão de auditoria institucional `academic_session_ledger_v1`.
   Map<String, dynamic> toJson() => {
-        'roomCode': roomCode,
-        'startedAt': startedAt.toIso8601String(),
-        'endedAt': endedAt.toIso8601String(),
-        'totalDurationSeconds': totalDuration.inSeconds,
-        'totalParticipants': totalParticipants,
-        'attendeeNames': attendeeNames,
-        'chatMessageCount': chatMessageCount,
-        'reactionCount': reactionCount,
-        'exportFormat': 'academic_session_ledger_v1',
-      };
+    'roomCode': roomCode,
+    'startedAt': startedAt.toIso8601String(),
+    'endedAt': endedAt.toIso8601String(),
+    'totalDurationSeconds': totalDuration.inSeconds,
+    'totalParticipants': totalParticipants,
+    'attendeeNames': attendeeNames,
+    'chatMessageCount': chatMessageCount,
+    'reactionCount': reactionCount,
+    'exportFormat': 'academic_session_ledger_v1',
+  };
 
   @override
   bool operator ==(Object other) {
@@ -65,14 +65,14 @@ class SessionExport {
 
   @override
   int get hashCode => Object.hash(
-        roomCode,
-        startedAt,
-        endedAt,
-        totalDuration,
-        totalParticipants,
-        chatMessageCount,
-        reactionCount,
-      );
+    roomCode,
+    startedAt,
+    endedAt,
+    totalDuration,
+    totalParticipants,
+    chatMessageCount,
+    reactionCount,
+  );
 
   @override
   String toString() {

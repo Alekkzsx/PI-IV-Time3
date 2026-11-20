@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
@@ -13,11 +13,13 @@ import 'package:pi_iv_time3/shared/layout/institutional_sidebar_item.dart';
 class DocenteSidebar extends StatelessWidget {
   final DocenteController controller;
   final VoidCallback onLogout;
+  final ValueChanged<DocenteNavTab>? onTabSelected;
 
   const DocenteSidebar({
     super.key,
     required this.controller,
     required this.onLogout,
+    this.onTabSelected,
   });
 
   static final List<InstitutionalSidebarItem<DocenteNavTab?>> _items = [
@@ -92,6 +94,7 @@ class DocenteSidebar extends StatelessWidget {
           onLogout();
         } else {
           controller.navigateToTab(tab);
+          onTabSelected?.call(tab);
         }
       },
     );

@@ -1,0 +1,593 @@
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+import { createHash } from "node:crypto";
+import type { Document } from "mongodb";
+import { sanitizeRoomCode } from "../../../shared/formatting/room-code.js";
+import { formatShortDate } from "../../../shared/formatting/date-formatters.js";
+import {
+  computeSemesterGrades,
+  evaluateAcademicSituation,
+  resolveInstitutionalThresholds,
+} from "../../../shared/academic/grade-formula.js";
+
+type StudentDisciplineReference = {
+  name: string;
+  professor: string;
+};
+
+export function mapStudentDisciplines(input: {
+  classes: Document[];
+  enrollments: Document[];
+  classEnrollments?: Document[];
+  grades: Document[];
+  submissions: Document[];
+  classSessions: Document[];
+  materials: Document[];
+  assignments: Document[];
+  liveSessions: Document[];
+  studentId: string;
+  studentIdentity: unknown;
+  professorById: Map<string, Document>;
+  studentById?: Map<string, Document>;
+  institutionalSettings?: Document | null;
+}) {
+  const thresholds = resolveInstitutionalThresholds(input.institutionalSettings);
+  const governanceLgpd = (input.institutionalSettings?.governanceLgpd ?? {}) as Record<string, unknown>;
+  const allowPeerEmails = governanceLgpd.showInstitutionalEmailInClassLists !== false;
+  const allowPeerPresence = governanceLgpd.showPeerPresenceStatus !== false;
+  const enrollmentByClass = new Map(input.enrollments.map((enrollment) => [String(enrollment.classCode), enrollment]));
+  const allEnrollmentsByClass = new Map<string, Document[]>();
+  for (const enr of input.classEnrollments ?? input.enrollments) {
+    const cCode = String(enr.classCode);
+    const list = allEnrollmentsByClass.get(cCode) ?? [];
+    list.push(enr);
+    allEnrollmentsByClass.set(cCode, list);
+  }
+  const gradeByClass = new Map(input.grades.map((grade) => [String(grade.classCode), grade]));
+  const liveByRoom = new Map(input.liveSessions.map((session) => [String(session.roomCode).toUpperCase(), session]));
+  const materialsByClass = new Map<string, Document[]>();
+  for (const material of input.materials) {
+    const list = materialsByClass.get(String(material.classCode)) ?? [];
+    list.push(material);
+    materialsByClass.set(String(material.classCode), list);
+  }
+
+  const submittedAssignmentIds = new Set(input.submissions.map((submission) => String(submission.assignmentId)));
+  const pendingByClass = new Set<string>();
+  for (const assignment of input.assignments) {
+    const key = String(assignment._id);
+    if (!submittedAssignmentIds.has(key)) pendingByClass.add(String(assignment.classCode));
+  }
+
+  return input.classes.map((classroom) => {
+    const code = String(classroom.code);
+    const roomCode = sanitizeRoomCode(code);
+    const enrollment = enrollmentByClass.get(code);
+    const grade = gradeByClass.get(code);
+    const professor = classroom.professorId ? input.professorById.get(String(classroom.professorId)) : undefined;
+    const professorName = String(classroom.professorName ?? professor?.displayName ?? classroom.professorIdentity ?? "Docente a definir");
+    const totalHours = Number(classroom.totalHours ?? 80);
+    const completedHours = Number(classroom.completedHours ?? 0);
+    const maxAbsenceHours = Math.round(totalHours * 0.25);
+
+    const sessionsForClass = input.classSessions.filter((session) => String(session.classCode) === code);
+    let rawAbsences = 0;
+    for (const session of sessionsForClass) {
+      const attendance = Array.isArray(session.attendanceList) ? session.attendanceList : [];
+      const entry = attendance.find(
+        (item: Document) => String(item.studentId) === String(input.studentId) || item.ra === input.studentIdentity,
+      );
+      if (entry?.status === "ausente") rawAbsences += Number(session.hours ?? 2);
+    }
+    const excused = Number(enrollment?.excusedAbsences ?? 0);
+    const absences = grade?.absences !== undefined ? Number(grade.absences) : Math.max(0, rawAbsences - excused);
+    const attendancePercentage =
+      grade?.attendanceRate !== undefined
+        ? Number(grade.attendanceRate)
+        : Number(Math.max(0, ((totalHours - absences) / totalHours) * 100).toFixed(1));
+
+    const hasGrade = Boolean(
+      grade &&
+        (grade.hasEnteredGrades === true ||
+          Number(grade.assignmentsScore ?? 0) > 0 ||
+          Number(grade.p1Score ?? 0) > 0 ||
+          Number(grade.projectsScore ?? 0) > 0 ||
+          Number(grade.p2Score ?? 0) > 0),
+    );
+    const assignmentsScore = hasGrade ? Number(grade!.assignmentsScore ?? 0) : null;
+    const p1 = hasGrade ? Number(grade!.p1Score ?? 0) : null;
+    const projectsScore = hasGrade ? Number(grade!.projectsScore ?? 0) : null;
+    const p2 = hasGrade ? Number(grade!.p2Score ?? 0) : null;
+    const computedGrades = hasGrade
+      ? computeSemesterGrades({
+          assignmentsScore: assignmentsScore!,
+          p1Score: p1!,
+          projectsScore: projectsScore!,
+          p2Score: p2!,
+          evaluationFormula: classroom.evaluationFormula,
+        })
+      : null;
+    const n1 = computedGrades ? computedGrades.n1 : null;
+    const n2 = computedGrades ? computedGrades.n2 : null;
+    const partialAverage = computedGrades ? computedGrades.finalAverage : null;
+
+    const scheduleString = String(classroom.schedule ?? "Segundas e Quartas, 19:00 - 20:40");
+    const [scheduleDays, scheduleTime] = scheduleString.includes(",")
+      ? scheduleString.split(",").map((part) => part.trim())
+      : [scheduleString, "19:00 - 20:40"];
+    const live = liveByRoom.get(roomCode);
+    const classMaterials = materialsByClass.get(code) ?? [];
+    const professorEmail = String(
+      classroom.professorEmail ?? professor?.email ?? "docente.agmrm@agmrm.edu.br",
+    );
+
+    const monitors: Array<Record<string, unknown>> = Array.isArray(classroom.monitors)
+      ? classroom.monitors.map((m: Document) => ({
+          id: String(m.id ?? m.ra ?? m.name),
+          name: String(m.name ?? "Monitor Acadêmico"),
+          role: "Monitor Acadêmico",
+          ra: String(m.ra ?? ""),
+          email: String(m.email ?? ""),
+          schedule: String(m.schedule ?? ""),
+          status: "Ativo",
+        }))
+      : [];
+
+    const enrolledStudents = (allEnrollmentsByClass.get(code) ?? []).map((enr: Document) => {
+      const studentDoc = input.studentById?.get(String(enr.studentId ?? ""));
+      const prefs = (studentDoc?.preferences ?? {}) as Record<string, unknown>;
+      const showEmail = allowPeerEmails && prefs.showInstitutionalEmail === true;
+      const showPresence = allowPeerPresence && prefs.showPresenceStatus !== false;
+      return {
+        id: String(enr.studentId ?? enr._id),
+        name: String(enr.displayName ?? enr.studentName ?? enr.studentIdentity ?? "Estudante"),
+        role: "Estudante",
+        ra: String(enr.studentIdentity ?? ""),
+        ...(showEmail && studentDoc?.email ? { email: String(studentDoc.email) } : {}),
+        status: showPresence ? "Matriculado" : "Privado",
+        showPresenceStatus: showPresence,
+      };
+    });
+
+    const participants = [
+      {
+        id: String(classroom.professorId ?? `prof-${code}`),
+        name: professorName,
+        role: "Docente Titular",
+        email: professorEmail,
+        officeHours: classroom.officeHours ? String(classroom.officeHours) : "Terças-feiras • 18:00 às 19:00",
+        officeLocation: classroom.officeLocation
+          ? String(classroom.officeLocation)
+          : "Sala dos Professores (Bloco C) ou Sala Virtual Teams",
+        status: "Docente Titular",
+      },
+      ...monitors,
+      ...enrolledStudents,
+    ];
+
+    const recordedSessions = Array.isArray(classroom.recordedSessions) && classroom.recordedSessions.length > 0
+      ? classroom.recordedSessions
+      : sessionsForClass.map((session, idx) => ({
+          id: String(session._id ?? `rec-${code}-${idx + 1}`),
+          title: String(session.title ?? `Aula 0${idx + 1} — ${classroom.subjectName ?? code}`),
+          date: session.startsAt ? formatShortDate(new Date(session.startsAt)) : "Out/2026",
+          duration: `${Number(session.hours ?? 2)}h 00min`,
+          instructor: professorName,
+          category: "GRAVAÇÃO SÍNCRONA",
+          summary: String(session.contentProgram ?? "Transmissão síncrona com apuração de presença homologada."),
+        }));
+
+    return {
+      code,
+      roomCode,
+      fullCode: classroom.fullCode
+        ? String(classroom.fullCode)
+        : (code.includes("-") ? code : `${code} - ${classroom.subjectName ?? classroom.courseName ?? code}`),
+      name: String(classroom.subjectName ?? classroom.courseName ?? code),
+      professor: professorName,
+      professorEmail,
+      schedule: scheduleDays ?? scheduleString,
+      time: scheduleTime ?? "19:00 - 20:40",
+      location: String(classroom.location ?? "Sala Virtual"),
+      roomStatus: live ? "Ao Vivo" : "Sala Fechada",
+      isLive: Boolean(live),
+      progress: totalHours > 0 ? Number(Math.min(1, completedHours / totalHours).toFixed(2)) : 0,
+      completedHours,
+      totalHours,
+      credits: Number(classroom.credits ?? 4),
+      officeHours: classroom.officeHours ? String(classroom.officeHours) : "Terças-feiras • 18:00 às 19:00",
+      officeLocation: classroom.officeLocation ? String(classroom.officeLocation) : "Sala dos Professores (Bloco C) ou Sala Virtual Teams",
+      absences,
+      maxAbsenceHours,
+      attendancePercentage,
+      p1,
+      trab: assignmentsScore,
+      p2,
+      n1,
+      n2,
+      partialAverage,
+      formulaRegime: String(classroom.formulaRegime ?? "autonomia_docente"),
+      evaluationFormula: String(classroom.evaluationFormula ?? thresholds.evaluationFormula),
+      academicThresholds: {
+        minimumGrade: thresholds.minimumGrade,
+        minimumAttendance: thresholds.minimumAttendance,
+        specialExamGrade: thresholds.specialExamGrade,
+      },
+      hasPendingTask: pendingByClass.has(code),
+      isLab: String(classroom.location ?? "").toLowerCase().includes("lab"),
+      semester: String(classroom.semester ?? "2026/2"),
+      ementa: String(classroom.ementa ?? ""),
+      objectives: String(classroom.objectives ?? ""),
+      methodology: String(classroom.methodology ?? ""),
+      bibliography: Array.isArray(classroom.bibliography) ? classroom.bibliography : [],
+      syllabusUnits: Array.isArray(classroom.syllabusUnits) ? classroom.syllabusUnits : [],
+      squads: Array.isArray(classroom.squads) ? classroom.squads : [],
+      chatMessages: Array.isArray(classroom.chatMessages) ? classroom.chatMessages : [],
+      recordedSessions,
+      participants,
+      completedChecklistItems: Array.isArray(enrollment?.completedChecklistItems)
+        ? enrollment.completedChecklistItems.map(String)
+        : [],
+      materials: [
+        ...classMaterials.map((material) => ({
+          id: String(material._id),
+          courseCode: code,
+          title: String(material.title),
+          fileName: String(material.fileName ?? material.title),
+          date: material.dateLabel ?? formatShortDate(new Date(material.createdAt ?? Date.now())),
+          size: String(material.size ?? "1.0 MB"),
+          fileType: String(material.type ?? "PDF"),
+          unitAssociated: String(material.unitAssociated ?? "Unidade 1"),
+          category: material.category ? String(material.category) : undefined,
+          downloadUrl: `/api/files/materials/${String(material._id)}`,
+        })),
+        ...(Array.isArray(classroom.materials) ? classroom.materials : []),
+      ],
+    };
+  });
+}
+
+export function mapStudentDeliveries(
+  assignments: Document[],
+  classByCode: Map<string, StudentDisciplineReference>,
+  submissionByAssignment: Map<string, Document>,
+) {
+  return assignments.map((assignment) => {
+    const assignmentId = String(assignment._id);
+    const discipline = classByCode.get(String(assignment.classCode));
+    const submission = submissionByAssignment.get(assignmentId);
+    const status = !submission
+      ? "Pendente"
+      : submission.status === "avaliada"
+        ? "Avaliada"
+        : "Em Análise";
+    const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : null;
+    const rawDueFormatted = String(assignment.dueDateFormatted ?? (dueDate ? formatShortDate(dueDate) : ""));
+    const dueWithHourMatch = /^(.*?)\s+às\s+(\d{1,2}:\d{2})$/i.exec(rawDueFormatted);
+    const dueDateClean = dueWithHourMatch ? dueWithHourMatch[1]!.trim() : rawDueFormatted;
+    const dueHour = assignment.dueHour
+      ? String(assignment.dueHour)
+      : (dueWithHourMatch?.[2] ?? "23:59");
+
+    const evaluatedRubrics = Array.isArray(submission?.evaluatedCriteria) && submission.evaluatedCriteria.length > 0
+      ? submission.evaluatedCriteria.map((rubric: Document) => ({
+          id: String(rubric.id ?? ""),
+          title: String(rubric.title ?? rubric.criterio ?? ""),
+          criterio: String(rubric.title ?? rubric.criterio ?? ""),
+          maxPoints: Number(rubric.maxPoints ?? rubric.pontos ?? 0),
+          pontos: Number(rubric.maxPoints ?? rubric.pontos ?? 0),
+          assignedScore: Number(rubric.assignedScore ?? rubric.nota ?? 0),
+          nota: Number(rubric.assignedScore ?? rubric.nota ?? 0),
+          description: String(rubric.description ?? ""),
+        }))
+      : [];
+
+    const plannedRubrics = Array.isArray(assignment.rubricCriteria)
+      ? assignment.rubricCriteria.map((rubric: Document) => ({
+          id: String(rubric.id ?? ""),
+          title: String(rubric.title ?? ""),
+          criterio: String(rubric.title ?? ""),
+          maxPoints: Number(rubric.maxPoints ?? 0),
+          pontos: Number(rubric.maxPoints ?? 0),
+          assignedScore: null,
+          nota: null,
+          description: String(rubric.description ?? ""),
+        }))
+      : [];
+
+    const rubrics = evaluatedRubrics.length > 0 ? evaluatedRubrics : plannedRubrics;
+
+    return {
+      id: assignmentId,
+      disciplineCode: String(assignment.classCode),
+      disciplineName: discipline?.name ?? String(assignment.classCode),
+      professor: discipline?.professor ?? String(assignment.authorName ?? "Docente"),
+      title: String(assignment.title),
+      description: String(assignment.description ?? ""),
+      dueDate: dueDateClean,
+      dueHour,
+      dueDateFormatted: dueDateClean,
+      weight: Number(assignment.weight ?? 3.0),
+      maxScore: Number(assignment.maxScore ?? 10.0),
+      stage: String(assignment.stage ?? "N1"),
+      moduleTag: assignment.moduleTag ? String(assignment.moduleTag) : `MÓDULO ${assignment.stage ?? 1}`,
+      allowedFormats: assignment.allowedFormats ? String(assignment.allowedFormats) : "PDF / ZIP",
+      isUrgent: assignment.isUrgent === true,
+      status,
+      modality: String(assignment.modality ?? "Individual"),
+      allowLate: assignment.allowLateWithPenalty !== false,
+      protocol: submission?.protocolCode ?? null,
+      submissionId: submission?._id ? String(submission._id) : null,
+      submittedAt: submission?.submittedAt ? formatShortDate(new Date(submission.submittedAt)) : null,
+      fileName: submission?.fileName ?? null,
+      fileSize: submission?.fileSize ?? null,
+      gitUrl: submission?.gitUrl ?? null,
+      comments: submission?.comments ?? null,
+      sha256: submission?.sha256 ?? null,
+      score: submission?.score !== undefined && submission?.score !== null
+        ? Number(submission.score)
+        : (submission?.grade !== undefined && submission?.grade !== null ? Number(submission.grade) : null),
+      feedback: submission?.feedback ?? null,
+      rubrics,
+      evaluatedRubrics,
+      doubts: Array.isArray(assignment.doubts) ? assignment.doubts : [],
+    };
+  });
+}
+
+export function mapStudentEvents(
+  classSessions: Document[],
+  assignments: Document[],
+  calendarEvents: Document[],
+  personalReminders: Document[],
+) {
+  return [
+    ...classSessions.map((session) => {
+      const date = new Date(session.startsAt ?? Date.now());
+      return {
+        id: `sess-${String(session._id)}`,
+        title: String(session.title ?? `Aula ${session.classCode}`),
+        date: date.toISOString(),
+        timeRange: "19:00 - 20:40",
+        category: "aula",
+        courseCode: String(session.classCode),
+        location: String(session.location ?? "Sala Virtual"),
+      };
+    }),
+    ...assignments
+      .filter((assignment) => assignment.dueDate)
+      .map((assignment) => ({
+        id: `asg-${String(assignment._id)}`,
+        title: `Entrega: ${String(assignment.title)}`,
+        date: new Date(assignment.dueDate).toISOString(),
+        timeRange: "Até 23:59",
+        category: "entrega",
+        courseCode: String(assignment.classCode),
+        location: "Portal AVA",
+      })),
+    ...calendarEvents.map((event) => {
+      const startsAt = new Date(event.startsAt ?? Date.now());
+      const endsAt = event.endsAt ? new Date(event.endsAt) : null;
+      const pad2 = (n: number) => String(n).padStart(2, "0");
+      const hasTime =
+        startsAt.getHours() !== 0 ||
+        startsAt.getMinutes() !== 0 ||
+        (endsAt !== null && (endsAt.getHours() !== 0 || endsAt.getMinutes() !== 0));
+      const timeRange = hasTime
+        ? endsAt
+          ? `${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())} - ${pad2(endsAt.getHours())}:${pad2(endsAt.getMinutes())}`
+          : `${pad2(startsAt.getHours())}:${pad2(startsAt.getMinutes())}`
+        : "Dia inteiro";
+      return {
+        id: `cal-${String(event._id)}`,
+        title: String(event.title),
+        date: startsAt.toISOString(),
+        timeRange,
+        category: event.type === "deadline" ? "avaliacao" : "institucional",
+        courseCode: "INSTITUCIONAL",
+        location: "Calendário Acadêmico",
+      };
+    }),
+    ...personalReminders.map((reminder) => ({
+      id: String(reminder._id),
+      title: String(reminder.title),
+      date: new Date(reminder.date ?? Date.now()).toISOString(),
+      timeRange: String(reminder.timeRange ?? "Dia inteiro"),
+      category: "lembrete",
+      courseCode: String(reminder.courseCode ?? "PESSOAL"),
+      location: String(reminder.location ?? "Lembrete Pessoal"),
+    })),
+  ];
+}
+
+export function mapStudentHistoricalBoletim(
+  disciplines: Array<{
+    code: string;
+    semester: string;
+    name: string;
+    n1: number | null;
+    n2: number | null;
+    partialAverage: number | null;
+    absences: number;
+    attendancePercentage: number;
+  }>,
+  institutionalSettings?: Document | null,
+) {
+  const thresholds = resolveInstitutionalThresholds(institutionalSettings);
+  const periods = new Map<string, Record<string, unknown>[]>();
+  for (const discipline of disciplines) {
+    const period = discipline.semester || thresholds.currentSemesterLabel;
+    const items = periods.get(period) ?? [];
+    const situation = evaluateAcademicSituation({
+      partialAverage: discipline.partialAverage,
+      attendancePercentage: discipline.attendancePercentage,
+      thresholds,
+    });
+    items.push({
+      codigo: discipline.code,
+      disciplina: discipline.name,
+      n1: discipline.n1 !== null ? discipline.n1.toFixed(1) : "-",
+      n2: discipline.n2 !== null ? discipline.n2.toFixed(1) : "-",
+      media: discipline.partialAverage !== null ? discipline.partialAverage.toFixed(1) : "-",
+      faltas: `${discipline.absences}h (${discipline.attendancePercentage.toFixed(0)}%)`,
+      situacao: situation,
+    });
+    periods.set(period, items);
+  }
+  return Array.from(periods.entries()).map(([period, items]) => ({ period, items }));
+}
+
+export function mapStudentMessages(announcements: Document[], studentId: string) {
+  return announcements.map((announcement) => {
+    const readBy: string[] = Array.isArray(announcement.readBy) ? announcement.readBy.map(String) : [];
+    const isInstitutional = announcement.isInstitutional === true || announcement.senderRole === "admin";
+    return {
+      id: String(announcement._id),
+      sender: String(announcement.authorName ?? announcement.author ?? "Secretaria Geral Acadêmica"),
+      category: isInstitutional ? "institutional" : "discipline",
+      classCode: announcement.classCode ?? null,
+      isNew: !readBy.includes(String(studentId)),
+      dateLabel: String(announcement.publishedAt ?? formatShortDate(new Date(announcement.createdAt ?? Date.now()))),
+      title: String(announcement.title),
+      body: String(announcement.body ?? announcement.message ?? ""),
+    };
+  });
+}
+
+export function mapStudentProtocols(protocols: Document[]) {
+  return protocols.map((protocol) => ({
+    id: String(protocol._id),
+    protocolCode: String(protocol.code ?? protocol._id),
+    submittedAt: protocol.createdAt ? formatShortDate(new Date(protocol.createdAt)) : "",
+    subjectType: String(protocol.requestType ?? ""),
+    componentObject: String(protocol.targetComponent ?? "Geral"),
+    status:
+      protocol.status === "Deferido"
+        ? "approved"
+        : protocol.status === "Indeferido"
+          ? "rejected"
+          : "pending",
+    statusLabel: String(protocol.status ?? "Aguardando Parecer"),
+    officialOpinion: String(protocol.decisionNote ?? "Aguardando análise e despacho da Secretaria Acadêmica."),
+    justification: String(protocol.justification ?? ""),
+    attachmentName: protocol.attachmentName ? String(protocol.attachmentName) : null,
+    approverName: protocol.signedBy ? String(protocol.signedBy) : null,
+    responseDate: protocol.decidedAt ? formatShortDate(new Date(protocol.decidedAt)) : null,
+  }));
+}
+
+export function mapStudentForumTopics(topics: Document[]) {
+  return topics.map((topic) => ({
+    id: String(topic._id),
+    classCode: String(topic.classCode),
+    title: String(topic.title),
+    body: String(topic.body ?? ""),
+    authorName: String(topic.authorName ?? ""),
+    authorRole: String(topic.authorRole ?? ""),
+    authorProfile: String(topic.authorProfile ?? topic.authorRole ?? "Estudante"),
+    category: String(topic.category ?? "Geral"),
+    isResolved: topic.isResolved === true,
+    status: String(topic.status ?? (topic.isResolved ? "Respondido" : (Array.isArray(topic.replies) && topic.replies.length > 0 ? "Respondido" : "Aberto"))),
+    timeAgo: String(topic.timeAgo ?? (topic.createdAt ? formatShortDate(new Date(topic.createdAt)) : "Recentemente")),
+    createdAt: topic.createdAt ? formatShortDate(new Date(topic.createdAt)) : "",
+    replies: Array.isArray(topic.replies) ? topic.replies : [],
+    repliesCount: Array.isArray(topic.replies) ? topic.replies.length : 0,
+  }));
+}
+
+export function mapStudentSessions(sessions: Document[], currentSessionId?: string) {
+  return sessions.map((session) => ({
+    id: String(session.sessionId),
+    device: String(session.userAgent ?? "Navegador / Cliente Institucional"),
+    ipAddress: String(session.ipAddress ?? "127.0.0.1"),
+    createdAt: session.createdAt,
+    current: session.sessionId === currentSessionId,
+  }));
+}
+
+export function mapStudentSecurityLogs(logs: Document[]) {
+  return logs.map((log) => ({
+    id: String(log._id),
+    action: String(log.action ?? ""),
+    createdAt: log.createdAt,
+    ipAddress: String(log.ipAddress ?? "127.0.0.1"),
+  }));
+}
+
+export function mapStudentProfileAndStats(input: {
+  studentId: string;
+  user: Document;
+  courses: Document[];
+  classes: Document[];
+  disciplines: Array<{
+    code: string;
+    name: string;
+    semester: string;
+    completedHours: number;
+    totalHours: number;
+    partialAverage: number | null;
+    attendancePercentage: number;
+  }>;
+}) {
+  const primaryCourse = input.courses[0];
+  const courseName = String(
+    primaryCourse?.name ??
+      input.user.departmentOrCourse ??
+      (input.disciplines[0]?.name ? `Curso ${input.disciplines[0].code}` : "Matrícula Institucional"),
+  );
+  const courseWorkloadNumber = Number.parseInt(String(primaryCourse?.workload ?? "3200").replace(/\D/g, ""), 10) || 3200;
+  const completedHoursTotal = input.disciplines.reduce((total, discipline) => total + discipline.completedHours, 0);
+  const semesterHoursTotal = input.disciplines.reduce((total, discipline) => total + discipline.totalHours, 0);
+  const gradedDisciplines = input.disciplines.filter((discipline) => discipline.partialAverage !== null);
+  const crGlobal =
+    gradedDisciplines.length > 0
+      ? Number(
+          (
+            gradedDisciplines.reduce((total, discipline) => total + (discipline.partialAverage ?? 0), 0) /
+            gradedDisciplines.length
+          ).toFixed(2),
+        )
+      : 0.0;
+  const globalFrequency =
+    input.disciplines.length > 0
+      ? Number(
+          (
+            input.disciplines.reduce((total, discipline) => total + discipline.attendancePercentage, 0) /
+            input.disciplines.length
+          ).toFixed(1),
+        )
+      : 100.0;
+
+  return {
+    studentInfo: {
+      id: String(input.studentId),
+      name: String(input.user.displayName ?? input.user.identity),
+      socialName: String(input.user.socialName ?? ""),
+      ra: String(input.user.identity),
+      email: String(input.user.email ?? ""),
+      phone: String(input.user.phone ?? ""),
+      courseName,
+      semester: String(input.user.semester ?? input.disciplines[0]?.semester ?? "2026/2"),
+      shift: String(input.user.shift ?? input.classes[0]?.shift ?? "Noturno"),
+      campus: String(input.user.campus ?? "Campus Central"),
+      twoFactorRequired: input.user.twoFactorRequired === true,
+      preferences: input.user.preferences ?? {},
+      verificationKey: `AGMRM-2026-${createHash("sha256").update(String(input.studentId)).digest("hex").slice(0, 12).toUpperCase()}`,
+    },
+    stats: {
+      activeDisciplines: input.disciplines.length,
+      averageAttendance: globalFrequency,
+      cr: crGlobal,
+      completedHoursSemester: completedHoursTotal,
+      totalHoursSemester: semesterHoursTotal,
+      courseTotalWorkload: courseWorkloadNumber,
+      academicStatus: input.disciplines.length > 0 ? "Regular & Apto" : "Sem Matrículas Ativas",
+    },
+    recordSummary: {
+      ra: String(input.user.identity),
+      course: `${courseName} (${input.user.semester ?? "2026/2"})`,
+      academicIndex: crGlobal > 0 ? crGlobal.toFixed(2) : "—",
+      completedWorkload: `${completedHoursTotal}h / ${courseWorkloadNumber}h`,
+      activeEnrollmentBadge: input.user.active ? "MATRÍCULA ATIVA" : "INATIVO",
+    },
+  };
+}

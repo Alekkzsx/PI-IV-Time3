@@ -1,6 +1,7 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import '../domain/auth_repository.dart';
+import '../external/auth_remote_datasource_impl.dart';
 import 'auth_remote_datasource.dart';
 
 /// Implementação concreta de [AuthRepository] que gerencia e delega chamadas para [AuthRemoteDataSource].
@@ -11,9 +12,34 @@ class AuthRepositoryImpl implements AuthRepository {
   /// Cria uma instância de [AuthRepositoryImpl] com a [remoteDataSource] injetada.
   AuthRepositoryImpl(this.remoteDataSource);
 
+  Future<String> completeTwoFactor({
+    required String challengeToken,
+    required String code,
+  }) => remoteDataSource.completeTwoFactor(
+    challengeToken: challengeToken,
+    code: code,
+  );
+
   @override
-  Future<void> recoverPassword({required String identity}) async {
-    await remoteDataSource.sendPasswordResetInstructions(identity: identity);
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {
+    await remoteDataSource.sendPasswordResetInstructions(
+      identity: identity,
+      profile: profile,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async {
+    return await remoteDataSource.sendPasswordResetInstructions(
+      identity: identity,
+      profile: profile,
+    );
   }
 
   @override
@@ -48,6 +74,40 @@ class AuthRepositoryImpl implements AuthRepository {
     return remoteDataSource.verifyPasswordRecoveryCodeRemote(
       identity: identity,
       code: code,
+    );
+  }
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async {
+    final result = await remoteDataSource.verifyRecoverySessionRemote(
+      identity: currentSession.identity,
+      code: code,
+      profile: currentSession.profile.name,
+    );
+    final resultProfileRaw = result.profile.trim().toLowerCase();
+    if (resultProfileRaw.isNotEmpty &&
+        resultProfileRaw != currentSession.profile.name.toLowerCase()) {
+      throw const AuthApiException(
+        'Tipo de usuário inválido para o perfil selecionado.',
+        statusCode: 403,
+      );
+    }
+    final profile = switch (resultProfileRaw) {
+      'admin' => UserProfile.admin,
+      'docente' => UserProfile.docente,
+      'aluno' => UserProfile.aluno,
+      _ => currentSession.profile,
+    };
+    return currentSession.copyWith(
+      profile: profile,
+      identity: result.identity.isNotEmpty ? result.identity : currentSession.identity,
+      displayName: result.displayName.isNotEmpty ? result.displayName : currentSession.displayName,
+      institutionalEmail: result.email.isNotEmpty ? result.email : currentSession.institutionalEmail,
+      departmentOrCourse: result.departmentOrCourse.isNotEmpty ? result.departmentOrCourse : currentSession.departmentOrCourse,
+      resetToken: result.resetToken,
     );
   }
 

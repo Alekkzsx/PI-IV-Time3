@@ -1,0 +1,101 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+
+import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
+import 'admin_fixtures.dart';
+
+class FakeAdminAcademicDataSource implements AdminAcademicDataSource {
+  const FakeAdminAcademicDataSource();
+
+  static final List<AdminClassModel> _classes = List.of(AdminMockData.classes);
+
+  @override
+  Future<List<AdminCourseModel>> getCourses() async =>
+      List.of(AdminMockData.courses);
+
+  @override
+  Future<void> createCourse(AdminCourseModel course) async {
+    AdminMockData.courses.add(course);
+  }
+
+  @override
+  Future<void> patchCourse(String code, Map<String, Object?> fields) async {}
+
+  @override
+  Future<List<AdminClassModel>> getClasses() async => List.of(_classes);
+
+  @override
+  Future<List<AdminUserModel>> getTeachers() async => AdminMockData.users
+      .where((user) => user.profile == 'docente')
+      .toList();
+
+  @override
+  Future<List<AdminGradeAuditRow>> classGrades(String classCode) async => [];
+
+  @override
+  Future<List<AdminEnrolledStudent>> getEnrollments(String classCode) async =>
+      [];
+
+  @override
+  Future<void> updateEnrollment({
+    required String classCode,
+    required String enrollmentId,
+    required Map<String, Object?> fields,
+  }) async {}
+
+  @override
+  Future<void> createClass({
+    required String code,
+    required String courseCode,
+    required String semester,
+    required String shift,
+    required String location,
+    required int maxCapacity,
+    String? professorIdentity,
+    String? subjectName,
+    String? schedule,
+    int? totalHours,
+  }) async {
+    final course = AdminMockData.courses.firstWhere(
+      (item) => item.code == courseCode,
+    );
+    _classes.add(
+      AdminClassModel(
+        code: code,
+        subjectName: (subjectName != null && subjectName.trim().isNotEmpty)
+            ? subjectName.trim()
+            : course.name,
+        courseName: course.name,
+        semester: semester,
+        shift: shift,
+        schedule: schedule ?? '',
+        location: location,
+        enrolled: 0,
+        maxCapacity: maxCapacity,
+        professor: professorIdentity ?? 'Não atribuído',
+        formulaRegime: 'Autonomia Docente',
+      ),
+    );
+  }
+
+  @override
+  Future<void> assignTeacherToClass({
+    required String classCode,
+    required String professorIdentity,
+  }) async {
+    final classModel = _classes.firstWhere((item) => item.code == classCode);
+    classModel.professor = professorIdentity;
+  }
+
+  @override
+  Future<void> createEnrollment({
+    required String classCode,
+    required String studentIdentity,
+  }) async {}
+
+  @override
+  Future<void> createClassSession({
+    required String classCode,
+    required String title,
+    required DateTime startsAt,
+  }) async {}
+}

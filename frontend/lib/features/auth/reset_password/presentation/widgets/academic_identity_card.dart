@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -16,7 +16,7 @@ class AcademicIdentityCard extends StatelessWidget {
   /// Nome completo verificado.
   final String studentName;
 
-  /// Registro formatado (ex: `R.A. 2024.1.00892`).
+  /// Registro formatado (ex: `R.A. 202610401`).
   final String academicRegistration;
 
   /// E-mail institucional do usuário.
@@ -29,9 +29,9 @@ class AcademicIdentityCard extends StatelessWidget {
   const AcademicIdentityCard({
     super.key,
     this.session,
-    this.studentName = 'Gabriel Soares de Oliveira',
-    this.academicRegistration = 'R.A. 2024.1.00892',
-    this.studentEmail = 'gabriel.oliveira@aluno.universidade.edu.br',
+    this.studentName = 'Usuário',
+    this.academicRegistration = '',
+    this.studentEmail = '',
     this.department,
   });
 
@@ -41,8 +41,7 @@ class AcademicIdentityCard extends StatelessWidget {
     final effectiveRegistration =
         session?.formattedIdentityLabel ?? academicRegistration;
     final effectiveEmail = session?.institutionalEmail ?? studentEmail;
-    final effectiveDepartment =
-        session?.departmentOrCourse ?? department ?? 'Engenharia de Software';
+    final effectiveDepartment = session?.departmentOrCourse ?? department ?? '';
     final effectiveIcon = session?.profileIcon ?? Icons.school_outlined;
     final effectiveBadge = session?.roleBadge ?? 'Identidade Confirmada';
 
@@ -104,15 +103,17 @@ class AcademicIdentityCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  effectiveDepartment,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF475569),
+                if (effectiveDepartment.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    effectiveDepartment,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF475569),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 1),
                 Text(
                   effectiveEmail,

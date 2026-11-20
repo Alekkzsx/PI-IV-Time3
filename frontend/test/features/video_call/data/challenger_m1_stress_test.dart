@@ -29,7 +29,7 @@ void main() {
 
   group('Empirical Challenger M1-2: Stress & Hardening Test Suite', () {
     // -------------------------------------------------------------------------
-    // OBJECTIVE 1: LIVENESS HEARTBEAT & WATCHDOG PRUNING ON SILENCE (CRASH/FREEZE)
+    // OBJETIVO 1: HEARTBEAT DE VIVACIDADE E PODA DO WATCHDOG POR SILÊNCIO (TRAVAMENTO/CONGELAMENTO)
     // -------------------------------------------------------------------------
     test(
       'Watchdog Pruning: Detects heartbeat silence after 5.0s and prunes crashed peer',
@@ -96,7 +96,7 @@ void main() {
         expect(ds1.remoteParticipants.any((p) => p.id == 'peer_healthy'), isTrue);
         expect(leftPeers, isEmpty);
 
-        // Loop de batimento para o peer saudável enquanto o crashed peer congela (sem heartbeats)
+        // Loop de batimento para o peer saudável enquanto o peer travado congela (sem heartbeats)
         final healthyHeartbeatTimer = Timer.periodic(
           const Duration(milliseconds: 1500),
           (_) {
@@ -125,7 +125,7 @@ void main() {
         expect(leftPeers, isEmpty);
 
         // Aguarda transcorrer a janela total para que o watchdog de 1.0s detecte o timeout de 5.0s
-        // (3000ms já transcorridos + 3300ms = 6300ms > 5000ms threshold + 1000ms watchdog tick)
+        // (3000ms já transcorridos + 3300ms = 6300ms > limite de 5000ms + tick de 1000ms do watchdog)
         await Future<void>.delayed(const Duration(milliseconds: 3300));
 
         healthyHeartbeatTimer.cancel();
@@ -159,7 +159,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // OBJECTIVE 2: RAPID BURST MESSAGES (100 CHAT + 50 EMOJI REACTIONS)
+    // OBJETIVO 2: RAJADA RÁPIDA DE MENSAGENS (100 DE CHAT + 50 REAÇÕES DE EMOJI)
     // -------------------------------------------------------------------------
     test(
       'Burst Testing: 100 rapid chat messages with zero loss and strict FIFO ordering',
@@ -390,7 +390,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // OBJECTIVE 3: MALFORMED JSON, UNKNOWN ENVELOPES & ADVERSARIAL ATTACKS
+    // OBJETIVO 3: JSON MALFORMADO, ENVELOPES DESCONHECIDOS E ATAQUES ADVERSARIAIS
     // -------------------------------------------------------------------------
     test(
       'Robustness: Malformed JSON and unknown envelopes do not crash datasource or disconnect peers',
@@ -597,7 +597,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // INTEGRATION VERIFICATION: REPOSITORY LAYER STRESS & USECASE RESILIENCE
+    // VERIFICAÇÃO DE INTEGRAÇÃO: ESTRESSE DA CAMADA DE REPOSITÓRIO E RESILIÊNCIA DE CASOS DE USO
     // -------------------------------------------------------------------------
     test(
       'Repository Layer Integration: Burst & Handshake through VideoCallRepositoryImpl',
@@ -668,7 +668,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // OBJECTIVE 4: ACTIVE SPEAKER DETECTION & MUTE INVARIANT VIA HEARTBEAT
+    // OBJETIVO 4: DETECÇÃO DE ORADOR ATIVO E INVARIANTE DE MUDO VIA HEARTBEAT
     // -------------------------------------------------------------------------
     test(
       'Audio & Speaker Invariant: isSpeaking is strictly false when muted and respects 0.15 threshold',
@@ -690,7 +690,7 @@ void main() {
 
         await ds1.connect(roomId: 'AUDIO-ROOM-1', localParticipant: p1);
 
-        // Join peer_speaker
+        // Entrada de peer_speaker
         final joinEnvelope = SignalingEnvelopeModel.create(
           type: SignalingEnvelopeType.join,
           roomId: 'AUDIO-ROOM-1',
@@ -709,7 +709,7 @@ void main() {
 
         expect(ds1.remoteParticipants.first.isSpeaking, isFalse);
 
-        // Sub-scenario A: Volume 0.15 (limiar exato) com mic aberto -> NÃO falando (>0.15 requerido)
+        // Subcenário A: Volume 0.15 (limiar exato) com microfone aberto -> NÃO falando (>0.15 requerido)
         final hbThreshold = SignalingEnvelopeModel.create(
           type: SignalingEnvelopeType.heartbeat,
           roomId: 'AUDIO-ROOM-1',
@@ -730,7 +730,7 @@ void main() {
           reason: 'No limiar exato de 0.15, isSpeaking deve ser false',
         );
 
-        // Sub-scenario B: Volume 0.16 com mic aberto -> FALANDO (ultrapassou 0.15)
+        // Subcenário B: Volume 0.16 com microfone aberto -> FALANDO (ultrapassou 0.15)
         final hbSpeaking = SignalingEnvelopeModel.create(
           type: SignalingEnvelopeType.heartbeat,
           roomId: 'AUDIO-ROOM-1',
@@ -751,7 +751,7 @@ void main() {
           reason: 'Acima de 0.15 com mic desmutado, isSpeaking deve ser true',
         );
 
-        // Sub-scenario C: Volume alto (0.85), mas com mic MUTADO -> NUNCA falando
+        // Subcenário C: Volume alto (0.85), mas com microfone MUTADO -> NUNCA falando
         final hbMutedHigh = SignalingEnvelopeModel.create(
           type: SignalingEnvelopeType.heartbeat,
           roomId: 'AUDIO-ROOM-1',
@@ -778,7 +778,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // OBJECTIVE 5: RECONNECTION CHURN STRESS
+    // OBJETIVO 5: ESTRESSE DE RECONEXÕES REPETIDAS
     // -------------------------------------------------------------------------
     test(
       'Reconnection Churn: 10 consecutive connect/disconnect cycles leave no zombie timers or state corruption',
@@ -828,7 +828,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // OBJECTIVE 6: ROOM CODE NORMALIZATION & CROSS-ROOM ISOLATION
+    // OBJETIVO 6: NORMALIZAÇÃO DE CÓDIGO DE SALA E ISOLAMENTO ENTRE SALAS
     // -------------------------------------------------------------------------
     test(
       'Room Isolation & Normalization: lowercase and whitespace room codes match; cross-room traffic ignored',
@@ -885,7 +885,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------------
-    // OBJECTIVE 7: ABRUPT BROWSER TEARDOWN HOOK DISPATCHES LEAVE
+    // OBJETIVO 7: HOOK DE DESCONEXÃO ABRUPTA DO NAVEGADOR DISPARA LEAVE
     // -------------------------------------------------------------------------
     test(
       'Teardown Hook: simulateTeardown broadcasts LEAVE envelope synchronously',

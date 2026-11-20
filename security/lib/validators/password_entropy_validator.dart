@@ -2,8 +2,8 @@
 
 import '../policies/security_constants.dart';
 
-/// Client-side password entropy and complexity evaluator.
-/// Calculates a 4-factor entropy score (0 to 4) and gates password reset submissions (score >= 3).
+/// Avaliador de entropia e complexidade de senha no lado do cliente.
+/// Calcula uma pontuação de entropia de 4 fatores (0 a 4) e libera envios de redefinição de senha (pontuação >= 3).
 class PasswordEntropyValidator {
   PasswordEntropyValidator._();
 
@@ -15,11 +15,11 @@ class PasswordEntropyValidator {
   static final RegExp _digitPattern = RegExp(r'[0-9]');
   static final RegExp _specialPattern = RegExp(r'[!@#$%^&*(),.?":{}|<>\-_+=\[\]]');
 
-  /// Calculates the 4-factor entropy score:
-  /// - Vector 1: Length >= 8
-  /// - Vector 2: Mixed case (Upper + Lower)
-  /// - Vector 3: At least one numeric digit (0-9)
-  /// - Vector 4: At least one special symbol
+  /// Calcula a pontuação de entropia de 4 fatores:
+  /// - Vetor 1: Comprimento >= 8
+  /// - Vetor 2: Letras maiúsculas e minúsculas
+  /// - Vetor 3: Pelo menos um dígito numérico (0-9)
+  /// - Vetor 4: Pelo menos um símbolo especial
   static int calculateScore(String password) {
     if (password.isEmpty) return 0;
 
@@ -40,8 +40,8 @@ class PasswordEntropyValidator {
     return score;
   }
 
-  /// Evaluates whether a password satisfies the minimum institutional complexity requirements.
-  /// Requires length >= 8 and entropy score >= 3.
+  /// Avalia se uma senha satisfaz os requisitos mínimos de complexidade institucional.
+  /// Exige comprimento >= 8 e pontuação de entropia >= 3.
   static bool isEligibleForSubmission(String password) {
     if (password.length < minLength) return false;
     final score = calculateScore(password);

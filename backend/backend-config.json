@@ -1,8 +1,8 @@
 {
-  "_description": "Configuração dos serviços Java e da API de autenticação TypeScript.",
+  "_description": "Configuração dos serviços por contexto delimitado: Identidade/Videochamada Java (server/) e Núcleo Acadêmico TypeScript (backend/).",
   "environment": {
     "profile": "development",
-    "orchestrator": "java_frontend_launcher_and_manual_typescript_auth"
+    "orchestrator": "java_identity_videocall_and_typescript_academic_core"
   },
   "modules": {
     "server": {
@@ -11,15 +11,22 @@
       "port": 8080,
       "protocol": "HTTP/1.1",
       "auto_start": true,
-      "healthcheck": "http://127.0.0.1:8080/api/videocall/rooms",
+      "healthcheck": "http://127.0.0.1:8080/health",
       "features": [
+        "institutional_login",
+        "two_factor_totp",
+        "jwt_hs256_session_validation",
+        "password_recovery_otp",
+        "admin_user_lifecycle",
+        "videocall_room_tickets",
         "videocall_webrtc_signaling",
+        "videocall_chat_hub_sync",
         "academic_boletim_calculation",
         "academic_attendance_tracking",
         "academic_task_grading"
       ]
     },
-    "auth_api": {
+    "academic_api": {
       "path": ".",
       "entrypoint": "npm run dev",
       "port": 3001,
@@ -27,10 +34,13 @@
       "auto_start": false,
       "healthcheck": "http://127.0.0.1:3001/health",
       "features": [
-        "institutional_login",
-        "jwt_access_tokens",
-        "password_recovery_otp",
-        "mongodb_user_persistence"
+        "passive_jwt_session_check",
+        "academic_admin_operations",
+        "student_dashboard",
+        "teacher_dashboard",
+        "academic_files",
+        "internal_academic_bridge",
+        "mongodb_academic_persistence"
       ]
     },
     "security": {
@@ -52,6 +62,6 @@
   "flutter_run_hook": {
     "enabled": true,
     "strategy": "dual_trigger_cmake_and_dart_vm",
-    "description": "O servidor Java acadêmico é iniciado pelo launcher do frontend. O serviço TypeScript de autenticação é iniciado separadamente com 'cd backend; npm run dev'."
+    "description": "O servidor Java acadêmico e de sinalização é iniciado pelo launcher do frontend. O serviço TypeScript em backend/ é iniciado separadamente com 'cd backend; npm run dev'."
   }
 }

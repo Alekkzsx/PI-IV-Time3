@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/state/app_user_session.dart';
@@ -9,9 +9,9 @@ import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
 
-/// Tab page for managing student official gradebook, PPC formula calculations, and issuing minutes.
+/// Página da aba para gerenciar a pauta oficial de notas dos discentes, cálculos da fórmula do PPC e emissão de atas.
 class DocenteGradesTab extends StatelessWidget {
-  /// Reactive controller for state access and mutations.
+  /// Controlador reativo para acesso e alterações de estado.
   final DocenteController controller;
 
   const DocenteGradesTab({super.key, required this.controller});
@@ -52,7 +52,12 @@ class DocenteGradesTab extends StatelessWidget {
                             selectedCourse: selectedCourse,
                           ),
                           const SizedBox(height: 20),
-                          const DocenteGradesFormulaBanner(),
+                          DocenteGradesFormulaBanner(
+                            evaluationFormula: selectedCourse.evaluationFormula,
+                            thresholds: controller.academicThresholds,
+                            isLockedByAdmin:
+                                selectedCourse.isFormulaLockedByAdmin,
+                          ),
                           const SizedBox(height: 24),
                           DocenteGradebookTable(
                             controller: controller,

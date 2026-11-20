@@ -37,7 +37,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. Alex starts speaking
+      // 1. Alex começa a falar
       harness.peerA.setAudioLevel(0.40);
       await tester.pump();
 
@@ -46,7 +46,7 @@ void main() {
       );
       expect((boxA.decoration as BoxDecoration).border?.top.color, Colors.greenAccent);
 
-      // 2. Alex stops speaking, Beatriz takes the floor and speaks
+      // 2. Alex para de falar, Beatriz assume a palavra e fala
       harness.peerA.setAudioLevel(0.02);
       harness.peerB.setAudioLevel(0.55);
       await tester.pump();
@@ -56,7 +56,7 @@ void main() {
       );
       expect((boxB.decoration as BoxDecoration).border?.top.color, Colors.greenAccent);
 
-      // 3. Multi-peer emoji celebration burst
+      // 3. Sequência de emojis comemorativos entre múltiplos pares
       harness.peerA.sendReaction('🎉');
       harness.peerB.sendReaction('❤️');
       await tester.pump();
@@ -77,7 +77,7 @@ void main() {
         findsOneWidget,
       );
 
-      // 4. Collaborative chat study notes exchange
+      // 4. Troca colaborativa de anotações de estudo no chat
       harness.peerA.sendChatMessage('Resumo do capítulo 3 finalizado');
       harness.peerB.sendChatMessage('Perfeito, vou anexar o diagrama');
       await tester.pump();
@@ -88,7 +88,7 @@ void main() {
       expect(find.text('Resumo do capítulo 3 finalizado'), findsOneWidget);
       expect(find.text('Perfeito, vou anexar o diagrama'), findsOneWidget);
 
-      // Allow 2500ms reaction and 800ms hysteresis timers to complete cleanly
+      // Aguarda os temporizadores de 2500ms de reação e 800ms de histerese concluírem normalmente
       await tester.pump(const Duration(milliseconds: 2600));
     });
   });

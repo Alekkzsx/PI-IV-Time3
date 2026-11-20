@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 
@@ -22,7 +22,7 @@ class RecoverPasswordUseCase {
   ///
   /// Retorna um [Future<void>] que se completa com sucesso quando a solicitação
   /// for despachada pelo repositório ou lança uma exceção em caso de falha.
-  Future<void> call({required String identity}) {
-    return repository.recoverPassword(identity: identity);
+  Future<void> call({required String identity, String? profile}) {
+    return repository.recoverPassword(identity: identity, profile: profile);
   }
 }

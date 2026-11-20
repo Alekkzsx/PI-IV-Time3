@@ -1,8 +1,10 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
-/// Shared visual treatment for access restrictions across all user portals.
+/// Tratamento visual compartilhado para restrições de acesso em todos os portais de usuário.
 class AccessDeniedView extends StatelessWidget {
   final String message;
   final bool fullPage;

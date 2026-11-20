@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import '../entities/chat_message.dart';
 import '../errors/video_call_failures.dart';
@@ -21,12 +21,16 @@ class SendChatMessageUseCase {
   }) async {
     final cleanRoomId = roomId.trim();
     if (cleanRoomId.isEmpty) {
-      throw const VideoCallValidationException('Identificador da sala não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador da sala não pode ser vazio.',
+      );
     }
 
     final cleanText = message.text.trim();
     if (cleanText.isEmpty) {
-      throw const VideoCallValidationException('A mensagem não pode ser vazia.');
+      throw const VideoCallValidationException(
+        'A mensagem não pode ser vazia.',
+      );
     }
 
     if (cleanText.length > 1000) {
@@ -36,11 +40,15 @@ class SendChatMessageUseCase {
     }
 
     if (message.senderId.trim().isEmpty) {
-      throw const VideoCallValidationException('Identificador do remetente não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador do remetente não pode ser vazio.',
+      );
     }
 
     if (message.senderName.trim().isEmpty) {
-      throw const VideoCallValidationException('Nome do remetente não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Nome do remetente não pode ser vazio.',
+      );
     }
 
     final validatedMessage = message.copyWith(text: cleanText);

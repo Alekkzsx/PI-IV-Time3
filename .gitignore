@@ -16,8 +16,9 @@
 *.pfx
 secrets/
 
-# Permitir exclusivamente o template mestre unificado de variáveis de ambiente
+# Permitir exclusivamente os templates de variáveis de ambiente
 !.env-example
+!**/.env.example
 
 # ─── 2. Artefatos de Build e Cache das Pastas Mães (Flutter / Dart) ───
 # Previne reinstalação ou download forçado de dependências entre máquinas
@@ -59,6 +60,8 @@ build/
 
 # ─── 3. Artefatos de Compilação do Java e Backend (server/ e backend/) ───
 server/bin/
+server/*.pid
+server/*.log
 **/bin/
 *.class
 **/*.class
@@ -66,11 +69,14 @@ server/bin/
 *.war
 *.ear
 backend/target/
+**/target/
 **/.gradle/
 
 # ─── 4. Dependências de Outros Ecossistemas (Node / Python / .NET) ───
 node_modules/
+**/node_modules/
 \$npmCache/
+**/\$npmCache/
 .npm/
 jspm_packages/
 .pnp
@@ -82,6 +88,7 @@ env/
 venv/
 .venv/
 dist/
+**/dist/
 out/
 coverage/
 .nyc_output/
@@ -133,3 +140,4 @@ desktop.ini
 
 # ─── 8. Governança e Regras de CI/CD (NUNCA IGNORAR) ───
 !.github/
+server/server.pid
