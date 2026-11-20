@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Murillo Caravita - RA: 25014012
 package auth.utils;
 
 import utils.ConfigEnv;

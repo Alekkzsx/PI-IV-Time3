@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 package core;
 
 import com.mongodb.Block;

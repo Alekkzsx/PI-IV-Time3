@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 package auth.modules.admin;
 
 import auth.abstratas.HandlerAutenticadoAbstrato;

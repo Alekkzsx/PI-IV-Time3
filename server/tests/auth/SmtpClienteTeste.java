@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 package auth;
 

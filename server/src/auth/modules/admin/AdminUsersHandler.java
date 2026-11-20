@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Guilherme Henrique Moreira - RA: 25006702
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 package auth.modules.admin;
 
 import auth.modules.persistencia.RepositorioUsuarios;

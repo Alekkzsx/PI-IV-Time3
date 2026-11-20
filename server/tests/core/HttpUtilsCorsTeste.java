@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 package core;
 
