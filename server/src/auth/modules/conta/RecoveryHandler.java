@@ -66,6 +66,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         Map<String, Object> corpo = lerJsonObjeto(requisicao);
         String email = getString(corpo, "email");
         String identity = getString(corpo, "identity");
+        String perfilSolicitado = getPrimeiroTexto(corpo, "profile", "perfil");
         boolean temEmail = email != null && !email.isEmpty();
         boolean temIdentity = identity != null && !identity.isEmpty();
 
@@ -76,9 +77,13 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         }
 
         String chaveConsultada = temEmail ? email : identity;
-        UsuarioAutenticado usuario = temEmail
+        UsuarioAutenticado localizado = temEmail
                 ? repositorio.buscarPorEmail(email)
                 : repositorio.buscarPorIdentidade(identity);
+        if (localizado == null && temIdentity && identity.contains("@")) {
+            localizado = repositorio.buscarPorEmail(identity);
+        }
+        final UsuarioAutenticado usuario = localizado;
 
         if (usuario == null) {
             Map<String, Object> det = new LinkedHashMap<String, Object>();
@@ -87,6 +92,20 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
             AuthHttpUtils.aplicarLatenciaPadronizada(0L, false);
             responderErro(resposta, 404, "email_not_registered",
                     "E-mail ou identificador nao cadastrado no sistema.");
+            return;
+        }
+
+        if (perfilSolicitado != null && !perfilSolicitado.isEmpty()
+                && !perfisCompativeis(perfilSolicitado, usuario.getProfile())) {
+            Map<String, Object> det = new LinkedHashMap<String, Object>();
+            det.put("queriedValue", chaveConsultada);
+            det.put("requestedProfile", normalizarPerfil(perfilSolicitado));
+            det.put("actualProfile", normalizarPerfil(usuario.getProfile()));
+            repositorio.registrarAuditoria(
+                    usuario.getUserId(), "password_recovery_invalid_profile", usuario.getUserId(), det);
+            AuthHttpUtils.aplicarLatenciaPadronizada(0L, false);
+            responderErro(resposta, 403, "invalid_user_type",
+                    construirMensagemPerfilIncompativel(perfilSolicitado, usuario.getProfile()));
             return;
         }
 
@@ -150,6 +169,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         Map<String, Object> corpo = lerJsonObjeto(requisicao);
         String identity = getString(corpo, "identity");
         String code = getString(corpo, "code");
+        String perfilSolicitado = getPrimeiroTexto(corpo, "profile", "perfil");
 
         if (identity == null || identity.isEmpty()) {
             responderErro(resposta, 400, "invalid_request", "Campo 'identity' e obrigatorio.");
@@ -184,7 +204,6 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
             return;
         }
 
-        repositorio.removerOtp(normalizedIdentity, "RECOVERY");
         UsuarioAutenticado usuario = repositorio.buscarPorIdentidade(normalizedIdentity);
         if (usuario == null) {
             usuario = repositorio.buscarPorEmail(normalizedIdentity);
@@ -193,6 +212,14 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
             responderErro(resposta, 401, "invalid_or_expired_code", "Usuario nao encontrado.");
             return;
         }
+        if (perfilSolicitado != null && !perfilSolicitado.isEmpty()
+                && !perfisCompativeis(perfilSolicitado, usuario.getProfile())) {
+            responderErro(resposta, 403, "invalid_user_type",
+                    construirMensagemPerfilIncompativel(perfilSolicitado, usuario.getProfile()));
+            return;
+        }
+
+        repositorio.removerOtp(normalizedIdentity, "RECOVERY");
 
         String recoveryToken = JwtGerador.gerarRecoveryToken(usuario);
         String jti = JwtGerador.extrairJti(recoveryToken);
@@ -292,5 +319,37 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         resp.put("success", Boolean.TRUE);
         resp.put("message", "Senha redefinida com sucesso. Realize login novamente.");
         enviarJson(resposta, 200, resp);
+    }
+
+    public static String normalizarPerfil(String perfil) {
+        if (perfil == null) return "";
+        String p = perfil.trim().toLowerCase();
+        if ("student".equals(p) || "discente".equals(p)) return "aluno";
+        if ("teacher".equals(p) || "professor".equals(p)) return "docente";
+        if ("administrator".equals(p) || "administrador".equals(p)) return "admin";
+        return p;
+    }
+
+    public static boolean perfisCompativeis(String perfilSolicitado, String perfilConta) {
+        String s = normalizarPerfil(perfilSolicitado);
+        String c = normalizarPerfil(perfilConta);
+        if (s.isEmpty() || c.isEmpty()) return true;
+        return s.equals(c);
+    }
+
+    public static String rotuloPerfil(String perfil) {
+        String norm = normalizarPerfil(perfil);
+        if ("aluno".equals(norm)) return "Aluno";
+        if ("docente".equals(norm)) return "Docente";
+        if ("admin".equals(norm)) return "Admin";
+        return perfil != null && !perfil.trim().isEmpty() ? perfil.trim() : "Desconhecido";
+    }
+
+    public static String construirMensagemPerfilIncompativel(String perfilSolicitado, String perfilConta) {
+        return "Tipo de usuário inválido: esta conta pertence ao perfil de "
+                + rotuloPerfil(perfilConta)
+                + ", não ao perfil selecionado ("
+                + rotuloPerfil(perfilSolicitado)
+                + ").";
     }
 }
