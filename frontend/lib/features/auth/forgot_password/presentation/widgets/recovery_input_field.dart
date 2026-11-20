@@ -1,4 +1,4 @@
-﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_theme.dart';
@@ -67,11 +67,14 @@ class RecoveryInputField extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              example,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 12,
-                color: AppColors.textMuted,
+            Flexible(
+              child: Text(
+                example,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
               ),
             ),
           ],
