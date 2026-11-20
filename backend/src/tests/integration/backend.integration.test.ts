@@ -411,7 +411,7 @@ describe("núcleo acadêmico e ponte interna com MongoDB real isolado", { skip: 
     assert.equal(fileDownload.status, 200);
     assert.equal(Buffer.from(fileDownload.body.contentBase64, "base64").toString("utf8"), "Conteúdo PDF de teste real");
 
-    // Multi-assignment N1 evaluation should compute weighted average without overwriting previous assignments
+    // A avaliação de múltiplas atividades N1 deve calcular a média ponderada sem sobrescrever as atividades anteriores
     const evalN1A = await requestPatch(
       `/api/teacher/assignments/${n1AssignA.body.id}/evaluate`,
       {
