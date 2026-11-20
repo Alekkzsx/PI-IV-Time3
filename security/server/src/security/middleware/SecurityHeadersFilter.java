@@ -9,13 +9,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Defensive HTTP security header filter for native Java HTTP server.
- * Injects nosniff, frame rejection, CSP, and CORS policies onto outgoing responses.
+ * Filtro defensivo de cabeçalhos de segurança HTTP para o servidor HTTP Java nativo.
+ * Injeta políticas de nosniff, bloqueio de frames, CSP e CORS nas respostas enviadas.
  */
 public class SecurityHeadersFilter {
 
     /**
-     * Returns the standardized hardened security headers map.
+     * Retorna o mapa padronizado de cabeçalhos de segurança reforçados.
      */
     public static Map<String, String> getHardenedHeaders() {
         Map<String, String> headers = new LinkedHashMap<>();
@@ -28,7 +28,7 @@ public class SecurityHeadersFilter {
     }
 
     /**
-     * Applies defensive headers directly to a native Sun {@link HttpExchange}.
+     * Aplica cabeçalhos defensivos diretamente a um {@link HttpExchange} nativo da Sun.
      */
     public static void applyHeaders(HttpExchange exchange) {
         if (exchange == null) return;
