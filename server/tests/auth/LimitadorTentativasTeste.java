@@ -14,11 +14,13 @@ import auth.utils.LimitadorTentativas;
 public class LimitadorTentativasTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Executa os cenarios numerados; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         LimitadorTentativas limitador = LimitadorTentativas.getInstance();
@@ -68,6 +70,7 @@ public class LimitadorTentativasTeste {
         return falhas;
     }
 
+    /** Runner isolado: exit 1 se houver falha. */
     public static void main(String[] args) {
         int erros = executar();
         if (erros > 0) {

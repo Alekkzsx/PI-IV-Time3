@@ -24,9 +24,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - Tier 3: CanalOutboxLocal (memoria + console + MongoDB email_outbox)
  */
 public final class SmtpCliente {
+    // Breaker e outbox compartilhados por todos os envios do processo (estado global de saude do SMTP).
     private static final CircuitBreakerSmtp CIRCUIT_BREAKER = new CircuitBreakerSmtp();
     private static final CanalOutboxLocal OUTBOX_CANAL = new CanalOutboxLocal();
 
+    // Threads nomeadas (smtp-worker-N) e daemon: envio pendente nao impede o shutdown da JVM.
     private static final ThreadFactory THREAD_FACTORY = new ThreadFactory() {
         private final AtomicInteger counter = new AtomicInteger(1);
 
@@ -38,11 +40,17 @@ public final class SmtpCliente {
         }
     };
 
+    // Pool pequeno (SMTP_POOL_SIZE, default 3): envios sao I/O-bound e nao devem competir com as workers HTTP.
     private static final ExecutorService FILA_EMAILS = Executors.newFixedThreadPool(
             ConfigEnv.obterInteiro("SMTP_POOL_SIZE", 3),
             THREAD_FACTORY
     );
 
+    /**
+     * Resultado imutavel de um despacho: canal vencedor, se houve entrega EXTERNA
+     * (outbox nao conta), trilha de erros de cada tier tentado e latencia total.
+     * errorTrail recebe copia defensiva imutavel.
+     */
     public static final class ResultadoEnvioEmail {
         private final String canal;
         private final boolean deliveredExternally;
@@ -58,12 +66,17 @@ public final class SmtpCliente {
             this.latenciaMs = latenciaMs;
         }
 
+        /** @return nome do canal que concluiu o despacho (SMTP, RESEND, BREVO, WEBHOOK, OUTBOX). */
         public String getCanal() { return canal; }
+        /** @return true somente com entrega externa real (tier 1 ou 2). */
         public boolean isDeliveredExternally() { return deliveredExternally; }
+        /** @return erros/motivos de cada tier tentado, em ordem (lista imutavel). */
         public List<String> getErrorTrail() { return errorTrail; }
+        /** @return tempo total do despacho em ms (todas as tentativas somadas). */
         public long getLatenciaMs() { return latenciaMs; }
     }
 
+    /** Configuracao imutavel do tier 1 (SMTP), lida do .env por fromEnv(). */
     public static final class SmtpConfig {
         public final String host;
         public final int porta;
@@ -73,6 +86,7 @@ public final class SmtpCliente {
         public final String remetente;
         public final int timeoutMs;
 
+        /** Normaliza: trim, remetente cai no usuario se vazio (formato "Nome <email>" e aceito), timeout minimo 10s. */
         public SmtpConfig(String host, int porta, boolean usarSsl, String usuario, String senha, String remetente, int timeoutMs) {
             this.host = host != null ? host.trim() : "";
             this.porta = porta;
@@ -84,6 +98,7 @@ public final class SmtpCliente {
             this.timeoutMs = timeoutMs > 0 ? timeoutMs : 10_000;
         }
 
+        /** Fotografia do .env: SMTP_HOST/PORT/SECURE(ou SSL)/USER/PASSWORD/FROM/TIMEOUT_MS. */
         public static SmtpConfig fromEnv() {
             String usuario = ConfigEnv.obter("SMTP_USER", "");
             return new SmtpConfig(
@@ -99,12 +114,14 @@ public final class SmtpCliente {
         }
     }
 
+    /** Configuracao imutavel do tier 2 (provedores HTTPS REST + webhook). */
     public static final class HttpsRelayConfig {
         public final String resendApiKey;
         public final String brevoApiKey;
         public final String webhookUrl;
         public final String remetente;
 
+        /** Remetente vazio cai no endereco institucional padrao (exigido pelas APIs comerciais). */
         public HttpsRelayConfig(String resendApiKey, String brevoApiKey, String webhookUrl, String remetente) {
             this.resendApiKey = resendApiKey != null ? resendApiKey.trim() : "";
             this.brevoApiKey = brevoApiKey != null ? brevoApiKey.trim() : "";
@@ -113,6 +130,7 @@ public final class SmtpCliente {
             this.remetente = limpo.isEmpty() ? "portal.academico@agmrm.edu.br" : limpo;
         }
 
+        /** Fotografia do .env: RESEND_API_KEY, BREVO_API_KEY, GMAIL_WEBHOOK_URL e SMTP_FROM. */
         public static HttpsRelayConfig fromEnv() {
             String usuario = ConfigEnv.obter("SMTP_USER", "");
             return new HttpsRelayConfig(
@@ -124,6 +142,7 @@ public final class SmtpCliente {
         }
     }
 
+    /** Item do historico de outbox (diagnostico): o que foi retido, por qual canal e quando. */
     public static final class EmailOutboxItem {
         private final String destinatario;
         private final String assunto;
@@ -149,20 +168,28 @@ public final class SmtpCliente {
         public long getTimestamp() { return timestamp; }
     }
 
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private SmtpCliente() {}
 
+    /** @return historico em memoria dos e-mails retidos/processados pelo outbox. */
     public static List<EmailOutboxItem> getHistoricoOutbox() {
         return CanalOutboxLocal.getHistorico();
     }
 
+    /** @return estado atual do breaker SMTP (CLOSED/OPEN/HALF_OPEN) para o relatorio de diagnostico. */
     public static String getEstadoCircuito() {
         return CIRCUIT_BREAKER.getEstado();
     }
 
+    /** Zera o breaker (uso exclusivo de testes). */
     public static void resetarCircuitoParaTeste() {
         CIRCUIT_BREAKER.resetar();
     }
 
+    /**
+     * Validacao SINTATICA leve (nao verifica existencia da caixa): <=254 chars, sem espacos,
+     * um unico '@' com parte local nao vazia e dominio com ponto interno.
+     */
     public static boolean isEmailValido(String email) {
         if (email == null) return false;
         String limpo = email.trim();
@@ -178,21 +205,25 @@ public final class SmtpCliente {
     // API PUBLICA DE DISPARO ASSINCRONO E SINCRONO
     // =========================================================================
 
+    /** Fire-and-forget do OTP (ignora o resultado; auditoria fica a cargo de quem chama a variante ComResultado). */
     public static void enviarOtp(String destinatarioEmail, String codigoOTP, String nomeUsuario) {
         enviarOtpComResultado(destinatarioEmail, codigoOTP, nomeUsuario);
     }
 
+    /** Renderiza o template OTP e despacha em background; future completa com o resultado detalhado. */
     public static CompletableFuture<ResultadoEnvioEmail> enviarOtpComResultado(
             String destinatarioEmail, String codigoOTP, String nomeUsuario) {
         String html = new TemplateEmailOtp(nomeUsuario, codigoOTP).renderizar();
         return enviarAsyncDetalhado(destinatarioEmail, "Seu código de verificação - AGMRM", html, "OTP");
     }
 
+    /** Fire-and-forget das boas-vindas com credenciais iniciais. */
     public static void enviarBoasVindas(
             String destinatarioEmail, String nomeUsuario, String identidade, String perfil, String senhaTemporaria) {
         enviarBoasVindasComResultado(destinatarioEmail, nomeUsuario, identidade, perfil, senhaTemporaria);
     }
 
+    /** Boas-vindas com resultado; destinatario vazio nem entra na fila (future ja completo em OUTBOX). */
     public static CompletableFuture<ResultadoEnvioEmail> enviarBoasVindasComResultado(
             String destinatarioEmail, String nomeUsuario, String identidade, String perfil, String senhaTemporaria) {
         if (destinatarioEmail == null || destinatarioEmail.trim().isEmpty()) {
@@ -204,21 +235,28 @@ public final class SmtpCliente {
                 "Bem-vindo ao Portal AGMRM — Credenciais de Acesso", html, "WELCOME");
     }
 
+    /** Fire-and-forget do OTP de recuperacao de senha. */
     public static void enviarRecuperacao(String destinatarioEmail, String codigoOTP, String nomeUsuario) {
         enviarRecuperacaoComResultado(destinatarioEmail, codigoOTP, nomeUsuario);
     }
 
+    /** Recuperacao com resultado (usado pelo RecoveryHandler para auditar o envio). */
     public static CompletableFuture<ResultadoEnvioEmail> enviarRecuperacaoComResultado(
             String destinatarioEmail, String codigoOTP, String nomeUsuario) {
         String html = new TemplateEmailRecuperacao(nomeUsuario, codigoOTP).renderizar();
         return enviarAsyncDetalhado(destinatarioEmail, "Recuperação de senha - AGMRM", html, "RECOVERY");
     }
 
+    /** Versao simplificada sem resultado (compatibilidade com chamadas antigas). */
     public static CompletableFuture<Void> enviarAsync(
             String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
         return enviarAsyncDetalhado(destinatarioEmail, assunto, corpoHtml, tipo).thenApply(r -> null);
     }
 
+    /**
+     * Entrada assincrona padrao: agenda o despacho resiliente no pool dedicado.
+     * A configuracao e lida do .env DENTRO da tarefa (no momento do envio, nao do agendamento).
+     */
     public static CompletableFuture<ResultadoEnvioEmail> enviarAsyncDetalhado(
             String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
         return CompletableFuture.supplyAsync(() -> {
@@ -236,14 +274,17 @@ public final class SmtpCliente {
         }, FILA_EMAILS);
     }
 
+    /** SMTP cru e direto (sem tiers/breaker), lancando excecao em falha - uso de teste/legado. */
     public static void enviarSincrono(String destinatarioEmail, String assunto, String corpoHtml) throws Exception {
         CanalSmtpNativo.enviarViaSocket(SmtpConfig.fromEnv(), destinatarioEmail, assunto, corpoHtml);
     }
 
+    /** Versao sincrona resiliente que devolve so o nome do canal vencedor. */
     public static String enviarSincronoResiliente(String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
         return enviarSincronoDetalhado(destinatarioEmail, assunto, corpoHtml, tipo).getCanal();
     }
 
+    /** Despacho sincrono completo (usado pelo email-diagnostic): bloqueia ate a cadeia terminar, 1 tentativa SMTP. */
     public static ResultadoEnvioEmail enviarSincronoDetalhado(
             String destinatarioEmail, String assunto, String corpoHtml, String tipo) {
         return despacharResiliente(
@@ -262,6 +303,13 @@ public final class SmtpCliente {
     // ORQUESTRACAO DOS 3 TIERS DE RESILIENCIA
     // =========================================================================
 
+    /**
+     * Coracao da resiliencia (padrao Chain of Responsibility sobre os canais):
+     * sandbox -> simula e retira no outbox; senao Tier 1 SMTP (com breaker/retry) ->
+     * Tier 2 HTTPS (Resend/Brevo/Webhook) -> Tier 3 outbox local. NUNCA lanca excecao:
+     * o pior caso termina em OUTBOX com deliveredExternally=false e errorTrail completo.
+     * Interrupcao da thread (shutdown) tambem cai no outbox para nao perder a mensagem.
+     */
     public static ResultadoEnvioEmail despacharResiliente(
             SmtpConfig smtpConfig,
             HttpsRelayConfig httpsConfig,
@@ -276,6 +324,7 @@ public final class SmtpCliente {
         MensagemEmail mensagem = new MensagemEmail(destinatario, assunto, html, tipo);
 
         if (sandboxMode) {
+            // Sandbox: nenhum trafego externo; util em dev/demo e testes sem credenciais.
             CanalEnvioEmailAbstrato.log("INFO", "[SANDBOX] Email simulado para: " + destinatario + " | Tipo: " + tipo);
             errorTrail.add("Modo sandbox ativo (SMTP_SANDBOX_MODE=true)");
             OUTBOX_CANAL.tentarEnviar(mensagem, errorTrail);
@@ -292,6 +341,7 @@ public final class SmtpCliente {
             return new ResultadoEnvioEmail("SMTP", true, errorTrail, System.currentTimeMillis() - inicioTotal);
         }
         if (canalSmtp.foiInterrompido()) {
+            // Thread interrompida (shutdown): nao adianta tentar HTTPS, preserva direto no outbox.
             OUTBOX_CANAL.tentarEnviar(mensagem, errorTrail);
             return new ResultadoEnvioEmail("OUTBOX", false, errorTrail, System.currentTimeMillis() - inicioTotal);
         }
@@ -310,6 +360,12 @@ public final class SmtpCliente {
         return new ResultadoEnvioEmail("OUTBOX", false, errorTrail, System.currentTimeMillis() - inicioTotal);
     }
 
+    /**
+     * Tier 2 em ordem fixa: Resend -> Brevo -> Webhook. Canais nao configurados sao
+     * pulados sem erro; o PRIMEIRO que aceitar encerra a cadeia (sem envio duplicado).
+     *
+     * @return nome do canal vencedor ou null se nenhum entregou
+     */
     public static String acionarFallbackHttps(
             HttpsRelayConfig config,
             String destinatario,
@@ -343,22 +399,30 @@ public final class SmtpCliente {
     }
 
     // Helpers estaticos delegados (compatibilidade direta com SmtpClienteTeste)
+    /** SMTP cru com config explicita (teste de integracao manual). */
     public static void enviarSmtpComConfig(SmtpConfig config, String destinatario, String assunto, String html) throws Exception {
         CanalSmtpNativo.enviarViaSocket(config, destinatario, assunto, html);
     }
 
+    /** Delegador da validacao de resposta do webhook (exposto para testes). */
     public static String validarRespostaWebhook(int status, String body) {
         return CanalWebhookEmail.validarRespostaWebhook(status, body);
     }
 
+    /** Delegador do parser de endereco "Nome <email>" (exposto para testes). */
     public static String extrairEmailPuro(String valor) {
         return MensagemEmail.extrairEmailPuro(valor);
     }
 
+    /** Delegador da normalizacao DATA RFC 5321 (dot-stuffing/CRLF, exposto para testes). */
     public static String normalizarCorpoDataRfc5321(String corpo) {
         return CanalSmtpNativo.normalizarCorpoDataRfc5321(corpo);
     }
 
+    /**
+     * Shutdown gracioso do pool (chamado pelo hook do Main): aguarda ate 10s os envios
+     * em andamento e entao forca shutdownNow; interrupcao restaura a flag da thread.
+     */
     public static void encerrar() {
         FILA_EMAILS.shutdown();
         try {

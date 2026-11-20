@@ -19,10 +19,21 @@ import java.util.HashSet;
 import java.util.Set;
 
 // Teste sem bibliotecas do validador nativo JWT HS256 feito na unha.
+/**
+ * Suite do JwtAuthValidator: assinatura/claims validos, rejeicao de segredo errado,
+ * adulteracao de payload (escalacao aluno->admin), ataque alg=none, expiracao e perfil
+ * invalido; mais integracao HTTP com sessao autoritativa fake (revogacao antes do exp,
+ * requirePasswordChange, RBAC admin e precedencia do perfil do JWT sobre o body).
+ */
 public class JwtAuthValidatorTeste {
     private static final String SEGREDO_TESTE = "segredo-institucional-teste-minimo-32-chars!";
     private static int falhas = 0;
 
+    /**
+     * Repositorio fake da camada autoritativa: sessoes ativas em um Set, versao atual
+     * configuravel e conjunto de usuarios com troca de senha pendente - reproduz as
+     * regras do Mongo sem banco real.
+     */
     private static final class RepoSessaoFake extends RepositorioUsuarios {
         final Set<String> sessoesAtivas = new HashSet<String>();
         final Set<String> trocaSenhaPendente = new HashSet<String>();
@@ -62,11 +73,13 @@ public class JwtAuthValidatorTeste {
         }
     }
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** @return true se o validador REJEITOU o token (cenarios negativos). */
     static boolean rejeita(String token, String segredo) {
         try {
             JwtAuthValidator.validarToken(token, segredo);
@@ -76,6 +89,7 @@ public class JwtAuthValidatorTeste {
         }
     }
 
+    /** Executa os cenarios numerados + integracao HTTP; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
 
@@ -101,6 +115,7 @@ public class JwtAuthValidatorTeste {
                 "JWT: rejeita assinatura com segredo incorreto");
 
         // 3. Rejeita adulteracao de payload (tentativa de escalar aluno -> admin)
+        // Troca so o payload e mantem a assinatura original: o HMAC recalculado nao bate.
         String tokenAluno = JwtAuthValidator.gerarTokenHs256("u-aluno", "aluno", "sess-1", 0, 300L, SEGREDO_TESTE);
         String[] partes = tokenAluno.split("\\.");
         String payloadAdulterado = Base64.getUrlEncoder().withoutPadding().encodeToString(
@@ -219,6 +234,7 @@ public class JwtAuthValidatorTeste {
         return falhas;
     }
 
+    /** Executa uma requisicao HTTP crua contra o handler real e devolve a resposta serializada. */
     private static String executarHttp(core.ManipuladorHttp handler, String rawHttp) throws Exception {
         RequisicaoHttp req = RequisicaoHttp.ler(new ByteArrayInputStream(rawHttp.getBytes(StandardCharsets.UTF_8)));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -227,6 +243,7 @@ public class JwtAuthValidatorTeste {
         return new String(out.toByteArray(), StandardCharsets.UTF_8);
     }
 
+    /** Runner isolado: exit 1 se houver falha. */
     public static void main(String[] args) {
         int erros = executar();
         if (erros > 0) {

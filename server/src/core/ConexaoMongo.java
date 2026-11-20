@@ -21,10 +21,14 @@ import java.util.concurrent.TimeUnit;
  * cache de healthcheck e encerramento limpo do pool no shutdown.
  */
 public class ConexaoMongo {
+    // Timeouts curtos de proposito: em rede hostil (Wi-Fi que bloqueia Atlas) falhar em 5s
+    // e melhor que travar a requisicao nos 30s padrao do driver.
     private static final int SERVER_SELECTION_TIMEOUT_MS = 5_000;
     private static final int SOCKET_TIMEOUT_MS = 10_000;
+    // Janela do cache de healthcheck: evita pingar o banco a cada requisicao de /health.
     private static final long HEALTH_CACHE_TTL_MS = 5_000L;
 
+    /** DTO imutavel com o resultado do healthcheck: disponibilidade + codigo/detalhe para diagnostico. */
     public static final class EstadoSaudeBanco {
         public final boolean disponivel;
         public final String codigo;
@@ -37,8 +41,10 @@ public class ConexaoMongo {
         }
     }
 
+    // Singleton com double-checked locking: volatile garante visibilidade da instancia entre threads.
     private static volatile ConexaoMongo INSTANCIA;
 
+    // volatile: o failover recria client/database em uma thread enquanto outras leem.
     private volatile MongoClient client;
     private volatile MongoDatabase database;
     private final String dbNameConfigurado;
@@ -51,6 +57,7 @@ public class ConexaoMongo {
     private volatile String ultimoErroBancoCodigo = "";
     private volatile String ultimoErroBancoMsg = "";
 
+    /** Singleton padrao (double-checked locking) usado pelos repositorios em producao. */
     public static ConexaoMongo getInstance() {
         if (INSTANCIA == null) {
             synchronized (ConexaoMongo.class) {
@@ -62,10 +69,18 @@ public class ConexaoMongo {
         return INSTANCIA;
     }
 
+    /** @return instancia existente sem criar uma nova (evita conectar ao banco em contexto de teste). */
     public static ConexaoMongo getInstanciaSeInicializada() {
         return INSTANCIA;
     }
 
+    /**
+     * Le MONGODB_URI/MONGODB_DIRECT_URI do .env e inicializa o cliente.
+     * Construtor publico de proposito: testes injetam instancias proprias; a primeira
+     * instancia criada tambem se registra como singleton se ainda nao houver uma.
+     *
+     * @throws IllegalStateException se nenhuma URI estiver configurada
+     */
     public ConexaoMongo() {
         String uri = ConfigEnv.obter("MONGODB_URI", null);
         String directUri = ConfigEnv.obter("MONGODB_DIRECT_URI", null);
@@ -86,6 +101,12 @@ public class ConexaoMongo {
                 + SERVER_SELECTION_TIMEOUT_MS + "ms).");
     }
 
+    /**
+     * (Re)cria o MongoClient com timeouts agressivos e, para URIs mongodb+srv://,
+     * injeta o ResilientDnsClient (JNDI + DoH). synchronized serializa failovers
+     * concorrentes; o cliente anterior so e fechado depois do novo estar pronto.
+     * Se a URI principal falhar e houver MONGODB_DIRECT_URI, tenta o failover recursivo.
+     */
     private synchronized void inicializarCliente(String connectionUri, boolean direta) {
         if (connectionUri == null || connectionUri.trim().isEmpty()) {
             return;
@@ -108,6 +129,7 @@ public class ConexaoMongo {
                                   .readTimeout(SOCKET_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                         }
                     });
+            // SRV exige consulta DNS especial: so aqui o resolvedor resiliente faz diferenca.
             if (connectionUri.trim().startsWith("mongodb+srv://")) {
                 builder.dnsClient(this.dnsClient);
             }
@@ -132,10 +154,17 @@ public class ConexaoMongo {
         }
     }
 
+    /** @return banco atual ou null se o boot falhou (leituras tolerantes a offline). */
     public MongoDatabase getDatabase() {
         return database;
     }
 
+    /**
+     * Versao fail-fast: tenta reinicializar se preciso e lanca 503 quando o banco
+     * segue inacessivel. Usada por operacoes que nao podem prosseguir sem persistencia.
+     *
+     * @throws DatabaseUnavailableException com o ultimo codigo/detalhe de erro conhecido
+     */
     public MongoDatabase garantirBancoAtivo() {
         if (this.database == null) {
             if (this.uriPrincipalConfigurada != null) {
@@ -157,6 +186,9 @@ public class ConexaoMongo {
 
     /**
      * Verifica rapidamente (com cache de 5s) se o MongoDB esta acessivel na rede atual.
+     * Fluxo: cache valido -> resposta imediata; senao ping; ping falhou e ainda estamos
+     * na URI SRV -> failover para a URI direta e novo ping. Nunca lanca excecao: o
+     * resultado degradado vira DTO para o HealthHandler decidir o status HTTP.
      */
     public EstadoSaudeBanco verificarSaudeBanco() {
         if (this.uriPrincipalConfigurada == null) {
@@ -185,6 +217,7 @@ public class ConexaoMongo {
         return new EstadoSaudeBanco(false, this.ultimoErroBancoCodigo, this.ultimoErroBancoMsg);
     }
 
+    /** Ping administrativo ({ping:1}) que valida conectividade real, nao so a existencia do client. */
     private boolean executarPing() {
         try {
             this.database.runCommand(new Document("ping", 1));
@@ -199,6 +232,11 @@ public class ConexaoMongo {
         }
     }
 
+    /**
+     * Traduz uma MongoException ocorrida em operacao: se a causa for DNS SRV bloqueado e
+     * ainda estivermos na URI principal, troca para a URI direta (o retry da operacao fica
+     * a cargo do chamador). Sempre devolve a excecao 503 para o handler propagar.
+     */
     public RuntimeException tratarFalhaMongo(MongoException e, String contexto) {
         if (!this.usandoUriDireta && this.uriDiretaConfigurada != null) {
             DatabaseUnavailableException prelim = DatabaseUnavailableException.fromThrowable(e);
@@ -212,6 +250,7 @@ public class ConexaoMongo {
         return unavailable;
     }
 
+    /** Alimenta o cache de saude com a falha para que /health/ready reflita o problema por 5s. */
     private void registrarIndisponibilidade(DatabaseUnavailableException unavailable, String contexto) {
         this.ultimoCheckSaudeAt = System.currentTimeMillis();
         this.ultimoCheckSaudeOk = false;
@@ -220,6 +259,7 @@ public class ConexaoMongo {
         System.err.println("[MONGO-NET] " + contexto + ": " + unavailable.getMessage());
     }
 
+    /** Fecha o pool de conexoes do driver; chamado pelo shutdown hook do Main. */
     public void encerrarDefinitivo() {
         if (client != null) {
             client.close();

@@ -34,8 +34,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class RepositorioVideoCall extends RepositorioMongoAbstrato {
     private static final SecureRandom RANDOM = new SecureRandom();
+    // Singleton DCL; compartilha a ConexaoMongo do dominio auth (um pool so por processo).
     private static volatile RepositorioVideoCall INSTANCIA;
 
+    /** Singleton padrao: reaproveita a conexao do RepositorioUsuarios (ou o database direto). */
     public static RepositorioVideoCall getInstance() {
         if (INSTANCIA == null) {
             synchronized (RepositorioVideoCall.class) {
@@ -51,6 +53,7 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         return INSTANCIA;
     }
 
+    /** @return instancia somente se ja houver banco utilizavel; nunca dispara conexao (caminho do upgrade WS). */
     public static RepositorioVideoCall getInstanciaSeBancoAtivo() {
         if (INSTANCIA != null) return INSTANCIA;
         RepositorioUsuarios repo = RepositorioUsuarios.getInstanciaSeInicializada();
@@ -58,11 +61,13 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         return getInstance();
     }
 
+    /** Modo producao: conexao compartilhada + indices em thread daemon. */
     public RepositorioVideoCall(ConexaoMongo conexao) {
         super(conexao);
         inicializarIndicesAsync("vc-indexes-init");
     }
 
+    /** Modo banco fixo (testes/injecao). */
     public RepositorioVideoCall(MongoDatabase database) {
         super(database);
         inicializarIndicesAsync("vc-indexes-init");
@@ -73,6 +78,10 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         return "VIDEOCALL-DB";
     }
 
+    /**
+     * Indices das 3 colecoes: ticket com digest unico + TTL (60s de vida util),
+     * sessao ao vivo com TTL (expira em 8h mesmo sem fechamento explicito).
+     */
     @Override
     protected void registrarIndices(MongoDatabase db) {
         MongoCollection<Document> ticketsCol = db.getCollection("video_call_ws_tickets");
@@ -85,10 +94,12 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
                 new Document("expiresAt", 1), new IndexOptions().expireAfter(0L, TimeUnit.SECONDS));
     }
 
+    /** Delegador de compatibilidade: sanitizacao canonica vive em VideoCallUtils. */
     public static String sanitizeRoomCode(String raw) {
         return VideoCallUtils.sanitizeRoomCode(raw);
     }
 
+    /** Codigos (uppercase) das salas com sessao nao expirada - usado para marcar isOpen na listagem. */
     public Set<String> listarCodigosSalasAbertas() {
         Set<String> abertas = new HashSet<String>();
         List<Document> docs = new ArrayList<Document>();
@@ -106,6 +117,7 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         return abertas;
     }
 
+    /** Sala aberta = documento em academic_live_sessions com expiresAt no futuro. */
     public boolean salaEstaAberta(String roomCode) {
         String normalizado = VideoCallUtils.sanitizeRoomCode(roomCode);
         try {
@@ -118,6 +130,10 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Abre (ou reabre) a sala via upsert por roomCode: registra quem abriu e renova
+     * a janela de 8h. Reabrir pelo mesmo docente atualiza os metadados sem duplicar.
+     */
     public void abrirSala(String roomCode, String classCode, UsuarioAutenticado usuario) {
         String normalizado = VideoCallUtils.sanitizeRoomCode(roomCode);
         Date agora = new Date();
@@ -144,6 +160,10 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Fecha a sala com guarda de POSSE no proprio filtro: docente so apaga a sessao
+     * que ele abriu (openedById); admin apaga qualquer uma. deletedCount != 1 = nao fechou.
+     */
     public boolean fecharSala(String roomCode, UsuarioAutenticado usuario) {
         String normalizado = VideoCallUtils.sanitizeRoomCode(roomCode);
         Bson filtro = usuario.isAdmin()
@@ -157,6 +177,11 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Emite ticket de upgrade WS: 32 bytes SecureRandom em Base64URL (43 chars).
+     * O banco guarda apenas o SHA-256 do ticket (vazamento do Mongo nao permite usar
+     * tickets pendentes) com TTL de 60s - janela curta entre o enter e o upgrade.
+     */
     public String emitirTicketWebSocket(String roomCode) {
         String normalizado = VideoCallUtils.sanitizeRoomCode(roomCode);
         byte[] bytes = new byte[32];
@@ -174,6 +199,10 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Consumo ATOMICO single-use (findOneAndDelete) casando digest + sala + validade.
+     * Replay do mesmo ticket, ticket de outra sala ou expirado -> false.
+     */
     public boolean consumirTicketWebSocket(String ticket, String roomCode) {
         if (ticket == null || !ticket.matches("^[A-Za-z0-9_-]{43}$")) {
             return false;
@@ -197,6 +226,7 @@ public class RepositorioVideoCall extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Log append-only de telemetria (join/leave + segundos conectado) para auditoria de presenca. */
     public void registrarLogPresenca(
             String roomCode, String classCode, UsuarioAutenticado usuario, String event, int connectedSeconds) {
         try {

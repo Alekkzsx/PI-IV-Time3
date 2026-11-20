@@ -32,6 +32,7 @@ public class RefreshTokenHandler extends HandlerAuthPublicoAbstrato {
         return "Utilize POST para renovar tokens.";
     }
 
+    /** Codigo semantico proprio: cliente distingue refresh invalido de access invalido. */
     @Override
     protected String codigoErroSeguranca() {
         return "invalid_refresh_token";
@@ -42,6 +43,12 @@ public class RefreshTokenHandler extends HandlerAuthPublicoAbstrato {
         return "REFRESH";
     }
 
+    /**
+     * Renovacao com ROTACAO de refresh token:
+     * valida type=refresh -> reconfere usuario ativo no banco -> compara sessionVersion
+     * (troca de senha revoga tudo) -> revoga o jti antigo -> emite par novo + sessao nova.
+     * Refresh token roubado so funciona UMA vez: o uso legitimo seguinte ja o encontra revogado.
+     */
     @Override
     protected void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws Exception {
         String refreshToken = extrairRefreshToken(requisicao);
@@ -63,6 +70,7 @@ public class RefreshTokenHandler extends HandlerAuthPublicoAbstrato {
             responderErro(resposta, 401, "invalid_refresh_token", "Usuario nao encontrado ou desativado.");
             return;
         }
+        // Versao diverge = senha trocada / sessoes revogadas desde a emissao deste refresh.
         if (usuario.getSessionVersion() != usuarioAtualizado.getSessionVersion()) {
             responderErro(resposta, 401, "invalid_refresh_token",
                     "Sessao invalidada. Todas as sessoes foram revogadas. Realize login novamente.");
@@ -87,6 +95,7 @@ public class RefreshTokenHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 200, payload);
     }
 
+    /** Aceita o refresh token no body (refreshToken) ou, como fallback, no header Authorization Bearer. */
     private String extrairRefreshToken(RequisicaoHttp requisicao) {
         try {
             Map<String, Object> body = lerJsonObjetoOpcional(requisicao);

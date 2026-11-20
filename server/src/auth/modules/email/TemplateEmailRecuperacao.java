@@ -9,6 +9,7 @@ import auth.abstratas.TemplateEmailAbstrato;
 public class TemplateEmailRecuperacao extends TemplateEmailAbstrato {
     private final String codigo;
 
+    /** @param codigo OTP de recuperacao (fluxo send-recovery-otp). */
     public TemplateEmailRecuperacao(String nomeDestinatario, String codigo) {
         super(nomeDestinatario);
         this.codigo = codigo;
@@ -24,6 +25,7 @@ public class TemplateEmailRecuperacao extends TemplateEmailAbstrato {
         return "&#128273; Recuperação de Senha";
     }
 
+    /** Codigo em destaque + aviso "se nao solicitou, ignore" (nao revela nada sobre a conta). */
     @Override
     protected String getConteudoHtml() {
         return "<p>Recebemos uma solicitação para redefinir sua senha. Use o código abaixo:</p>"

@@ -6,9 +6,21 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 // JSON simples para objetos com campos de texto, sem bibliotecas externas.
+/**
+ * Subconjunto minimalista de JSON: apenas objetos planos {chave: "texto"}.
+ * Usado onde o payload e garantidamente string->string (ex.: respostas curtas de auth);
+ * para estruturas aninhadas/numericas use {@link Json}.
+ * escapar() tambem e reaproveitado pelo serializador completo Json.
+ */
 public final class JsonSimples {
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private JsonSimples() {}
 
+    /**
+     * Escapa e envolve um texto em aspas duplas seguindo a RFC 8259:
+     * aspas, barra invertida e controles comuns ganham escape curto; demais
+     * caracteres < 32 viram \\u00XX. null vira o literal null (sem aspas).
+     */
     public static String escapar(String valor) {
         if (valor == null) return "null";
         StringBuilder texto = new StringBuilder("\"");
@@ -22,6 +34,7 @@ public final class JsonSimples {
                 case '\b': texto.append("\\b"); break;
                 case '\f': texto.append("\\f"); break;
                 default:
+                    // Controle sem escape curto dedicado: forma hexadecimal obrigatoria \\u00XX.
                     if (c < 32) texto.append(String.format("\\u%04x", (int) c));
                     else texto.append(c);
             }
@@ -29,6 +42,7 @@ public final class JsonSimples {
         return texto.append('"').toString();
     }
 
+    /** Serializa um mapa plano como objeto JSON, escapando chaves e valores. */
     public static String objeto(Map<String, String> campos) {
         StringBuilder texto = new StringBuilder("{");
         for (Map.Entry<String, String> campo : campos.entrySet()) {
@@ -38,6 +52,11 @@ public final class JsonSimples {
         return texto.append('}').toString();
     }
 
+    /**
+     * Analisa um objeto JSON plano de textos.
+     *
+     * @throws IllegalArgumentException se houver sintaxe invalida, campo repetido ou sobra de conteudo
+     */
     public static Map<String, String> analisar(String json) {
         if (json == null) throw new IllegalArgumentException("JSON vazio");
         Parser parser = new Parser(json);
@@ -47,6 +66,7 @@ public final class JsonSimples {
         return resultado;
     }
 
+    /** Cursor de leitura especializado na gramatica reduzida {string: string, ...}. */
     private static final class Parser {
         private final String entrada;
         private int posicao;
@@ -55,12 +75,14 @@ public final class JsonSimples {
             this.entrada = entrada;
         }
 
+        /** Avanca o cursor sobre espacos em branco entre tokens. */
         void espacos() {
             while (posicao < entrada.length() && Character.isWhitespace(entrada.charAt(posicao))) {
                 posicao++;
             }
         }
 
+        /** Consome o caractere se for o esperado; devolve false sem avancar caso contrario (lookahead). */
         boolean consumir(char esperado) {
             espacos();
             if (posicao < entrada.length() && entrada.charAt(posicao) == esperado) {
@@ -70,12 +92,14 @@ public final class JsonSimples {
             return false;
         }
 
+        /** Versao estrita de consumir(): ausencia do caractere estrutural invalida o JSON. */
         void exigir(char esperado) {
             if (!consumir(esperado)) {
                 throw new IllegalArgumentException("JSON invalido: esperado " + esperado);
             }
         }
 
+        /** Le string entre aspas com os mesmos escapes da RFC 8259 aceitos por Json. */
         String texto() {
             espacos();
             exigir('"');
@@ -115,6 +139,7 @@ public final class JsonSimples {
             throw new IllegalArgumentException("String JSON incompleta");
         }
 
+        /** Le o objeto plano; rejeita chave repetida e virgula final (trailing comma), ambos fora da RFC. */
         Map<String, String> objeto() {
             Map<String, String> campos = new LinkedHashMap<String, String>();
             exigir('{');

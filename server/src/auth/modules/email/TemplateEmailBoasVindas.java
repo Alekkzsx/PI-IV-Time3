@@ -11,6 +11,7 @@ public class TemplateEmailBoasVindas extends TemplateEmailAbstrato {
     private final String perfil;
     private final String senhaTemporaria;
 
+    /** @param senhaTemporaria senha inicial em texto puro (unica vez que aparece; troca obrigatoria no 1o login). */
     public TemplateEmailBoasVindas(String nomeDestinatario, String identidade, String perfil, String senhaTemporaria) {
         super(nomeDestinatario);
         this.identidade = identidade;
@@ -28,6 +29,7 @@ public class TemplateEmailBoasVindas extends TemplateEmailAbstrato {
         return "Bem-vindo ao Portal AGMRM";
     }
 
+    /** Credenciais da conta; todos os campos dinamicos escapados (anti-XSS no cliente de e-mail). */
     @Override
     protected String getConteudoHtml() {
         String blocoSenha = (senhaTemporaria != null && !senhaTemporaria.isEmpty())

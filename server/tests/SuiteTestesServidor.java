@@ -19,7 +19,13 @@ import videocall.hub.RegistradorChatTeste;
 import websocket.HandshakeTeste;
 import websocket.QuadroTeste;
 
+/**
+ * Runner unificado das 17 suites nativas (sem JUnit): executa cada executar() em ordem,
+ * soma as falhas e define o exit code do processo (0 = tudo passou, 1 = alguma falha).
+ * E o portao de qualidade do servidor: roda offline, sem Mongo/rede externos.
+ */
 public class SuiteTestesServidor {
+    /** Executa as 17 suites em sequencia; qualquer falha encerra com System.exit(1). */
     public static void main(String[] args) throws Exception {
         int totalFalhas = 0;
 

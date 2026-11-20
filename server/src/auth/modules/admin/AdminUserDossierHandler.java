@@ -32,6 +32,12 @@ public class AdminUserDossierHandler extends AdminHandlerAbstrato {
         return "GET";
     }
 
+    /**
+     * GET /users/{id}/dossier: consolida identidade (auth_users), dados academicos
+     * (ponte :3001) e trilha de auditoria (100 eventos) numa unica resposta.
+     * A propria consulta do admin e auditada (dossier_viewed) - acesso a dados de
+     * terceiros tambem deixa rastro.
+     */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin) throws Exception {
@@ -56,6 +62,7 @@ public class AdminUserDossierHandler extends AdminHandlerAbstrato {
 
         repositorio.registrarAuditoria(admin.getUserId(), "dossier_viewed", userId, null);
 
+        // classes/teachingClasses: nomes antigos e novos do mesmo dado no backend academico.
         Object classesList = academic.get("classes") instanceof List ? academic.get("classes")
                 : (academic.get("teachingClasses") instanceof List ? academic.get("teachingClasses") : Collections.emptyList());
 

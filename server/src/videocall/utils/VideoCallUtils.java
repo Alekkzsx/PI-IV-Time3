@@ -12,10 +12,13 @@ import java.util.Map;
  * e calculo de percentual/classificacao de presenca discente.
  */
 public final class VideoCallUtils {
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private VideoCallUtils() {}
 
     /**
      * Normaliza o codigo da sala de videochamada para formato seguro em caixa alta.
+     * Pipeline: trim -> uppercase -> espacos ao redor de '-' removidos -> espacos viram '-'
+     * -> whitelist final [A-Z0-9._-] (qualquer outro caractere e descartado).
      */
     public static String sanitizeRoomCode(String raw) {
         if (raw == null) {
@@ -30,6 +33,7 @@ public final class VideoCallUtils {
 
     /**
      * Resolve o papel do participante garantindo precedencia absoluta do perfil do JWT autenticado.
+     * Anti-spoofing: aluno autenticado nunca vira "docente" so porque o body pediu.
      */
     public static String resolverPapel(Map<String, String> params, UsuarioAutenticado usuario, String chaveParam) {
         if (usuario != null) {
@@ -62,6 +66,7 @@ public final class VideoCallUtils {
 
     /**
      * Calcula percentual de permanencia limitado a 100.0% com uma casa decimal.
+     * base minima 1 evita divisao por zero em sala de duracao desconhecida.
      */
     public static double calcularPercentualPresenca(long minutosConectado, int duracaoTotalMinutos) {
         int base = Math.max(1, duracaoTotalMinutos);
@@ -73,7 +78,8 @@ public final class VideoCallUtils {
     }
 
     /**
-     * Classifica o status regimental de presenca com base no percentual conectado.
+     * Classifica o status regimental de presenca com base no percentual conectado:
+     * >= 75% presenca integral; >= 50% meia presenca; abaixo disso falta automatica.
      */
     public static String classificarStatusPresenca(double percentual) {
         if (percentual >= 75.0) {

@@ -18,13 +18,17 @@ import java.util.Map;
  * sem nenhuma biblioteca externa.
  */
 public final class ConfigEnv {
+    // Cache carregado uma unica vez: o .env e lido no carregamento da classe e nao muda em runtime.
     private static final Map<String, String> ARQUIVO = new HashMap<String, String>();
+    // Caminho efetivamente carregado (exposto para diagnostico, ex.: email-diagnostic).
     private static Path ARQUIVO_ENV_CARREGADO = null;
 
+    // Bloco estatico: qualquer primeira chamada a ConfigEnv ja ve o .env carregado.
     static {
         carregarEnvRaiz();
     }
 
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private ConfigEnv() {}
 
     /**
@@ -42,6 +46,12 @@ public final class ConfigEnv {
 
     /**
      * Localiza confiavelmente o arquivo .env da raiz do projeto subindo a arvore de diretorios.
+     * Estrategias em ordem: (1) -Denv.file / ENV_FILE explicitos; (2) subida a partir do
+     * working directory; (3) subida a partir do local do .class/jar; (4) fallbacks relativos.
+     * Um candidato so e aceito se o diretorio tambem contem server/, backend/ ou .git,
+     * evitando pegar um .env estranho de um diretorio pai nao relacionado.
+     *
+     * @return caminho absoluto do .env mestre ou null se nenhum candidato valido existir
      */
     public static Path localizarArquivoEnvRaiz() {
         // 1. Propriedade explícita da JVM (-Denv.file=...) ou variável de ambiente ENV_FILE
@@ -104,10 +114,16 @@ public final class ConfigEnv {
         return null;
     }
 
+    /** @return caminho do .env efetivamente carregado, ou null se a carga falhou/nao ocorreu. */
     public static Path getArquivoEnvCarregado() {
         return ARQUIVO_ENV_CARREGADO;
     }
 
+    /**
+     * Le o .env linha a linha no formato CHAVE=VALOR.
+     * Ignora linhas vazias, comentarios (#) e linhas sem '='; valores vazios nao entram
+     * no cache para que os fallbacks de obter() continuem funcionando.
+     */
     private static void carregar(Path arquivo) {
         try {
             List<String> linhas = Files.readAllLines(arquivo, StandardCharsets.UTF_8);
@@ -116,6 +132,7 @@ public final class ConfigEnv {
                 if (limpa.isEmpty() || limpa.startsWith("#")) continue;
                 int igual = limpa.indexOf('=');
                 if (igual <= 0) continue;
+                // Split apenas no PRIMEIRO '=': valores podem conter '=' (ex.: secrets Base64 com padding).
                 String chave = limpa.substring(0, igual).trim();
                 String valor = limparAspas(limpa.substring(igual + 1).trim());
                 if (!chave.isEmpty() && !valor.isEmpty()) {
@@ -128,6 +145,7 @@ public final class ConfigEnv {
         }
     }
 
+    /** Remove um par de aspas simples ou duplas que envolva todo o valor (estilo dotenv). */
     private static String limparAspas(String valor) {
         if (valor.length() >= 2) {
             char inicio = valor.charAt(0);
@@ -139,7 +157,16 @@ public final class ConfigEnv {
         return valor;
     }
 
-    /** Variavel de ambiente do SO ou propriedade JVM (-D) tem prioridade sobre o .env raiz. */
+    /**
+     * Variavel de ambiente do SO ou propriedade JVM (-D) tem prioridade sobre o .env raiz.
+     * Cadeia completa: getenv(chave) > getProperty(chave) > .env > alias equivalente > padrao.
+     * Os aliases (AUTH_JWT_SECRET/JWT_SECRET e SMTP_SECURE/SMTP_SSL) garantem que Java e
+     * backend TypeScript compartilhem o mesmo segredo/flag mesmo com nomes historicos diferentes.
+     *
+     * @param chave  nome da variavel procurada
+     * @param padrao valor devolvido quando nenhuma fonte define a chave (pode ser null)
+     * @return valor nao vazio e sem espacos nas pontas, ou o padrao
+     */
     public static String obter(String chave, String padrao) {
         String valor = System.getenv(chave);
         if (valor == null || valor.trim().isEmpty()) {
@@ -165,6 +192,7 @@ public final class ConfigEnv {
         return (valor == null || valor.trim().isEmpty()) ? padrao : valor.trim();
     }
 
+    /** Versao inteira de obter(): valor ausente ou nao numerico cai silenciosamente no padrao. */
     public static int obterInteiro(String chave, int padrao) {
         String valor = obter(chave, null);
         if (valor == null) return padrao;
@@ -175,6 +203,12 @@ public final class ConfigEnv {
         }
     }
 
+    /**
+     * Obtem uma configuracao obrigatoria; ausente = erro de boot imediato (fail-fast),
+     * usado para segredos que nao podem ter fallback inseguro (ex.: JWT).
+     *
+     * @throws IllegalStateException se a chave nao estiver definida em nenhuma fonte
+     */
     public static String exigir(String chave) {
         String valor = obter(chave, null);
         if (valor == null) {

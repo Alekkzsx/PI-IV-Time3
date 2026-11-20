@@ -16,12 +16,16 @@ import java.util.UUID;
  * de presenca que trafegam pelo hub WebSocket da videochamada.
  */
 public class RegistradorChat implements RegistradorEnvelope {
+    // Mensagem de chat truncada em 2000 chars (anti-abuso de payload).
     private static final int LIMITE_TEXTO = 2000;
+    // Anel de 2000 mensagens em memoria: historico recente sem crescer indefinidamente.
     private static final int LIMITE_HISTORICO_MEMORIA = 2000;
 
     private final VideoCallService servico;
+    // Guardado pelo proprio monitor da lista (synchronized(mensagensGravadas)).
     private final List<Map<String, Object>> mensagensGravadas = new ArrayList<Map<String, Object>>();
 
+    /** Sem service: so o historico proprio (testes do registrador isolado). */
     public RegistradorChat() {
         this(null);
     }
@@ -30,6 +34,7 @@ public class RegistradorChat implements RegistradorEnvelope {
         this.servico = servico;
     }
 
+    /** Despacho por tipo: chat vira historico; join/leave/hand_raise sincronizam o service legado. */
     @Override
     public void registrar(String sala, Map<String, Object> envelope) {
         if (envelope == null) return;
@@ -44,6 +49,11 @@ public class RegistradorChat implements RegistradorEnvelope {
         }
     }
 
+    /**
+     * Persiste a mensagem de chat: aceita text ou content (aliases do cliente),
+     * trunca no limite, entra no anel em memoria e espelha no VideoCallService
+     * (best-effort: falha do espelho nao perde a mensagem do anel).
+     */
     private void registrarMensagemChat(String sala, Map<String, Object> envelope) {
         Object payload = envelope.get("payload");
         if (!(payload instanceof Map)) return;
@@ -70,6 +80,7 @@ public class RegistradorChat implements RegistradorEnvelope {
         documento.put("sentAt", Long.valueOf(sentAt));
 
         synchronized (mensagensGravadas) {
+            // Anel cheio: descarta a mais antiga antes de acrescentar a nova.
             if (mensagensGravadas.size() >= LIMITE_HISTORICO_MEMORIA) {
                 mensagensGravadas.remove(0);
             }
@@ -86,6 +97,11 @@ public class RegistradorChat implements RegistradorEnvelope {
         }
     }
 
+    /**
+     * Espelha a telemetria do WS no estado legado: join entra na sala (abrindo-a se
+     * preciso - o ticket do upgrade ja autorizou a sessao), leave sai, hand_raise
+     * alterna a fila FIFO. Falhas do service sao engolidas: o hub nao pode cair por isso.
+     */
     private void sincronizarTelemetriaSala(String sala, String tipo, Map<String, Object> envelope) {
         String remetenteId = envelope.get("senderId") instanceof String ? (String) envelope.get("senderId") : "";
         if (remetenteId.isEmpty()) return;
@@ -119,6 +135,7 @@ public class RegistradorChat implements RegistradorEnvelope {
         } catch (RuntimeException ignored) { }
     }
 
+    /** Historico de chat (opcionalmente filtrado por sala) em copias imutaveis. */
     public List<Map<String, Object>> listarMensagens(String filtroSala) {
         synchronized (mensagensGravadas) {
             List<Map<String, Object>> copia = new ArrayList<Map<String, Object>>();

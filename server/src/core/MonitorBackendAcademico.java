@@ -18,17 +18,22 @@ import java.net.URL;
  * preservando apenas /health e /health/ready livres para diagnostico.
  */
 public final class MonitorBackendAcademico {
+    // Probe curto (2s) para nao somar latencia perceptivel as requisicoes funcionais.
     private static final int PROBE_TIMEOUT_MS = 2_000;
+    // Cache assimetrico: sucesso dura 3s (barato), falha so 1s (recuperacao detectada rapido).
     private static final long CACHE_OK_MS = 3_000L;
     private static final long CACHE_FALHA_MS = 1_000L;
 
+    // Estado global volatile: lido por todas as workers HTTP, escrito no boot/configuracao.
     private static volatile boolean ativo = false;
     private static volatile String baseUrlConfigurada = resolverBaseUrl();
     private static volatile long ultimoCheckMs = 0L;
     private static volatile boolean ultimoResultadoOnline = false;
 
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private MonitorBackendAcademico() {}
 
+    /** Resolve a base URL do backend TS: ACADEMIC_API_BASE_URL > API_BASE_URL > http://127.0.0.1:3001. */
     private static String resolverBaseUrl() {
         String env = ConfigEnv.obter("ACADEMIC_API_BASE_URL", null);
         if (env == null || env.trim().isEmpty()) {
@@ -58,18 +63,22 @@ public final class MonitorBackendAcademico {
         ultimoResultadoOnline = false;
     }
 
+    /** Desliga a politica fail-closed e zera o cache (usado por testes). */
     public static void desativar() {
         ativo = false;
         ultimoCheckMs = 0L;
         ultimoResultadoOnline = false;
     }
 
+    /** @return true se a exigencia de backend online esta habilitada. */
     public static boolean estaAtivo() {
         return ativo;
     }
 
     /**
      * Verifica (com cache curto) se o Backend Academico (:3001) responde HTTP 200 em /health.
+     * O TTL do cache depende do ultimo resultado (3s online / 1s offline) para equilibrar
+     * custo de probe e velocidade de deteccao de queda/recuperacao.
      */
     public static boolean verificarOnline() {
         long agora = System.currentTimeMillis();
@@ -99,10 +108,12 @@ public final class MonitorBackendAcademico {
         }
     }
 
+    /** GET /health com timeout de 2s; qualquer falha (rede, timeout, status >= 300) conta como offline. */
     private static boolean executarProbeHealth(String baseUrl) {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(baseUrl + "/health");
+            // Loopback sem proxy do SO: evita que proxy corporativo sequestre a chamada local.
             conn = RedeUtils.isLoopbackHost(url.getHost())
                     ? (HttpURLConnection) url.openConnection(Proxy.NO_PROXY)
                     : (HttpURLConnection) url.openConnection();

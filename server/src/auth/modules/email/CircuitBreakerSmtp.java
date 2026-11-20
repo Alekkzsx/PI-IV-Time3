@@ -8,20 +8,27 @@ import auth.abstratas.CanalEnvioEmailAbstrato;
  * Abre o circuito apos 3 falhas consecutivas e aplica cooldown de 60 segundos.
  */
 public final class CircuitBreakerSmtp {
+    // 3 falhas consecutivas abrem o circuito; 60s de cooldown antes da sonda HALF_OPEN.
     private static final int MAX_FALHAS_CIRCUITO = 3;
     private static final long COOLDOWN_CIRCUITO_MS = 60_000L;
 
+    // Lock unico protege a maquina de estados (transicoes sao compostas: ler estado + mudar).
     private final Object lock = new Object();
     private String estado = "CLOSED";
     private int falhasConsecutivas = 0;
     private long proximaTentativaMs = 0L;
 
+    /** @return estado atual (CLOSED normal, OPEN bloqueando, HALF_OPEN sondando). */
     public String getEstado() {
         synchronized (lock) {
             return estado;
         }
     }
 
+    /**
+     * Portao de tentativa: CLOSED/HALF_OPEN deixam passar; OPEN so apos o cooldown,
+     * momento em que transiciona para HALF_OPEN (uma sonda real decide o proximo estado).
+     */
     public boolean permitirTentativa() {
         long agora = System.currentTimeMillis();
         synchronized (lock) {
@@ -39,6 +46,7 @@ public final class CircuitBreakerSmtp {
         }
     }
 
+    /** Qualquer sucesso fecha o circuito e zera o contador (recuperacao total). */
     public void registrarSucesso() {
         synchronized (lock) {
             falhasConsecutivas = 0;
@@ -47,6 +55,7 @@ public final class CircuitBreakerSmtp {
         }
     }
 
+    /** Conta a falha; ao atingir o limiar abre o circuito e agenda o fim do cooldown. */
     public void registrarFalha(String motivo) {
         synchronized (lock) {
             falhasConsecutivas++;
@@ -59,10 +68,12 @@ public final class CircuitBreakerSmtp {
         }
     }
 
+    /** @return true se o circuito esta OPEN (pula o SMTP imediatamente). */
     public boolean estaAberto() {
         return "OPEN".equals(getEstado());
     }
 
+    /** Volta ao estado inicial (uso exclusivo de testes). */
     public void resetar() {
         synchronized (lock) {
             estado = "CLOSED";

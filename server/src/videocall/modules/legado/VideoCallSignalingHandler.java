@@ -20,6 +20,7 @@ import java.util.Map;
  */
 public class VideoCallSignalingHandler extends HandlerVideoCallLegadoAbstrato {
 
+    /** Despacho legado: join/leave/signal (signal aceita POST para enviar e GET para poll). */
     @Override
     protected void processarVideoCall(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws Exception {
@@ -33,6 +34,7 @@ public class VideoCallSignalingHandler extends HandlerVideoCallLegadoAbstrato {
         }
     }
 
+    /** POST /join: registra o participante; sala fechada para aluno vira 403 room_not_open. */
     private void tratarJoin(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if (!"POST".equalsIgnoreCase(requisicao.getMetodo())) {
@@ -64,6 +66,7 @@ public class VideoCallSignalingHandler extends HandlerVideoCallLegadoAbstrato {
         enviarJson(resposta, 200, ok);
     }
 
+    /** /leave: best-effort e idempotente (parametros ausentes nao geram erro, so nao removem ninguem). */
     private void tratarLeave(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         Map<String, String> params = HttpUtils.extrairParametros(requisicao);
@@ -79,6 +82,10 @@ public class VideoCallSignalingHandler extends HandlerVideoCallLegadoAbstrato {
         enviarJson(resposta, 200, ok);
     }
 
+    /**
+     * /signal: POST enfileira um sinal (offer/answer/ice) para o peer; GET drena a caixa
+     * do RA (polling do cliente legado, anterior ao WebSocket).
+     */
     private void tratarSinalizacao(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
             Map<String, String> params = HttpUtils.extrairParametros(requisicao);
@@ -106,6 +113,7 @@ public class VideoCallSignalingHandler extends HandlerVideoCallLegadoAbstrato {
                 return;
             }
             List<VideoCallService.SignalingMessage> mensagens = service.buscarSinalizacoes(roomCode, ra);
+            // Serializacao manual: data ja e JSON (SDP/ICE) e entra cru; os demais campos sao escapados.
             StringBuilder json = new StringBuilder("{\"status\":200,\"signals\":[");
             boolean primeiro = true;
             for (VideoCallService.SignalingMessage m : mensagens) {

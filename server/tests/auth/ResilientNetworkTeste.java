@@ -19,15 +19,20 @@ import java.util.List;
 
 /**
  * Testes unitarios de resiliencia de rede/DNS (Wi-Fi corporativo e universitario).
+ * Cobre: parse de respostas DoH (SRV/TXT), classificacao DNS vs rede no 503 e o
+ * comportamento fim-a-fim do LoginHandler com banco bloqueado (503 diagnostico,
+ * nunca 401/lockout - indisponibilidade nao pode ser confundida com credencial errada).
  */
 public class ResilientNetworkTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Duble offline: simula o Mongo bloqueado lancando timeout traduzido para 503. */
     private static final class RepoBancoBloqueado extends RepositorioUsuarios {
         RepoBancoBloqueado() {
             super(false);
@@ -41,6 +46,7 @@ public class ResilientNetworkTeste {
         }
     }
 
+    /** Executa os cenarios; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         try {

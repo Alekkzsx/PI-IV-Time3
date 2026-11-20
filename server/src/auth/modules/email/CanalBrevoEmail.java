@@ -14,6 +14,7 @@ public class CanalBrevoEmail extends CanalHttpsEmailAbstrato {
     private final String apiKey;
     private final String remetente;
 
+    /** @param apiKey chave BREVO_API_KEY (vazia = canal desabilitado). */
     public CanalBrevoEmail(String apiKey, String remetente) {
         this.apiKey = apiKey != null ? apiKey.trim() : "";
         this.remetente = remetente != null ? remetente.trim() : "";
@@ -34,6 +35,7 @@ public class CanalBrevoEmail extends CanalHttpsEmailAbstrato {
         return "https://api.brevo.com/v3/smtp/email";
     }
 
+    /** Autenticacao da API Brevo: header proprio "api-key" (nao usa Bearer). */
     @Override
     protected Map<String, String> construirHeaders() {
         Map<String, String> headers = new LinkedHashMap<String, String>();
@@ -41,6 +43,7 @@ public class CanalBrevoEmail extends CanalHttpsEmailAbstrato {
         return headers;
     }
 
+    /** Payload da API Brevo v3: sender/to sao OBJETOS {email,name}; campos htmlContent/textContent. */
     @Override
     protected Map<String, Object> construirPayload(MensagemEmail mensagem) {
         Map<String, Object> sender = new LinkedHashMap<String, Object>();

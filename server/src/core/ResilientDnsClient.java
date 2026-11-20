@@ -31,14 +31,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * 2) Fallback automatico via DNS-over-HTTPS (DoH na porta 443) quando consultas SRV/UDP-53 sao bloqueadas.
  */
 public class ResilientDnsClient implements DnsClient {
+    // Registros SRV/TXT do Atlas mudam pouco: cache de 60s corta a latencia DNS do boot/reconexao.
     private static final long CACHE_TTL_MS = 60_000L;
     private static final int DOH_CONNECT_TIMEOUT_MS = 3_500;
     private static final int DOH_READ_TIMEOUT_MS = 4_000;
+    // Dois resolvedores DoH publicos via HTTPS/443: se a rede bloqueia UDP/53, ainda resolve por TLS.
     private static final String[] DOH_ENDPOINTS = new String[] {
             "https://dns.google/resolve",
             "https://cloudflare-dns.com/dns-query"
     };
 
+    /** Entrada imutavel do cache: registros + instante de expiracao (epoch ms). */
     private static final class CacheEntry {
         final List<String> records;
         final long expiresAt;
@@ -51,6 +54,18 @@ public class ResilientDnsClient implements DnsClient {
 
     private final ConcurrentHashMap<String, CacheEntry> cache = new ConcurrentHashMap<String, CacheEntry>();
 
+    /**
+     * Implementa o SPI DnsClient do driver Mongo: resolve SRV (hosts do cluster) e TXT
+     * (opcoes da connection string). Estrategia: cache -> JNDI (DNS do SO ou servidores
+     * custom) -> DoH. Para SRV, resultado vazio do JNDI tambem aciona o DoH (bloqueio
+     * silencioso costuma devolver vazio em vez de erro). O erro do JNDI e preservado
+     * se o DoH tambem nao trouxer nada.
+     *
+     * @param resourceName nome DNS a consultar (ex.: _mongodb._tcp.cluster0.xxx.mongodb.net)
+     * @param resourceType tipo de registro ("SRV" ou "TXT")
+     * @return registros imutaveis no formato textual esperado pelo driver
+     * @throws DnsException quando ambos os caminhos falham
+     */
     @Override
     public List<String> getResourceRecordData(String resourceName, String resourceType) throws DnsException {
         if (resourceName == null || resourceName.trim().isEmpty()
@@ -70,6 +85,7 @@ public class ResilientDnsClient implements DnsClient {
         DnsException jndiError = null;
         try {
             List<String> jndiResult = resolveViaJndi(name, type);
+            // SRV vazio via JNDI e suspeito de bloqueio: tenta DoH antes de aceitar o vazio.
             if (!jndiResult.isEmpty() || !"SRV".equals(type)) {
                 List<String> safe = Collections.unmodifiableList(jndiResult);
                 cache.put(cacheKey, new CacheEntry(safe, now + CACHE_TTL_MS));
@@ -91,6 +107,11 @@ public class ResilientDnsClient implements DnsClient {
         return Collections.emptyList();
     }
 
+    /**
+     * Consulta DNS tradicional via JNDI (UDP/53) com timeout de 2s e 1 retry.
+     * MONGODB_DNS_SERVERS permite apontar para resolvedores especificos (ex.: 8.8.8.8)
+     * quando o DNS da rede e hostil. protected para permitir override em testes.
+     */
     protected List<String> resolveViaJndi(String name, String type) throws DnsException {
         Hashtable<String, String> env = new Hashtable<String, String>();
         env.put("java.naming.factory.initial", "com.sun.jndi.dns.DnsContextFactory");
@@ -130,6 +151,7 @@ public class ResilientDnsClient implements DnsClient {
             }
             return result;
         } catch (NameNotFoundException e) {
+            // RCODE 3 = NXDOMAIN: nome inexistente, informacao util para o driver nao insistir.
             throw new DnsWithResponseCodeException(e.getMessage(), 3, e);
         } catch (NamingException e) {
             throw new DnsException("Falha JNDI DNS para " + name + " (" + type + "): " + e.getMessage(), e);
@@ -142,6 +164,10 @@ public class ResilientDnsClient implements DnsClient {
         }
     }
 
+    /**
+     * Fallback DNS-over-HTTPS: consulta a API JSON do Google e, em caso de falha,
+     * da Cloudflare. O trafego HTTPS/443 passa onde UDP/53 e bloqueado.
+     */
     protected List<String> resolveViaDoh(String name, String type) throws DnsException {
         DnsException ultimoErro = null;
         for (String endpoint : DOH_ENDPOINTS) {
@@ -152,6 +178,7 @@ public class ResilientDnsClient implements DnsClient {
                 URL url = new URL(queryUrl);
                 conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
+                // Accept dns-json: formato JSON comun aos dois provedores (nao o wire-format binario).
                 conn.setRequestProperty("Accept", "application/dns-json");
                 conn.setRequestProperty("User-Agent", "AGMRM-Server/1.0");
                 conn.setConnectTimeout(DOH_CONNECT_TIMEOUT_MS);
@@ -191,6 +218,7 @@ public class ResilientDnsClient implements DnsClient {
             throw new DnsException("JSON DoH invalido: " + e.getMessage(), e);
         }
 
+        // Campo "Status" e o RCODE DNS: 0 = NOERROR, 3 = NXDOMAIN (nome nao existe).
         Object statusObj = root.get("Status");
         int dnsStatus = statusObj instanceof Number ? ((Number) statusObj).intValue() : 0;
         if (dnsStatus == 3) {
@@ -205,6 +233,7 @@ public class ResilientDnsClient implements DnsClient {
             return Collections.emptyList();
         }
 
+        // Codigos IANA de tipo de registro: SRV=33, TXT=16; -1 aceita qualquer tipo.
         int expectedCode = "SRV".equalsIgnoreCase(recordType) ? 33
                 : ("TXT".equalsIgnoreCase(recordType) ? 16 : -1);
         List<String> records = new ArrayList<String>();
@@ -231,6 +260,11 @@ public class ResilientDnsClient implements DnsClient {
         return records;
     }
 
+    /**
+     * Normaliza registro TXT vindo do DoH: remove aspas delimitadoras e espacos fora
+     * delas, remontando fragmentos ("parte1" "parte2") em um valor continuo no formato
+     * que o driver espera para opcoes da connection string.
+     */
     private static String normalizarTxt(String raw) {
         String s = raw.trim();
         if (!s.contains("\"")) {

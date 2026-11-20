@@ -36,8 +36,17 @@ import java.io.IOException;
  * 4. Videochamada persistida e sinalizacao WebRTC (/api/video-call*, /api/videocall*, /ws/video-call/*)
  */
 public class Main {
+    // Porta padrao do servidor de identidade; sobrescrita por SERVER_PORT (.env) ou args[0].
     private static final int PORTA_PADRAO = 8080;
 
+    /**
+     * Boot do servidor: resolve a porta, inicializa repositorios singletons (Mongo),
+     * ativa o monitor fail-closed do Backend Academico (:3001), registra o shutdown hook,
+     * monta as rotas e entra no loop de accept. Falha de bind encerra o processo com exit 1
+     * para que o launcher do frontend detecte a indisponibilidade.
+     *
+     * @param args args[0] opcional com a porta TCP desejada (tem prioridade sobre o .env)
+     */
     public static void main(String[] args) {
         int porta = resolverPorta(args);
 
@@ -45,6 +54,7 @@ public class Main {
         final RepositorioVideoCall repositorioVideoCall = RepositorioVideoCall.getInstance();
         final ClientePonteAcademica ponte = new ClientePonteAcademica();
 
+        // Fail-closed: rotas funcionais so operam com o Backend Academico (:3001) online.
         MonitorBackendAcademico.ativarSeConfigurado();
         registrarShutdownHook(repositorio);
 
@@ -63,6 +73,10 @@ public class Main {
         }
     }
 
+    /**
+     * Resolve a porta de escuta com precedencia: args[0] > SERVER_PORT do .env > 8080.
+     * Argumento invalido nao derruba o boot: apenas loga e mantem a porta do .env.
+     */
     private static int resolverPorta(String[] args) {
         int porta = ConfigEnv.obterInteiro("SERVER_PORT", PORTA_PADRAO);
         if (args != null && args.length > 0) {
@@ -75,6 +89,11 @@ public class Main {
         return porta;
     }
 
+    /**
+     * Registra o hook de encerramento gracioso (Ctrl+C / SIGTERM).
+     * Ordem importa: primeiro o pool SMTP (para nao deixar envios pendurados),
+     * depois a conexao Mongo (para liberar o pool de sockets do driver).
+     */
     private static void registrarShutdownHook(final RepositorioUsuarios repositorio) {
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
@@ -88,12 +107,18 @@ public class Main {
         }, "shutdown-hook"));
     }
 
+    /** Bloco 1: saude/prontidao. Mesmo handler atende /health (sempre 200) e /health/ready (503 se degradado). */
     private static void registrarRotasSaude(ServidorHttpNativo servidor, RepositorioUsuarios repositorio) {
         HealthHandler healthHandler = new HealthHandler(repositorio.getConexao());
         servidor.registrarRota("/health", healthHandler);
         servidor.registrarRota("/health/ready", healthHandler);
     }
 
+    /**
+     * Bloco 2: autenticacao e autoatendimento (/api/auth/*).
+     * Uma unica instancia de handler e compartilhada entre rotas irmas quando o
+     * despacho interno e por caminho (AuthSessionHandler, ProfileAccountHandler, RecoveryHandler).
+     */
     private static void registrarRotasAuth(
             ServidorHttpNativo servidor, RepositorioUsuarios repositorio, ClientePonteAcademica ponte) {
         // Login, 2FA, sessao e renovacao de tokens
@@ -124,6 +149,7 @@ public class Main {
         servidor.registrarRota("/api/auth/change-password", new ChangePasswordHandler(repositorio));
     }
 
+    /** Bloco 3: administracao de identidades (RBAC admin) e diagnostico de e-mail. */
     private static void registrarRotasAdmin(
             ServidorHttpNativo servidor, RepositorioUsuarios repositorio, ClientePonteAcademica ponte) {
         servidor.registrarRota("/api/auth/email-diagnostic", new EmailDiagnosticHandler(repositorio));
@@ -133,6 +159,11 @@ public class Main {
         servidor.registrarRota("/api/admin/teachers", adminUsersHandler);
     }
 
+    /**
+     * Bloco 4: videochamada. A API nova (/api/video-call*) persiste salas no Mongo;
+     * a legada (/api/videocall*) mantem estado em memoria apenas por compatibilidade HTTP.
+     * O WebSocket (/ws/video-call/{sala}) e tratado dentro do proprio ServidorHttpNativo.
+     */
     private static void registrarRotasVideoCall(
             ServidorHttpNativo servidor,
             RepositorioUsuarios repositorio,

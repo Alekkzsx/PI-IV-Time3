@@ -20,17 +20,24 @@ import java.util.Map;
 /**
  * Testes unitarios de ciclo de vida do repositorio nos handlers HTTP
  * (garante que TwoFactorHandler e RefreshTokenHandler nao fecham o pool singleton).
+ * Usa um RepoSpy offline que conta sessoes criadas e flagra qualquer fechar();
+ * cenarios: 2FA ok/erro, rotacao de refresh e sessionVersion divergente.
  */
 public class HandlerLifecycleTeste {
     private static final String SEGREDO_TESTE = "segredo-institucional-teste-minimo-32-chars!";
     private static final String OTP_SEGREDO = "agmrm-otp-secret-key-2026-recovery-verification-1a2b3c4d5e6f7890";
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /**
+     * Duble espiao offline: usuario/OTP fixos em memoria, contador de sessoes criadas
+     * e flag 'fechado' - se algum handler chamar fechar(), o teste reprova.
+     */
     private static final class RepoSpy extends RepositorioUsuarios {
         boolean fechado = false;
         int sessoesCriadas = 0;
@@ -102,14 +109,17 @@ public class HandlerLifecycleTeste {
         }
     }
 
+    /** Executa os cenarios; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
+        // Segredos/latencia via propriedade JVM (prioridade sobre o .env); restaurados no finally.
         String anteriorJwt = System.getProperty("AUTH_JWT_SECRET");
         String anteriorOtp = System.getProperty("AUTH_OTP_SECRET");
         String anteriorLatency = System.getProperty("STANDARDIZED_AUTH_LATENCY_MS");
         try {
             System.setProperty("AUTH_JWT_SECRET", SEGREDO_TESTE);
             System.setProperty("AUTH_OTP_SECRET", OTP_SEGREDO);
+            // Latencia anti-timing zerada: o teste nao pode dormir 1s por requisicao.
             System.setProperty("STANDARDIZED_AUTH_LATENCY_MS", "0");
 
             RepoSpy repo = new RepoSpy();
@@ -156,6 +166,7 @@ public class HandlerLifecycleTeste {
         return falhas;
     }
 
+    /** Monta um POST JSON cru, passa pelo handler real e devolve a resposta HTTP serializada. */
     private static String postJson(core.ManipuladorHttp handler, String path, String jsonBody) throws Exception {
         byte[] bytes = jsonBody.getBytes(StandardCharsets.UTF_8);
         String raw = "POST " + path + " HTTP/1.1\r\n"

@@ -27,6 +27,11 @@ import java.util.Map;
  * - POST /api/auth/send-recovery-otp
  * - POST /api/auth/verify-recovery-otp
  * - POST /api/auth/reset-password
+ *
+ * Maquina de estados: send gera OTP (HMAC no banco, enviado por e-mail) -> verify
+ * valida o OTP e emite um recovery token JWT (15min) + grant persistido -> reset
+ * CONSOME o grant atomicamente (uso unico) e troca a senha com logout global.
+ * Cada etapa invalida a anterior: OTP consumido no verify, grant consumido no reset.
  */
 public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
 
@@ -48,6 +53,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         return "RECOVERY";
     }
 
+    /** Despacho por sufixo do caminho: uma instancia atende as tres etapas do fluxo. */
     @Override
     protected void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws Exception {
         String caminho = requisicao.getCaminho();
@@ -62,6 +68,12 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         }
     }
 
+    /**
+     * Etapa 1 - send-recovery-otp: localiza a conta por e-mail OU identidade,
+     * valida perfil do portal e e-mail cadastrado, gera o OTP e dispara o e-mail
+     * em background. Contas inexistentes recebem 404 explicito (decisao de UX deste
+     * fluxo), com auditoria e latencia padronizada para dificultar varredura em massa.
+     */
     private void tratarEnvioOtp(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         Map<String, Object> corpo = lerJsonObjeto(requisicao);
         String email = getString(corpo, "email");
@@ -80,6 +92,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         UsuarioAutenticado localizado = temEmail
                 ? repositorio.buscarPorEmail(email)
                 : repositorio.buscarPorIdentidade(identity);
+        // Identidade com '@' pode ser o e-mail: tenta o segundo indice antes de desistir.
         if (localizado == null && temIdentity && identity.contains("@")) {
             localizado = repositorio.buscarPorEmail(identity);
         }
@@ -126,6 +139,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
 
         salvarOtpComAliases(usuario, identity, email, otpHash, expiraEmMillis);
 
+        // Envio assincrono pela cadeia de 3 tiers; resultado auditado via whenComplete.
         SmtpCliente.enviarRecuperacaoComResultado(usuario.getEmail(), otpCode, usuario.getDisplayName())
                 .whenComplete((resultado, erro) -> repositorio.registrarResultadoEnvioEmail(
                         usuario.getUserId(), "password_recovery_email", usuario.getEmail(), resultado, erro));
@@ -138,6 +152,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         resp.put("success", Boolean.TRUE);
         resp.put("expiresInSeconds", Integer.valueOf(ttlSegundos));
         resp.put("message", "Codigo de verificacao enviado para o e-mail cadastrado.");
+        // maskedEmail para exibicao segura; email completo para o cliente pre-preencher a etapa verify.
         resp.put("maskedEmail", AuthHttpUtils.mascararEmail(usuario.getEmail()));
         resp.put("email", usuario.getEmail());
         resp.put("identity", usuario.getIdentity());
@@ -151,6 +166,11 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 200, resp);
     }
 
+    /**
+     * Persiste o MESMO hash de OTP sob todas as chaves conhecidas da conta
+     * (identidade canonica, identidade informada, e-mail informado, e-mail cadastrado).
+     * Assim o verify funciona nao importa qual alias o usuario digitar na etapa 2.
+     */
     private void salvarOtpComAliases(
             UsuarioAutenticado usuario, String identity, String email, String otpHash, long expiraEmMillis) {
         repositorio.salvarOtp(usuario.getIdentity(), otpHash, "RECOVERY", expiraEmMillis);
@@ -165,6 +185,12 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         }
     }
 
+    /**
+     * Etapa 2 - verify-recovery-otp: valida o OTP (tentativas/expiracao/codigo),
+     * consome o OTP e emite o recovery token JWT de 15min. Junto, registra um GRANT
+     * no banco indexado pelo SHA-256 do jti - e esse grant que torna o reset de uso
+     * unico (o JWT sozinho nao tem como garantir single-use).
+     */
     private void tratarVerificacaoOtp(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         Map<String, Object> corpo = lerJsonObjeto(requisicao);
         String identity = getString(corpo, "identity");
@@ -219,11 +245,13 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
             return;
         }
 
+        // Consome o OTP antes de emitir o token: o mesmo codigo nao verifica duas vezes.
         repositorio.removerOtp(normalizedIdentity, "RECOVERY");
 
         String recoveryToken = JwtGerador.gerarRecoveryToken(usuario);
         String jti = JwtGerador.extrairJti(recoveryToken);
         if (jti != null && !jti.isEmpty()) {
+            // Grant = fingerprint do jti com TTL de 15min (900_000ms), casado com o exp do token.
             repositorio.emitirGrantRecuperacao(usuario.getIdentity(), OtpService.sha256Hex(jti),
                     System.currentTimeMillis() + 900_000L);
         }
@@ -245,6 +273,10 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 200, resp);
     }
 
+    /**
+     * Localiza o registro RECOVERY tolerando aliases: chave direta -> conta por e-mail
+     * (usa a identidade canonica) -> conta por identidade (usa o e-mail cadastrado).
+     */
     private Document localizarOtpRecuperacao(String normalizedIdentity) {
         Document otpDoc = repositorio.buscarOtp(normalizedIdentity, "RECOVERY");
         if (otpDoc != null) {
@@ -262,6 +294,12 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         return null;
     }
 
+    /**
+     * Etapa 3 - reset-password: valida o recovery token (type=recovery) e a politica
+     * de senha, CONSOME o grant atomicamente (anti-replay: segundo uso falha), coloca
+     * o jti na blacklist, atualiza a senha (nova sessionVersion) e revoga todas as
+     * sessoes - tokens antigos morrem junto com a senha velha.
+     */
     private void tratarRedefinicaoSenha(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         Map<String, Object> corpo = lerJsonObjeto(requisicao);
         String recoveryToken = getPrimeiroTexto(corpo, "resetToken", "recoveryToken");
@@ -299,6 +337,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
 
         String jti = JwtGerador.extrairJti(recoveryToken);
         String jtiHash = (jti != null && !jti.isEmpty()) ? OtpService.sha256Hex(jti) : "";
+        // Consumo atomico do grant: so UMA requisicao consegue trocar a senha com este token.
         if (jtiHash.isEmpty() || !repositorio.consumirGrantRecuperacao(jtiHash)) {
             responderErro(resposta, 401, "invalid_or_expired_code", "Token de recuperacao ja utilizado ou expirado.");
             return;
@@ -321,6 +360,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 200, resp);
     }
 
+    /** Normaliza perfis pt/en para o canonico do RBAC (student/discente->aluno, teacher/professor->docente...). */
     public static String normalizarPerfil(String perfil) {
         if (perfil == null) return "";
         String p = perfil.trim().toLowerCase();
@@ -330,6 +370,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         return p;
     }
 
+    /** Compatibilidade de portal: perfil ausente em qualquer lado = sem restricao (true). */
     public static boolean perfisCompativeis(String perfilSolicitado, String perfilConta) {
         String s = normalizarPerfil(perfilSolicitado);
         String c = normalizarPerfil(perfilConta);
@@ -337,6 +378,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         return s.equals(c);
     }
 
+    /** Rotulo amigavel do perfil para mensagens de erro (Aluno/Docente/Admin). */
     public static String rotuloPerfil(String perfil) {
         String norm = normalizarPerfil(perfil);
         if ("aluno".equals(norm)) return "Aluno";
@@ -345,6 +387,7 @@ public class RecoveryHandler extends HandlerAuthPublicoAbstrato {
         return perfil != null && !perfil.trim().isEmpty() ? perfil.trim() : "Desconhecido";
     }
 
+    /** Mensagem padrao de "portal errado", compartilhada com LoginHandler (403 invalid_user_type). */
     public static String construirMensagemPerfilIncompativel(String perfilSolicitado, String perfilConta) {
         return "Tipo de usuário inválido: esta conta pertence ao perfil de "
                 + rotuloPerfil(perfilConta)

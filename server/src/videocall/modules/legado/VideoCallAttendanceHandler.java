@@ -19,6 +19,11 @@ import java.util.Map;
  */
 public class VideoCallAttendanceHandler extends HandlerVideoCallLegadoAbstrato {
 
+    /**
+     * Consolida a assiduidade da sala: para cada ALUNO do historico (docentes/admins
+     * ficam de fora), calcula minutos conectado / duracao da aula e classifica pelo
+     * criterio regimental (75%/50%). Aceita GET (query) e POST (body) com roomCode.
+     */
     @Override
     protected void processarVideoCall(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws Exception {

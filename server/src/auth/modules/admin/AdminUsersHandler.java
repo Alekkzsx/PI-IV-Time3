@@ -16,6 +16,9 @@ import java.util.Map;
 /**
  * Roteador fino de administracao de identidades que delega cada subdominio
  * para seu handler especializado (CRUD, Seguranca, Dossie LGPD e Docentes).
+ *
+ * Padrao Facade: implementa ManipuladorHttp direto e so despacha; cada sub-handler
+ * herda AdminHandlerAbstrato e aplica RBAC admin + write-guard por conta propria.
  */
 public class AdminUsersHandler implements ManipuladorHttp {
     private final AdminUserCrudHandler crudHandler;
@@ -34,6 +37,14 @@ public class AdminUsersHandler implements ManipuladorHttp {
         this.teacherHandler = new AdminTeacherHandler(repositorio, ponte);
     }
 
+    /**
+     * Tabela de despacho:
+     * /api/admin/teachers -> provisionamento de docentes;
+     * /api/admin/users -> CRUD (lista/criacao);
+     * /api/admin/users/{id}/sessions|revoke-sessions|reset-password -> seguranca;
+     * /api/admin/users/{id}/dossier -> dossie;
+     * /api/admin/users/{id}[/...] -> CRUD (get/update/delete).
+     */
     @Override
     public void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         String caminho = requisicao.getCaminho();
@@ -62,11 +73,13 @@ public class AdminUsersHandler implements ManipuladorHttp {
             return;
         }
 
+        // Fora da arvore admin: 404 manual com CORS/auth headers (nao passa pelo Template Method).
         HttpUtils.aplicarHeadersCors(requisicao, resposta);
         HttpUtils.aplicarHeadersAuth(resposta);
         HttpUtils.enviarErroJson(resposta, 404, "not_found", "Endpoint nao encontrado.");
     }
 
+    /** Delegador legado: serializacao segura de usuario para o painel admin (sem passwordHash). */
     public static Map<String, Object> publicUser(Document document) {
         return AuthHttpUtils.montarUsuarioAdmin(document);
     }

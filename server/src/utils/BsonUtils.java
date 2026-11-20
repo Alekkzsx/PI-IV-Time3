@@ -15,10 +15,16 @@ import java.util.Map;
  * e mapas/listas Java padrao para serializacao JSON segura.
  */
 public final class BsonUtils {
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private BsonUtils() {}
 
     /**
      * Converte recursivamente um Document BSON em Map Java, convertendo ObjectIds em hex string.
+     * Necessario porque tipos do driver (Document/ObjectId) nao serializam para JSON de forma
+     * previsivel; o mapa resultante usa apenas tipos que {@link Json#escrever} entende.
+     *
+     * @param obj documento BSON (qualquer outro tipo devolve mapa vazio, nunca null)
+     * @return LinkedHashMap com a mesma ordem de campos do documento original
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> documentoParaMapa(Object obj) {
@@ -44,6 +50,9 @@ public final class BsonUtils {
 
     /**
      * Converte recursivamente um Map Java em Document BSON para persistencia no MongoDB.
+     * Caminho inverso de documentoParaMapa: submapas viram subdocumentos.
+     *
+     * @param mapa mapa de origem (null devolve Document vazio)
      */
     @SuppressWarnings("unchecked")
     public static Document mapaParaDocumento(Map<String, Object> mapa) {
@@ -62,6 +71,7 @@ public final class BsonUtils {
         return doc;
     }
 
+    /** Converte item a item de uma lista BSON (subdocumentos e ObjectIds incluidos), preservando a ordem. */
     private static List<Object> converterLista(List<Object> origem) {
         List<Object> convertida = new ArrayList<Object>(origem.size());
         for (Object item : origem) {

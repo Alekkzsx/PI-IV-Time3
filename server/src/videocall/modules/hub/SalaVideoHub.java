@@ -18,22 +18,34 @@ import java.util.Set;
 
 /**
  * Repassa envelopes p2p_videocall_v1 entre participantes conectados na mesma sala WebSocket.
+ *
+ * Isolamento por sala: um envelope so alcanca conexoes do MESMO roomId (e o roomId
+ * precisa bater com a sala autorizada no ticket do upgrade - nao da para "pular" de sala).
+ * Validacao de protocolo: JSON + protocol/roomId/type/senderId conferidos; senderId fica
+ * FIXADO na primeira mensagem da conexao (impede personificar outro participante).
+ * Threading: estado protegido por synchronized(this); envios acontecem fora do lock.
  */
 public class SalaVideoHub implements OuvinteWebSocket {
+    // Identificador do protocolo de envelope compartilhado com o frontend Flutter.
     public static final String PROTOCOLO = "p2p_videocall_v1";
+    // Teto de participantes por sala: malha P2P de midia nao escala alem disso.
     public static final int MAXIMO_PARTICIPANTES = 50;
+    // Whitelist de tipos de envelope: qualquer outro tipo derruba a conexao (1008).
     private static final Set<String> TIPOS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
             "join", "presence_sync", "heartbeat", "leave", "chat", "emoji",
             "hand_raise", "media_state", "recording_state", "webrtc_signal")));
 
+    // sala -> conexoes; conexao -> senderId fixado. Ambos sob o lock do hub.
     private final Map<String, List<ConexaoWebSocket>> salas = new HashMap<String, List<ConexaoWebSocket>>();
     private final Map<ConexaoWebSocket, String> remetentes = new HashMap<ConexaoWebSocket, String>();
     private final RegistradorEnvelope registrador;
 
+    /** @param registrador observador de envelopes (chat/telemetria); null desliga o registro. */
     public SalaVideoHub(RegistradorEnvelope registrador) {
         this.registrador = registrador;
     }
 
+    /** Registra a conexao na sala; sala lotada fecha com 1013 (Try Again Later) fora do lock. */
     @Override
     public void aoAbrir(ConexaoWebSocket conexao) {
         boolean lotada;
@@ -49,6 +61,11 @@ public class SalaVideoHub implements OuvinteWebSocket {
         if (lotada) conexao.fechar(1013);
     }
 
+    /**
+     * Valida e roteia um envelope: JSON invalido -> 1007; violacao de protocolo
+     * (protocol/roomId/tipo/senderId) -> 1008; senderId diferente do fixado -> 1008.
+     * Valido: registra (chat/presenca) e repassa aos demais da sala.
+     */
     @Override
     public void aoReceberTexto(ConexaoWebSocket conexao, String texto) {
         Map<String, Object> envelope;
@@ -69,6 +86,7 @@ public class SalaVideoHub implements OuvinteWebSocket {
         if (!valido) { conexao.fechar(1008); return; }
 
         synchronized (this) {
+            // Primeira mensagem fixa o senderId da conexao; trocar depois = tentativa de personificacao.
             String conhecido = remetentes.get(conexao);
             if (conhecido == null) remetentes.put(conexao, (String) remetente);
             else if (!conhecido.equals(remetente)) { conexao.fechar(1008); return; }
@@ -77,6 +95,10 @@ public class SalaVideoHub implements OuvinteWebSocket {
         repassar(sala, conexao, texto);
     }
 
+    /**
+     * Conexao caiu: remove da sala e SINTETIZA um envelope leave em nome do remetente,
+     * para os peers limparem o participante mesmo sem mensagem de despedida do cliente.
+     */
     @Override
     public void aoFechar(ConexaoWebSocket conexao) {
         String sala = conexao.getRecurso();
@@ -101,11 +123,17 @@ public class SalaVideoHub implements OuvinteWebSocket {
         repassar(sala, conexao, Json.escrever(saida));
     }
 
+    /** @return total de conexoes vivas na sala (diagnostico/testes). */
     public synchronized int contarParticipantes(String sala) {
         List<ConexaoWebSocket> participantes = salas.get(sala);
         return participantes == null ? 0 : participantes.size();
     }
 
+    /**
+     * Fan-out para a sala MENOS a origem. Snapshot da lista sob lock; envio fora do lock
+     * (enviarTexto pode bloquear em I/O e nao deve travar o hub inteiro).
+     * Falha de envio fecha o destino com 1011 (erro interno) e segue para os demais.
+     */
     private void repassar(String sala, ConexaoWebSocket origem, String texto) {
         List<ConexaoWebSocket> destinos;
         synchronized (this) {

@@ -22,14 +22,27 @@ import java.util.List;
 import java.util.Map;
 
 // Teste de integracao sem bibliotecas: servidor WebSocket real e clientes em sockets crus.
+/**
+ * Suite de INTEGRACAO do hub WebSocket: sobe um ServerSocket real em porta efemera,
+ * conecta 3 clientes com handshake/framing implementados a mao no proprio teste e
+ * verifica: 101 no upgrade, fan-out na mesma sala, nao-eco ao remetente, ISOLAMENTO
+ * entre salas, senderId fixado (1008), roomId divergente (1008), JSON invalido (1007),
+ * leave sintetizado na queda e esvaziamento das salas.
+ */
 public class HubTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /**
+     * Cliente WS minimo do teste: faz o handshake HTTP cru, escreve quadros mascarados
+     * (como cliente real) e le quadros do servidor, traduzindo FECHAR em "CLOSE:codigo".
+     * receber() devolve null em timeout de 1.5s (usado para provar que NADA chegou).
+     */
     static class Cliente {
         final Socket socket;
         final InputStream in;
@@ -89,6 +102,7 @@ public class HubTeste {
         }
     }
 
+    /** Le exatamente N bytes do socket (read parcial nao pode truncar o quadro). */
     private static byte[] lerExato(InputStream in, int tamanho) throws IOException {
         byte[] buffer = new byte[tamanho];
         int lidoTotal = 0;
@@ -100,14 +114,17 @@ public class HubTeste {
         return buffer;
     }
 
+    /** Monta um envelope p2p_videocall_v1 valido com tipo/sala/remetente parametrizados. */
     static String envelope(String tipo, String sala, String remetente) {
         return "{\"protocol\":\"p2p_videocall_v1\",\"type\":\"" + tipo + "\",\"roomId\":\"" + sala
                 + "\",\"senderId\":\"" + remetente + "\",\"timestamp\":1,\"payload\":{\"texto\":\"oi\"}}";
     }
 
+    /** Executa os cenarios de integracao; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() throws Exception {
         falhas = 0;
         final List<String> registrados = new ArrayList<String>();
+        // Registrador espiao: coleta sala:tipo para conferir join/leave sem depender do service legado.
         final SalaVideoHub hub = new SalaVideoHub(new RegistradorEnvelope() {
             @Override
             public void registrar(String sala, Map<String, Object> env) {
@@ -116,6 +133,7 @@ public class HubTeste {
                 }
             }
         });
+        // Porta 0 = o SO escolhe uma porta livre (teste nao colide com o servidor real).
         final ServerSocket servidor = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
         int porta = servidor.getLocalPort();
         Thread aceitador = new Thread(new Runnable() {
@@ -174,6 +192,7 @@ public class HubTeste {
         return falhas;
     }
 
+    /** Runner isolado: exit 1 se houver falha. */
     public static void main(String[] args) throws Exception {
         int erros = executar();
         if (erros > 0) {

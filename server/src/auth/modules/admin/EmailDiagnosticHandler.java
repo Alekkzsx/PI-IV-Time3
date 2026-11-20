@@ -27,11 +27,13 @@ public class EmailDiagnosticHandler extends HandlerAutenticadoAbstrato {
         super(repositorio);
     }
 
+    /** Diagnostico nao emite tokens: headers padrao bastam. */
     @Override
     protected boolean deveAplicarHeadersAuth() {
         return false;
     }
 
+    /** Somente admin: o relatorio expoe configuracao de infraestrutura de e-mail. */
     @Override
     protected boolean exigirAdmin() {
         return true;
@@ -52,6 +54,12 @@ public class EmailDiagnosticHandler extends HandlerAutenticadoAbstrato {
         return "EMAIL-DIAG";
     }
 
+    /**
+     * Diagnostico REAL de entrega (nao simulado): coleta o relatorio de configuracao,
+     * exige destinatario valido E cadastrado, verifica se ha algum canal ativo e dispara
+     * um e-mail de teste SINCRONO pela cadeia completa. O relatorio final traz canal
+     * utilizado, latencia, errorTrail de cada tier e estado do circuit breaker.
+     */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado admin) throws Exception {
@@ -118,6 +126,10 @@ public class EmailDiagnosticHandler extends HandlerAutenticadoAbstrato {
         enviarJson(resposta, 200, relatorio);
     }
 
+    /**
+     * Fotografia da configuracao de e-mail para o relatorio.
+     * Segredos NUNCA aparecem: chaves de API viram apenas booleanos "configurado".
+     */
     private static Map<String, Object> coletarConfiguracoesAtuais() {
         String smtpHost = ConfigEnv.obter("SMTP_HOST", "");
         String smtpUser = ConfigEnv.obter("SMTP_USER", "");
@@ -141,6 +153,7 @@ public class EmailDiagnosticHandler extends HandlerAutenticadoAbstrato {
         return relatorio;
     }
 
+    /** Ha pelo menos um tier utilizavel? Sandbox conta como canal (entrega simulada controlada). */
     private static boolean algumCanalConfigurado(Map<String, Object> relatorio) {
         String host = (String) relatorio.get("smtpHost");
         return (host != null && !host.isEmpty())

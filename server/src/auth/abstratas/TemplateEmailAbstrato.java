@@ -11,18 +11,24 @@ package auth.abstratas;
 public abstract class TemplateEmailAbstrato {
     private final String nomeDestinatario;
 
+    /** @param nomeDestinatario nome para a saudacao personalizada (vazio = saudacao generica). */
     protected TemplateEmailAbstrato(String nomeDestinatario) {
         this.nomeDestinatario = nomeDestinatario;
     }
 
+    /** Gancho visual: cor do titulo (identidade de cada tipo de e-mail). */
     protected abstract String getCorDestaque();
 
+    /** Gancho: titulo do card (ex.: "Codigo de verificacao"). */
     protected abstract String getTitulo();
 
+    /** Gancho: bloco HTML interno; dados do usuario DEVEM passar por escaparHtml antes. */
     protected abstract String getConteudoHtml();
 
     /**
      * Renderiza o documento HTML completo preservando o layout institucional.
+     * final: o layout (card, saudacao, rodape) e unico; subclasses so variam os ganchos.
+     * O nome do destinatario e escapado aqui para impedir XSS via nome cadastrado.
      */
     public final String renderizar() {
         String saudacao = (nomeDestinatario != null && !nomeDestinatario.trim().isEmpty())
@@ -39,6 +45,10 @@ public abstract class TemplateEmailAbstrato {
                 + "</div></body></html>";
     }
 
+    /**
+     * Escape HTML minimo anti-XSS: & primeiro (para nao re-escapar as entidades geradas),
+     * depois < > " ' — cobre texto e valores de atributo.
+     */
     public static String escaparHtml(String texto) {
         if (texto == null) {
             return "";

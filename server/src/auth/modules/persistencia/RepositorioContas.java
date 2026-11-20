@@ -36,6 +36,8 @@ import java.util.regex.Pattern;
  * Repositorio especializado na colecao auth_users (contas, credenciais, perfil, 2FA e consultas admin).
  */
 public class RepositorioContas extends RepositorioMongoAbstrato {
+    // Hash anti-timing gerado UMA vez no load da classe (600k iteracoes no boot, nao por requisicao);
+    // reutilizado em todo login de usuario inexistente para igualar o custo do caminho real.
     private static final String DUMMY_HASH = SenhaHasher.hashDummy();
 
     public RepositorioContas(ConexaoMongo conexao) {
@@ -47,6 +49,10 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         return "AUTH-CONTAS";
     }
 
+    /**
+     * Indices: normalizedIdentity unico (case-insensitive por normalizacao), email para busca,
+     * e em auth_login_limits: key unica + TTL expiresAt (registro de rate limit expira sozinho).
+     */
     @Override
     protected void registrarIndices(MongoDatabase db) {
         MongoCollection<Document> users = db.getCollection("auth_users");
@@ -61,18 +67,31 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
                 new Document("expiresAt", 1), new IndexOptions().expireAfter(0L, TimeUnit.SECONDS));
     }
 
+    /** @return hash descartavel compartilhado do boot (custo identico ao de um hash real). */
     public String getDummyHash() {
         return DUMMY_HASH;
     }
 
+    /** @return colecao auth_users ou null se offline. */
     public MongoCollection<Document> colecaoUsuariosSeAtiva() {
         return obterColecaoSeAtiva("auth_users");
     }
 
+    /** @return colecao auth_login_limits (rate limit persistido) ou null se offline. */
     public MongoCollection<Document> colecaoLimitesSeAtiva() {
         return obterColecaoSeAtiva("auth_login_limits");
     }
 
+    /**
+     * Autenticacao primaria (chamada pelo LoginHandler):
+     * busca conta ativa por identidade OU e-mail ($or nos campos normalizados) e
+     * verifica a senha. Usuario inexistente/sem hash compara contra o DUMMY_HASH:
+     * o PBKDF2 roda SEMPRE, equalizando o tempo de resposta (anti-enumeracao por timing).
+     * Sucesso atualiza lastLogin/lastLoginAt (best-effort). Falha de banco vira 503;
+     * erro inesperado vira null (credencial invalida, fail-closed).
+     *
+     * @return identidade autenticada ou null para credenciais invalidas
+     */
     public UsuarioAutenticado autenticar(String identidade, String senha) {
         if (identidade == null || identidade.trim().isEmpty()) {
             return null;
@@ -88,6 +107,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
             ));
             Document user = users.find(query).first();
 
+            // Sem conta (ou sem hash): usa o dummy para gastar o MESMO tempo de CPU.
             String hashParaComparar = DUMMY_HASH;
             if (user != null) {
                 String stored = user.getString("passwordHash");
@@ -98,6 +118,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
                 System.out.println("[AUTH] Usuario nao encontrado (dummy hash aplicado): " + normalizedIdentity);
             }
 
+            // verificar() roda antes do cheque de user==null: o custo e pago mesmo sem conta.
             if (!SenhaHasher.verificar(senha, hashParaComparar) || user == null) {
                 System.out.println("[AUTH] Senha incorreta para: " + normalizedIdentity);
                 return null;
@@ -127,6 +148,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Documento cru por id (inclusive inativos - uso admin); MongoException vira 503. */
     public Document buscarDocumentoPorId(String userId) {
         if (userId == null || !ObjectId.isValid(userId.trim())) return null;
         try {
@@ -138,6 +160,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Documento cru por id filtrando active=true (caminhos que exigem conta ativa). */
     public Document buscarDocumentoAtivoPorId(String userId) {
         if (userId == null || !ObjectId.isValid(userId.trim())) return null;
         try {
@@ -151,6 +174,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Identidade tipada por ObjectId (apenas conta ativa). */
     public UsuarioAutenticado buscarPorId(String userId) {
         if (userId == null || !ObjectId.isValid(userId.trim())) return null;
         return buscarUsuarioPorFiltro(
@@ -158,6 +182,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
                 userId.trim(), "buscarPorId", false);
     }
 
+    /** Busca por identidade OU e-mail (campos normalizados, collation case-insensitive). */
     public UsuarioAutenticado buscarPorIdentidade(String identidade) {
         if (identidade == null || identidade.trim().isEmpty()) return null;
         String norm = identidade.trim().toLowerCase(Locale.ROOT);
@@ -169,6 +194,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         return buscarUsuarioPorFiltro(query, norm, "buscarPorIdentidade", true);
     }
 
+    /** Busca por e-mail (email/normalizedEmail, collation case-insensitive). */
     public UsuarioAutenticado buscarPorEmail(String email) {
         if (email == null || email.trim().isEmpty()) return null;
         String norm = email.trim().toLowerCase(Locale.ROOT);
@@ -179,6 +205,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         return buscarUsuarioPorFiltro(query, norm, "buscarPorEmail", true);
     }
 
+    /** Executor comum das buscas: aplica collation quando pedido e traduz falhas (503/null). */
     private UsuarioAutenticado buscarUsuarioPorFiltro(
             Document query, String fallbackIdentity, String contexto, boolean caseInsensitive) {
         try {
@@ -195,6 +222,12 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Cadastro programatico (fluxos internos/testes; o painel admin usa inserirDocumento).
+     * Valida identidade/perfil/politica de senha e duplicidade; conta nasce ativa,
+     * sem 2FA e com sessionVersion=1. Lanca IllegalArgumentException/IllegalStateException
+     * em vez de devolver null (chamador precisa distinguir o motivo).
+     */
     public UsuarioAutenticado cadastrarUsuario(
             String identidade, String senha, String profile, String displayName, String email) {
         if (identidade == null || identidade.trim().isEmpty()) {
@@ -241,6 +274,13 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
                 normalizedIdentity, displayName != null ? displayName : "", normalizedEmail, false);
     }
 
+    /**
+     * Grava a nova senha (PBKDF2), limpa requirePasswordChange e INCREMENTA sessionVersion:
+     * todos os tokens/sessoes antigos deixam de validar imediatamente (logout global).
+     *
+     * @return true se a conta existia e foi atualizada
+     * @throws IllegalArgumentException se a nova senha violar a politica
+     */
     public boolean atualizarSenha(String userId, String novaSenha) {
         SenhaHasher.ResultadoValidacao validacao = SenhaHasher.validarComplexidade(novaSenha);
         if (!validacao.isValido()) {
@@ -265,6 +305,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Conferencia da senha atual (step-up de troca de senha/2FA); erro = false. */
     public boolean verificarSenhaAtual(String userId, String senhaAtual) {
         try {
             Document user = obterColecao("auth_users").find(Filters.eq("_id", new ObjectId(userId))).first();
@@ -276,6 +317,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /** $set dos campos de perfil (whitelist aplicada ANTES, no handler) + updatedAt; devolve o doc pos-update. */
     public Document atualizarPerfil(String userId, Map<String, Object> setFields) {
         if (userId == null || !ObjectId.isValid(userId.trim())) return null;
         Document setDoc = BsonUtils.mapaParaDocumento(setFields);
@@ -287,6 +329,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         );
     }
 
+    /** Liga/desliga 2FA nos dois campos legados e bumpa sessionVersion (politica vale apos novo login). */
     public boolean atualizarDoisFatores(String userId, boolean enabled) {
         if (userId == null || !ObjectId.isValid(userId.trim())) return false;
         try {
@@ -305,6 +348,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Substitui o array inteiro de digests: gerar novos codigos invalida todos os anteriores. */
     public boolean salvarCodigosBackup(String userId, List<String> digests) {
         if (userId == null || !ObjectId.isValid(userId.trim())) return false;
         try {
@@ -322,6 +366,11 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Consumo ATOMICO de backup code: o filtro exige o digest presente no array e o
+     * update faz $pull na mesma operacao - duas chamadas concorrentes com o mesmo
+     * codigo so conseguem consumir UMA vez. Codigo e normalizado (trim+uppercase).
+     */
     public boolean consumirCodigoBackup(String userId, String codigo) {
         if (userId == null || !ObjectId.isValid(userId.trim()) || codigo == null || codigo.trim().isEmpty()) {
             return false;
@@ -349,6 +398,12 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
     // CONSULTAS E MUTACOES ADMINISTRATIVAS
     // =========================================================================
 
+    /**
+     * Listagem admin com filtros combinaveis (perfil, active, busca textual em
+     * nome/e-mail/identidade). Pattern.quote escapa a busca do usuario: entrada
+     * virou literal, sem injecao de regex/ReDoS. Ordenacao estavel (displayName,_id)
+     * para paginacao consistente.
+     */
     public List<Document> listarUsuariosFiltrados(
             String profile, String activeParam, String search, int offset, int limit) {
         List<Bson> filtros = new ArrayList<Bson>();
@@ -379,6 +434,11 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         return docs;
     }
 
+    /**
+     * Duplicidade cruzada identidade/e-mail nas duas direcoes (evita conta A usar o
+     * e-mail da conta B como identidade e vice-versa); ignorarUserId exclui o proprio
+     * usuario em edicoes. Collation case-insensitive.
+     */
     public boolean existeDuplicidade(String normalizedIdentity, String normalizedEmail, String ignorarUserId) {
         Bson match = Filters.or(
                 Filters.eq("normalizedIdentity", normalizedIdentity),
@@ -392,6 +452,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         return obterColecao("auth_users").find(filtro).collation(CASE_INSENSITIVE).first() != null;
     }
 
+    /** Existencia de e-mail (case-insensitive) - pre-check do provisionamento de docentes. */
     public boolean existeEmail(String normalizedEmail) {
         return obterColecao("auth_users")
                 .find(Filters.eq("email", normalizedEmail))
@@ -399,10 +460,12 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
                 .first() != null;
     }
 
+    /** Insert cru do documento montado pelo handler; indice unico lanca MongoWriteException em colisao. */
     public void inserirDocumento(Document doc) {
         obterColecao("auth_users").insertOne(doc);
     }
 
+    /** Aplica a lista de Updates em uma operacao atomica e devolve o documento pos-mudanca. */
     public Document atualizarCamposPorId(String userId, List<Bson> updates) {
         return obterColecao("auth_users").findOneAndUpdate(
                 Filters.eq("_id", new ObjectId(userId)),
@@ -411,6 +474,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         );
     }
 
+    /** sessionVersion+1 atomico; devolve matchedCount (0 = usuario nao encontrado). */
     public long incrementarSessionVersion(String userId) {
         return obterColecao("auth_users").updateOne(
                 Filters.eq("_id", new ObjectId(userId)),
@@ -418,6 +482,7 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         ).getMatchedCount();
     }
 
+    /** Marcacao admin do reset: requirePasswordChange conforme flag; version+1 so se revogar sessoes. */
     public long atualizarResetSenhaAdmin(String userId, boolean forceNextLogin, boolean revokeActiveSessions) {
         List<Bson> updates = new ArrayList<Bson>();
         updates.add(Updates.set("requirePasswordChange", Boolean.valueOf(forceNextLogin)));
@@ -431,11 +496,18 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         ).getMatchedCount();
     }
 
+    /** Total de admins ativos - guarda do "ultimo administrador" nas mutacoes admin. */
     public long contarAdminsAtivos() {
         return obterColecao("auth_users").countDocuments(
                 Filters.and(Filters.eq("profile", "admin"), Filters.eq("active", Boolean.TRUE)));
     }
 
+    /**
+     * Mapper Document -> UsuarioAutenticado (compartilhado com RepositorioSessoes).
+     * Resolve aliases legados (identity/normalizedIdentity, departmentOrCourse/department),
+     * consolida os dois flags de 2FA e deixa sessionId vazio - quem preenche o jti
+     * e a validacao de sessao, nao o documento da conta.
+     */
     public static UsuarioAutenticado construirUsuarioAutenticado(Document user, String fallbackIdentity) {
         if (user == null) return null;
         String userId = user.getObjectId("_id").toHexString();
@@ -456,12 +528,14 @@ public class RepositorioContas extends RepositorioMongoAbstrato {
         );
     }
 
+    /** Primeiro valor nao vazio da cadeia de aliases; fallback final nunca null. */
     private static String primeiroNaoVazio(String a, String b, String fallback) {
         if (a != null && !a.isEmpty()) return a;
         if (b != null && !b.isEmpty()) return b;
         return fallback != null ? fallback : "";
     }
 
+    /** null -> "" para manter o contrato do model (getters nunca null). */
     private static String naoNulo(String s) {
         return s != null ? s : "";
     }

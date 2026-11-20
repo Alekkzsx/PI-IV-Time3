@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class TemplateEmailDiagnostico extends TemplateEmailAbstrato {
     private final String destinatario;
 
+    /** @param nomeAdmin admin que disparou o teste (saudacao); @param destinatario alvo verificado no corpo. */
     public TemplateEmailDiagnostico(String nomeAdmin, String destinatario) {
         super(nomeAdmin);
         this.destinatario = destinatario;
@@ -26,6 +27,7 @@ public class TemplateEmailDiagnostico extends TemplateEmailAbstrato {
         return "&#128231; Diagnóstico de Email AGMRM";
     }
 
+    /** Corpo do teste: destinatario + timestamp do disparo + confirmacao visual de sucesso. */
     @Override
     protected String getConteudoHtml() {
         String timestamp = LocalDateTime.now().toString();

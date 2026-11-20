@@ -9,20 +9,28 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 // Teste sem bibliotecas dos quadros WebSocket, com exemplos da RFC 6455.
+/**
+ * Suite do framing RFC 6455 (secao 5): vetores oficiais de texto mascarado ("Hello"),
+ * escrita sem mascara do servidor, comprimento estendido de 16 bits e rejeicoes
+ * obrigatorias (sem mascara, RSV, controle fragmentado, acima do limite, truncado).
+ */
 public class QuadroTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Conveniencia: monta byte[] a partir de ints literais (0x81, 0x05...). */
     static byte[] bytes(int... valores) {
         byte[] r = new byte[valores.length];
         for (int i = 0; i < valores.length; i++) r[i] = (byte) valores[i];
         return r;
     }
 
+    /** @return true se a leitura REJEITOU o quadro (cenarios negativos). */
     static boolean rejeita(byte[] entrada) {
         try {
             QuadroWebSocket.ler(new ByteArrayInputStream(entrada));
@@ -32,6 +40,7 @@ public class QuadroTeste {
         }
     }
 
+    /** Monta um quadro DE CLIENTE valido (FIN=1, mascara obrigatoria, len 7 ou 16 bits). */
     static byte[] quadroCliente(int opcode, byte[] dados, int[] mascara) {
         ByteArrayOutputStream s = new ByteArrayOutputStream();
         s.write(0x80 | opcode);
@@ -46,14 +55,17 @@ public class QuadroTeste {
         return s.toByteArray();
     }
 
+    /** Executa os cenarios da suite; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() throws IOException {
         falhas = 0;
+        // Vetor da RFC 6455 5.7: texto mascarado "Hello" (mask 37 fa 21 3d).
         QuadroWebSocket q = QuadroWebSocket.ler(new ByteArrayInputStream(
                 bytes(0x81, 0x85, 0x37, 0xfa, 0x21, 0x3d, 0x7f, 0x9f, 0x4d, 0x51, 0x58)));
         esperar(q.isFim() && q.getOpcode() == QuadroWebSocket.TEXTO
                 && new String(q.getDados(), StandardCharsets.UTF_8).equals("Hello"), "le texto mascarado da RFC");
 
         ByteArrayOutputStream saida = new ByteArrayOutputStream();
+        // Vetor da RFC 5.7 (unmasked): servidor escreve "Hello" sem mascara.
         new QuadroWebSocket(true, QuadroWebSocket.TEXTO, "Hello".getBytes(StandardCharsets.UTF_8)).escrever(saida);
         esperar(Arrays.equals(saida.toByteArray(), bytes(0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f)), "escreve texto da RFC");
 
@@ -75,6 +87,7 @@ public class QuadroTeste {
         return falhas;
     }
 
+    /** Runner isolado: exit 1 se houver falha. */
     public static void main(String[] args) throws IOException {
         int erros = executar();
         if (erros > 0) {

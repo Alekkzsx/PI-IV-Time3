@@ -20,6 +20,7 @@ import java.util.Map;
  */
 public class VideoCallInteractionHandler extends HandlerVideoCallLegadoAbstrato {
 
+    /** Despacho: /hand-raise (fila de perguntas) e /chat (mensagens); resto 404. */
     @Override
     protected void processarVideoCall(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws Exception {
@@ -33,6 +34,10 @@ public class VideoCallInteractionHandler extends HandlerVideoCallLegadoAbstrato 
         }
     }
 
+    /**
+     * /hand-raise: POST alterna o estado (action raise/lower/toggle) e devolve a posicao
+     * na fila FIFO (1-based; 0 = fora da fila); GET lista a fila na ordem de chegada.
+     */
     private void tratarMaoLevantada(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {
             Map<String, String> params = HttpUtils.extrairParametros(requisicao);
@@ -49,6 +54,7 @@ public class VideoCallInteractionHandler extends HandlerVideoCallLegadoAbstrato 
                 responderErro(resposta, 404, "not_found", "Participante nao localizado na sala.");
                 return;
             }
+            // toggle inverte o estado atual; raise/lower forcam o estado pedido.
             boolean novoEstado = "raise".equalsIgnoreCase(action) ? true
                     : ("lower".equalsIgnoreCase(action) ? false : !p.isHandRaised);
             service.alternarMaoLevantada(roomCode, ra, novoEstado);
@@ -87,6 +93,10 @@ public class VideoCallInteractionHandler extends HandlerVideoCallLegadoAbstrato 
         }
     }
 
+    /**
+     * /chat: POST acrescenta mensagem (remetente/papel resolvidos com precedencia do JWT,
+     * nome/papel ausentes caem em RA/"aluno"); GET devolve o historico completo da sala.
+     */
     private void tratarChat(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if ("POST".equalsIgnoreCase(requisicao.getMetodo())) {

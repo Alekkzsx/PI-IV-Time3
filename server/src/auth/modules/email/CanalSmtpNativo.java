@@ -40,15 +40,18 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         return "SMTP";
     }
 
+    /** Configurado = host definido E breaker permitindo tentativa (OPEN pula o tier sem gastar timeout). */
     @Override
     public boolean estaConfigurado() {
         return config != null && !config.host.isEmpty() && circuitBreaker.permitirTentativa();
     }
 
+    /** @return true se o retry foi abortado por interrupcao da thread (shutdown em andamento). */
     public boolean foiInterrompido() {
         return interrompido;
     }
 
+    /** Distingue no errorTrail "sem SMTP_HOST" de "breaker OPEN" (motivos bem diferentes de pulo). */
     @Override
     protected void registrarNaoConfigurado(List<String> errorTrail) {
         if (errorTrail == null) {
@@ -61,6 +64,11 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         }
     }
 
+    /**
+     * Retry com backoff exponencial (1s, 2s, 4s...) ate maxTentativas.
+     * Cada falha alimenta o breaker; se ele ABRIR, o retry para na hora (nao adianta
+     * insistir num servidor comprovadamente fora). Sucesso fecha o breaker.
+     */
     @Override
     protected boolean enviarInterno(MensagemEmail mensagem, List<String> errorTrail) {
         long delayMs = 1000L;
@@ -84,12 +92,13 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
                         + " | Tentativa=" + tentativa + "/" + maxTentativas + " | Erro: " + e.getMessage());
 
                 if (circuitBreaker.estaAberto()) {
-                    break;
+                    break; // breaker abriu no meio do retry: aborta e deixa o tier 2 trabalhar
                 }
                 if (tentativa < maxTentativas) {
                     try {
                         Thread.sleep(delayMs);
                     } catch (InterruptedException ie) {
+                        // Shutdown: restaura a flag, marca interrupcao e devolve sem novo retry.
                         Thread.currentThread().interrupt();
                         interrompido = true;
                         if (errorTrail != null) {
@@ -98,13 +107,21 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
                         log("ERROR", "[INTERRUPCAO] Retry interrompido para " + mensagem.getDestinatario());
                         return false;
                     }
-                    delayMs *= 2L;
+                    delayMs *= 2L; // backoff exponencial entre tentativas
                 }
             }
         }
         return false;
     }
 
+    /**
+     * Dialogo SMTP completo (RFC 5321) sobre socket cru:
+     * 220 greeting -> EHLO -> [STARTTLS + re-EHLO] -> [AUTH LOGIN/PLAIN] ->
+     * MAIL FROM (250) -> RCPT TO (250) -> DATA (354) -> cabecalhos + corpo + "." (250) -> QUIT.
+     * O 250 do DATA significa que o servidor ACEITOU a entrega; QUIT e best-effort.
+     *
+     * @throws Exception em qualquer resposta fora do codigo esperado ou falha de rede
+     */
     public static void enviarViaSocket(
             SmtpCliente.SmtpConfig config,
             String destinatarioEmail,
@@ -126,10 +143,13 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
 
             exigirCodigo(lerResposta(leitor), "220", "Servidor SMTP nao respondeu com 220");
 
+            // EHLO apresenta o cliente e lista as extensoes suportadas (STARTTLS, AUTH...).
             escreverLinhaSmtp(saida, "EHLO agmrm.local");
             String respostaEhlo = lerRespostaMultipla(leitor);
 
             if (!config.usarSsl && respostaEhlo.toUpperCase(Locale.ROOT).contains("STARTTLS")) {
+                // STARTTLS: sobe TLS sobre o MESMO socket e re-executa EHLO dentro do tunel
+                // (as extensoes anunciadas antes do TLS nao sao confiaveis).
                 escreverLinhaSmtp(saida, "STARTTLS");
                 exigirCodigo(lerResposta(leitor), "220", "STARTTLS rejeitado");
                 SSLSocketFactory sslFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
@@ -171,6 +191,7 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         }
     }
 
+    /** Abre o TCP (connect timeout limitado a 3s) e, se SMTP_SECURE, envolve em SSL implicito (porta 465). */
     private static Socket abrirConexao(SmtpCliente.SmtpConfig config) throws IOException {
         Socket rawSocket = new Socket();
         int connectTimeout = Math.min(config.timeoutMs, 3000);
@@ -186,6 +207,12 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         return rawSocket;
     }
 
+    /**
+     * AUTH conforme o que o EHLO anunciou, preferindo LOGIN:
+     * LOGIN = dois desafios 334 (usuario e senha em Base64 separados);
+     * PLAIN = credenciais em um unico comando no formato \0usuario\0senha.
+     * 235 = autenticado. Sem AUTH anunciado, segue sem autenticar (relay local).
+     */
     private static void autenticarSmtp(
             BufferedReader leitor,
             OutputStream saida,
@@ -208,6 +235,11 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         }
     }
 
+    /**
+     * Escreve os cabecalhos RFC 5322 + corpo HTML dentro do comando DATA:
+     * Subject com acentos vira encoded-word RFC 2047; linha vazia separa cabecalhos
+     * do corpo; uma linha contendo apenas "." encerra o DATA.
+     */
     private static void escreverCabecalhosECorpo(
             OutputStream saida,
             String remetente,
@@ -226,6 +258,12 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         escreverLinhaSmtp(saida, ".");
     }
 
+    /**
+     * Normaliza o corpo para o comando DATA (RFC 5321 4.5.2):
+     * - converte qualquer quebra de linha para CRLF;
+     * - DOT-STUFFING: linha que comeca com '.' ganha um '.' extra, senao o servidor
+     *   interpretaria "." sozinho como fim prematuro da mensagem (o servidor remove o ponto extra).
+     */
     public static String normalizarCorpoDataRfc5321(String corpo) {
         String texto = corpo == null ? "" : corpo.replace("\r\n", "\n").replace("\r", "\n");
         String[] linhas = texto.split("\n", -1);
@@ -234,13 +272,14 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
             if (i > 0) sb.append("\r\n");
             String linha = linhas[i];
             if (linha.startsWith(".")) {
-                sb.append('.');
+                sb.append('.'); // dot-stuffing: duplica o ponto inicial
             }
             sb.append(linha);
         }
         return sb.toString();
     }
 
+    /** Subject 100% ASCII passa cru; qualquer char > 127 exige encoded-word =?UTF-8?B?<base64>?= (RFC 2047). */
     private static String codificarSubjectRFC2047(String texto) {
         if (texto == null || texto.isEmpty()) return "";
         for (int i = 0; i < texto.length(); i++) {
@@ -251,17 +290,20 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         return texto;
     }
 
+    /** Exige que a resposta comece com o codigo SMTP esperado; erro inclui a resposta crua do servidor. */
     private static void exigirCodigo(String resposta, String prefixo, String mensagemErro) throws Exception {
         if (!resposta.startsWith(prefixo)) {
             throw new Exception(mensagemErro + ": " + resposta);
         }
     }
 
+    /** Todo comando SMTP termina em CRLF e vai com flush imediato (dialogo sincrono). */
     private static void escreverLinhaSmtp(OutputStream saida, String linha) throws IOException {
         saida.write((linha + "\r\n").getBytes(StandardCharsets.UTF_8));
         saida.flush();
     }
 
+    /** Le uma linha de resposta; EOF no meio do dialogo = servidor derrubou a conexao. */
     private static String lerResposta(BufferedReader leitor) throws Exception {
         String linha = leitor.readLine();
         if (linha == null) {
@@ -270,6 +312,10 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         return linha;
     }
 
+    /**
+     * Le resposta multi-linha (EHLO): o 4o caractere '-' indica continuacao,
+     * espaco indica a ultima linha (ex.: "250-STARTTLS" ... "250 AUTH LOGIN").
+     */
     private static String lerRespostaMultipla(BufferedReader leitor) throws Exception {
         StringBuilder builder = new StringBuilder();
         String linha;
@@ -283,6 +329,7 @@ public class CanalSmtpNativo extends CanalEnvioEmailAbstrato {
         return builder.toString();
     }
 
+    /** Base64 padrao (AUTH LOGIN/PLAIN e RFC 2047 usam o alfabeto comum, nao o URL-safe). */
     private static String base64(String texto) {
         return Base64.getEncoder().encodeToString(texto.getBytes(StandardCharsets.UTF_8));
     }

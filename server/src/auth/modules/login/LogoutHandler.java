@@ -44,6 +44,12 @@ public class LogoutHandler extends HandlerHttpAbstrato {
         return "LOGOUT";
     }
 
+    /**
+     * Logout em duas camadas: blacklist em memoria (efeito imediato) + revogacao da
+     * sessao no Mongo (duravel, sobrevive a restart). Mesmo token INVALIDO/expirado e
+     * colocado na blacklist por defesa em profundidade. O refresh token opcional do
+     * body tambem e revogado para impedir renovacao pos-logout.
+     */
     @Override
     protected void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws Exception {
         String accessToken = JwtAuthValidator.extrairBearerToken(requisicao);
@@ -61,6 +67,7 @@ public class LogoutHandler extends HandlerHttpAbstrato {
         try {
             usuario = JwtAuthValidator.validarToken(accessToken, segredo, null);
         } catch (SecurityException e) {
+            // Token ja invalido: ainda assim registra o jti na blacklist (barato e defensivo).
             revogarTokenNaBlacklist(accessToken);
             responderErro(resposta, 401, "unauthorized", e.getMessage());
             return;
@@ -69,6 +76,7 @@ public class LogoutHandler extends HandlerHttpAbstrato {
         String jtiAccess = revogarTokenNaBlacklist(accessToken);
         if (jtiAccess != null) {
             try {
+                // Revogacao duravel: derruba a sessao no Mongo; falha aqui nao desfaz a blacklist.
                 repositorio.revogarSessao(jtiAccess);
                 repositorio.registrarAuditoria(usuario.getUserId(), "logout", usuario.getUserId(), null);
             } catch (Exception e) {
@@ -85,6 +93,7 @@ public class LogoutHandler extends HandlerHttpAbstrato {
         enviarJson(resposta, 200, resp);
     }
 
+    /** Extrai jti/exp do token e registra na blacklist; devolve o jti para revogar a sessao. */
     private String revogarTokenNaBlacklist(String token) {
         String jti = JwtGerador.extrairJti(token);
         long expira = JwtGerador.extrairExpiracaoMillis(token);
@@ -94,6 +103,7 @@ public class LogoutHandler extends HandlerHttpAbstrato {
         return jti;
     }
 
+    /** Best-effort: se o cliente mandou refreshToken no body, revoga tambem (body invalido e ignorado). */
     private void revogarRefreshOpcional(RequisicaoHttp requisicao) {
         try {
             Map<String, Object> body = lerJsonObjetoOpcional(requisicao);

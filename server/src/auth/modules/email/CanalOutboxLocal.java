@@ -17,7 +17,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * e persiste na colecao MongoDB email_outbox quando disponivel.
  */
 public class CanalOutboxLocal extends CanalEnvioEmailAbstrato {
+    // Historico circular de 50 itens: suficiente para diagnostico sem crescer indefinidamente.
     private static final int LIMITE_HISTORICO = 50;
+    // Fila concorrente: envios vem de varias threads do pool SMTP.
     private static final Queue<SmtpCliente.EmailOutboxItem> HISTORICO =
             new ConcurrentLinkedQueue<SmtpCliente.EmailOutboxItem>();
 
@@ -26,11 +28,13 @@ public class CanalOutboxLocal extends CanalEnvioEmailAbstrato {
         return "OUTBOX";
     }
 
+    /** Sempre configurado: e o ultimo recurso da cadeia, nunca pode recusar. */
     @Override
     public boolean estaConfigurado() {
         return true;
     }
 
+    /** Registra no historico circular (qualquer canal, inclusive envios bem-sucedidos). */
     public static void registrarNoHistorico(MensagemEmail mensagem, String canal) {
         HISTORICO.offer(new SmtpCliente.EmailOutboxItem(
                 mensagem.getDestinatario(),
@@ -44,10 +48,16 @@ public class CanalOutboxLocal extends CanalEnvioEmailAbstrato {
         }
     }
 
+    /** @return copia do historico (snapshot seguro para iteracao fora do lock). */
     public static List<SmtpCliente.EmailOutboxItem> getHistorico() {
         return new ArrayList<SmtpCliente.EmailOutboxItem>(HISTORICO);
     }
 
+    /**
+     * Retencao final: historico + moldura no console (com o OTP visivel para dev/demo
+     * quando nenhum canal externo entregou) + persistencia best-effort no Mongo.
+     * SEMPRE devolve true: o tier 3 existe para garantir que o fluxo nunca quebre.
+     */
     @Override
     protected boolean enviarInterno(MensagemEmail mensagem, List<String> errorTrail) {
         String codigoOtp = mensagem.getCodigoOtp();
@@ -81,6 +91,11 @@ public class CanalOutboxLocal extends CanalEnvioEmailAbstrato {
         return true;
     }
 
+    /**
+     * Persiste a mensagem em email_outbox com TTL de 24h (expiresAt) para o backend TS
+     * poder reprocessar/inspecionar. Totalmente best-effort: sem repositorio/colecao ou
+     * com erro de banco, o console ja garantiu a retencao - nada e lancado.
+     */
     private static void persistirOutboxMongo(MensagemEmail mensagem, String codigoOtp, List<String> errorTrail) {
         try {
             RepositorioUsuarios repo = RepositorioUsuarios.getInstanciaSeInicializada();

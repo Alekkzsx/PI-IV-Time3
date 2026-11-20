@@ -21,6 +21,7 @@ import java.util.Map;
  */
 public abstract class CanalHttpsEmailAbstrato extends CanalEnvioEmailAbstrato {
 
+    /** DTO imutavel da resposta HTTP do provedor (status + corpo ja lido como UTF-8). */
     protected static final class HttpResposta {
         public final int status;
         public final String body;
@@ -31,26 +32,37 @@ public abstract class CanalHttpsEmailAbstrato extends CanalEnvioEmailAbstrato {
         }
     }
 
+    /** Endpoint HTTPS do provedor (ex.: https://api.resend.com/emails). */
     protected abstract String getUrl();
 
+    /** Headers de autenticacao do provedor (Authorization Bearer, x-keys, assinatura HMAC...). */
     protected abstract Map<String, String> construirHeaders();
 
+    /** Corpo JSON no formato especifico da API do provedor. */
     protected abstract Map<String, Object> construirPayload(MensagemEmail mensagem);
 
+    /** Gancho de timeout de conexao (default 5s - APIs de e-mail devem responder rapido). */
     protected int getConnectTimeoutMs() {
         return 5_000;
     }
 
+    /** Gancho de timeout de leitura (default 8s). */
     protected int getReadTimeoutMs() {
         return 8_000;
     }
 
+    /**
+     * Gancho: true reenvia como GET ao receber 302/303/307/308.
+     * So o webhook do cliente usa (alguns endpoints internos redirecionam); APIs
+     * comerciais nao redirecionam e seguir redirect cegamente vazaria o payload.
+     */
     protected boolean deveSeguirRedirectPost302() {
         return false;
     }
 
     /**
      * Valida a resposta HTTP do provedor; retorna null se aceito ou a mensagem de erro caso rejeitado.
+     * Default: qualquer 2xx aceita; subclasses podem exigir campos no corpo (ex.: id da mensagem).
      */
     protected String validarResposta(int status, String body) {
         if (status >= 200 && status < 300) {
@@ -59,6 +71,7 @@ public abstract class CanalHttpsEmailAbstrato extends CanalEnvioEmailAbstrato {
         return getNomeCanal() + " HTTP " + status + ": " + truncar(body, 160);
     }
 
+    /** Fluxo fixo do tier 2: payload -> POST JSON -> validacao -> log de sucesso/rejeicao. */
     @Override
     protected final boolean enviarInterno(MensagemEmail mensagem, List<String> errorTrail) throws Exception {
         String payloadJson = Json.escrever(construirPayload(mensagem));
@@ -83,6 +96,11 @@ public abstract class CanalHttpsEmailAbstrato extends CanalEnvioEmailAbstrato {
         return false;
     }
 
+    /**
+     * Transporte POST JSON compartilhado pelos canais HTTPS.
+     * Redirect automatico fica DESLIGADO (setInstanceFollowRedirects(false)) para o
+     * chamador decidir; em erro (>=400) le o errorStream para incluir o motivo no errorTrail.
+     */
     protected static HttpResposta executarPostJsonHttp(
             String urlDestino,
             Map<String, String> headersExtras,
@@ -114,6 +132,7 @@ public abstract class CanalHttpsEmailAbstrato extends CanalEnvioEmailAbstrato {
             os.close();
 
             int status = conn.getResponseCode();
+            // Opt-in de redirect: repost como GET no Location (sem reenviar credenciais no corpo).
             if (seguirRedirectPost302
                     && (status == HttpURLConnection.HTTP_MOVED_TEMP
                     || status == HttpURLConnection.HTTP_SEE_OTHER
@@ -132,6 +151,7 @@ public abstract class CanalHttpsEmailAbstrato extends CanalEnvioEmailAbstrato {
                 }
             }
 
+            // 2xx/3xx vem no inputStream; erros vem no errorStream (pode ser null em falha de rede).
             InputStream stream = status >= 200 && status < 400 ? conn.getInputStream() : conn.getErrorStream();
             String body = RedeUtils.lerStreamUtf8(stream);
             return new HttpResposta(status, body);

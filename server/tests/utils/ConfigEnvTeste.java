@@ -4,14 +4,21 @@ package utils;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Suite do ConfigEnv: garante que o .env MESTRE da raiz foi localizado/carregado e que
+ * as chaves criticas (SERVER_PORT, MONGODB_DATABASE, segredo JWT e seu alias) resolvem
+ * com os valores esperados. Depende do .env real do projeto (teste de integracao leve).
+ */
 public class ConfigEnvTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Executa os cenarios da suite; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
 
@@ -32,6 +39,7 @@ public class ConfigEnvTeste {
                 "ConfigEnv: AUTH_JWT_SECRET carregado com segredo robusto (>=32 chars)");
 
         String jwtSecretAlias = ConfigEnv.obter("JWT_SECRET", null);
+        // Alias interoperavel: Java e backend TS precisam enxergar o MESMO segredo.
         esperar(jwtSecret != null && jwtSecret.equals(jwtSecretAlias),
                 "ConfigEnv: alias JWT_SECRET e AUTH_JWT_SECRET sincronizados");
 

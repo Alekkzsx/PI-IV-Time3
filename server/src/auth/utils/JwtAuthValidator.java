@@ -21,8 +21,14 @@ import java.util.Set;
 
 /**
  * Validador JWT HS256 implementado com JDK padrao + conferencia autoritativa no MongoDB.
+ *
+ * Validacao em duas camadas:
+ * 1. Criptografica/local (validarToken): estrutura, algoritmo, assinatura, blacklist, tipo, claims e expiracao;
+ * 2. Autoritativa (validarComRepositorio): sessao ativa no Mongo + sessionVersion + perfil atual + estado da conta.
+ * A camada 2 e o que permite logout/revogacao/troca de senha invalidarem tokens ainda "validos" no JWT.
  */
 public final class JwtAuthValidator {
+    // RBAC: qualquer perfil fora desta whitelist invalida o token mesmo com assinatura correta.
     private static final Set<String> PERFIS_VALIDOS = Collections.unmodifiableSet(
             new HashSet<String>(Arrays.asList("aluno", "docente", "admin")));
 
@@ -35,8 +41,15 @@ public final class JwtAuthValidator {
         }
     }
 
+    // Classe utilitaria estatica: construtor privado impede instanciacao.
     private JwtAuthValidator() {}
 
+    /**
+     * Extrai o token do header "Authorization: Bearer <token>" (prefixo case-insensitive).
+     *
+     * @return token ou null se o header estiver ausente (rota pode ser publica)
+     * @throws SecurityException se o header existir mas estiver malformado (vira 401)
+     */
     public static String extrairBearerToken(RequisicaoHttp requisicao) {
         if (requisicao == null) {
             return null;
@@ -56,6 +69,14 @@ public final class JwtAuthValidator {
         return token;
     }
 
+    /**
+     * Camada 1: valida o JWT localmente (sem banco) e devolve a identidade dos claims.
+     * Ordem das verificacoes: estrutura -> Base64URL -> alg -> assinatura -> blacklist ->
+     * tipo -> sub/profile -> exp/nbf. Qualquer falha lanca SecurityException (401).
+     *
+     * @param tipoEsperado "access", "refresh" ou "recovery"; null aceita qualquer tipo
+     * @throws SecurityException em qualquer violacao (mensagem segura para o cliente)
+     */
     public static UsuarioAutenticado validarToken(String token, String segredo, String tipoEsperado) {
         if (token == null || token.trim().isEmpty()) {
             throw new SecurityException("Token de autenticacao ausente.");
@@ -87,11 +108,13 @@ public final class JwtAuthValidator {
         } catch (IllegalArgumentException e) {
             throw new SecurityException("Cabecalho JWT invalido.");
         }
+        // Algoritmo FIXADO em HS256: rejeita "none" e RS256 (ataques de algorithm confusion).
         if (!"HS256".equals(header.get("alg"))) {
             throw new SecurityException("Algoritmo JWT nao permitido.");
         }
 
         byte[] assinaturaEsperada = JwtGerador.calcularHmacSha256(partes[0] + "." + partes[1], segredo);
+        // MessageDigest.isEqual: comparacao em tempo constante (nao vaza prefixo valido por timing).
         if (!MessageDigest.isEqual(assinaturaEsperada, assinaturaRecebida)) {
             throw new SecurityException("Assinatura do token invalida.");
         }
@@ -103,11 +126,13 @@ public final class JwtAuthValidator {
             throw new SecurityException("Payload JWT invalido.");
         }
 
+        // Blacklist em memoria: logout imediato mesmo com JWT ainda nao expirado.
         String jti = claims.get("jti") instanceof String ? (String) claims.get("jti") : "";
         if (!jti.isEmpty() && RevogacaoTokens.getInstance().estaRevogado(jti)) {
             throw new SecurityException("Sessao encerrada. Realize login novamente.");
         }
 
+        // Impede reuso cruzado: refresh token nao acessa rotas, access token nao renova sessao.
         String tipo = claims.get("type") instanceof String ? (String) claims.get("type") : "access";
         if (tipoEsperado != null && !tipoEsperado.equals(tipo)) {
             throw new SecurityException("Tipo de token invalido. Esperado: " + tipoEsperado + ", recebido: " + tipo);
@@ -140,6 +165,7 @@ public final class JwtAuthValidator {
             throw new SecurityException("Token ainda nao ativo (nbf).");
         }
 
+        // ver default 0: tokens sem versao so passam se o banco tambem estiver em 0.
         int ver = claims.get("ver") instanceof Number ? ((Number) claims.get("ver")).intValue() : 0;
         String identity = claims.get("identity") instanceof String ? (String) claims.get("identity") : "";
         String displayName = claims.get("name") instanceof String ? (String) claims.get("name") : "";
@@ -149,10 +175,15 @@ public final class JwtAuthValidator {
                 ((String) subObj).trim(), profile, jti, ver, identity, displayName, email, false);
     }
 
+    /** Sobrecarga sem tipo esperado (aceita access/refresh/recovery indistintamente). */
     public static UsuarioAutenticado validarToken(String token, String segredo) {
         return validarToken(token, segredo, null);
     }
 
+    /**
+     * Emissor alternativo de access token com claims minimos (usado em testes e no fluxo
+     * de recovery, que precisa de jti controlado). Producao usa JwtGerador.
+     */
     public static String gerarTokenHs256(
             String userId,
             String profile,
@@ -174,10 +205,17 @@ public final class JwtAuthValidator {
         return JwtGerador.assinarClaims(payload, segredo);
     }
 
+    /** Atalho com singleton e sem tolerancia a troca de senha pendente. */
     public static UsuarioAutenticado autenticarObrigatorio(RequisicaoHttp requisicao) {
         return autenticarObrigatorio(requisicao, RepositorioUsuarios.getInstance(), false);
     }
 
+    /**
+     * Porta de entrada das rotas autenticadas: exige Bearer + valida nas duas camadas.
+     *
+     * @param permitirTrocaSenhaPendente true somente na rota de troca de senha
+     * @throws HttpSecurityException 401 sem token / status do resultado da sessao invalida
+     */
     public static UsuarioAutenticado autenticarObrigatorio(
             RequisicaoHttp requisicao,
             RepositorioUsuarios repositorio,
@@ -190,6 +228,7 @@ public final class JwtAuthValidator {
         return validarComRepositorio(token, "access", repositorio, permitirTrocaSenhaPendente);
     }
 
+    /** Igual a autenticarObrigatorio + checagem RBAC de admin (403 se perfil inferior). */
     public static UsuarioAutenticado autenticarAdminObrigatorio(
             RequisicaoHttp requisicao,
             RepositorioUsuarios repositorio) {
@@ -200,6 +239,10 @@ public final class JwtAuthValidator {
         return usuario;
     }
 
+    /**
+     * Valida um refresh token (type=refresh) apenas na camada criptografica.
+     * A sessao antiga e conferida/rotacionada pelo RefreshTokenHandler, nao aqui.
+     */
     public static UsuarioAutenticado autenticarRefreshToken(RequisicaoHttp requisicao) {
         String token = extrairBearerToken(requisicao);
         if (token == null) {
@@ -209,10 +252,16 @@ public final class JwtAuthValidator {
         return validarToken(token, segredo, "refresh");
     }
 
+    /** Versao com singleton tolerante: nao forca conexao Mongo se ninguem a criou ainda. */
     public static UsuarioAutenticado autenticarOpcional(RequisicaoHttp requisicao) {
         return autenticarOpcional(requisicao, RepositorioUsuarios.getInstanciaSeInicializada());
     }
 
+    /**
+     * Autenticacao tolerante (rotas legadas de videochamada): sem token devolve null,
+     * exceto se REQUIRE_HTTP_JWT=true endurece a politica. Token presente SEMPRE e
+     * validado por completo - nunca se aceita token invalido silenciosamente.
+     */
     public static UsuarioAutenticado autenticarOpcional(RequisicaoHttp requisicao, RepositorioUsuarios repositorio) {
         String token = extrairBearerToken(requisicao);
         if (token == null) {
@@ -224,6 +273,12 @@ public final class JwtAuthValidator {
         return validarComRepositorio(token, "access", repositorio, false);
     }
 
+    /**
+     * Camada 2: apos a validacao local, consulta a sessao autoritativa no Mongo
+     * (jti ativo, ver igual, perfil atual, conta ativa, troca de senha pendente).
+     * O usuario devolvido e o do BANCO (dados frescos), nao o snapshot do token.
+     * Repositorio ausente = 503 (fail-closed: sem banco nao se autentica ninguem).
+     */
     private static UsuarioAutenticado validarComRepositorio(
             String token,
             String tipoEsperado,

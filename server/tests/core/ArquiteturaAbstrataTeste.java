@@ -44,11 +44,16 @@ import java.util.Map;
 public class ArquiteturaAbstrataTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /**
+     * Handler concreto de laboratorio: cada "acao" do body dispara um tipo de excecao
+     * diferente, permitindo provar o catch polimorfico do Template Method fim-a-fim.
+     */
     private static final class HandlerExemplo extends HandlerHttpAbstrato {
         @Override
         protected String metodoPermitido() {
@@ -83,6 +88,7 @@ public class ArquiteturaAbstrataTeste {
         }
     }
 
+    /** Executa os 6 blocos de cenario; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         String anteriorJwt = System.getProperty("AUTH_JWT_SECRET");
@@ -105,6 +111,7 @@ public class ArquiteturaAbstrataTeste {
         return falhas;
     }
 
+    /** As 3 excecoes de dominio respondem cada uma com seu status, via referencia da superclasse. */
     private static void testarPolimorfismoExcecoes() {
         ExcecaoHttpAbstrata e1 = new DatabaseUnavailableException(503, "db_down", "offline", null);
         ExcecaoHttpAbstrata e2 = new JwtAuthValidator.HttpSecurityException(403, "forbidden", "negado");
@@ -113,6 +120,7 @@ public class ArquiteturaAbstrataTeste {
                 "ExcecaoHttpAbstrata: unifica statusHttp e codigo polimorficamente nas 3 excecoes de dominio");
     }
 
+    /** Ciclo de vida completo: OPTIONS 204, 405, catches por tipo de excecao e fluxo feliz com IP real. */
     private static void testarTemplateMethodHandler() throws Exception {
         HandlerExemplo handler = new HandlerExemplo();
 
@@ -140,6 +148,11 @@ public class ArquiteturaAbstrataTeste {
                 "HandlerHttpAbstrato: executa fluxo normal e extrai IP real via RedeUtils");
     }
 
+    /**
+     * Fail-closed real: aponta o monitor para uma porta TCP comprovadamente FECHADA
+     * (abre e fecha um ServerSocket so para descobrir o numero) e exige 503 nas rotas
+     * funcionais, com /health ainda respondendo 200.
+     */
     private static void testarGuardaFailClosedBackendAcademico() throws Exception {
         java.net.ServerSocket portaLivre = new java.net.ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"));
         int portaFechada = portaLivre.getLocalPort();
@@ -164,6 +177,7 @@ public class ArquiteturaAbstrataTeste {
         }
     }
 
+    /** As 4 subclasses mantem o layout institucional e escapam XSS (nome "Ana <script>"). */
     private static void testarTemplatesEmail() {
         TemplateEmailAbstrato[] templates = new TemplateEmailAbstrato[] {
                 new TemplateEmailOtp("Ana <script>", "654321"),
@@ -182,6 +196,7 @@ public class ArquiteturaAbstrataTeste {
                 "TemplateEmailAbstrato: renderiza layout institucional unico e aplica escape XSS nas 4 subclasses");
     }
 
+    /** Canais sem chave sao pulados sem erro; breaker abre em 3 falhas e fecha no sucesso. */
     private static void testarCanaisECircuitBreaker() {
         CanalEnvioEmailAbstrato resendSemChave = new CanalResendEmail("", "a@b.com");
         CanalEnvioEmailAbstrato brevoSemChave = new CanalBrevoEmail("", "a@b.com");
@@ -202,6 +217,7 @@ public class ArquiteturaAbstrataTeste {
                 "CircuitBreakerSmtp: retorna para CLOSED apos sucesso");
     }
 
+    /** Conversao BSON, normalizacao de URL/loopback, mascara de e-mail, clamp, sala/presenca e recovery token. */
     private static void testarUtilitariosCompartilhados() {
         ObjectId oid = new ObjectId();
         Document nested = new Document("_id", oid)
@@ -232,6 +248,7 @@ public class ArquiteturaAbstrataTeste {
                 "JwtGerador: emissao unificada de recovery token valida com JwtAuthValidator");
     }
 
+    /** Monta um POST JSON cru para o handler de laboratorio. */
     private static String postJson(HandlerHttpAbstrato handler, String jsonBody) throws Exception {
         byte[] bytes = jsonBody.getBytes(StandardCharsets.UTF_8);
         String raw = "POST /teste HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\n"
@@ -239,6 +256,7 @@ public class ArquiteturaAbstrataTeste {
         return enviarRaw(handler, raw);
     }
 
+    /** Executa requisicao HTTP crua contra o handler e devolve a resposta serializada. */
     private static String enviarRaw(HandlerHttpAbstrato handler, String raw) throws Exception {
         RequisicaoHttp req = RequisicaoHttp.ler(new ByteArrayInputStream(raw.getBytes(StandardCharsets.UTF_8)));
         ByteArrayOutputStream out = new ByteArrayOutputStream();

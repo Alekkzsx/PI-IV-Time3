@@ -9,6 +9,7 @@ import auth.abstratas.TemplateEmailAbstrato;
 public class TemplateEmailOtp extends TemplateEmailAbstrato {
     private final String codigo;
 
+    /** @param codigo OTP de 6 digitos gerado pelo OtpService. */
     public TemplateEmailOtp(String nomeDestinatario, String codigo) {
         super(nomeDestinatario);
         this.codigo = codigo;
@@ -24,6 +25,7 @@ public class TemplateEmailOtp extends TemplateEmailAbstrato {
         return "&#128274; Verificação de Segurança";
     }
 
+    /** Caixa de destaque com o codigo grande e espacado (facilita leitura/digitacao) + aviso de validade. */
     @Override
     protected String getConteudoHtml() {
         return "<p>Use o código abaixo para verificar sua identidade:</p>"

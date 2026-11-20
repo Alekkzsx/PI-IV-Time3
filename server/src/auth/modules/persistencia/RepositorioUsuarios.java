@@ -19,14 +19,21 @@ import java.util.Map;
  * mantendo construtor protegido para dubles de teste offline.
  */
 public class RepositorioUsuarios {
+    // Singleton DCL: uma unica fachada (e um unico pool Mongo) por processo.
     private static volatile RepositorioUsuarios INSTANCIA_COMPARTILHADA;
 
+    // Composicao (padrao Facade): a fachada nao acessa o driver diretamente;
+    // cada repositorio especializado cuida das suas colecoes.
     private final ConexaoMongo conexao;
     private final RepositorioContas contas;
     private final RepositorioSessoes sessoes;
     private final RepositorioOtps otps;
     private final RepositorioAuditoria auditoria;
 
+    /**
+     * Resultado imutavel da validacao autoritativa de sessao: ou carrega o usuario
+     * fresco do banco (ok) ou o status/codigo/mensagem HTTP que o handler deve devolver.
+     */
     public static final class ResultadoValidacaoSessao {
         public final boolean valida;
         public final int statusHttp;
@@ -43,15 +50,18 @@ public class RepositorioUsuarios {
             this.usuario = usuario;
         }
 
+        /** Sessao valida: carrega a identidade atualizada do banco. */
         public static ResultadoValidacaoSessao ok(UsuarioAutenticado usuario) {
             return new ResultadoValidacaoSessao(true, 200, "ok", "", usuario);
         }
 
+        /** Sessao invalida: status/codigo prontos para a resposta HTTP (401/403/503). */
         public static ResultadoValidacaoSessao erro(int statusHttp, String codigo, String mensagem) {
             return new ResultadoValidacaoSessao(false, statusHttp, codigo, mensagem, null);
         }
     }
 
+    /** Singleton padrao (double-checked locking) usado por todos os handlers em producao. */
     public static RepositorioUsuarios getInstance() {
         if (INSTANCIA_COMPARTILHADA == null) {
             synchronized (RepositorioUsuarios.class) {
@@ -63,16 +73,20 @@ public class RepositorioUsuarios {
         return INSTANCIA_COMPARTILHADA;
     }
 
+    /** @return instancia existente ou null - nunca dispara conexao Mongo (caminhos tolerantes a offline). */
     public static RepositorioUsuarios getInstanciaSeInicializada() {
         return INSTANCIA_COMPARTILHADA;
     }
 
+    /** Construtor de producao: conecta ao Mongo e monta os 4 repositorios especializados. */
     public RepositorioUsuarios() {
         this(true);
     }
 
     /**
      * Construtor protegido para dubles de teste offline sem conexao real ao MongoDB.
+     * conectar=false zera tudo (subclasse de teste sobrescreve os metodos que precisa);
+     * conectar=true registra-se como singleton se ainda nao houver e dispara os indices.
      */
     protected RepositorioUsuarios(boolean conectar) {
         if (!conectar) {
@@ -94,6 +108,7 @@ public class RepositorioUsuarios {
         inicializarIndicesAsync();
     }
 
+    /** Uma thread daemon por repositorio: indices criam em paralelo sem travar o boot. */
     private void inicializarIndicesAsync() {
         contas.inicializarIndicesAsync("auth-contas-idx");
         sessoes.inicializarIndicesAsync("auth-sessoes-idx");
@@ -101,12 +116,18 @@ public class RepositorioUsuarios {
         auditoria.inicializarIndicesAsync("auth-auditoria-idx");
     }
 
+    /** @return conexao compartilhada (null no modo teste offline). */
     public ConexaoMongo getConexao() { return conexao; }
+    /** @return repositorio de contas (auth_users, auth_login_limits). */
     public RepositorioContas getContas() { return contas; }
+    /** @return repositorio de sessoes (auth_sessions). */
     public RepositorioSessoes getSessoes() { return sessoes; }
+    /** @return repositorio de OTPs/grants (auth_otps). */
     public RepositorioOtps getOtps() { return otps; }
+    /** @return repositorio de auditoria (security_logs, write guard, outbox). */
     public RepositorioAuditoria getAuditoria() { return auditoria; }
 
+    /** Saude do banco para o HealthHandler; modo offline devolve database_unconfigured. */
     public ConexaoMongo.EstadoSaudeBanco verificarSaudeBanco() {
         if (conexao == null) {
             return new ConexaoMongo.EstadoSaudeBanco(false, "database_unconfigured", "Repositorio offline.");
@@ -114,6 +135,7 @@ public class RepositorioUsuarios {
         return conexao.verificarSaudeBanco();
     }
 
+    // Acessores de colecao para consumidores externos (limitador, testes); null se offline.
     public MongoDatabase getDatabase() { return conexao != null ? conexao.getDatabase() : null; }
     public MongoCollection<Document> getUsersCollection() { return contas != null ? contas.colecaoUsuariosSeAtiva() : null; }
     public MongoCollection<Document> getSessionsCollection() { return sessoes != null ? sessoes.colecaoSessoesSeAtiva() : null; }
@@ -135,8 +157,10 @@ public class RepositorioUsuarios {
     }
     public boolean atualizarSenha(String userId, String novaSenha) { return contas.atualizarSenha(userId, novaSenha); }
     public boolean verificarSenhaAtual(String userId, String senhaAtual) { return contas.verificarSenhaAtual(userId, senhaAtual); }
+    /** Hash descartavel anti-timing; offline gera um novo do mesmo custo (nunca retorna null). */
     public String getDummyHash() { return contas != null ? contas.getDummyHash() : auth.utils.SenhaHasher.hashDummy(); }
     public Document atualizarPerfil(String userId, Map<String, Object> setFields) { return contas.atualizarPerfil(userId, setFields); }
+    /** Alterar 2FA tambem derruba as sessoes: politica de seguranca so vale a partir de novo login. */
     public boolean atualizarDoisFatores(String userId, boolean enabled) {
         boolean ok = contas.atualizarDoisFatores(userId, enabled);
         if (ok) revogarTodasSessoes(userId.trim());
@@ -154,9 +178,11 @@ public class RepositorioUsuarios {
     public long contarAdminsAtivos() { return contas.contarAdminsAtivos(); }
 
     // Delegacoes para RepositorioSessoes
+    /** Sobrecarga sem metadados de dispositivo (UA/IP desconhecidos). */
     public void criarSessao(String userId, String sessionId, long expiresAtMillis) { criarSessao(userId, sessionId, expiresAtMillis, null, null); }
     public void criarSessao(String userId, String sessionId, long expiresAtMillis, String ua, String ip) { sessoes.criarSessao(userId, sessionId, expiresAtMillis, ua, ip); }
     public boolean sessaoAtiva(String sessionId) { return sessoes.sessaoAtiva(sessionId); }
+    /** Validacao autoritativa completa (jti+ver+perfil+estado da conta) - coracao do fail-closed de auth. */
     public ResultadoValidacaoSessao validarSessaoCompleta(String uid, String sid, int ver, String prof, boolean allowPwd) {
         return sessoes.validarSessaoCompleta(uid, sid, ver, prof, allowPwd);
     }
@@ -179,6 +205,7 @@ public class RepositorioUsuarios {
     public void registrarAuditoria(String actorId, String action, String target, Map<String, Object> details, String ip) {
         auditoria.registrarAuditoria(actorId, action, target, details, ip);
     }
+    /** Sobrecarga sem IP (eventos internos sem requisicao associada). */
     public void registrarAuditoria(String actorId, String action, String target, Map<String, Object> details) {
         registrarAuditoria(actorId, action, target, details, null);
     }
@@ -188,13 +215,16 @@ public class RepositorioUsuarios {
     public List<Document> listarLogsSeguranca(String userId, int limit) { return auditoria.listarLogsSeguranca(userId, limit); }
     public boolean registrarEscritaAdmin(String adminId) { return auditoria.registrarEscritaAdmin(adminId); }
 
+    /** Conversores BSON estaticos expostos por conveniencia historica (implementacao em BsonUtils). */
     public static Map<String, Object> documentoParaMapa(Object obj) { return BsonUtils.documentoParaMapa(obj); }
     public static Document mapaParaDocumento(Map<String, Object> mapa) { return BsonUtils.mapaParaDocumento(mapa); }
 
+    /** No-op intencional: o pool Mongo e compartilhado e vive alem de uma requisicao/handler. */
     public void fechar() {
         // No-op: pool compartilhado permanece ativo entre requisicoes HTTP
     }
 
+    /** Encerramento REAL do pool; exclusivo do shutdown hook do Main. */
     public void encerrarDefinitivo() {
         if (conexao != null) {
             conexao.encerrarDefinitivo();

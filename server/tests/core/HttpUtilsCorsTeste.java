@@ -8,17 +8,23 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Testes unitarios de CORS (origem unica, lista multi-valorada, loopback dev e Private Network Access).
+ * Cenarios: whitelist com 8 origens, porta dinamica do flutter run, IPv6 [::1],
+ * LAN bloqueada/liberada por flag, endurecimento em producao, curinga explicito e
+ * um preflight OPTIONS real serializado no socket (headers exatos na resposta).
  */
 public class HttpUtilsCorsTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Executa os cenarios; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
+        // Guarda as propriedades JVM anteriores: o teste mexe no ambiente global e precisa restaura-lo.
         String anteriorAllowed = System.getProperty("ALLOWED_ORIGINS");
         String anteriorNodeEnv = System.getProperty("NODE_ENV");
         String anteriorLan = System.getProperty("ALLOW_LAN_CORS");
@@ -57,6 +63,7 @@ public class HttpUtilsCorsTeste {
             System.setProperty("NODE_ENV", "development");
             System.setProperty("ALLOW_LAN_CORS", "false");
 
+            // Preflight real: requisicao crua parseada pelo RequisicaoHttp e resposta serializada no buffer.
             String rawReq = "OPTIONS /api/auth/login HTTP/1.1\r\n"
                     + "Host: 127.0.0.1:8080\r\n"
                     + "Origin: http://localhost:49152\r\n"
@@ -87,6 +94,7 @@ public class HttpUtilsCorsTeste {
         return falhas;
     }
 
+    /** Restaura (ou limpa) a propriedade JVM alterada pelo teste. */
     private static void restaurarProp(String key, String previous) {
         if (previous == null) System.clearProperty(key);
         else System.setProperty(key, previous);

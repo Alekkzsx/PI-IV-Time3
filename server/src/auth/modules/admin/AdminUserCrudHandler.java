@@ -34,6 +34,11 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         super(repositorio, ponte);
     }
 
+    /**
+     * Tabela rota+verbo do CRUD:
+     * GET/POST /users | GET/PATCH /users/{id} | PATCH /users/{id}/status.
+     * Demais combinacoes: 405 (verbo errado) ou 404 (rota inexistente).
+     */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin) throws Exception {
@@ -70,6 +75,11 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         }
     }
 
+    /**
+     * GET /users: listagem paginada com filtros (profile na whitelist, active, search textual).
+     * limit/offset passam por clamp (1-500 / 0-100000) contra paginacao abusiva.
+     * O contador de sessoes ativas e resolvido em lote (uma consulta para a pagina inteira).
+     */
     private void tratarListarUsuarios(RequisicaoHttp req, RespostaHttp resp) throws IOException {
         Map<String, String> query = HttpUtils.parseFormUrlEncoded(req.getQueryParams());
         String rawProfile = query.get("profile");
@@ -93,6 +103,7 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         enviarJson(resp, 200, resultado);
     }
 
+    /** GET /users/{id}: dados administrativos seguros do usuario (sem hash/segredos). */
     private void tratarBuscarUsuario(RespostaHttp resp, String userId) throws IOException {
         Document user = repositorio.buscarDocumentoPorId(userId);
         if (user == null) {
@@ -102,6 +113,11 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         enviarJson(resp, 200, AuthHttpUtils.montarUsuarioAdmin(user));
     }
 
+    /**
+     * POST /users: cria conta com validacao completa (identidade 2-80, e-mail <=254,
+     * nome 2-120, perfil na whitelist, politica de senha), write-guard, checagem de
+     * duplicidade e envio assincrono do e-mail de boas-vindas com a senha inicial.
+     */
     private void tratarCriarUsuario(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);
@@ -136,6 +152,7 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         }
         if (!exigirEscritaAdmin(admin, resp)) return;
 
+        // Campos normalizados (lowercase) alimentam os indices unicos case-insensitive.
         String normalizedIdentity = identity.toLowerCase(Locale.ROOT);
         String normalizedEmail = email.toLowerCase(Locale.ROOT);
         String canonicalProfile = profile.toLowerCase(Locale.ROOT);
@@ -167,6 +184,7 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         try {
             repositorio.inserirDocumentoUsuario(novo);
         } catch (MongoWriteException e) {
+            // Corrida entre o pre-check e o insert: o indice unico e a autoridade final -> 409.
             responderErro(resp, 409, "user_exists", "E-mail ou identidade institucional ja cadastrado.");
             return;
         }
@@ -182,6 +200,12 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         enviarJson(resp, 201, AuthHttpUtils.montarUsuarioAdmin(novo));
     }
 
+    /**
+     * PATCH /users/{id}: atualizacao PARCIAL (campo ausente = mantem valor atual).
+     * Mudancas sensiveis (perfil/identidade/e-mail/2FA) disparam sessionVersion+1,
+     * revogacao de todas as sessoes e limpeza de OTP RECOVERY pendente - a conta
+     * nao pode continuar logada com identidade/permissoes antigas.
+     */
     private void tratarAtualizarUsuario(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin, String userId) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);
@@ -213,6 +237,7 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
             }
         }
 
+        // Valores finais (novo ou atual) para checar duplicidade excluindo o proprio usuario.
         String finalIdentity = newIdentity != null ? newIdentity : existing.getString("identity");
         String finalNormId = finalIdentity != null ? finalIdentity.toLowerCase(Locale.ROOT) : "";
         String finalEmail = newEmail != null ? newEmail.toLowerCase(Locale.ROOT) : existing.getString("email");
@@ -222,6 +247,7 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
             return;
         }
 
+        // Sensivel = qualquer mudanca que afete identidade/autorizacao da conta.
         boolean currentTwoFactor = existing.getBoolean("twoFactorRequired", false)
                 || existing.getBoolean("twoFactorEnabled", false);
         boolean securityChanged =
@@ -251,6 +277,14 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         enviarJson(resp, 200, AuthHttpUtils.montarUsuarioAdmin(updated != null ? updated : existing));
     }
 
+    /**
+     * Regras de troca de perfil (todas 409 quando violadas):
+     * - admin nao rebaixa a si mesmo (self_demotion);
+     * - nao pode ficar zero admins ativos (last_admin);
+     * - vinculos academicos ativos no backend bloqueiam a troca (linked_profile).
+     *
+     * @return true se a troca pode prosseguir; false ja respondeu o erro
+     */
     private boolean validarTrocaPerfil(
             RespostaHttp resp,
             UsuarioAutenticado admin,
@@ -282,6 +316,11 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         return true;
     }
 
+    /**
+     * Monta a lista de Updates so com os campos fornecidos, espelhando os aliases
+     * normalizados (normalizedIdentity/normalizedEmail, department, twoFactorEnabled).
+     * updatedAt sempre; sessionVersion+1 apenas quando houve mudanca sensivel.
+     */
     private List<Bson> montarAtualizacoes(
             String newIdentity, String finalNormId, String newEmail, String finalEmail,
             String newDisplayName, String newProfile, String newDepartment,
@@ -310,6 +349,12 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
         return updates;
     }
 
+    /**
+     * PATCH /users/{id}/status: ativa/suspende a conta (soft delete - nada e apagado).
+     * Protecoes: nao suspender a si mesmo nem o ultimo admin ativo; mudanca idempotente
+     * devolve 200 sem escrever. Suspensao/reativacao sempre bumpam sessionVersion,
+     * revogam sessoes e limpam OTP RECOVERY (motivo fica em suspensionReason).
+     */
     private void tratarAtualizarStatus(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin, String userId) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);
@@ -338,6 +383,7 @@ public class AdminUserCrudHandler extends AdminHandlerAbstrato {
                 return;
             }
         }
+        // Idempotencia: estado ja e o pedido -> devolve o usuario sem nova escrita/auditoria.
         if (active == currentlyActive) {
             enviarJson(resp, 200, AuthHttpUtils.montarUsuarioAdmin(existing));
             return;

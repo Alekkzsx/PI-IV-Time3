@@ -31,6 +31,7 @@ public class AdminUserSecurityHandler extends AdminHandlerAbstrato {
         super(repositorio, ponte);
     }
 
+    /** Despacha {id}/{acao}+verbo para o tratamento especifico; combinacao desconhecida = 404. */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin) throws Exception {
@@ -54,6 +55,7 @@ public class AdminUserSecurityHandler extends AdminHandlerAbstrato {
         }
     }
 
+    /** GET sessions: lista as sessoes ativas do usuario alvo (device/IP/datas) para o painel admin. */
     private void tratarSessoesUsuario(RespostaHttp resp, String userId) throws IOException {
         if (repositorio.buscarDocumentoPorId(userId) == null) {
             responderErro(resp, 404, "user_not_found", "Usuario nao encontrado.");
@@ -75,6 +77,10 @@ public class AdminUserSecurityHandler extends AdminHandlerAbstrato {
         enviarJson(resp, 200, lista);
     }
 
+    /**
+     * POST revoke-sessions: write-guard -> incrementa sessionVersion (invalida TODOS os
+     * tokens emitidos, nao so as sessoes registradas) -> revoga sessoes -> audita.
+     */
     private void tratarRevogarSessoes(
             RespostaHttp resp, UsuarioAutenticado admin, String userId) throws IOException {
         if (!exigirEscritaAdmin(admin, resp)) return;
@@ -87,11 +93,19 @@ public class AdminUserSecurityHandler extends AdminHandlerAbstrato {
         resp.enviar(204, "");
     }
 
+    /**
+     * POST reset-password (admin): NAO define senha nova diretamente - dispara o fluxo
+     * publico de recuperacao para o usuario: gera OTP RECOVERY (sob identidade e e-mail),
+     * envia o codigo por e-mail e marca a conta (forceNextLogin/revokeActiveSessions,
+     * ambos default true). O usuario conclui a troca em /verify-recovery-otp + /reset-password.
+     * Responde 202 (processamento assincrono do e-mail) ou 409 se a conta mudou no meio.
+     */
     private void tratarResetarSenha(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin, String userId) throws IOException {
         if (!exigirEscritaAdmin(admin, resp)) return;
 
         Map<String, Object> body = lerJsonObjetoOpcional(req);
+        // Flags opcionais com default TRUE: ausencia no body = comportamento mais seguro.
         boolean forceNextLogin = !(body.get("forceNextLogin") instanceof Boolean)
                 || ((Boolean) body.get("forceNextLogin")).booleanValue();
         boolean revokeActiveSessions = !(body.get("revokeActiveSessions") instanceof Boolean)

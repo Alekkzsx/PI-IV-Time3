@@ -19,10 +19,12 @@ import java.util.Map;
 public abstract class HandlerAuthPublicoAbstrato extends HandlerHttpAbstrato {
     protected final RepositorioUsuarios repositorio;
 
+    /** @param repositorio repositorio de identidades; null cai no singleton (conveniencia de testes). */
     protected HandlerAuthPublicoAbstrato(RepositorioUsuarios repositorio) {
         this.repositorio = repositorio != null ? repositorio : RepositorioUsuarios.getInstance();
     }
 
+    /** Fluxos de credenciais so aceitam POST (credenciais nunca viajam em query string). */
     @Override
     protected String metodoPermitido() {
         return "POST";
@@ -31,6 +33,14 @@ public abstract class HandlerAuthPublicoAbstrato extends HandlerHttpAbstrato {
     /**
      * Emite novo par de tokens (access + refresh), registra a sessao no MongoDB
      * e monta o payload JSON padronizado de autenticacao concluida.
+     *
+     * A sessao e indexada pelo jti do ACCESS token: e ele que JwtAuthValidator consulta
+     * a cada requisicao; revogar a sessao invalida o token mesmo antes do exp.
+     *
+     * @param sessionVersion        versao atual da sessao do usuario (muda na troca de senha)
+     * @param ipCliente             IP para auditoria da sessao
+     * @param incluirCamposAcademicos inclui curso/campus/semestre/turno no payload do usuario
+     * @param incluirSuccess        adiciona "success": true (compatibilidade com clientes antigos)
      */
     protected Map<String, Object> emitirSessaoEPayloadTokens(
             RequisicaoHttp requisicao,
@@ -53,6 +63,8 @@ public abstract class HandlerAuthPublicoAbstrato extends HandlerHttpAbstrato {
         if (incluirSuccess) {
             resposta.put("success", Boolean.TRUE);
         }
+        // Aliases duplicados (token/accessToken e user/usuario): compatibilidade entre
+        // versoes do frontend Flutter e consumidores legados da API.
         resposta.put("accessToken", parTokens.getAccessToken());
         resposta.put("token", parTokens.getAccessToken());
         resposta.put("refreshToken", parTokens.getRefreshToken());

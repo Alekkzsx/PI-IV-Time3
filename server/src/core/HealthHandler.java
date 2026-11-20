@@ -17,15 +17,23 @@ public class HealthHandler extends HandlerHttpAbstrato {
     private static final String SERVICE_NAME = "agmrm-identity-videocall";
     private final ConexaoMongo conexao;
 
+    /** @param conexao conexao Mongo usada no ping de readiness (null = banco nao configurado). */
     public HealthHandler(ConexaoMongo conexao) {
         this.conexao = conexao;
     }
 
+    /** Diagnostico nunca depende do backend academico: precisa responder mesmo com tudo fora do ar. */
     @Override
     protected boolean exigirBackendAcademicoOnline() {
         return false;
     }
 
+    /**
+     * Diferencia liveness de readiness pelo caminho:
+     * /health responde 200 "ok" mesmo degradado (processo vivo), expondo o problema como
+     * databaseCode/databaseDetail; /health/ready responde 503 com code/message quando o
+     * Mongo esta inacessivel - e este que o launcher do frontend consulta (fail-closed).
+     */
     @Override
     protected void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         boolean readiness = "/health/ready".equalsIgnoreCase(requisicao.getCaminho());

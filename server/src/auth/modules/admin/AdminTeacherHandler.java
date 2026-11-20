@@ -39,6 +39,12 @@ public class AdminTeacherHandler extends AdminHandlerAbstrato {
         return "Metodo nao permitido neste servidor.";
     }
 
+    /**
+     * Provisiona um docente em uma chamada: valida dados -> e-mail unico ->
+     * identidade DOC-XXXXXXXX aleatoria + senha temporaria -> insere com
+     * requirePasswordChange=true (troca obrigatoria no primeiro login) ->
+     * audita + envia boas-vindas com as credenciais -> 201.
+     */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado admin) throws Exception {
@@ -59,6 +65,8 @@ public class AdminTeacherHandler extends AdminHandlerAbstrato {
         }
 
         String identity = gerarIdentidadeDocente();
+        // Senha temporaria Agmrm@NNNNNN: ja atende a politica (maiuscula/minuscula/digito/especial)
+        // e e descartada no primeiro login pelo requirePasswordChange.
         String tempPassword = String.format("Agmrm@%06d", RANDOM.nextInt(1_000_000));
         Date agora = new Date();
         Document teacher = new Document()
@@ -83,6 +91,7 @@ public class AdminTeacherHandler extends AdminHandlerAbstrato {
         try {
             repositorio.inserirDocumentoUsuario(teacher);
         } catch (MongoWriteException e) {
+            // Colisao de indice unico (identidade/e-mail): 409 em vez de 500 - basta tentar de novo.
             responderErro(resp, 409, "identity_exists", "Nao foi possivel gerar uma identidade unica. Tente novamente.");
             return;
         }
@@ -101,6 +110,7 @@ public class AdminTeacherHandler extends AdminHandlerAbstrato {
         enviarJson(resp, 201, result);
     }
 
+    /** Identidade docente: prefixo DOC- + 10 hex de 5 bytes aleatorios (40 bits anti-colisao). */
     private static String gerarIdentidadeDocente() {
         byte[] idBytes = new byte[5];
         RANDOM.nextBytes(idBytes);

@@ -8,22 +8,30 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Servico em memoria para gestao de salas, sinalizacao, presenca e interacao da videochamada.
+ *
+ * Singleton LEGADO (compatibilidade HTTP /api/videocall/*): estado volatil, perdido em
+ * restart - a autoridade duravel das salas e o RepositorioVideoCall (Mongo).
+ * Concorrencia: mutacoes compostas sao synchronized no service; mapas de participantes
+ * e filas de sinalizacao sao concorrentes para leitura sem lock.
  */
 public class VideoCallService {
+    // Singleton eager: estado puro em memoria, criacao no load da classe e barata.
     private static final VideoCallService INSTANCIA = new VideoCallService();
 
+    /** @return instancia unica compartilhada pelos handlers legados e pelo hub WS. */
     public static VideoCallService getInstance() {
         return INSTANCIA;
     }
 
+    /** Participante de uma sala: identidade (RA), papel e janela de conexao para presenca. */
     public static class Participant {
         public final String ra;
         public final String name;
         public final String role;
         public final long joinedAt;
-        public long leftAt = 0;
+        public long leftAt = 0; // 0 = ainda conectado
         public boolean isHandRaised = false;
-        public long handRaisedAt = 0;
+        public long handRaisedAt = 0; // marca temporal para ordenacao da fila de perguntas
 
         public Participant(String ra, String name, String role) {
             this.ra = ra;
@@ -32,12 +40,14 @@ public class VideoCallService {
             this.joinedAt = System.currentTimeMillis();
         }
 
+        /** Minutos conectado (ate leftAt ou agora), minimo 1 para nao zerar presencas curtas. */
         public long getConnectedMinutes() {
             long end = leftAt > 0 ? leftAt : System.currentTimeMillis();
             return Math.max(1, (end - joinedAt) / 60000);
         }
     }
 
+    /** Mensagem de sinalizacao WebRTC (offer/answer/ice) enderecada a um peer especifico. */
     public static class SignalingMessage {
         public final String id;
         public final String fromRa;
@@ -56,6 +66,7 @@ public class VideoCallService {
         }
     }
 
+    /** Mensagem de chat com horario ja formatado (HH:mm:ss) para exibicao direta no cliente. */
     public static class ChatMessage {
         public final String id;
         public final String senderRa;
@@ -74,6 +85,13 @@ public class VideoCallService {
         }
     }
 
+    /**
+     * Estado completo de uma sala em memoria.
+     * activeParticipants: RA -> participante conectado;
+     * attendanceHistory: append-only (todos que passaram, para calculo de presenca);
+     * handRaiseQueue: fila FIFO de RAs com mao levantada;
+     * peerSignalQueues: caixa de correio de sinalizacao por RA (modelo polling HTTP).
+     */
     public static class Room {
         public final String roomCode;
         public boolean isOpen = false;
@@ -93,6 +111,7 @@ public class VideoCallService {
             this.roomCode = roomCode;
         }
 
+        /** Duracao da sala em minutos (abertura ate fechamento ou agora), minimo 1. */
         public int getTotalDurationMinutes() {
             if (openedAt == 0) return 0;
             long end = closedAt > 0 ? closedAt : System.currentTimeMillis();
@@ -100,14 +119,17 @@ public class VideoCallService {
         }
     }
 
+    // Codigo normalizado (uppercase) -> sala; leituras concorrentes sem lock global.
     private final Map<String, Room> rooms = new ConcurrentHashMap<String, Room>();
 
+    // Salas de demonstracao pre-criadas (disciplinas do semestre) para o fluxo legado.
     private VideoCallService() {
         obterOuCriarSala("APS-II");
         obterOuCriarSala("BD-II");
         obterOuCriarSala("FSO");
     }
 
+    /** Obtem ou cria a sala com codigo normalizado (null/vazio vira "GERAL"). */
     public synchronized Room obterOuCriarSala(String roomCode) {
         String code = roomCode != null ? roomCode.trim().toUpperCase(Locale.ROOT) : "GERAL";
         Room r = rooms.get(code);
@@ -118,10 +140,12 @@ public class VideoCallService {
         return r;
     }
 
+    /** @return visao somente leitura do mapa de salas (diagnostico). */
     public Map<String, Room> listarSalas() {
         return Collections.unmodifiableMap(rooms);
     }
 
+    /** Abre a sala; aceita papeis docente/admin e aliases legados em ingles (teacher/moderator). */
     public synchronized boolean abrirSala(String roomCode, String role, String name) {
         String normalizedRole = role != null ? role.trim().toLowerCase(Locale.ROOT) : "";
         if (!"docente".equals(normalizedRole) && !"teacher".equals(normalizedRole)
@@ -137,6 +161,7 @@ public class VideoCallService {
         return true;
     }
 
+    /** Fecha a sala e carimba leftAt em todos os participantes ainda conectados (presenca final). */
     public synchronized boolean fecharSala(String roomCode, String role) {
         Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
         if (r == null || !r.isOpen) return false;
@@ -148,6 +173,10 @@ public class VideoCallService {
         return true;
     }
 
+    /**
+     * Registra entrada: docente/admin abrem a sala implicitamente se fechada; aluno e recusado.
+     * Cria participante + historico + caixa de sinalizacao e notifica os demais via peer-joined.
+     */
     public synchronized boolean entrarNaSala(String roomCode, String ra, String name, String role) {
         Room r = obterOuCriarSala(roomCode);
         String normalizedRole = role != null ? role.trim().toLowerCase(Locale.ROOT) : "aluno";
@@ -171,6 +200,7 @@ public class VideoCallService {
         return true;
     }
 
+    /** Remove o participante (carimba leftAt), limpa fila de mao/caixa de sinais e avisa peer-left. */
     public synchronized void sairDaSala(String roomCode, String ra) {
         Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
         if (r == null) return;
@@ -185,6 +215,7 @@ public class VideoCallService {
         }
     }
 
+    /** Enfileira sinalizacao na caixa do destinatario (entregue no proximo poll HTTP). */
     public void enviarSinalizacao(String roomCode, String fromRa, String toRa, String type, String data) {
         Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
         if (r == null) return;
@@ -194,6 +225,7 @@ public class VideoCallService {
         }
     }
 
+    /** DRENA a caixa de sinalizacao do RA (poll do cliente legado): cada mensagem sai uma unica vez. */
     public List<SignalingMessage> buscarSinalizacoes(String roomCode, String ra) {
         Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
         if (r == null) return Collections.emptyList();
@@ -207,6 +239,7 @@ public class VideoCallService {
         return messages;
     }
 
+    /** Levanta/abaixa a mao mantendo a fila FIFO sem duplicatas (ordem de chegada das perguntas). */
     public synchronized boolean alternarMaoLevantada(String roomCode, String ra, boolean levantar) {
         Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
         if (r == null) return false;
@@ -224,6 +257,7 @@ public class VideoCallService {
         return true;
     }
 
+    /** Acrescenta mensagem ao historico de chat da sala (append-only em memoria). */
     public synchronized void adicionarMensagemChat(
             String roomCode, String senderRa, String senderName, String senderRole, String text) {
         Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));

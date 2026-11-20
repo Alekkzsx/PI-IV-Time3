@@ -17,14 +17,19 @@ import java.util.List;
  * - Tier 3: CanalOutboxLocal
  */
 public abstract class CanalEnvioEmailAbstrato {
+    // Timestamp legivel nos logs de e-mail (console do servidor).
     private static final DateTimeFormatter LOG_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** @return nome de exibicao do canal nos logs/errorTrail (ex.: "SMTP Nativo", "Resend API"). */
     public abstract String getNomeCanal();
 
+    /** @return true se o canal tem credenciais/configuracao suficientes para tentar um envio. */
     public abstract boolean estaConfigurado();
 
     /**
      * Template Method que verifica configuracao, executa o disparo e protege a cadeia contra falhas.
+     * Nunca lanca excecao: canal nao configurado ou com erro devolve false e alimenta o
+     * errorTrail, permitindo que o SmtpCliente tente o proximo tier sem interromper o fluxo.
      */
     public final boolean tentarEnviar(MensagemEmail mensagem, List<String> errorTrail) {
         if (!estaConfigurado()) {
@@ -43,12 +48,15 @@ public abstract class CanalEnvioEmailAbstrato {
         }
     }
 
+    /** Disparo real do canal (so chamado com canal configurado); excecoes sao capturadas pelo template. */
     protected abstract boolean enviarInterno(MensagemEmail mensagem, List<String> errorTrail) throws Exception;
 
+    /** Gancho opcional: registra no errorTrail o motivo de o canal estar desabilitado. */
     protected void registrarNaoConfigurado(List<String> errorTrail) {
         // Opcional nas subclasses
     }
 
+    /** Log padronizado de todos os canais: ERROR vai para stderr, demais para stdout. */
     public static void log(String nivel, String mensagem) {
         String timestamp = LocalDateTime.now().format(LOG_FORMAT);
         String linha = String.format("[%s] [SMTP] [%s] %s", timestamp, nivel, mensagem);
@@ -59,6 +67,7 @@ public abstract class CanalEnvioEmailAbstrato {
         }
     }
 
+    /** Trunca texto para logs/errorTrail com reticencias (evita dumpar corpo HTML inteiro no console). */
     protected static String truncar(String texto, int max) {
         if (texto == null) {
             return "";

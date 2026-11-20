@@ -21,17 +21,25 @@ import java.util.Set;
 
 /**
  * Testes unitarios do RecoveryHandler (emissao e consumo single-use do resetToken sem replay).
+ * Fluxo completo send -> verify -> reset com repo fake: validacoes de entrada (400/404/403),
+ * OTP sob aliases, grant unico, senha fraca NAO consome o grant, primeiro uso redefine
+ * + revoga sessoes e o segundo uso do MESMO token falha com 401 (anti-replay).
  */
 public class RecoveryHandlerTeste {
     private static final String SEGREDO_TESTE = "segredo-institucional-teste-minimo-32-chars!";
     private static final String OTP_SEGREDO = "agmrm-otp-secret-key-2026-recovery-verification-1a2b3c4d5e6f7890";
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /**
+     * Repo fake do fluxo de reset: grants em um Set (remove = consumo atomico simulado),
+     * OTP em memoria, senhas atualizadas e auditorias registradas para assercao.
+     */
     private static final class RepoResetFake extends RepositorioUsuarios {
         final Set<String> grantsDisponiveis = new HashSet<String>();
         final Map<String, String> senhasAtualizadas = new HashMap<String, String>();
@@ -127,6 +135,7 @@ public class RecoveryHandlerTeste {
         }
     }
 
+    /** Executa os cenarios numerados; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         String anteriorJwt = System.getProperty("AUTH_JWT_SECRET");
@@ -138,6 +147,7 @@ public class RecoveryHandlerTeste {
             System.setProperty("AUTH_JWT_SECRET", SEGREDO_TESTE);
             System.setProperty("AUTH_OTP_SECRET", OTP_SEGREDO);
             System.setProperty("PASSWORD_MIN_LENGTH", "8");
+            // Sandbox: o e-mail de recuperacao e simulado (nenhum envio externo no teste).
             System.setProperty("SMTP_SANDBOX_MODE", "true");
             System.setProperty("STANDARDIZED_AUTH_LATENCY_MS", "0");
 
@@ -171,6 +181,7 @@ public class RecoveryHandlerTeste {
             // 0C. E-mail cadastrado com perfil compativel gera OTP, audita e retorna 200 com maskedEmail
             String respCadastrado = postJson(handler, "/api/auth/send-recovery-otp",
                     "{\"email\":\"ALUNO@example.edu\",\"profile\":\"aluno\"}");
+            // Pequena espera: o envio sandbox roda no pool assincrono antes da auditoria completar.
             Thread.sleep(150);
             esperar(respCadastrado.startsWith("HTTP/1.1 200")
                             && respCadastrado.contains("maskedEmail")
@@ -220,11 +231,13 @@ public class RecoveryHandlerTeste {
         return falhas;
     }
 
+    /** Restaura (ou limpa) a propriedade JVM alterada pelo teste. */
     private static void restaurar(String chave, String anterior) {
         if (anterior == null) System.clearProperty(chave);
         else System.setProperty(chave, anterior);
     }
 
+    /** Extrai o resetToken do corpo JSON da resposta HTTP serializada. */
     private static String extrairResetToken(String httpResp) {
         int sep = httpResp.indexOf("\r\n\r\n");
         if (sep < 0) return null;
@@ -235,6 +248,7 @@ public class RecoveryHandlerTeste {
         return token instanceof String ? (String) token : null;
     }
 
+    /** Monta um POST JSON cru, passa pelo handler real e devolve a resposta HTTP serializada. */
     private static String postJson(RecoveryHandler handler, String path, String jsonBody) throws Exception {
         byte[] bytes = jsonBody.getBytes(StandardCharsets.UTF_8);
         String raw = "POST " + path + " HTTP/1.1\r\n"

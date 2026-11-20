@@ -18,15 +18,19 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Testes unitarios offline do cliente SMTP nativo (RFC 5321 CRLF, dot-stuffing,
  * AUTH LOGIN/PLAIN, sanitizacao de SMTP_FROM, validacao de Webhook e Circuit Breaker).
+ * Usa servidores MOCK em ServerSocket local (porta efemera) que capturam a transcricao
+ * byte a byte do dialogo - nenhum servidor de e-mail real e contatado.
  */
 public class SmtpClienteTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Executa os 6 blocos de cenario; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         SmtpCliente.resetarCircuitoParaTeste();
@@ -45,6 +49,7 @@ public class SmtpClienteTeste {
         return falhas;
     }
 
+    /** Parser de endereco "Nome <email>" e normalizacao DATA (LF->CRLF + dot-stuffing). */
     private static void testarExtracaoEmailESanitizerData() {
         esperar("staff@agmrm.edu.br".equals(SmtpCliente.extrairEmailPuro("Portal AGMRM <staff@agmrm.edu.br>")),
                 "SmtpCliente: extrai endereco puro de SMTP_FROM com nome de exibicao");
@@ -56,6 +61,7 @@ public class SmtpClienteTeste {
                 "SmtpCliente: normaliza LF para CRLF e aplica dot-stuffing na RFC 5321");
     }
 
+    /** Validacao rigorosa do webhook: 200 com erro logico/HTML tambem e rejeitado. */
     private static void testarValidacaoWebhook() {
         esperar(SmtpCliente.validarRespostaWebhook(200, "{\"status\":200,\"success\":true}") == null,
                 "Webhook: aceita HTTP 200 com JSON {status:200, success:true}");
@@ -69,6 +75,11 @@ public class SmtpClienteTeste {
                 "Webhook: rejeita HTTP 502 com corpo vazio");
     }
 
+    /**
+     * Mock SMTP com AUTH LOGIN: captura o dialogo inteiro e exige CRLF estrito em TODAS
+     * as linhas (bare LF quebraria servidores rigidos), MAIL FROM sem nome de exibicao
+     * e DATA terminado em <CRLF>.<CRLF> com dot-stuffing.
+     */
     private static void testarSmtpCrlfAuthLoginESender() throws Exception {
         final ServerSocket server = new ServerSocket(0, 5, InetAddress.getByName("127.0.0.1"));
         final AtomicReference<String> transcript = new AtomicReference<String>("");
@@ -126,6 +137,7 @@ public class SmtpClienteTeste {
         t.join(3000);
 
         String raw = transcript.get();
+        // Remove todos os CRLF legitimos; se sobrar algum '\n', havia bare LF no dialogo.
         boolean temBareLf = raw.replace("\r\n", "").contains("\n");
         esperar(!raw.isEmpty() && !temBareLf,
                 "SMTP RFC 5321: todas as linhas enviadas usam estritamente CRLF (nenhum bare LF)");
@@ -135,6 +147,7 @@ public class SmtpClienteTeste {
                 "SMTP DATA: aplica dot-stuffing e termina com <CRLF>.<CRLF>");
     }
 
+    /** Mock SMTP so com AUTH PLAIN: valida o comando unico e a tolerancia ao QUIT sem resposta (250 ja aceitou). */
     private static void testarSmtpAuthPlainEQuitFechado() throws Exception {
         final ServerSocket server = new ServerSocket(0, 5, InetAddress.getByName("127.0.0.1"));
         final AtomicReference<String> authLine = new AtomicReference<String>("");
@@ -189,6 +202,10 @@ public class SmtpClienteTeste {
                 "SMTP AUTH PLAIN & QUIT: autentica via AUTH PLAIN e tolera fechamento imediato apos 250 OK");
     }
 
+    /**
+     * Cadeia completa: SMTP desconfigurado + webhook que responde 302 -> GET com JSON
+     * de erro logico. Exige OUTBOX (nao entregue) e a causa exata preservada no errorTrail.
+     */
     private static void testarFallbackWebhookERedirect302() throws Exception {
         final ServerSocket httpServer = new ServerSocket(0, 5, InetAddress.getByName("127.0.0.1"));
         final int port = httpServer.getLocalPort();
@@ -236,6 +253,7 @@ public class SmtpClienteTeste {
                 "Resiliencia: errorTrail preserva a causa exata retornada pelo Webhook");
     }
 
+    /** HTTP 500 com corpo vazio nao pode NPE; depois, 3 falhas SMTP abrem o breaker e o proximo envio pula o tier. */
     private static void testarHttp500SemCorpoECircuitBreaker() throws Exception {
         final ServerSocket httpServer = new ServerSocket(0, 5, InetAddress.getByName("127.0.0.1"));
         final int port = httpServer.getLocalPort();
@@ -286,11 +304,13 @@ public class SmtpClienteTeste {
                 "Circuit Breaker: pula SMTP imediatamente enquanto OPEN e registra no errorTrail");
     }
 
+    /** Escreve texto cru no socket do mock (respostas SMTP/HTTP ja vem com CRLF). */
     private static void escrever(OutputStream out, String texto) throws IOException {
         out.write(texto.getBytes(StandardCharsets.UTF_8));
         out.flush();
     }
 
+    /** Le uma linha ate LF preservando os bytes originais no capturador (transcricao fiel). */
     private static String lerLinhaBruta(InputStream in, ByteArrayOutputStream captured) throws IOException {
         ByteArrayOutputStream line = new ByteArrayOutputStream();
         int b;
@@ -302,6 +322,7 @@ public class SmtpClienteTeste {
         return new String(line.toByteArray(), StandardCharsets.UTF_8);
     }
 
+    /** Consome uma requisicao HTTP do mock: cabecalhos ate a linha vazia + Content-Length bytes de corpo. */
     private static void lerRequisicaoHttp(InputStream in) throws IOException {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         int b;

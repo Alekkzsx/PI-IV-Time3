@@ -25,6 +25,12 @@ import java.util.Map;
  */
 public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
 
+    /**
+     * Esqueleto fixo do ciclo de vida (final: subclasses nao podem quebrar a ordem).
+     * A hierarquia de catch converte excecoes em respostas padronizadas:
+     * ExcecaoHttpAbstrata usa o proprio status/codigo; SecurityException vira 401;
+     * IllegalArgumentException vira 400; qualquer outra vira 500 generico logado.
+     */
     @Override
     public final void handle(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         HttpUtils.aplicarHeadersCors(requisicao, resposta);
@@ -62,6 +68,8 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
 
     /**
      * Logica especifica do endpoint concreto.
+     * Unico metodo obrigatorio da subclasse: recebe a requisicao ja validada em metodo
+     * e com headers aplicados; pode lancar qualquer excecao (o esqueleto converte em HTTP).
      */
     protected abstract void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws Exception;
 
@@ -69,6 +77,7 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
     // GANCHOS CONFIGURAVEIS PELAS SUBCLASSES
     // =========================================================================
 
+    /** Gancho: true adiciona headers anti-cache/seguranca de auth (rotas que emitem tokens). */
     protected boolean deveAplicarHeadersAuth() {
         return false;
     }
@@ -81,32 +90,39 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
         return true;
     }
 
+    /** Gancho: verbo HTTP unico aceito pela rota; null (padrao) aceita qualquer metodo. */
     protected String metodoPermitido() {
         return null;
     }
 
+    /** Decide se o metodo recebido e aceito; subclasses com multiplos verbos sobrescrevem este. */
     protected boolean aceitaMetodo(String metodo) {
         String esperado = metodoPermitido();
         return esperado == null || esperado.equalsIgnoreCase(metodo);
     }
 
+    /** Gancho: mensagem do 405; por padrao sugere o verbo correto ("Utilize POST..."). */
     protected String mensagemMetodoNaoPermitido() {
         String esperado = metodoPermitido();
         return esperado != null ? "Utilize " + esperado + " para este endpoint." : "Metodo nao permitido.";
     }
 
+    /** Gancho: codigo semantico do 401 (subclasses de admin trocam para forbidden, etc.). */
     protected String codigoErroSeguranca() {
         return "unauthorized";
     }
 
+    /** Gancho: mensagem do 400; pode ser sobrescrito para nao ecoar detalhes de parse interno. */
     protected String mensagemRequisicaoInvalida(IllegalArgumentException e) {
         return e.getMessage() != null ? e.getMessage() : "Corpo da requisicao invalido.";
     }
 
+    /** Tag de log da classe concreta (ex.: LOGINHANDLER) para rastreio no console. */
     protected String tagLog() {
         return getClass().getSimpleName().toUpperCase();
     }
 
+    /** Envelope de erro padrao {status, code, message, erro} compartilhado por todos os handlers. */
     protected Map<String, Object> montarCorpoErro(int status, String codigo, String mensagem) {
         String msg = mensagem != null ? mensagem : "Erro interno.";
         Map<String, Object> erro = new LinkedHashMap<String, Object>();
@@ -121,11 +137,13 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
     // UTILITARIOS COMPARTILHADOS PARA SUBCLASSES
     // =========================================================================
 
+    /** Le o corpo como objeto JSON obrigatorio; corpo invalido lanca IllegalArgumentException -> 400. */
     protected Map<String, Object> lerJsonObjeto(RequisicaoHttp requisicao) {
         Map<String, Object> corpo = Json.analisarObjeto(requisicao.getCorpo());
         return corpo != null ? corpo : new LinkedHashMap<String, Object>();
     }
 
+    /** Como lerJsonObjeto, mas corpo ausente/vazio devolve mapa vazio em vez de erro. */
     protected Map<String, Object> lerJsonObjetoOpcional(RequisicaoHttp requisicao) {
         String raw = requisicao.getCorpo();
         if (raw == null || raw.trim().isEmpty()) {
@@ -134,6 +152,7 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
         return lerJsonObjeto(requisicao);
     }
 
+    /** Extrai campo textual ja com trim; tipos nao-string e ausentes devolvem null. */
     protected String getString(Map<String, Object> mapa, String chave) {
         if (mapa == null) {
             return null;
@@ -142,6 +161,7 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
         return valor instanceof String ? ((String) valor).trim() : null;
     }
 
+    /** Devolve o primeiro campo textual nao vazio entre os nomes dados (aceita aliases de payload). */
     protected String getPrimeiroTexto(Map<String, Object> mapa, String... chaves) {
         if (mapa == null || chaves == null) {
             return null;
@@ -155,14 +175,17 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
         return null;
     }
 
+    /** IP do cliente para rate limit/auditoria (X-Forwarded-For > X-Real-IP > fallback do socket). */
     protected String extrairIpCliente(RequisicaoHttp requisicao, String fallback) {
         return RedeUtils.extrairIpCliente(requisicao, fallback);
     }
 
+    /** Serializa o payload (Map/List/escalar) com Json.escrever e envia com Content-Type JSON. */
     protected void enviarJson(RespostaHttp resposta, int status, Object payload) throws IOException {
         resposta.enviarJson(status, Json.escrever(payload));
     }
 
+    /** Atalho de erro padronizado: monta o envelope e envia na mesma chamada. */
     protected void responderErro(RespostaHttp resposta, int status, String codigo, String mensagem) throws IOException {
         enviarJson(resposta, status, montarCorpoErro(status, codigo, mensagem));
     }

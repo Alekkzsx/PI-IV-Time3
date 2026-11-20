@@ -27,6 +27,7 @@ public class RepositorioOtps extends RepositorioMongoAbstrato {
         return "AUTH-OTPS";
     }
 
+    /** Indices: busca por identity + TTL em expiresAt (codigo vencido some sozinho do banco). */
     @Override
     protected void registrarIndices(MongoDatabase db) {
         MongoCollection<Document> otps = db.getCollection("auth_otps");
@@ -35,10 +36,17 @@ public class RepositorioOtps extends RepositorioMongoAbstrato {
                 new Document("expiresAt", 1), new IndexOptions().expireAfter(0L, TimeUnit.SECONDS));
     }
 
+    /** @return colecao auth_otps ou null se o banco estiver offline. */
     public MongoCollection<Document> colecaoOtpsSeAtiva() {
         return obterColecaoSeAtiva("auth_otps");
     }
 
+    /**
+     * Substitui qualquer OTP anterior do mesmo (identity, tipo): delete + insert
+     * garante UM unico codigo valido por fluxo. Chave normalizada em minusculo;
+     * tentativas comeca em 0. O campo otpHash guarda o digest HMAC do codigo
+     * (ou, no caso de grants, o fingerprint SHA-256 do jti).
+     */
     public void salvarOtp(String identity, String otpHash, String tipo, long expiresAtMillis) {
         try {
             MongoCollection<Document> col = obterColecao("auth_otps");
@@ -56,6 +64,7 @@ public class RepositorioOtps extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Busca o registro mais recente do par (identity, tipo); null em ausencia/erro. */
     public Document buscarOtp(String identity, String tipo) {
         try {
             return obterColecao("auth_otps").find(
@@ -66,6 +75,7 @@ public class RepositorioOtps extends RepositorioMongoAbstrato {
         }
     }
 
+    /** $inc atomico no contador de tentativas (corrida entre verificacoes nao perde contagem). */
     public void incrementarTentativasOtp(String identity, String tipo) {
         try {
             obterColecao("auth_otps").updateOne(
@@ -77,6 +87,7 @@ public class RepositorioOtps extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Consumo/expurgo do OTP (uso unico, expiracao ou estouro de tentativas). */
     public void removerOtp(String identity, String tipo) {
         try {
             obterColecao("auth_otps").deleteMany(
@@ -87,10 +98,16 @@ public class RepositorioOtps extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Grant de reset = registro OTP com tipo RESET_GRANT e otpHash = SHA-256 do jti do recovery token. */
     public void emitirGrantRecuperacao(String normalizedIdentity, String jtiHash, long expiresAtMillis) {
         salvarOtp(normalizedIdentity, jtiHash, "RESET_GRANT", expiresAtMillis);
     }
 
+    /**
+     * Consumo ATOMICO de uso unico: findOneAndDelete so devolve o documento para UMA
+     * chamada concorrente - as demais recebem null (anti-replay do reset token).
+     * Expirado nao casa no filtro; erro de banco devolve false (fail-closed).
+     */
     public boolean consumirGrantRecuperacao(String jtiHash) {
         if (jtiHash == null || jtiHash.isEmpty()) {
             return false;

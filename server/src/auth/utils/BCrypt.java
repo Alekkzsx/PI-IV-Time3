@@ -12,6 +12,16 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+// ---------------------------------------------------------------------------
+// CONTEXTO NO PROJETO AGMRM (nota do time; nao faz parte do jBCrypt original):
+// Codigo de TERCEIROS "vendored" (jBCrypt, Damien Miller, licenca ISC acima).
+// Mantido INTACTO de proposito: nao refatorar, nao traduzir, nao "melhorar".
+// Papel aqui: verificar hashes BCrypt LEGADOS ($2a$/$2b$/$2y$) gravados pelo
+// backend antigo. Senhas novas usam PBKDF2 (SenhaHasher); o hash legado e
+// migrado para PBKDF2 no proximo login bem-sucedido.
+// Ponto de entrada usado pelo projeto: BCrypt.checkpw (via SenhaHasher.verificar).
+// ---------------------------------------------------------------------------
+
 package auth.utils;
 
 import java.io.UnsupportedEncodingException;
@@ -62,6 +72,7 @@ import java.security.SecureRandom;
  */
 public class BCrypt {
 	// BCrypt parameters
+	// [AGMRM] Custo padrao: 2^10 = 1024 rodadas do EksBlowfish; salt de 16 bytes (128 bits).
 	private static final int GENSALT_DEFAULT_LOG2_ROUNDS = 10;
 	private static final int BCRYPT_SALT_LEN = 16;
 
@@ -640,6 +651,8 @@ public class BCrypt {
 		return ret;
 	}
 
+	// [AGMRM] hashpw: re-executa o EksBlowfish com o salt/custo embutidos na string de salt
+	// ($2a$10$...); o proprio hash serve de "salt" para reproduzir o mesmo resultado.
 	/**
 	 * Hash a password using the OpenBSD bcrypt scheme
 	 * @param password	the password to hash
@@ -702,6 +715,7 @@ public class BCrypt {
 		return rs.toString();
 	}
 
+	// [AGMRM] gensalt: custo log2 (work factor) dobra a cada +1; salt aleatorio do SecureRandom.
 	/**
 	 * Generate a salt for use with the BCrypt.hashpw() method
 	 * @param log_rounds	the log2 of the number of rounds of
@@ -750,6 +764,8 @@ public class BCrypt {
 		return gensalt(GENSALT_DEFAULT_LOG2_ROUNDS);
 	}
 
+	// [AGMRM] checkpw: unico metodo chamado pelo projeto. A comparacao final acumula XOR
+	// sem early-return (tempo constante), evitando vazar o prefixo correto por timing.
 	/**
 	 * Check that a plaintext password matches a previously hashed
 	 * one

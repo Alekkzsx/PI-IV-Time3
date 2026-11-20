@@ -37,6 +37,7 @@ public class RepositorioAuditoria extends RepositorioMongoAbstrato {
         return "AUTH-AUDITORIA";
     }
 
+    /** Indices: createdAt desc para as listagens de auditoria + TTL do outbox de e-mail. */
     @Override
     protected void registrarIndices(MongoDatabase db) {
         criarIndiceSeguro(db.getCollection("admin_audit_logs"),
@@ -46,18 +47,26 @@ public class RepositorioAuditoria extends RepositorioMongoAbstrato {
                 new IndexOptions().expireAfter(0L, TimeUnit.SECONDS));
     }
 
+    /** @return colecao admin_audit_logs ou null se offline. */
     public MongoCollection<Document> colecaoAuditoriaSeAtiva() {
         return obterColecaoSeAtiva("admin_audit_logs");
     }
 
+    /** @return colecao admin_write_guard (contador de revisao administrativa) ou null se offline. */
     public MongoCollection<Document> colecaoWriteGuardSeAtiva() {
         return obterColecaoSeAtiva("admin_write_guard");
     }
 
+    /** @return colecao email_outbox (tier 3 de e-mail) ou null se offline. */
     public MongoCollection<Document> colecaoEmailOutboxSeAtiva() {
         return obterColecaoSeAtiva("email_outbox");
     }
 
+    /**
+     * Evento append-only de auditoria: quem (actorId, default "system"), o que (action),
+     * sobre quem/o que (target), detalhes e IP opcional. Best-effort: falha de auditoria
+     * e logada mas nunca derruba a operacao principal.
+     */
     public void registrarAuditoria(
             String actorId, String action, String target, Map<String, Object> details, String ipAddress) {
         try {
@@ -76,6 +85,11 @@ public class RepositorioAuditoria extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Traduz o resultado do envio de e-mail em evento de auditoria com sufixo semantico:
+     * _sent (entregue externamente), _outbox (retido localmente) ou _failed (erro/sem resultado).
+     * Detalhes incluem canal, latencia e errorTrail para diagnostico posterior.
+     */
     public void registrarResultadoEnvioEmail(
             String actorId,
             String eventoBase,
@@ -104,6 +118,7 @@ public class RepositorioAuditoria extends RepositorioMongoAbstrato {
         registrarAuditoria(actorId, action, destino, det, null);
     }
 
+    /** Eventos em que o usuario e ator OU alvo (acoes proprias + acoes administrativas sobre ele). */
     public List<Document> listarLogsSeguranca(String userId, int limit) {
         List<Document> logs = new ArrayList<Document>();
         try {
@@ -116,6 +131,12 @@ public class RepositorioAuditoria extends RepositorioMongoAbstrato {
         return logs;
     }
 
+    /**
+     * Write-guard administrativo: incrementa o contador global de revisao em
+     * admin_write_guard (marcador de atividade de escrita) e RECONFERE no banco
+     * que o ator continua admin ativo - fecha a janela entre validar o JWT e mutar.
+     * Qualquer falha/invalidacao devolve false (fail-closed: sem escrita).
+     */
     public boolean registrarEscritaAdmin(String adminId) {
         if (adminId == null || !ObjectId.isValid(adminId.trim())) {
             return false;

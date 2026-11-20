@@ -34,20 +34,28 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         return "AUTH-SESSOES";
     }
 
+    /** Indices: sessionId unico (um registro por jti), userId para listagens e TTL em expiresAt. */
     @Override
     protected void registrarIndices(MongoDatabase db) {
         MongoCollection<Document> sessions = db.getCollection("auth_sessions");
         criarIndiceSeguro(sessions, "idx_auth_sessions_sessionid_unique",
                 new Document("sessionId", 1), new IndexOptions().unique(true));
         criarIndiceSeguro(sessions, "idx_auth_sessions_userid", new Document("userId", 1), null);
+        // expireAfter(0): o Mongo apaga o documento exatamente no instante expiresAt.
         criarIndiceSeguro(sessions, "idx_auth_sessions_expiresat",
                 new Document("expiresAt", 1), new IndexOptions().expireAfter(0L, TimeUnit.SECONDS));
     }
 
+    /** @return colecao auth_sessions ou null se o banco estiver offline. */
     public MongoCollection<Document> colecaoSessoesSeAtiva() {
         return obterColecaoSeAtiva("auth_sessions");
     }
 
+    /**
+     * Registra a sessao do access token (jti) com metadados de dispositivo.
+     * Best-effort: falha e so logada - sem o registro, a proxima requisicao falha
+     * fail-closed na validacao autoritativa (nao ha como "logar sem sessao").
+     */
     public void criarSessao(String userId, String sessionId, long expiresAtMillis, String userAgent, String ipAddress) {
         try {
             Document sessao = new Document()
@@ -68,6 +76,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Checagem simples de existencia: ativa (active != false) e nao expirada; erro = false (fail-closed). */
     public boolean sessaoAtiva(String sessionId) {
         if (sessionId == null || sessionId.trim().isEmpty()) return false;
         try {
@@ -84,6 +93,15 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         }
     }
 
+    /**
+     * Validacao AUTORITATIVA da sessao (camada 2 do JwtAuthValidator), na ordem:
+     * 1. ObjectId valido e jti presente;
+     * 2. usuario ativo + sessao ativa/no prazo (mesma conta);
+     * 3. sessionVersion e perfil do token iguais aos do banco;
+     * 4. requirePasswordChange bloqueia tudo exceto a rota de troca (403).
+     * Sucesso devolve a identidade FRESCA do banco (nao o snapshot do token).
+     * MongoException vira 503 (failover); erro inesperado vira 401 (fail-closed).
+     */
     public RepositorioUsuarios.ResultadoValidacaoSessao validarSessaoCompleta(
             String userId,
             String sessionId,
@@ -145,6 +163,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Sessoes ativas do usuario, mais recentes primeiro (tela "dispositivos conectados"). */
     public List<Document> listarSessoesAtivas(String userId) {
         List<Document> lista = new ArrayList<Document>();
         try {
@@ -161,6 +180,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         return lista;
     }
 
+    /** Contagem em lote para a listagem admin: UMA query com $in + agregacao em memoria (evita N+1). */
     public Map<String, Integer> contarSessoesAtivasPorUsuario(List<Document> users) {
         Map<String, Integer> counts = new HashMap<String, Integer>();
         if (users == null || users.isEmpty()) {
@@ -189,6 +209,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         return counts;
     }
 
+    /** Revogacao escopada ao dono: filtro userId impede revogar sessao de outra conta. */
     public void revogarSessaoUsuario(String userId, String sessionId) {
         try {
             obterColecao("auth_sessions").deleteOne(
@@ -198,6 +219,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         }
     }
 
+    /** "Sair dos outros dispositivos": apaga todas as sessoes exceto a atual. */
     public void revogarOutrasSessoes(String userId, String currentSessionId) {
         try {
             obterColecao("auth_sessions").deleteMany(
@@ -207,6 +229,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Revogar = DELETAR o registro (sem soft-flag): a ausencia ja reprova na validacao. */
     public void revogarSessao(String sessionId) {
         try {
             obterColecao("auth_sessions").deleteOne(Filters.eq("sessionId", sessionId));
@@ -215,6 +238,7 @@ public class RepositorioSessoes extends RepositorioMongoAbstrato {
         }
     }
 
+    /** Logout global persistido (troca de senha, suspensao, acao admin). */
     public void revogarTodasSessoes(String userId) {
         try {
             obterColecao("auth_sessions").deleteMany(Filters.eq("userId", userId));

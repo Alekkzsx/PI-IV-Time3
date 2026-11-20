@@ -28,6 +28,7 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         super(repositorio);
     }
 
+    /** Resposta de login carrega tokens: aplica pacote completo de headers anti-cache/seguranca. */
     @Override
     protected boolean deveAplicarHeadersAuth() {
         return true;
@@ -43,11 +44,20 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         return "LOGIN";
     }
 
+    /**
+     * Fluxo numerado do login (todas as saidas passam por latencia padronizada anti-timing):
+     * 1. Rate limit por identidade+IP (429 com Retry-After);
+     * 2. Autenticacao no Mongo - usuario inexistente paga o mesmo dummy hash PBKDF2;
+     *    perfil incompativel com o portal solicitado vira 403 invalid_user_type;
+     * 3. 2FA habilitado -> desafio OTP por e-mail (202, sem tokens ainda);
+     * 4. Sucesso -> par de tokens + sessao persistida + auditoria + zera rate limit.
+     */
     @Override
     protected void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws Exception {
         long inicio = System.currentTimeMillis();
         Map<String, Object> corpo = lerJsonObjeto(requisicao);
 
+        // Aceita aliases pt/en do payload (identidade/identity, senha/password, perfil/profile).
         String identidade = getPrimeiroTexto(corpo, "identidade", "identity");
         String senha = getPrimeiroTexto(corpo, "senha", "password");
         String perfilSolicitado = getPrimeiroTexto(corpo, "profile", "perfil");
@@ -72,6 +82,8 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         // 2. Autenticar no MongoDB (com dummy hash para usuarios inexistentes)
         UsuarioAutenticado usuario = repositorio.autenticar(identidade, senha);
         if (usuario == null) {
+            // Credencial falhou, mas o portal informou um perfil: se a conta existe com perfil
+            // diferente, devolve o 403 especifico de "portal errado" (melhor UX que 401 generico).
             if (perfilSolicitado != null && !perfilSolicitado.isEmpty()) {
                 UsuarioAutenticado contaExistente = repositorio.buscarPorIdentidade(identidade);
                 if (contaExistente == null && identidade.contains("@")) {
@@ -100,6 +112,7 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         }
 
         // 4. Emitir par de tokens e persistir sessao
+        // Re-busca o usuario para emitir tokens com dados/versao mais frescos do banco.
         UsuarioAutenticado usuarioFinal = repositorio.buscarPorId(usuario.getUserId());
         UsuarioAutenticado usuarioResp = usuarioFinal != null ? usuarioFinal : usuario;
         int sessionVersion = usuarioResp.getSessionVersion();
@@ -116,6 +129,7 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 200, respostaSucesso);
     }
 
+    /** 429 com Retry-After (header + campo retryAfter) para o cliente saber quando voltar. */
     private void enviarBloqueio429(RespostaHttp resposta, long segundosRestantes) throws IOException {
         resposta.adicionarCabecalho("Retry-After", String.valueOf(segundosRestantes));
         String msg = "Muitas tentativas de login. Tente novamente em " + segundosRestantes + " segundos.";
@@ -124,6 +138,10 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 429, erro);
     }
 
+    /**
+     * Falha de credencial: resposta OPACA (nao distingue usuario inexistente de senha errada),
+     * contabiliza no limitador, audita como anonymous e equaliza a latencia com o caminho feliz.
+     */
     private void tratarCredenciaisInvalidas(
             RespostaHttp resposta,
             LimitadorTentativas limitador,
@@ -142,6 +160,7 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         enviarJson(resposta, 401, erro);
     }
 
+    /** Perfil do portal incompativel com o da conta: 403 invalid_user_type + falha no limitador + auditoria. */
     private void tratarPerfilInvalido(
             RespostaHttp resposta,
             LimitadorTentativas limitador,
@@ -163,21 +182,30 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
                 RecoveryHandler.construirMensagemPerfilIncompativel(perfilSolicitado, usuario.getProfile()));
     }
 
+    /**
+     * Monta o desafio 2FA: gera OTP e challengeToken, persiste os dois vinculos no Mongo,
+     * dispara o e-mail em background e responde 202 SEM tokens (a sessao so nasce no verify).
+     * O e-mail vai mascarado na resposta para nao revelar o endereco completo a quem so tem a senha.
+     */
     private void enviarDesafioDoisFatores(
             RespostaHttp resposta, UsuarioAutenticado usuario, String ipCliente, long inicio) throws IOException {
         AuthHttpUtils.aplicarLatenciaPadronizada(inicio, true);
 
         String otpCode = OtpService.gerarCodigo();
         String otpHash = OtpService.hashOtp(otpCode, AuthHttpUtils.obterSegredoOtp());
+        // challengeToken: 64 hex de dois UUIDs (256 bits) - referencia opaca ao desafio,
+        // permite verificar o 2FA sem reenviar a identidade no corpo.
         String challengeToken = UUID.randomUUID().toString().replace("-", "")
                 + UUID.randomUUID().toString().replace("-", "");
         int ttlSegundos = AuthHttpUtils.obterTtlOtpSegundos();
         long expiraMillis = System.currentTimeMillis() + (long) ttlSegundos * 1000L;
 
+        // Dois registros OTP: identidade -> hash do codigo; challengeToken -> identidade.
         repositorio.salvarOtp(usuario.getIdentity(), otpHash, "2FA_LOGIN", expiraMillis);
         repositorio.salvarOtp(challengeToken, usuario.getIdentity(), "2FA_CHALLENGE", expiraMillis);
 
         if (SmtpCliente.isEmailValido(usuario.getEmail())) {
+            // Envio assincrono (3 tiers de resiliencia); whenComplete audita o resultado sem bloquear a resposta.
             SmtpCliente.enviarOtpComResultado(usuario.getEmail(), otpCode, usuario.getDisplayName())
                     .whenComplete((resultado, erro) -> repositorio.registrarResultadoEnvioEmail(
                             usuario.getUserId(), "login_2fa_email", usuario.getEmail(), resultado, erro));

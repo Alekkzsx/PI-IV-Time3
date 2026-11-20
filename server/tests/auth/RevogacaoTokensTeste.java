@@ -14,11 +14,13 @@ import auth.utils.RevogacaoTokens;
 public class RevogacaoTokensTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** Executa os cenarios numerados; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         RevogacaoTokens blacklist = RevogacaoTokens.getInstance();
@@ -60,6 +62,7 @@ public class RevogacaoTokensTeste {
         return falhas;
     }
 
+    /** Runner isolado: exit 1 se houver falha. */
     public static void main(String[] args) {
         int erros = executar();
         if (erros > 0) {

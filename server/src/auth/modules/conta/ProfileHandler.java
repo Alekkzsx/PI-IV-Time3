@@ -28,6 +28,8 @@ import java.util.Set;
  * Rotas: PATCH /api/auth/profile e GET /api/auth/lgpd-export
  */
 public class ProfileHandler extends HandlerAutenticadoAbstrato {
+    // Whitelist anti mass-assignment: so estes campos podem mudar por PATCH /profile.
+    // profile/active/passwordHash etc. ficam de fora de proposito (so admin altera).
     private static final Set<String> CAMPOS_PERFIL_PERMITIDOS = new HashSet<String>(Arrays.asList(
             "displayName", "socialName", "phone", "personalEmail", "biography",
             "departmentOrCourse", "department", "campus", "semester", "shift", "preferences"
@@ -45,6 +47,7 @@ public class ProfileHandler extends HandlerAutenticadoAbstrato {
         return "ACCOUNT-PROFILE";
     }
 
+    /** Despacha por caminho+verbo: PATCH /profile atualiza; GET /lgpd-export exporta; resto 405. */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws Exception {
@@ -59,6 +62,10 @@ public class ProfileHandler extends HandlerAutenticadoAbstrato {
         }
     }
 
+    /**
+     * PATCH /profile: valida cada campo contra a whitelist, aplica regras de formato,
+     * persiste via repositorio e sincroniza o nome com o backend academico (best-effort).
+     */
     private void tratarAtualizacaoPerfil(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);
@@ -92,6 +99,7 @@ public class ProfileHandler extends HandlerAutenticadoAbstrato {
                 return;
             }
         }
+        // Espelha department <-> departmentOrCourse: os dois nomes historicamente usados no schema.
         if (setFields.containsKey("department") && !setFields.containsKey("departmentOrCourse")) {
             setFields.put("departmentOrCourse", setFields.get("department"));
         }
@@ -105,12 +113,19 @@ public class ProfileHandler extends HandlerAutenticadoAbstrato {
             return;
         }
         if (setFields.get("displayName") instanceof String) {
+            // Nome mudou: propaga para o backend academico para manter listas/chamadas consistentes.
             ponte.sincronizarUsuario(usuario.getUserId(), null, (String) setFields.get("displayName"));
         }
         UsuarioAutenticado atualizado = repositorio.buscarPorId(usuario.getUserId());
         enviarJson(resp, 200, AuthHttpUtils.montarPerfilPublico(atualizado != null ? atualizado : usuario, updated));
     }
 
+    /**
+     * GET /lgpd-export (direito de portabilidade, LGPD art. 18):
+     * reune dados do titular (identidade), dados academicos via ponte (:3001),
+     * sessoes ativas e trilha de auditoria (ultimos 100 eventos) em um unico JSON.
+     * Nenhum segredo (hash, OTP, backup codes) entra no export.
+     */
     private void tratarExportacaoLgpd(RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         Document userDoc = repositorio.buscarDocumentoPorId(usuario.getUserId());
         Map<String, Object> academic = ponte.obterDadosLgpdUsuario(usuario.getUserId());
@@ -159,6 +174,7 @@ public class ProfileHandler extends HandlerAutenticadoAbstrato {
         enviarJson(resp, 200, export);
     }
 
+    /** Normaliza campos academicos: ausente/nao-lista vira [] para o contrato do export ser estavel. */
     private static Object listaOuVazia(Object valor) {
         return valor instanceof List ? valor : Collections.emptyList();
     }

@@ -7,14 +7,21 @@ import java.util.List;
 import java.util.Map;
 
 // Teste sem bibliotecas para Json e JsonSimples.
+/**
+ * Suite dos parsers JSON: mapeamento de tipos (Long/Double/Boolean/null/lista),
+ * round-trip escrever->analisar, escapes RFC e rejeicoes de seguranca (virgula final,
+ * campo repetido, conteudo extra, entrada truncada, aninhamento excessivo).
+ */
 public class JsonTeste {
     private static int falhas = 0;
 
+    /** Assertiva simples: imprime [OK]/[FALHA] e acumula o contador de falhas. */
     static void esperar(boolean condicao, String nome) {
         System.out.println((condicao ? "[OK]    " : "[FALHA] ") + nome);
         if (!condicao) falhas++;
     }
 
+    /** @return true se o parser REJEITOU a entrada (o comportamento esperado nos cenarios negativos). */
     static boolean rejeita(String json) {
         try {
             Json.analisar(json);
@@ -24,12 +31,14 @@ public class JsonTeste {
         }
     }
 
+    /** Repete um fragmento N vezes (monta o payload de aninhamento profundo do cenario anti-DoS). */
     private static String repetir(String base, int vezes) {
         StringBuilder sb = new StringBuilder(base.length() * vezes);
         for (int i = 0; i < vezes; i++) sb.append(base);
         return sb.toString();
     }
 
+    /** Executa os cenarios da suite; devolve o numero de falhas (0 = tudo passou). */
     public static int executar() {
         falhas = 0;
         Map<String, Object> o = Json.analisarObjeto("{\"nome\":\"Ana\",\"idade\":30,\"nota\":8.5,\"ativo\":true,\"x\":null,\"aulas\":[1,2,{\"a\":\"b\"}]}");
@@ -57,6 +66,7 @@ public class JsonTeste {
         return falhas;
     }
 
+    /** Runner isolado: exit 1 se houver falha. */
     public static void main(String[] args) {
         int erros = executar();
         if (erros > 0) {

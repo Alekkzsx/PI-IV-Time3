@@ -14,6 +14,7 @@ public class CanalResendEmail extends CanalHttpsEmailAbstrato {
     private final String apiKey;
     private final String remetente;
 
+    /** @param apiKey chave RESEND_API_KEY (vazia = canal desabilitado). */
     public CanalResendEmail(String apiKey, String remetente) {
         this.apiKey = apiKey != null ? apiKey.trim() : "";
         this.remetente = remetente != null ? remetente.trim() : "";
@@ -34,6 +35,7 @@ public class CanalResendEmail extends CanalHttpsEmailAbstrato {
         return "https://api.resend.com/emails";
     }
 
+    /** Autenticacao da API Resend: Authorization Bearer <apiKey>. */
     @Override
     protected Map<String, String> construirHeaders() {
         Map<String, String> headers = new LinkedHashMap<String, String>();
@@ -41,6 +43,7 @@ public class CanalResendEmail extends CanalHttpsEmailAbstrato {
         return headers;
     }
 
+    /** Payload da API Resend: to e uma LISTA; html + text como alternativas MIME. */
     @Override
     protected Map<String, Object> construirPayload(MensagemEmail mensagem) {
         Map<String, Object> body = new LinkedHashMap<String, Object>();

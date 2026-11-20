@@ -29,6 +29,7 @@ public class VideoCallRoomHandler extends HandlerVideoCallLegadoAbstrato {
         super(repositorio);
     }
 
+    /** Despacho legado: /open e /close exigem POST; qualquer outro caminho cai na listagem. */
     @Override
     protected void processarVideoCall(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws Exception {
@@ -42,6 +43,7 @@ public class VideoCallRoomHandler extends HandlerVideoCallLegadoAbstrato {
         }
     }
 
+    /** GET /rooms: fotografia das salas em memoria (estado, quem abriu, participantes, duracao). */
     private void tratarListagemSalas(RespostaHttp resposta) throws IOException {
         List<Map<String, Object>> rooms = new ArrayList<Map<String, Object>>();
         for (VideoCallService.Room r : service.listarSalas().values()) {
@@ -60,6 +62,7 @@ public class VideoCallRoomHandler extends HandlerVideoCallLegadoAbstrato {
         enviarJson(resposta, 200, payload);
     }
 
+    /** POST /open: papel resolvido com precedencia do JWT; service recusa papeis sem permissao (403 + log). */
     private void tratarAberturaSala(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if (!"POST".equalsIgnoreCase(requisicao.getMetodo())) {
@@ -89,6 +92,7 @@ public class VideoCallRoomHandler extends HandlerVideoCallLegadoAbstrato {
         enviarJson(resposta, 200, ok);
     }
 
+    /** POST /close: usuario autenticado precisa ser docente/admin; sala inexistente/fechada vira 400. */
     private void tratarFechamentoSala(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws IOException {
         if (!"POST".equalsIgnoreCase(requisicao.getMetodo())) {

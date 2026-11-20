@@ -25,6 +25,7 @@ import java.util.Map;
  * codigos de backup e historico de logs de seguranca.
  */
 public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
+    // SecureRandom para os codigos de backup (nao Math.random: previsibilidade = conta comprometida).
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public AccountSecurityHandler(RepositorioUsuarios repositorio) {
@@ -36,6 +37,11 @@ public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
         return "ACCOUNT-SECURITY";
     }
 
+    /**
+     * Tabela de rotas do grupo seguranca:
+     * GET /sessions | DELETE /sessions/{id} | POST /logout-others |
+     * POST /two-factor | POST /backup-codes | GET /security-logs.
+     */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws Exception {
@@ -60,6 +66,7 @@ public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
         }
     }
 
+    /** Lista sessoes ativas com device/IP e flag current (compara com o jti desta requisicao). */
     private void tratarListarSessoes(RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         List<Map<String, Object>> lista = new ArrayList<Map<String, Object>>();
         for (Document doc : repositorio.listarSessoesAtivas(usuario.getUserId())) {
@@ -79,6 +86,11 @@ public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
         enviarJson(resp, 200, lista);
     }
 
+    /**
+     * DELETE /sessions/{id}: revoga a sessao escolhida no Mongo e coloca o jti na blacklist.
+     * O horizonte de 24h na blacklist e so um teto defensivo de limpeza - quem manda na
+     * validade real e o exp do proprio JWT.
+     */
     private void tratarRevogarSessao(RespostaHttp resp, UsuarioAutenticado usuario, String sessionId) throws IOException {
         if (sessionId == null || sessionId.isEmpty()) {
             responderErro(resp, 400, "invalid_session", "Sessao invalida.");
@@ -93,6 +105,10 @@ public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
         resp.enviar(204, "");
     }
 
+    /**
+     * POST /two-factor: liga/desliga o 2FA exigindo REAUTENTICACAO com a senha atual
+     * (step-up: sessao roubada sem a senha nao consegue desativar o segundo fator).
+     */
     private void tratarAlternarDoisFatores(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);
@@ -117,6 +133,11 @@ public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
         resp.enviar(204, "");
     }
 
+    /**
+     * POST /backup-codes: gera 6 codigos de uso unico no formato AGMRM-XXXX-XXXX
+     * (dois grupos de 16 bits aleatorios). O banco guarda apenas o SHA-256 de cada um;
+     * o texto puro aparece UMA unica vez nesta resposta (gerar de novo invalida os antigos).
+     */
     private void tratarGerarBackupCodes(RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         List<String> codes = new ArrayList<String>();
         List<String> digests = new ArrayList<String>();
@@ -135,6 +156,7 @@ public class AccountSecurityHandler extends HandlerAutenticadoAbstrato {
         enviarJson(resp, 200, payload);
     }
 
+    /** GET /security-logs: ultimos 25 eventos de auditoria do proprio usuario (id/action/data/IP/detalhes). */
     private void tratarLogsSeguranca(RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         List<Map<String, Object>> lista = new ArrayList<Map<String, Object>>();
         for (Document doc : repositorio.listarLogsSeguranca(usuario.getUserId(), 25)) {

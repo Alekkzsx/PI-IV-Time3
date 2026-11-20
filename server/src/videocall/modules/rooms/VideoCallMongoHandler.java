@@ -42,6 +42,7 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
         this.ponte = ponte != null ? ponte : new ClientePonteAcademica();
     }
 
+    /** API de sala nao emite tokens de auth: headers padrao bastam. */
     @Override
     protected boolean deveAplicarHeadersAuth() {
         return false;
@@ -52,6 +53,7 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
         return "VIDEOCALL";
     }
 
+    /** Despacho por caminho+verbo das 4 rotas persistidas; combinacao desconhecida = 404. */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws Exception {
@@ -71,6 +73,10 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
         }
     }
 
+    /**
+     * GET /rooms: turmas do usuario vindas da ponte academica, enriquecidas com isOpen
+     * (cruzamento com as sessoes ao vivo nao expiradas do Mongo).
+     */
     private void tratarListarSalas(RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         List<Map<String, Object>> turmas = ponte.listarSalasUsuario(
                 usuario.getUserId(), usuario.getProfile(), usuario.getIdentity());
@@ -86,6 +92,11 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
         enviarJson(resp, 200, respostaLista);
     }
 
+    /**
+     * POST /rooms/enter: autoriza o vinculo via ponte -> docente/admin ABRE a sala
+     * (Mongo + estado legado em memoria), aluno so entra se ja estiver aberta (409 caso contrario)
+     * -> emite o ticket WebSocket de uso unico (60s) que o cliente usa no upgrade /ws/video-call/{sala}.
+     */
     private void tratarEntrarSala(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);
@@ -104,6 +115,7 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
 
         boolean opened;
         if (usuario.isDocenteOuAdmin()) {
+            // Dupla escrita: Mongo e a autoridade; o service em memoria alimenta o chat/hub legado.
             repositorioVideoCall.abrirSala(roomCode, classCode, usuario);
             VideoCallService.getInstance().abrirSala(roomCode, usuario.getProfile(), usuario.getDisplayName());
             opened = true;
@@ -128,6 +140,11 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
         enviarJson(resp, 200, payload);
     }
 
+    /**
+     * POST /rooms/close: exclusivo docente/admin. Fecha no Mongo com guarda de posse
+     * (docente so fecha a propria sala; admin fecha qualquer uma) e espelha no service legado.
+     * 403 da ponte e propagado; outros erros da ponte nao impedem o fechamento local.
+     */
     private void tratarFecharSala(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         if (!usuario.isDocenteOuAdmin()) {
@@ -163,6 +180,11 @@ public class VideoCallMongoHandler extends HandlerAutenticadoAbstrato {
         resp.enviar(204, "");
     }
 
+    /**
+     * POST /rooms/attendance: telemetria join/leave do cliente. connectedSeconds e
+     * clampado em [0, 86400] (1 dia) contra valores absurdos; aluno so reporta em sala
+     * aberta. Grava o log local e, para alunos, propaga a presenca ao backend academico.
+     */
     private void tratarPresenca(
             RequisicaoHttp req, RespostaHttp resp, UsuarioAutenticado usuario) throws IOException {
         Map<String, Object> body = lerJsonObjeto(req);

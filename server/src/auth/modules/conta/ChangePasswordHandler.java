@@ -25,11 +25,13 @@ public class ChangePasswordHandler extends HandlerAutenticadoAbstrato {
         super(repositorio);
     }
 
+    /** Nao emite tokens novos (a resposta e so informativa): headers padrao bastam. */
     @Override
     protected boolean deveAplicarHeadersAuth() {
         return false;
     }
 
+    /** Esta E a rota da troca pendente: precisa aceitar quem esta com senha provisoria. */
     @Override
     protected boolean permitirTrocaSenhaPendente() {
         return true;
@@ -50,6 +52,12 @@ public class ChangePasswordHandler extends HandlerAutenticadoAbstrato {
         return "CHANGE-PASSWORD";
     }
 
+    /**
+     * Troca de senha autenticada: aliases pt/en -> nova != atual -> politica de complexidade ->
+     * confere senha atual -> atualiza (repositorio incrementa sessionVersion) ->
+     * REVOGA TODAS as sessoes (logout global, inclusive esta) -> auditoria.
+     * O cliente precisa logar de novo com a senha nova.
+     */
     @Override
     protected void processarAutenticado(
             RequisicaoHttp requisicao, RespostaHttp resposta, UsuarioAutenticado usuario) throws Exception {
@@ -86,6 +94,7 @@ public class ChangePasswordHandler extends HandlerAutenticadoAbstrato {
             return;
         }
 
+        // Logout global: sessionVersion nova + sessoes revogadas derrubam qualquer token antigo.
         repositorio.revogarTodasSessoes(usuario.getUserId());
         repositorio.registrarAuditoria(usuario.getUserId(), "password_changed", usuario.getUserId(), null);
         System.out.println("[AUTH] Senha alterada para usuario: " + usuario.getUserId() + " (todas as sessoes revogadas)");
