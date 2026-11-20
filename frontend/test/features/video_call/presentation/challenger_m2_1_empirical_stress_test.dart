@@ -142,7 +142,7 @@ void main() {
         bus.reset();
       });
 
-      // Helper to create dual controllers connected via InMemorySignalingBus
+      // Auxiliar para criar controladores duplos conectados via InMemorySignalingBus
       Future<
         ({
           VideoCallController controllerA,
@@ -193,7 +193,7 @@ void main() {
           localParticipant: pB,
         );
 
-        // Await P2P JOIN & PRESENCE_SYNC handshake
+        // Aguarda o handshake P2P JOIN e PRESENCE_SYNC
         await Future<void>.delayed(const Duration(milliseconds: 60));
 
         return (
@@ -205,7 +205,7 @@ void main() {
       }
 
       // =========================================================================
-      // 1. PRE-JOIN LOBBY INPUT VALIDATION & HARDWARE PREVIEW TESTS
+      // 1. TESTES DE VALIDAÇÃO DE ENTRADA DO LOBBY PRÉ-INGRESSO E PRÉ-VISUALIZAÇÃO DE HARDWARE
       // =========================================================================
       group('1. Pre-Join Lobby Validation & Hardware State', () {
         late VideoCallLobbyController lobbyController;
@@ -271,7 +271,7 @@ void main() {
         test(
           'Room code validation: Normalization, length bounds and character filtering',
           () {
-            // Rejects empty / whitespace
+            // Rejeita vazio / espaços em branco
             expect(
               lobbyController.validateRoomCode(null),
               'Informe o código da sala',
@@ -285,7 +285,7 @@ void main() {
               'Informe o código da sala',
             );
 
-            // Length boundaries (< 2 chars or > 60 chars)
+            // Limites de comprimento (< 2 caracteres ou > 60 caracteres)
             expect(
               lobbyController.validateRoomCode('A'),
               'Código da sala inválido',
@@ -294,13 +294,13 @@ void main() {
             expect(
               lobbyController.validateRoomCode('A' * 60),
               isNull,
-            ); // 60 chars
+            ); // 60 caracteres
             expect(
               lobbyController.validateRoomCode('A' * 61),
               'Código da sala inválido',
-            ); // 61 chars
+            ); // 61 caracteres
 
-            // Illegal characters (punctuation outside alphanumeric, dot, underscore and hyphen)
+            // Caracteres inválidos (pontuação fora de alfanumérico, ponto, sublinhado e hífen)
             expect(
               lobbyController.validateRoomCode('SALA@101'),
               'Código da sala inválido',
@@ -314,7 +314,7 @@ void main() {
               'Código da sala inválido',
             );
 
-            // Valid patterns (alphanumeric, dots, underscores and hyphens)
+            // Padrões válidos (alfanumérico, pontos, sublinhados e hífens)
             expect(lobbyController.validateRoomCode('SALA_101'), isNull);
             expect(lobbyController.validateRoomCode('SALA.101'), isNull);
             expect(lobbyController.validateRoomCode('SALA-101'), isNull);
@@ -347,27 +347,27 @@ void main() {
             expect(lobbyController.isVideoOff, isFalse);
             expect(lobbyController.audioLevel, 0.05);
 
-            // Toggle Mic to Mute
+            // Alterna o microfone para mudo
             lobbyController.toggleAudio();
             expect(lobbyController.isAudioMuted, isTrue);
             expect(lobbyController.audioLevel, 0.0);
 
-            // Attempting to set audio level while muted has no effect
+            // Tentar definir o nível de áudio enquanto mutado não tem efeito
             lobbyController.setAudioLevel(0.85);
             expect(lobbyController.audioLevel, 0.0);
 
-            // Unmute restores level
+            // Desmutar restaura o nível
             lobbyController.toggleAudio();
             expect(lobbyController.isAudioMuted, isFalse);
             lobbyController.setAudioLevel(0.40);
             expect(lobbyController.audioLevel, 0.40);
 
-            // Toggle Video off
+            // Desliga o vídeo
             lobbyController.toggleVideo();
             expect(lobbyController.isVideoOff, isTrue);
 
-            // createCallController preserves hardware states
-            lobbyController.toggleAudio(); // Mute mic
+            // createCallController preserva os estados de hardware
+            lobbyController.toggleAudio(); // Muta o microfone
             final callCtrl = lobbyController.createCallController(
               name: 'Alex',
               ra: '24802449',
@@ -428,7 +428,7 @@ void main() {
             );
             await tester.pump();
 
-            // 1. Initial UI state
+            // 1. Estado inicial da UI
             expect(
               find.byKey(const Key('lobby_camera_preview')),
               findsOneWidget,
@@ -444,7 +444,7 @@ void main() {
             expect(find.text('Microfone Ativo'), findsOneWidget);
             expect(find.text('Câmera Ligada'), findsOneWidget);
 
-            // 2. Toggle Mic and Cam buttons
+            // 2. Alterna os botões de microfone e câmera
             await tester.tap(find.byKey(const Key('lobby_toggle_mic_button')));
             await tester.tap(find.byKey(const Key('lobby_toggle_cam_button')));
             await tester.pump();
@@ -453,7 +453,7 @@ void main() {
             expect(find.text('Câmera Desligada'), findsOneWidget);
             expect(find.text('Câmera Desativada'), findsOneWidget);
 
-            // 3. Submit using identity and class supplied by the active session
+            // 3. Envia usando a identidade e a turma fornecidas pela sessão ativa
             await tester.tap(find.byKey(const Key('lobby_join_button')));
             await tester.pump();
 
@@ -467,7 +467,7 @@ void main() {
       });
 
       // =========================================================================
-      // 2. DYNAMIC VIDEO GRID WITH STRICTLY REAL PARTICIPANTS (ZERO BOTS)
+      // 2. GRADE DE VÍDEO DINÂMICA COM PARTICIPANTES ESTRITAMENTE REAIS (ZERO BOTS)
       // =========================================================================
       group('2. Dynamic Video Grid & Zero Bots Invariant', () {
         test(
@@ -495,13 +495,13 @@ void main() {
               localParticipant: localUser,
             );
 
-            // Strictly 1 participant
+            // Estritamente 1 participante
             expect(controller.allParticipants.length, 1);
             expect(controller.remoteParticipants, isEmpty);
             expect(controller.allParticipants.first.id, 'local_alex');
             expect(controller.allParticipants.first.isLocal, isTrue);
 
-            // Ensure no dummy/mock participants exist
+            // Garante que não existam participantes fictícios/simulados
             final hasBot = controller.allParticipants.any(
               (p) =>
                   p.name.toLowerCase().contains('bot') || p.id.contains('mock'),
@@ -549,11 +549,11 @@ void main() {
 
             expect(cA.allParticipants.length, 2);
 
-            // Peer B leaves the room
+            // Peer B sai da sala
             cB.leaveCall();
             await Future<void>.delayed(const Duration(milliseconds: 50));
 
-            // Tile for Peer B is removed immediately on Peer A
+            // O bloco do Peer B é removido imediatamente no Peer A
             expect(cA.allParticipants.length, 1);
             expect(cA.remoteParticipants, isEmpty);
             expect(cA.allParticipants.first.id, 'peer_a');
@@ -572,7 +572,7 @@ void main() {
             final p2 = Participant(id: 'p2', name: 'Beatriz', ra: '24801122');
             final p3 = Participant(id: 'p3', name: 'Carlos', ra: '24803344');
 
-            // 1. N = 0: Empty state message
+            // 1. N = 0: Mensagem de estado vazio
             await tester.pumpWidget(
               const MaterialApp(
                 home: Scaffold(body: DynamicVideoGrid(participants: [])),
@@ -581,7 +581,7 @@ void main() {
             expect(find.text('Nenhum participante conectado'), findsOneWidget);
             expect(find.byType(ParticipantVideoTile), findsNothing);
 
-            // 2. N = 1: Exactly 1 solitary tile centered
+            // 2. N = 1: Exatamente 1 bloco solitário centralizado
             await tester.pumpWidget(
               MaterialApp(
                 home: Scaffold(body: DynamicVideoGrid(participants: [p1])),
@@ -593,7 +593,7 @@ void main() {
               findsOneWidget,
             );
 
-            // 3. N = 2: Exactly 2 tiles in Row layout (dual split)
+            // 3. N = 2: Exatamente 2 blocos em layout Row (divisão dupla)
             await tester.pumpWidget(
               MaterialApp(
                 home: Scaffold(body: DynamicVideoGrid(participants: [p1, p2])),
@@ -610,7 +610,7 @@ void main() {
               findsOneWidget,
             );
 
-            // 4. N = 3: GridView layout
+            // 4. N = 3: Layout em GridView
             await tester.pumpWidget(
               MaterialApp(
                 home: Scaffold(
@@ -648,20 +648,20 @@ void main() {
               localParticipant: local,
             );
 
-            // 1. Peer sends self-join envelope (id == local_user)
+            // 1. Peer envia envelope de autoingresso (id == local_user)
             controller.registerRemoteParticipant(
               Participant(id: 'local_user', name: 'Loopback Mock', ra: '0000'),
             );
             expect(controller.allParticipants.length, 1);
             expect(controller.remoteParticipants, isEmpty);
 
-            // 2. Real remote peer joins
+            // 2. Peer remoto real ingressa
             controller.registerRemoteParticipant(
               Participant(id: 'remote_1', name: 'Remote User', ra: '54321'),
             );
             expect(controller.allParticipants.length, 2);
 
-            // 3. Duplicate peer join with updated attributes (replaces, does not duplicate)
+            // 3. Ingresso duplicado de peer com atributos atualizados (substitui, não duplica)
             controller.registerRemoteParticipant(
               Participant(
                 id: 'remote_1',
@@ -675,7 +675,7 @@ void main() {
               'Remote User Updated',
             );
 
-            // 4. Unknown peer leave event does not throw or mutate real participants
+            // 4. Evento de saída de peer desconhecido não lança erro nem altera participantes reais
             await repo.leaveRoom('ADV-ROOM', 'unknown_ghost_peer');
             await Future<void>.delayed(const Duration(milliseconds: 30));
             expect(controller.allParticipants.length, 2);
@@ -687,7 +687,7 @@ void main() {
       });
 
       // =========================================================================
-      // 3. ACTIVE SPEAKER DETECTION & HYSTERESIS EMPIRICAL TESTS
+      // 3. TESTES EMPÍRICOS DE DETECÇÃO DE ORADOR ATIVO E HISTERESE
       // =========================================================================
       group('3. Active Speaker Detection & Hysteresis', () {
         test(
@@ -715,23 +715,23 @@ void main() {
               localParticipant: local,
             );
 
-            // 0.00: Silence -> false
+            // 0.00: Silêncio -> false
             controller.setAudioLevel(0.00);
             expect(controller.localParticipant.isSpeaking, isFalse);
 
-            // 0.14: Strictly below 0.15 -> false
+            // 0.14: Estritamente abaixo de 0.15 -> false
             controller.setAudioLevel(0.14);
             expect(controller.localParticipant.isSpeaking, isFalse);
 
-            // 0.15: Exact boundary -> false (condition is > 0.15)
+            // 0.15: Limite exato -> false (a condição é > 0.15)
             controller.setAudioLevel(0.15);
             expect(controller.localParticipant.isSpeaking, isFalse);
 
-            // 0.16: Strictly above 0.15 -> true
+            // 0.16: Estritamente acima de 0.15 -> true
             controller.setAudioLevel(0.16);
             expect(controller.localParticipant.isSpeaking, isTrue);
 
-            // 0.90: Loud speech -> true
+            // 0.90: Fala alta -> true
             controller.setAudioLevel(0.90);
             expect(controller.localParticipant.isSpeaking, isTrue);
 
@@ -765,14 +765,14 @@ void main() {
               localParticipant: local,
             );
 
-            // 1. Participant speaks (RMS = 0.50)
+            // 1. Participante fala (RMS = 0.50)
             controller.setAudioLevel(0.50);
             expect(controller.localParticipant.isSpeaking, isTrue);
 
-            // 2. Audio drops below threshold to 0.05
+            // 2. Áudio cai abaixo do limiar para 0.05
             controller.setAudioLevel(0.05);
 
-            // 3. At 250ms into cooldown: isSpeaking remains TRUE
+            // 3. Aos 250ms de resfriamento: isSpeaking permanece TRUE
             await Future<void>.delayed(const Duration(milliseconds: 250));
             expect(
               controller.localParticipant.isSpeaking,
@@ -780,7 +780,7 @@ void main() {
               reason: 'isSpeaking deve persistir aos 250ms',
             );
 
-            // 4. At 500ms into cooldown: isSpeaking remains TRUE
+            // 4. Aos 500ms de resfriamento: isSpeaking permanece TRUE
             await Future<void>.delayed(const Duration(milliseconds: 250));
             expect(
               controller.localParticipant.isSpeaking,
@@ -788,7 +788,7 @@ void main() {
               reason: 'isSpeaking deve persistir aos 500ms',
             );
 
-            // 5. At 850ms total (+350ms): 800ms timer has expired, isSpeaking resets to FALSE
+            // 5. Aos 850ms totais (+350ms): temporizador de 800ms expirou, isSpeaking volta para FALSE
             await Future<void>.delayed(const Duration(milliseconds: 350));
             expect(
               controller.localParticipant.isSpeaking,
@@ -826,7 +826,7 @@ void main() {
               localParticipant: local,
             );
 
-            // Speak -> drops to silence -> timer starts
+            // Fala -> cai para silêncio -> temporizador inicia
             controller.setAudioLevel(0.60);
             expect(controller.localParticipant.isSpeaking, isTrue);
 
@@ -834,11 +834,11 @@ void main() {
             await Future<void>.delayed(const Duration(milliseconds: 300));
             expect(controller.localParticipant.isSpeaking, isTrue);
 
-            // Surges again at 300ms -> cancels timer
+            // Sobe novamente aos 300ms -> cancela temporizador
             controller.setAudioLevel(0.45);
             expect(controller.localParticipant.isSpeaking, isTrue);
 
-            // Wait another 600ms (900ms from initial drop). Should STILL be true!
+            // Aguarda mais 600ms (900ms desde a queda inicial). AINDA deve ser true!
             await Future<void>.delayed(const Duration(milliseconds: 600));
             expect(controller.localParticipant.isSpeaking, isTrue);
 
@@ -875,13 +875,13 @@ void main() {
             controller.setAudioLevel(0.70);
             expect(controller.localParticipant.isSpeaking, isTrue);
 
-            // Mute mic immediately
+            // Muta o microfone imediatamente
             controller.toggleAudio();
             expect(controller.localParticipant.isAudioMuted, isTrue);
             expect(controller.localParticipant.isSpeaking, isFalse);
             expect(controller.localParticipant.audioLevel, 0.0);
 
-            // While muted, setAudioLevel has no effect
+            // Enquanto mutado, setAudioLevel não tem efeito
             controller.setAudioLevel(0.95);
             expect(controller.localParticipant.isSpeaking, isFalse);
             expect(controller.localParticipant.audioLevel, 0.0);
@@ -928,7 +928,7 @@ void main() {
             );
             await tester.pump();
 
-            // 1. Silent participant container decoration
+            // 1. Decoração do contêiner do participante em silêncio
             final silentTile = tester.widget<Container>(
               find.byKey(const Key('participant_tile_user_silent')),
             );
@@ -937,7 +937,7 @@ void main() {
             expect(silentBorder.top.color, Colors.transparent);
             expect((silentTile.decoration as BoxDecoration).boxShadow, isNull);
 
-            // 2. Speaking participant container decoration (Monochrome White Halo Border & Glow)
+            // 2. Decoração do contêiner do participante falando (Borda e Brilho de Halo Branco Monocromático)
             final speakingTile = tester.widget<Container>(
               find.byKey(const Key('participant_tile_user_speaking')),
             );
@@ -955,11 +955,11 @@ void main() {
             expect(boxShadow.color, Colors.white.withValues(alpha: 0.25));
             expect(boxShadow.blurRadius, 12);
 
-            // 3. Audio level meter widget presence and verification
+            // 3. Presença e verificação do widget medidor de nível de áudio
             expect(find.byType(AudioLevelMeter), findsNWidgets(2));
 
-            // 4. Equalizer Icon vs AudioLevelMeter empirical examination:
-            // Does an Icons.equalizer or Icons.graphic_eq widget exist in the tile?
+            // 4. Análise empírica entre ícone de equalizador e AudioLevelMeter:
+            // Existe um widget Icons.equalizer ou Icons.graphic_eq no bloco?
             final hasEqualizerIcon = find
                 .byIcon(Icons.equalizer)
                 .evaluate()
@@ -972,8 +972,8 @@ void main() {
               'Empirical finding - Icons.equalizer present: $hasEqualizerIcon, Icons.graphic_eq present: $hasGraphicEqIcon, AudioLevelMeter present: true',
             );
 
-            // Note: The UI architecture uses the dynamic AudioLevelMeter bar (color transitioning to white when speaking)
-            // rather than a static equalizer icon.
+            // Nota: A arquitetura da UI usa a barra dinâmica AudioLevelMeter (cor mudando para branco ao falar)
+            // em vez de um ícone de equalizador estático.
           },
         );
 
@@ -982,7 +982,7 @@ void main() {
           final cA = fixture.controllerA;
           final cB = fixture.controllerB;
 
-          // Peer A speaks
+          // Peer A fala
           cA.setAudioLevel(0.70);
           await Future<void>.delayed(const Duration(milliseconds: 40));
 
@@ -992,7 +992,7 @@ void main() {
           expect(peerAInB.isSpeaking, isTrue);
           expect(peerAInB.audioLevel, 0.70);
 
-          // Peer A mutes
+          // Peer A muta
           cA.toggleAudio();
           await Future<void>.delayed(const Duration(milliseconds: 40));
 
@@ -1017,7 +1017,7 @@ void main() {
             final cA = fixture.controllerA;
             final cB = fixture.controllerB;
 
-            // Peer A speaks
+            // Peer A fala
             cA.setAudioLevel(0.75);
             await Future<void>.delayed(const Duration(milliseconds: 40));
 
@@ -1027,18 +1027,18 @@ void main() {
             );
             expect(peerAInBStart.isSpeaking, isTrue);
 
-            // Peer A stops speaking -> drops to 0.04
+            // Peer A para de falar -> cai para 0.04
             cA.setAudioLevel(0.04);
             await Future<void>.delayed(const Duration(milliseconds: 40));
 
-            // On Peer A (local): 800ms cooldown timer is active
+            // No Peer A (local): temporizador de resfriamento de 800ms está ativo
             expect(
               cA.localParticipant.isSpeaking,
               isTrue,
               reason: 'Local peer A must have 800ms hysteresis',
             );
 
-            // On Peer B (remote): inspect remote speaking state
+            // No Peer B (remoto): inspeciona o estado de fala remoto
             final peerAInBCooldown = cB.remoteParticipants.firstWhere(
               (p) => p.id == 'peer_a',
             );
@@ -1110,7 +1110,7 @@ void main() {
       });
 
       // =========================================================================
-      // 4. LARGE-SCALE DYNAMIC GRID STRESS & ADVERSARIAL INPUT TESTS
+      // 4. ESTRESSE DE GRADE DINÂMICA EM LARGA ESCALA E TESTES DE ENTRADA ADVERSARIAL
       // =========================================================================
       group('4. Large-Scale Multi-Peer & Adversarial Input Stress', () {
         test(
@@ -1136,7 +1136,7 @@ void main() {
 
             expect(controller.allParticipants.length, 1);
 
-            // Sequentially register 9 remote participants (N=10 total)
+            // Registra sequencialmente 9 participantes remotos (N=10 no total)
             for (int i = 1; i <= 9; i++) {
               controller.registerRemoteParticipant(
                 Participant(id: 'peer_$i', name: 'Aluno $i', ra: '100$i'),
@@ -1146,7 +1146,7 @@ void main() {
             expect(controller.allParticipants.length, 10);
             expect(controller.remoteParticipants.length, 9);
 
-            // Prune 5 peers via leave event
+            // Poda 5 peers via evento de saída
             for (int i = 1; i <= 5; i++) {
               fakeRepo.emitParticipantLeft('peer_$i');
             }
@@ -1154,7 +1154,7 @@ void main() {
             expect(controller.allParticipants.length, 5);
             expect(controller.remoteParticipants.length, 4);
 
-            // Prune remaining 4 remote peers
+            // Poda os 4 peers remotos restantes
             for (int i = 6; i <= 9; i++) {
               fakeRepo.emitParticipantLeft('peer_$i');
             }
@@ -1216,7 +1216,7 @@ void main() {
               lobbyCtrl.toggleVideo();
             }
 
-            // Even number of toggles -> restores original false state
+            // Número par de alternâncias -> restaura o estado original false
             expect(lobbyCtrl.isAudioMuted, isFalse);
             expect(lobbyCtrl.isVideoOff, isFalse);
             expect(lobbyCtrl.audioLevel, 0.05);
