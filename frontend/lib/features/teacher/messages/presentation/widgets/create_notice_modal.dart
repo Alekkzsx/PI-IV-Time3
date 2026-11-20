@@ -7,9 +7,9 @@ import 'package:pi_iv_time3/features/teacher/shared/theme/docente_colors.dart';
 import 'components/notice_audience_selector.dart';
 import 'components/notice_urgency_chip_group.dart';
 
-/// Modal dialog for authoring and broadcasting official academic notices to students.
+/// Modal para elaboração e transmissão de comunicados acadêmicos oficiais aos estudantes.
 class CreateNoticeModal extends StatefulWidget {
-  /// Reactive controller for dispatching notices.
+  /// Controlador reativo para envio de comunicados.
   final DocenteController controller;
 
   const CreateNoticeModal({super.key, required this.controller});
