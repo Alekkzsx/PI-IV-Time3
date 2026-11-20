@@ -2,8 +2,8 @@
 
 import '../policies/security_constants.dart';
 
-/// Client-side input sanitization utility neutralizing XSS, SQL injection,
-/// null byte poisoning, and enforcing strict payload length boundaries.
+/// Utilitário de sanitização de entrada no lado do cliente que neutraliza XSS, injeção de SQL,
+/// envenenamento por null byte e impõe limites estritos de comprimento de payload.
 class InputSanitizer {
   InputSanitizer._();
 
@@ -27,7 +27,7 @@ class InputSanitizer {
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
   );
 
-  /// Strips null bytes, non-printable ASCII control characters, and leading/trailing whitespace.
+  /// Remove null bytes, caracteres de controle ASCII não imprimíveis e espaços em branco no início e no fim.
   static String sanitizeString(String input) {
     if (input.isEmpty) return input;
     var cleaned = input.replaceAll(_nullBytePattern, '');
@@ -35,7 +35,7 @@ class InputSanitizer {
     return cleaned.trim();
   }
 
-  /// Determines if an input string contains high-risk exploit payloads (null bytes, XSS tags, SQL meta).
+  /// Determina se uma string de entrada contém payloads de exploração de alto risco (null bytes, tags XSS, metadados SQL).
   static bool hasDangerousPatterns(String input) {
     if (_nullBytePattern.hasMatch(input)) return true;
     if (_scriptTagPattern.hasMatch(input)) return true;
@@ -43,8 +43,8 @@ class InputSanitizer {
     return false;
   }
 
-  /// Validates and sanitizes academic registration (RA/Matrícula) identifiers.
-  /// Throws [ArgumentError] if constraints or dangerous character sequences are violated.
+  /// Valida e sanitiza identificadores de registro acadêmico (RA/Matrícula).
+  /// Lança [ArgumentError] se as restrições ou sequências de caracteres perigosas forem violadas.
   static String sanitizeIdentity(String ra) {
     final cleaned = sanitizeString(ra);
     if (cleaned.length > maxRaLength) {
@@ -56,7 +56,7 @@ class InputSanitizer {
     return cleaned;
   }
 
-  /// Validates and sanitizes institutional email addresses according to RFC pattern bounds.
+  /// Valida e sanitiza endereços de e-mail institucionais de acordo com os limites do padrão RFC.
   static String sanitizeEmail(String email) {
     final cleaned = sanitizeString(email);
     if (cleaned.length > maxEmailLength) {
@@ -68,7 +68,7 @@ class InputSanitizer {
     return cleaned;
   }
 
-  /// Strips null bytes from passwords and ensures length bounds.
+  /// Remove null bytes de senhas e garante os limites de comprimento.
   static String sanitizePassword(String password) {
     final cleaned = password.replaceAll(_nullBytePattern, '');
     if (cleaned.length > maxPasswordLength) {
