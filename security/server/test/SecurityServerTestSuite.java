@@ -9,9 +9,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Standalone Java Server Security Test Suite
- * Tests Features 22, 23, 24, 3, 4 and server-side defensive contracts.
- * Author: Alex Gabriel Soares Sousa - RA: 24802449
+ * Suíte de Testes de Segurança do Servidor Java Independente
+ * Testa as Funcionalidades 22, 23, 24, 3, 4 e contratos defensivos no lado do servidor.
+ * Autor: Alex Gabriel Soares Sousa - RA: 24802449
  */
 public class SecurityServerTestSuite {
 
@@ -19,7 +19,7 @@ public class SecurityServerTestSuite {
     private static final AtomicInteger total = new AtomicInteger(0);
 
     // =========================================================================
-    // REFERENCE DEFENSIVE IMPLEMENTATIONS (CONTRACT HARNESS)
+    // IMPLEMENTAÇÕES DEFENSIVAS DE REFERÊNCIA (ARCABOUÇO DE CONTRATO)
     // =========================================================================
 
     public static class SecurityHeadersFilter {
@@ -66,8 +66,8 @@ public class SecurityServerTestSuite {
 
     public static class ServerErrorSanitizer {
         public static String sanitizeException(Throwable t) {
-            // Logs internally (omitted in test)
-            // Never leaks stack trace, JVM class names, or server file paths to the client
+            // Registra internamente (omitido no teste)
+            // Nunca vaza stack trace, nomes de classes da JVM ou caminhos de arquivos do servidor para o cliente
             return "{\"status\": 400, \"error\": \"Bad Request\", \"message\": \"Dados invalidos\"}";
         }
 
@@ -77,7 +77,7 @@ public class SecurityServerTestSuite {
     }
 
     // =========================================================================
-    // TEST RUNNER UTILITIES
+    // UTILITÁRIOS DO EXECUTOR DE TESTES
     // =========================================================================
 
     private static void runTest(String name, Runnable testFn) {
@@ -105,7 +105,7 @@ public class SecurityServerTestSuite {
     }
 
     // =========================================================================
-    // MAIN EXECUTION
+    // EXECUÇÃO PRINCIPAL
     // =========================================================================
 
     public static void main(String[] args) {
@@ -115,7 +115,7 @@ public class SecurityServerTestSuite {
         System.out.println("===============================================================");
 
         // -------------------------------------------------------------
-        // FEATURE 22: Defensive HTTP Security Headers
+        // FUNCIONALIDADE 22: Cabeçalhos Defensivos de Segurança HTTP
         // -------------------------------------------------------------
         runTest("T2-01 (Feature 22): Hardened headers contain nosniff, DENY, CSP, CORS", () -> {
             Map<String, String> headers = SecurityHeadersFilter.getHardenedHeaders();
@@ -127,7 +127,7 @@ public class SecurityServerTestSuite {
         });
 
         // -------------------------------------------------------------
-        // FEATURE 23: Request Body Size Ceiling (64 KB)
+        // FUNCIONALIDADE 23: Limite de Tamanho do Corpo da Requisição (64 KB)
         // -------------------------------------------------------------
         runTest("T2-02 (Feature 23): Request of exactly 65,536 bytes is accepted", () -> {
             byte[] exact64Kb = new byte[65536];
@@ -158,7 +158,7 @@ public class SecurityServerTestSuite {
         });
 
         // -------------------------------------------------------------
-        // FEATURE 24: Error Response Sanitization (Zero Stack Traces)
+        // FUNCIONALIDADE 24: Sanitização de Respostas de Erro (Zero Stack Traces)
         // -------------------------------------------------------------
         runTest("T1-01 (Feature 24): NullPointerException is sanitized with zero stack traces (AC-11)", () -> {
             NullPointerException npe = new NullPointerException("Simulated internal crash at /home/alekkzsx/Secret.java:42");
@@ -180,7 +180,7 @@ public class SecurityServerTestSuite {
         });
 
         // -------------------------------------------------------------
-        // FEATURE 4: Mandatory Author Attribution on All Files
+        // FUNCIONALIDADE 4: Atribuição Obrigatória de Autoria em Todos os Arquivos
         // -------------------------------------------------------------
         runTest("GOV-01 (Feature 4): Line 1 attribution verified on all Java and Dart files", () -> {
             Path testsDir = Paths.get("/home/alekkzsx/Documents/Github/PI-IV-Time3/security/test");
