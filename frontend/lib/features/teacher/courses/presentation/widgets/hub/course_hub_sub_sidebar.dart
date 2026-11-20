@@ -140,8 +140,8 @@ class CourseHubSubSidebar extends StatelessWidget {
 
           final classPanel = _buildRealClassPanel();
 
-          // On compact vertical viewports, scroll nav items and summary together
-          // so bottom links can never get obscured behind a pinned card.
+          // Em viewports verticais compactos, rola os itens de navegação e o resumo juntos
+          // para que os links inferiores nunca fiquem ocultos atrás de um cartão fixo.
           if (!constraints.hasBoundedHeight || constraints.maxHeight < 470) {
             return SingleChildScrollView(
               child: Column(
