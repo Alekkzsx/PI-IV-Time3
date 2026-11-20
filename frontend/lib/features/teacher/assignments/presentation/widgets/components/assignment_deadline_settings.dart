@@ -138,7 +138,7 @@ class AssignmentDeadlineSettings extends StatelessWidget {
         ),
         const SizedBox(height: 14),
 
-        // Checkbox late submission
+        // Caixa de seleção para submissão tardia
         InkWell(
           onTap: () => onAllowLateChanged(!allowLate),
           borderRadius: BorderRadius.circular(6),
