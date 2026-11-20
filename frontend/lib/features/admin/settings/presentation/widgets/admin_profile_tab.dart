@@ -6,10 +6,10 @@ import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
-/// Configuration tab for Administrative Profile.
+/// Aba de configuração do Perfil Administrativo.
 ///
-/// Manages visual identity, display name (legal civil name vs preferred social name),
-/// and provides official enrollment and academic institutional records.
+/// Gerencia identidade visual, nome de exibição (nome civil oficial vs. nome social preferido)
+/// e apresenta matrícula oficial e registros institucionais acadêmicos.
 class AdminProfileTab extends StatefulWidget {
   const AdminProfileTab({super.key});
 
@@ -135,7 +135,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
               style: jakarta(size: 13, color: InstColors.danger),
             ),
           ),
-        // 1. Visual Identity & Photo Card
+        // 1. Cartão de Identidade Visual e Foto
         _buildSectionCard(
           title: 'Identidade Visual & Avatar',
           subtitle:
@@ -187,7 +187,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Identification & Display Name Card
+        // 2. Cartão de Identificação e Nome de Exibição
         _buildSectionCard(
           title: 'Identificação & Nome de Exibição',
           subtitle:
@@ -217,7 +217,7 @@ class _AdminProfileTabState extends State<AdminProfileTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Official Institutional Records Card
+        // 3. Cartão de Registros Institucionais Oficiais
         _buildSectionCard(
           title: 'Vínculo Funcional & Registros',
           subtitle:
