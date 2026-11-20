@@ -79,7 +79,7 @@ class AssignmentRubricMatrixEditor extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Criteria Cards
+          // Cartões de Critérios
           ...List.generate(rubricControllers.length, (idx) {
             final c = rubricControllers[idx];
             return AssignmentRubricCriterionCard(
