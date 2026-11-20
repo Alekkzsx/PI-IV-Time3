@@ -83,7 +83,7 @@ mixin _DocenteSettingsMixin on _DocenteControllerBase {
     notifyListeners();
   }
 
-  /// Ends all sessions except the device currently in use.
+  /// Encerra todas as sessões, exceto a do dispositivo atualmente em uso.
   Future<void> disconnectOtherSessions() async {
     if (!_hasActiveTeacherAccess) return;
     try {
