@@ -9,7 +9,7 @@ import 'components/course_material_item_tile.dart';
 import 'components/material_file_dropzone.dart';
 import 'components/syllabus_unit_card.dart';
 
-/// Modal dialog displaying course syllabus units and teaching materials repository.
+/// Modal que exibe as unidades do plano de ensino da disciplina e o repositório de materiais didáticos.
 class SyllabusMaterialsModal extends StatefulWidget {
   final DocenteCourse course;
   final DocenteController controller;
@@ -78,7 +78,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
 
   @override
   Widget build(BuildContext context) {
-    // Look up current course state in controller
+    // Consulta o estado atual da disciplina no controlador
     final currentCourse = widget.controller.courses.firstWhere(
       (c) => c.id == widget.course.id,
       orElse: () => widget.course,
@@ -92,7 +92,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
         constraints: const BoxConstraints(maxWidth: 860, maxHeight: 820),
         child: Column(
           children: [
-            // Header
+            // Cabeçalho
             Padding(
               padding: const EdgeInsets.all(24),
               child: Row(
@@ -152,7 +152,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
               ),
             ),
 
-            // Tab bar
+            // Barra de abas
             Container(
               decoration: const BoxDecoration(
                 border: Border(bottom: BorderSide(color: DocenteColors.border)),
@@ -173,7 +173,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
               ),
             ),
 
-            // Tab content
+            // Conteúdo das abas
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -184,7 +184,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
               ),
             ),
 
-            // Footer
+            // Rodapé
             Padding(
               padding: const EdgeInsets.all(16),
               child: Align(
@@ -228,7 +228,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Upload Form
+          // Formulário de Envio
           MaterialFileDropzone(
             titleController: _materialTitleController,
             selectedMaterial: _selectedMaterial,
@@ -238,7 +238,7 @@ class _SyllabusMaterialsModalState extends State<SyllabusMaterialsModal>
           ),
           const SizedBox(height: 24),
 
-          // Accessible Files
+          // Arquivos Acessíveis
           const Text(
             'Arquivos Atualmente Acessíveis pelos Alunos',
             style: TextStyle(
