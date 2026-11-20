@@ -72,7 +72,7 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header do Modal
+              // Cabeçalho do Modal
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -161,7 +161,7 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
               ),
               const SizedBox(height: 16),
 
-              // Filter Chips
+              // Chips de Filtro
               SessionPickerFilterChips(
                 selectedIndex: _filterIndex,
                 totalCount: sessions.length,
@@ -214,7 +214,7 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
               ),
               const SizedBox(height: 18),
 
-              // Footer com Botão de Abertura do Calendário Restritivo
+              // Rodapé com Botão de Abertura do Calendário Restritivo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
