@@ -19,7 +19,7 @@ import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_ro
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/dynamic_video_grid.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/participant_video_tile.dart';
 
-/// Test repository interconnecting two peers synchronously in memory for fast domain testing.
+/// Repositório de teste que interconecta dois peers sincronamente em memória para testes rápidos de domínio.
 class LinkedDomainVideoCallRepository implements VideoCallRepository {
   LinkedDomainVideoCallRepository? peerRepo;
 
@@ -123,7 +123,7 @@ void main() {
   group('Challenger M2-3: Empirical Verification of Remediated Hand Raise & Recording Timer', () {
     final room = MeetingRoom(id: 'CHALLENGER-M2-3', code: 'CHALLENGER-M2-3', title: 'Sala M2-3');
 
-    // Helper to create domain-linked controllers inside the active test zone
+    // Auxiliar para criar controladores vinculados no domínio dentro da zona de teste ativa
     ({
       VideoCallController controllerA,
       VideoCallController controllerB,
@@ -148,7 +148,7 @@ void main() {
     }
 
     // =========================================================================
-    // SECTION 1: DUAL-PEER HAND RAISE SYNCHRONIZATION & TILE BADGE EMPIRICAL TEST
+    // SEÇÃO 1: TESTE EMPÍRICO DE SINCRONIZAÇÃO DE MÃO LEVANTADA ENTRE DOIS PEERS E EMBLEMA NO BLOCO
     // =========================================================================
     group('1. Dual-Peer Hand Raise Synchronization & ParticipantVideoTile Badge Display', () {
       test('Step 1.1: Peer A raises hand -> Peer B remoteParticipants.first.isHandRaised is TRUE', () {
@@ -157,13 +157,13 @@ void main() {
           expect(pair.controllerA.localParticipant.isHandRaised, isFalse);
           expect(pair.controllerB.remoteParticipants.first.isHandRaised, isFalse);
 
-          // Peer A raises hand
+          // Peer A levanta a mão
           pair.controllerA.toggleHandRaise();
 
-          // Local state on Peer A
+          // Estado local no Peer A
           expect(pair.controllerA.localParticipant.isHandRaised, isTrue);
 
-          // Remote state on Peer B
+          // Estado remoto no Peer B
           final remoteAOnB = pair.controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
           expect(remoteAOnB.isHandRaised, isTrue,
               reason: 'Peer B remote participant isHandRaised MUST be true after Peer A raises hand');
@@ -185,7 +185,7 @@ void main() {
           final remoteAOnB = pair.controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
           expect(remoteAOnB.isHandRaised, isTrue);
 
-          // Render ParticipantVideoTile for Peer A in Peer B's UI
+          // Renderiza ParticipantVideoTile do Peer A na UI do Peer B
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
@@ -199,12 +199,12 @@ void main() {
           );
           await tester.pump();
 
-          // Check for hand raised badge container
+          // Verifica o contêiner do emblema de mão levantada
           final badgeKeyFinder = find.byKey(const Key('hand_raised_icon_peer_a'));
           expect(badgeKeyFinder, findsOneWidget,
               reason: 'ParticipantVideoTile must render Container with key hand_raised_icon_peer_a');
 
-          // Check for verbatim ✋ emoji text
+          // Verifica o texto literal do emoji ✋
           final handEmojiFinder = find.descendant(
             of: badgeKeyFinder,
             matching: find.text('✋'),
@@ -222,17 +222,17 @@ void main() {
       test('Step 2.1: Peer A lowers hand -> Peer B remoteParticipants.first.isHandRaised is FALSE', () {
         final pair = createDomainPair();
         try {
-          // Peer A raises hand
+          // Peer A levanta a mão
           pair.controllerA.toggleHandRaise();
           expect(pair.controllerB.remoteParticipants.first.isHandRaised, isTrue);
 
-          // Peer A lowers hand
+          // Peer A abaixa a mão
           pair.controllerA.toggleHandRaise();
 
-          // Local state on Peer A
+          // Estado local no Peer A
           expect(pair.controllerA.localParticipant.isHandRaised, isFalse);
 
-          // Remote state on Peer B
+          // Estado remoto no Peer B
           final remoteAOnB = pair.controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
           expect(remoteAOnB.isHandRaised, isFalse,
               reason: 'Peer B remote participant isHandRaised MUST be false after Peer A lowers hand');
@@ -248,7 +248,7 @@ void main() {
       testWidgets('Step 2.2: ParticipantVideoTile removes ✋ badge when isHandRaised == false', (tester) async {
         final pair = createDomainPair();
         try {
-          // Peer A raises hand
+          // Peer A levanta a mão
           pair.controllerA.toggleHandRaise();
 
           await tester.pumpWidget(
@@ -267,10 +267,10 @@ void main() {
           await tester.pump();
           expect(find.byKey(const Key('hand_raised_icon_peer_a')), findsOneWidget);
 
-          // Peer A lowers hand
+          // Peer A abaixa a mão
           pair.controllerA.toggleHandRaise();
 
-          // Re-render tile with updated participant entity
+          // Re-renderiza o bloco com a entidade de participante atualizada
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
@@ -307,24 +307,24 @@ void main() {
           );
           await tester.pump();
 
-          // Initially no hand raise icon and no raised hands banner
+          // Inicialmente sem ícone de mão levantada e sem banner de mãos levantadas
           expect(find.byKey(const Key('hand_raised_icon_peer_a')), findsNothing);
           expect(find.byKey(const Key('raised_hands_banner')), findsNothing);
 
-          // Peer A raises hand
+          // Peer A levanta a mão
           pair.controllerA.toggleHandRaise();
           await tester.pump();
 
-          // Verify badge appears in video grid and queue banner appears
+          // Verifica se o emblema aparece na grade de vídeo e se o banner de fila aparece
           expect(find.byKey(const Key('hand_raised_icon_peer_a')), findsOneWidget);
           expect(find.byKey(const Key('raised_hands_banner')), findsOneWidget);
           expect(find.byKey(const Key('queue_item_peer_a')), findsOneWidget);
 
-          // Peer A lowers hand
+          // Peer A abaixa a mão
           pair.controllerA.toggleHandRaise();
           await tester.pump();
 
-          // Verify badge disappears and banner is dismissed
+          // Verifica se o emblema desaparece e o banner é fechado
           expect(find.byKey(const Key('hand_raised_icon_peer_a')), findsNothing);
           expect(find.byKey(const Key('raised_hands_banner')), findsNothing);
         } finally {
@@ -337,7 +337,7 @@ void main() {
     });
 
     // =========================================================================
-    // SECTION 2: REMOTE RECORDING TIMER ELAPSED DURATION INCREMENTING
+    // SEÇÃO 2: INCREMENTO DA DURAÇÃO DECORRIDA DO TEMPORIZADOR DE GRAVAÇÃO REMOTO
     // =========================================================================
     group('2. Remote Recording Timer Elapsed Duration Synchronization', () {
       testWidgets('Step 3.1: Remote peer increments elapsedDuration second by second via internal timer', (tester) async {
@@ -347,7 +347,7 @@ void main() {
           expect(pair.controllerB.recordingState.isRecording, isFalse);
           expect(pair.controllerB.recordingState.elapsedDuration, Duration.zero);
 
-          // Peer A starts recording
+          // Peer A inicia a gravação
           pair.controllerA.toggleRecording();
           await tester.pump();
 
@@ -355,34 +355,34 @@ void main() {
           expect(pair.controllerB.recordingState.isRecording, isTrue);
           expect(pair.controllerB.recordingState.startedByPeerId, 'peer_a');
 
-          // Advance 1 second
+          // Avança 1 segundo
           await tester.pump(const Duration(seconds: 1));
           expect(pair.controllerB.recordingState.elapsedDuration.inSeconds, equals(1),
               reason: 'Remote peer elapsedDuration must be 1s after 1s tick');
 
-          // Advance 2nd second
+          // Avança para o 2º segundo
           await tester.pump(const Duration(seconds: 1));
           expect(pair.controllerB.recordingState.elapsedDuration.inSeconds, equals(2),
               reason: 'Remote peer elapsedDuration must be 2s after 2s tick');
 
-          // Advance 3rd second
+          // Avança para o 3º segundo
           await tester.pump(const Duration(seconds: 1));
           expect(pair.controllerB.recordingState.elapsedDuration.inSeconds, equals(3),
               reason: 'Remote peer elapsedDuration must be 3s after 3s tick');
 
-          // Peer A stops recording
+          // Peer A para a gravação
           pair.controllerA.toggleRecording();
           await tester.pump();
 
           expect(pair.controllerB.recordingState.isRecording, isFalse);
           final finalDuration = pair.controllerB.recordingState.elapsedDuration.inSeconds;
 
-          // Advance further time: verify remote timer is cancelled and elapsedDuration does NOT advance further
+          // Avança mais tempo: verifica se o temporizador remoto foi cancelado e se elapsedDuration NÃO avança mais
           await tester.pump(const Duration(seconds: 2));
           expect(pair.controllerB.recordingState.elapsedDuration.inSeconds, equals(finalDuration),
               reason: 'Cancelled remote recording timer must not continue incrementing elapsedDuration');
 
-          // Verify SessionExport generated on remote peer B
+          // Verifica o SessionExport gerado no peer remoto B
           expect(pair.controllerB.lastSessionExport, isNotNull);
           expect(pair.controllerB.lastSessionExport!.totalDuration.inSeconds, equals(3));
         } finally {
@@ -405,20 +405,20 @@ void main() {
           );
           await tester.pump();
 
-          // Check initial display 00:00
+          // Verifica a exibição inicial 00:00
           expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
           expect(find.textContaining('● REC 00:00'), findsOneWidget);
 
-          // Advance 2 seconds
+          // Avança 2 segundos
           await tester.pump(const Duration(seconds: 2));
           expect(find.textContaining('● REC 00:02'), findsOneWidget,
               reason: 'VideoCallRoomPage on remote peer renders advancing elapsedDuration in REC badge');
 
-          // Stop recording
+          // Para a gravação
           pair.controllerA.toggleRecording();
           await tester.pump();
 
-          // REC badge should disappear when recording is stopped
+          // O emblema REC deve desaparecer quando a gravação é interrompida
           expect(find.byKey(const Key('recording_timer_badge')), findsNothing);
         } finally {
           pair.controllerA.dispose();
@@ -430,7 +430,7 @@ void main() {
     });
 
     // =========================================================================
-    // SECTION 3: FULL STACK REAL P2P SIGNALING BUS VERIFICATION
+    // SEÇÃO 3: VERIFICAÇÃO FULL STACK DO BARRAMENTO DE SINALIZAÇÃO P2P REAL
     // =========================================================================
     group('3. Full-Stack InMemorySignalingBus Multi-Peer Stress Tests', () {
       late InMemorySignalingBus bus;
@@ -470,7 +470,7 @@ void main() {
           localParticipant: pB,
         );
 
-        // Allow reciprocal JOIN <-> PRESENCE_SYNC handshake over bus
+        // Permite o handshake recíproco JOIN <-> PRESENCE_SYNC no barramento
         await Future<void>.delayed(const Duration(milliseconds: 60));
 
         try {
@@ -478,7 +478,7 @@ void main() {
           expect(controllerB.remoteParticipants.first.id, 'peer_alex');
           expect(controllerB.remoteParticipants.first.isHandRaised, isFalse);
 
-          // Peer A raises hand
+          // Peer A levanta a mão
           controllerA.toggleHandRaise();
           await Future<void>.delayed(const Duration(milliseconds: 60));
 
@@ -486,7 +486,7 @@ void main() {
           expect(peerAInB.isHandRaised, isTrue,
               reason: 'Hand raise propagated across real P2P signaling channel');
 
-          // Peer A lowers hand
+          // Peer A abaixa a mão
           controllerA.toggleHandRaise();
           await Future<void>.delayed(const Duration(milliseconds: 60));
 
@@ -530,18 +530,18 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 60));
 
         try {
-          // Peer A starts recording
+          // Peer A inicia a gravação
           controllerA.toggleRecording();
           await Future<void>.delayed(const Duration(milliseconds: 60));
 
           expect(controllerB.recordingState.isRecording, isTrue);
           expect(controllerB.recordingState.startedByPeerId, 'peer_alex');
 
-          // Wait 1.1s real time for periodic timer to tick
+          // Aguarda 1,1s em tempo real para o temporizador periódico avançar
           await Future<void>.delayed(const Duration(milliseconds: 1100));
           expect(controllerB.recordingState.elapsedDuration.inSeconds, greaterThanOrEqualTo(1));
 
-          // Peer A stops recording
+          // Peer A para a gravação
           controllerA.toggleRecording();
           await Future<void>.delayed(const Duration(milliseconds: 60));
           expect(controllerB.recordingState.isRecording, isFalse);
@@ -556,13 +556,13 @@ void main() {
     });
 
     // =========================================================================
-    // SECTION 4: ADVERSARIAL STRESS & EDGE CASES
+    // SEÇÃO 4: ESTRESSE ADVERSARIAL E CASOS DE BORDA
     // =========================================================================
     group('4. Adversarial Stress & Edge Cases', () {
       test('Adversarial 1: Rapid 10x toggle of hand raise leaves consistent state on both peers', () {
         final pair = createDomainPair();
         try {
-          // Toggle 10 times (even count -> final state must be lowered / false)
+          // Alterna 10 vezes (contagem par -> estado final deve ser abaixada / false)
           for (int i = 0; i < 10; i++) {
             pair.controllerA.toggleHandRaise();
           }
@@ -572,7 +572,7 @@ void main() {
           expect(pair.controllerA.raisedHandsQueue, isEmpty);
           expect(pair.controllerB.raisedHandsQueue, isEmpty);
 
-          // Toggle 1 more time (11th time -> final state must be raised / true)
+          // Alterna mais 1 vez (11ª vez -> estado final deve ser levantada / true)
           pair.controllerA.toggleHandRaise();
           expect(pair.controllerA.localParticipant.isHandRaised, isTrue);
           expect(pair.controllerB.remoteParticipants.first.isHandRaised, isTrue);
@@ -589,13 +589,13 @@ void main() {
       testWidgets('Adversarial 2: Screen Sharing mode maintains ✋ badge on filmstrip tile', (tester) async {
         final pair = createDomainPair();
         try {
-          // Peer A raises hand
+          // Peer A levanta a mão
           pair.controllerA.toggleHandRaise();
 
           final pAInB = pair.controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
           expect(pAInB.isHandRaised, isTrue);
 
-          // Peer B renders DynamicVideoGrid in Screen Sharing mode
+          // Peer B renderiza DynamicVideoGrid no modo de compartilhamento de tela
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
@@ -608,7 +608,7 @@ void main() {
           );
           await tester.pump();
 
-          // Both screen share view and horizontal filmstrip tile for peer A are present
+          // Tanto a visualização de compartilhamento de tela quanto o bloco na faixa horizontal para o peer A estão presentes
           expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
           expect(find.byKey(const Key('hand_raised_icon_peer_a')), findsOneWidget);
           expect(find.text('✋'), findsOneWidget);
@@ -623,28 +623,28 @@ void main() {
       testWidgets('Adversarial 3: Recording start -> stop -> restart does not leak timers or corrupt duration', (tester) async {
         final pair = createDomainPair();
         try {
-          // Cycle 1: Start and record 2 seconds
+          // Ciclo 1: Inicia e grava por 2 segundos
           pair.controllerA.toggleRecording();
           await tester.pump(const Duration(seconds: 2));
           expect(pair.controllerB.recordingState.elapsedDuration.inSeconds, equals(2));
 
-          // Stop Cycle 1
+          // Para o Ciclo 1
           pair.controllerA.toggleRecording();
           await tester.pump();
           expect(pair.controllerB.recordingState.isRecording, isFalse);
           expect(pair.controllerB.lastSessionExport!.totalDuration.inSeconds, equals(2));
 
-          // Cycle 2: Restart recording
+          // Ciclo 2: Reinicia a gravação
           pair.controllerA.toggleRecording();
           await tester.pump();
           expect(pair.controllerB.recordingState.isRecording, isTrue);
           expect(pair.controllerB.recordingState.elapsedDuration, Duration.zero);
 
-          // Record another 3 seconds
+          // Grava por mais 3 segundos
           await tester.pump(const Duration(seconds: 3));
           expect(pair.controllerB.recordingState.elapsedDuration.inSeconds, equals(3));
 
-          // Stop Cycle 2
+          // Para o Ciclo 2
           pair.controllerA.toggleRecording();
           await tester.pump();
           expect(pair.controllerB.recordingState.isRecording, isFalse);
