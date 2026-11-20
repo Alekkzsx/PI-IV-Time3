@@ -151,7 +151,7 @@ class DisciplinesListView extends StatelessWidget {
 
             return Row(
               children: [
-                // Icon / Code
+                // Ícone / Código
                 Container(
                   width: 48,
                   height: 48,
@@ -171,7 +171,7 @@ class DisciplinesListView extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Title & Professor
+                // Título e Professor
                 Expanded(
                   flex: 4,
                   child: Column(
@@ -208,7 +208,7 @@ class DisciplinesListView extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Progress Bar & Hours
+                // Barra de Progresso e Horas
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -259,7 +259,7 @@ class DisciplinesListView extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Grades (N1, N2, Media)
+                // Notas (N1, N2, Média)
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -305,7 +305,7 @@ class DisciplinesListView extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
 
-                // Actions
+                // Ações
                 _buildActionButtons(context, d),
               ],
             );
