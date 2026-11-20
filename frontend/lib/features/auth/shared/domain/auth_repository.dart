@@ -39,10 +39,13 @@ abstract class AuthRepository {
   /// Solicita o envio de instruções para recuperação de senha associada à [identity].
   ///
   /// Lança exceção de domínio caso o identificador não seja encontrado ou ocorra falha de rede.
-  Future<void> recoverPassword({required String identity});
+  Future<void> recoverPassword({required String identity, String? profile});
 
   /// Solicita instruções e devolve metadados da resposta (ex.: maskedEmail real do MongoDB).
-  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity});
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  });
 
   /// Realiza a autenticação do usuário utilizando [identity], [password] e [profile].
   ///
