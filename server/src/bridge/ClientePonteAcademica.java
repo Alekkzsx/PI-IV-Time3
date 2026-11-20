@@ -1,25 +1,23 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package bridge;
 
-import auth.OtpService;
+import auth.utils.OtpService;
+import core.abstratas.ExcecaoHttpAbstrata;
 import utils.ConfigEnv;
 import utils.Json;
+import utils.RedeUtils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -29,18 +27,10 @@ import java.util.Map;
 public class ClientePonteAcademica {
     private static final int TIMEOUT_MS = 6000;
 
-    public static final class ExcecaoPonteAcademica extends RuntimeException {
-        private final int statusHttp;
-        private final String codigo;
-
+    public static final class ExcecaoPonteAcademica extends ExcecaoHttpAbstrata {
         public ExcecaoPonteAcademica(int statusHttp, String codigo, String message) {
-            super(message);
-            this.statusHttp = statusHttp;
-            this.codigo = codigo;
+            super(statusHttp, codigo, message);
         }
-
-        public int getStatusHttp() { return statusHttp; }
-        public String getCodigo() { return codigo; }
     }
 
     private final String baseUrl;
@@ -51,7 +41,8 @@ public class ClientePonteAcademica {
     }
 
     public ClientePonteAcademica(String baseUrl, String internalSecret) {
-        this.baseUrl = limparBarraFinal(baseUrl);
+        String limpa = RedeUtils.limparBarraFinal(baseUrl);
+        this.baseUrl = limpa.isEmpty() ? "http://127.0.0.1:3001" : limpa;
         this.internalSecret = internalSecret != null ? internalSecret : "";
     }
 
@@ -60,7 +51,7 @@ public class ClientePonteAcademica {
         if (env == null || env.trim().isEmpty()) {
             env = ConfigEnv.obter("API_BASE_URL", "http://127.0.0.1:3001");
         }
-        return limparBarraFinal(env);
+        return RedeUtils.limparBarraFinal(env);
     }
 
     public static String resolverSegredoInterno() {
@@ -78,21 +69,10 @@ public class ClientePonteAcademica {
         return OtpService.sha256Hex("agmrm-internal-bridge:" + jwtSecret);
     }
 
-    private static String limparBarraFinal(String url) {
-        String u = url != null ? url.trim() : "http://127.0.0.1:3001";
-        while (u.endsWith("/")) {
-            u = u.substring(0, u.length() - 1);
-        }
-        return u;
-    }
-
     @SuppressWarnings("unchecked")
     public Map<String, Object> consultarVinculosUsuario(String userId) {
-        Object res = requisicao("GET", "/api/internal/academic/users/" + urlEncode(userId) + "/links", null);
-        if (res instanceof Map) {
-            return (Map<String, Object>) res;
-        }
-        return Collections.emptyMap();
+        Object res = requisicao("GET", "/api/internal/academic/users/" + RedeUtils.urlEncode(userId) + "/links", null);
+        return res instanceof Map ? (Map<String, Object>) res : Collections.<String, Object>emptyMap();
     }
 
     public void sincronizarUsuario(String userId, String identity, String displayName) {
@@ -103,24 +83,23 @@ public class ClientePonteAcademica {
         if (displayName != null && !displayName.trim().isEmpty()) {
             body.put("displayName", displayName.trim());
         }
-        if (body.isEmpty()) return;
-        requisicao("POST", "/api/internal/academic/users/" + urlEncode(userId) + "/sync", body);
+        if (body.isEmpty()) {
+            return;
+        }
+        requisicao("POST", "/api/internal/academic/users/" + RedeUtils.urlEncode(userId) + "/sync", body);
     }
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> obterDadosLgpdUsuario(String userId) {
-        Object res = requisicao("GET", "/api/internal/academic/users/" + urlEncode(userId) + "/lgpd-data", null);
-        if (res instanceof Map) {
-            return (Map<String, Object>) res;
-        }
-        return Collections.emptyMap();
+        Object res = requisicao("GET", "/api/internal/academic/users/" + RedeUtils.urlEncode(userId) + "/lgpd-data", null);
+        return res instanceof Map ? (Map<String, Object>) res : Collections.<String, Object>emptyMap();
     }
 
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listarSalasUsuario(String userId, String profile, String identity) {
-        String path = "/api/internal/academic/video-call/rooms?userId=" + urlEncode(userId)
-                + "&profile=" + urlEncode(profile)
-                + "&identity=" + urlEncode(identity != null ? identity : "");
+        String path = "/api/internal/academic/video-call/rooms?userId=" + RedeUtils.urlEncode(userId)
+                + "&profile=" + RedeUtils.urlEncode(profile)
+                + "&identity=" + RedeUtils.urlEncode(identity != null ? identity : "");
         Object res = requisicao("GET", path, null);
         List<Map<String, Object>> lista = new ArrayList<Map<String, Object>>();
         if (res instanceof List) {
@@ -135,15 +114,12 @@ public class ClientePonteAcademica {
 
     @SuppressWarnings("unchecked")
     public Map<String, Object> autorizarSala(String userId, String profile, String identity, String roomCode) {
-        String path = "/api/internal/academic/video-call/authorize?userId=" + urlEncode(userId)
-                + "&profile=" + urlEncode(profile)
-                + "&identity=" + urlEncode(identity != null ? identity : "")
-                + "&roomCode=" + urlEncode(roomCode);
+        String path = "/api/internal/academic/video-call/authorize?userId=" + RedeUtils.urlEncode(userId)
+                + "&profile=" + RedeUtils.urlEncode(profile)
+                + "&identity=" + RedeUtils.urlEncode(identity != null ? identity : "")
+                + "&roomCode=" + RedeUtils.urlEncode(roomCode);
         Object res = requisicao("GET", path, null);
-        if (res instanceof Map) {
-            return (Map<String, Object>) res;
-        }
-        return Collections.emptyMap();
+        return res instanceof Map ? (Map<String, Object>) res : Collections.<String, Object>emptyMap();
     }
 
     public void registrarPresencaSala(String classCode, String userId, String identity, boolean isConnected) {
@@ -161,7 +137,7 @@ public class ClientePonteAcademica {
         HttpURLConnection conn = null;
         try {
             URL url = new URL(baseUrl + path);
-            conn = isLoopbackHost(url.getHost())
+            conn = RedeUtils.isLoopbackHost(url.getHost())
                     ? (HttpURLConnection) url.openConnection(Proxy.NO_PROXY)
                     : (HttpURLConnection) url.openConnection();
             conn.setRequestMethod(metodo);
@@ -182,28 +158,16 @@ public class ClientePonteAcademica {
 
             int status = conn.getResponseCode();
             InputStream stream = status >= 200 && status < 400 ? conn.getInputStream() : conn.getErrorStream();
-            String payload = lerStream(stream);
+            String payload = RedeUtils.lerStreamUtf8(stream);
 
             if (status >= 200 && status < 300) {
-                if (payload.trim().isEmpty()) return Collections.emptyMap();
+                if (payload.trim().isEmpty()) {
+                    return Collections.emptyMap();
+                }
                 return Json.analisar(payload);
             }
 
-            String codigo = "academic_bridge_error";
-            String mensagem = "Erro na comunicacao com o servico academico (HTTP " + status + ").";
-            try {
-                if (!payload.trim().isEmpty()) {
-                    Object decoded = Json.analisar(payload);
-                    if (decoded instanceof Map) {
-                        Map<?, ?> mapa = (Map<?, ?>) decoded;
-                        if (mapa.get("code") instanceof String) codigo = (String) mapa.get("code");
-                        if (mapa.get("message") instanceof String) mensagem = (String) mapa.get("message");
-                        else if (mapa.get("erro") instanceof String) mensagem = (String) mapa.get("erro");
-                    }
-                }
-            } catch (Exception ignored) { }
-
-            throw new ExcecaoPonteAcademica(status, codigo, mensagem);
+            throw construirExcecaoErro(status, payload);
         } catch (ExcecaoPonteAcademica e) {
             throw e;
         } catch (IOException e) {
@@ -216,31 +180,25 @@ public class ClientePonteAcademica {
         }
     }
 
-    private static String lerStream(InputStream in) throws IOException {
-        if (in == null) return "";
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        byte[] chunk = new byte[1024];
-        int lido;
-        while ((lido = in.read(chunk)) != -1) {
-            buffer.write(chunk, 0, lido);
-        }
-        return new String(buffer.toByteArray(), StandardCharsets.UTF_8);
-    }
-
-    private static boolean isLoopbackHost(String host) {
-        if (host == null) return false;
-        String clean = host.trim().toLowerCase(Locale.ROOT);
-        return "127.0.0.1".equals(clean)
-                || "localhost".equals(clean)
-                || "::1".equals(clean)
-                || "[::1]".equals(clean);
-    }
-
-    private static String urlEncode(String value) {
+    private static ExcecaoPonteAcademica construirExcecaoErro(int status, String payload) {
+        String codigo = "academic_bridge_error";
+        String mensagem = "Erro na comunicacao com o servico academico (HTTP " + status + ").";
         try {
-            return URLEncoder.encode(value != null ? value : "", "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            return value != null ? value : "";
-        }
+            if (!payload.trim().isEmpty()) {
+                Object decoded = Json.analisar(payload);
+                if (decoded instanceof Map) {
+                    Map<?, ?> mapa = (Map<?, ?>) decoded;
+                    if (mapa.get("code") instanceof String) {
+                        codigo = (String) mapa.get("code");
+                    }
+                    if (mapa.get("message") instanceof String) {
+                        mensagem = (String) mapa.get("message");
+                    } else if (mapa.get("erro") instanceof String) {
+                        mensagem = (String) mapa.get("erro");
+                    }
+                }
+            }
+        } catch (Exception ignored) { }
+        return new ExcecaoPonteAcademica(status, codigo, mensagem);
     }
 }

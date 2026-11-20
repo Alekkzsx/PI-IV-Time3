@@ -1,8 +1,13 @@
 package auth;
 
+import auth.model.UsuarioAutenticado;
+import auth.modules.login.LoginHandler;
+import auth.modules.persistencia.RepositorioUsuarios;
 import com.mongodb.MongoTimeoutException;
 import com.mongodb.spi.dns.DnsException;
+import core.DatabaseUnavailableException;
 import core.RequisicaoHttp;
+import core.ResilientDnsClient;
 import core.RespostaHttp;
 
 import java.io.ByteArrayInputStream;

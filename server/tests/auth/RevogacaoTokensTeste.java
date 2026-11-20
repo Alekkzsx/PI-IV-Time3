@@ -1,6 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package auth;
 
+import auth.utils.RevogacaoTokens;
+
 /**
  * Teste nativo (sem JUnit) da blacklist de tokens (RevogacaoTokens).
  * Verifica:

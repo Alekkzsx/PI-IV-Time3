@@ -1,59 +1,67 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
-// Atualizado com modulo completo de autenticacao institucional
+// Ponto de entrada central do servidor HTTP/WebSocket nativo da plataforma AGMRM.
 
-import auth.AdminUsersHandler;
-import auth.AuthSessionHandler;
-import auth.ChangePasswordHandler;
-import auth.EmailDiagnosticHandler;
-import auth.LoginHandler;
-import auth.LogoutHandler;
-import auth.ProfileAccountHandler;
-import auth.RecoveryHandler;
-import auth.RefreshTokenHandler;
-import auth.RepositorioUsuarios;
-import auth.TwoFactorHandler;
+import auth.modules.admin.AdminUsersHandler;
+import auth.modules.admin.EmailDiagnosticHandler;
+import auth.modules.conta.ChangePasswordHandler;
+import auth.modules.conta.ProfileAccountHandler;
+import auth.modules.conta.RecoveryHandler;
+import auth.modules.email.SmtpCliente;
+import auth.modules.login.AuthSessionHandler;
+import auth.modules.login.LoginHandler;
+import auth.modules.login.LogoutHandler;
+import auth.modules.login.RefreshTokenHandler;
+import auth.modules.login.TwoFactorHandler;
+import auth.modules.persistencia.RepositorioUsuarios;
 import bridge.ClientePonteAcademica;
-import core.HttpUtils;
-import core.ManipuladorHttp;
-import core.RequisicaoHttp;
-import core.RespostaHttp;
+import core.HealthHandler;
 import core.ServidorHttpNativo;
 import utils.ConfigEnv;
-import utils.Json;
-import videocall.RepositorioVideoCall;
-import videocall.VideoCallAttendanceHandler;
-import videocall.VideoCallInteractionHandler;
-import videocall.VideoCallMongoHandler;
-import videocall.VideoCallRoomHandler;
-import videocall.VideoCallSignalingHandler;
+import videocall.modules.legado.VideoCallAttendanceHandler;
+import videocall.modules.legado.VideoCallInteractionHandler;
+import videocall.modules.legado.VideoCallRoomHandler;
+import videocall.modules.legado.VideoCallSignalingHandler;
+import videocall.modules.rooms.RepositorioVideoCall;
+import videocall.modules.rooms.VideoCallMongoHandler;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
- * Ponto de entrada central do servidor HTTP nativo da plataforma AGMRM.
- * Orquestra e registra os modulos de autenticacao JWT e de videochamada.
- *
- * Responsabilidades do servidor Java (porta 8080):
- * 1. Autenticacao completa de usuarios (login, logout, 2FA, recuperacao de senha)
- * 2. Gerenciamento de videochamadas (salas, sinalizacao WebRTC, chat, presenca)
- *
- * Modulo de Autenticacao (100% nativo, sem dependencias externas):
- * - POST /api/auth/login          - Login com PBKDF2, rate limiting e 2FA
- * - POST /api/auth/logout         - Revoga token (blacklist em memoria)
- * - POST /api/auth/refresh        - Renova par de tokens (rotacao automatica)
- * - POST /api/auth/verify-two-factor - Verifica 2FA OTP
- * - POST /api/auth/send-recovery-otp - Envia OTP de recuperacao
- * - POST /api/auth/verify-recovery-otp - Valida OTP de recuperacao
- * - POST /api/auth/reset-password - Redefine senha via recovery token
- * - POST /api/auth/change-password - Altera senha (autenticado)
- * - GET  /api/auth/session        - Valida sessao ativa
+ * Orquestrador central do servidor nativo Java SE (porta 8080).
+ * Organiza o registro de rotas em quatro blocos claros:
+ * 1. Saude e prontidao (/health, /health/ready)
+ * 2. Autenticacao e autoatendimento (/api/auth/*)
+ * 3. Administracao de identidades (/api/admin/users*, /api/admin/teachers)
+ * 4. Videochamada persistida e sinalizacao WebRTC (/api/video-call*, /api/videocall*, /ws/video-call/*)
  */
 public class Main {
     private static final int PORTA_PADRAO = 8080;
 
     public static void main(String[] args) {
+        int porta = resolverPorta(args);
+
+        final RepositorioUsuarios repositorio = RepositorioUsuarios.getInstance();
+        final RepositorioVideoCall repositorioVideoCall = RepositorioVideoCall.getInstance();
+        final ClientePonteAcademica ponte = new ClientePonteAcademica();
+
+        registrarShutdownHook(repositorio);
+
+        ServidorHttpNativo servidor = new ServidorHttpNativo(porta);
+        registrarRotasSaude(servidor, repositorio);
+        registrarRotasAuth(servidor, repositorio, ponte);
+        registrarRotasAdmin(servidor, repositorio, ponte);
+        registrarRotasVideoCall(servidor, repositorio, repositorioVideoCall, ponte);
+
+        try {
+            servidor.iniciar();
+        } catch (IOException e) {
+            System.err.println("[FALHA FATAL] Nao foi possivel iniciar o servidor na porta "
+                    + porta + ": " + e.getMessage());
+            System.exit(1);
+        }
+    }
+
+    private static int resolverPorta(String[] args) {
         int porta = ConfigEnv.obterInteiro("SERVER_PORT", PORTA_PADRAO);
         if (args != null && args.length > 0) {
             try {
@@ -62,80 +70,41 @@ public class Main {
                 System.out.println("[CONFIG] Porta informada invalida. Utilizando porta: " + porta);
             }
         }
+        return porta;
+    }
 
-        // =========================================================================
-        // 1. MODULO DE AUTENTICACAO, CONTA E USUARIOS ADMIN (MONGODB)
-        // =========================================================================
-        final RepositorioUsuarios repositorio = RepositorioUsuarios.getInstance();
-        final RepositorioVideoCall repositorioVideoCall = RepositorioVideoCall.getInstance();
-        final ClientePonteAcademica ponte = new ClientePonteAcademica();
-
-        // Shutdown hook para encerrar pool de emails e conexoes do MongoDB
+    private static void registrarShutdownHook(final RepositorioUsuarios repositorio) {
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
             public void run() {
                 System.out.println("[SHUTDOWN] Encerrando pool de threads SMTP...");
-                auth.SmtpCliente.encerrar();
+                SmtpCliente.encerrar();
                 System.out.println("[SHUTDOWN] Fechando conexao com MongoDB...");
                 repositorio.encerrarDefinitivo();
                 System.out.println("[SHUTDOWN] Servidor finalizado com sucesso.");
             }
         }, "shutdown-hook"));
+    }
 
-        ServidorHttpNativo servidor = new ServidorHttpNativo(porta);
+    private static void registrarRotasSaude(ServidorHttpNativo servidor, RepositorioUsuarios repositorio) {
+        HealthHandler healthHandler = new HealthHandler(repositorio.getConexao());
+        servidor.registrarRota("/health", healthHandler);
+        servidor.registrarRota("/health/ready", healthHandler);
+    }
 
-        // Healthcheck explicito do contexto Identidade + Videochamada
-        servidor.registrarRota("/health", new ManipuladorHttp() {
-            @Override
-            public void handle(RequisicaoHttp req, RespostaHttp resp) throws IOException {
-                HttpUtils.aplicarHeadersCors(req, resp);
-                if ("OPTIONS".equalsIgnoreCase(req.getMetodo())) {
-                    resp.enviar(204, "");
-                    return;
-                }
-                RepositorioUsuarios.EstadoSaudeBanco saude = repositorio.verificarSaudeBanco();
-                Map<String, Object> payload = new LinkedHashMap<String, Object>();
-                payload.put("status", "ok");
-                payload.put("service", "agmrm-identity-videocall");
-                payload.put("database", saude.disponivel ? "connected" : "unreachable");
-                if (!saude.disponivel) {
-                    payload.put("databaseCode", saude.codigo);
-                    payload.put("databaseDetail", saude.detalhe);
-                }
-                resp.enviarJson(200, Json.escrever(payload));
-            }
-        });
-
-        servidor.registrarRota("/health/ready", new ManipuladorHttp() {
-            @Override
-            public void handle(RequisicaoHttp req, RespostaHttp resp) throws IOException {
-                HttpUtils.aplicarHeadersCors(req, resp);
-                if ("OPTIONS".equalsIgnoreCase(req.getMetodo())) {
-                    resp.enviar(204, "");
-                    return;
-                }
-                RepositorioUsuarios.EstadoSaudeBanco saude = repositorio.verificarSaudeBanco();
-                Map<String, Object> payload = new LinkedHashMap<String, Object>();
-                payload.put("status", saude.disponivel ? "ready" : "degraded");
-                payload.put("service", "agmrm-identity-videocall");
-                payload.put("database", saude.disponivel ? "connected" : "unreachable");
-                if (!saude.disponivel) {
-                    payload.put("code", saude.codigo);
-                    payload.put("message", saude.detalhe);
-                }
-                resp.enviarJson(saude.disponivel ? 200 : 503, Json.escrever(payload));
-            }
-        });
-
-        // Login e sessao
+    private static void registrarRotasAuth(
+            ServidorHttpNativo servidor, RepositorioUsuarios repositorio, ClientePonteAcademica ponte) {
+        // Login, 2FA, sessao e renovacao de tokens
         servidor.registrarRota("/api/auth/login", new LoginHandler(repositorio));
         servidor.registrarRota("/api/auth/logout", new LogoutHandler(repositorio));
+        servidor.registrarRota("/api/auth/refresh", new RefreshTokenHandler(repositorio));
+        servidor.registrarRota("/api/auth/verify-two-factor", new TwoFactorHandler(repositorio));
+
         AuthSessionHandler sessionHandler = new AuthSessionHandler(repositorio);
         servidor.registrarRota("/api/auth/session", sessionHandler);
         servidor.registrarRota("/api/auth/me", sessionHandler);
-        servidor.registrarRota("/api/auth/refresh", new RefreshTokenHandler(repositorio));
 
-        // Conta, Perfil, Sessoes Ativas, 2FA Settings, Backup Codes, Logs e LGPD
+        // Conta, perfil, sessoes ativas, configuracoes 2FA, backup codes, logs e LGPD
         ProfileAccountHandler accountHandler = new ProfileAccountHandler(repositorio, ponte);
         servidor.registrarRota("/api/auth/profile", accountHandler);
         servidor.registrarRota("/api/auth/sessions", accountHandler);
@@ -145,33 +114,32 @@ public class Main {
         servidor.registrarRota("/api/auth/security-logs", accountHandler);
         servidor.registrarRota("/api/auth/lgpd-export", accountHandler);
 
-        // 2FA (Two-Factor Authentication)
-        servidor.registrarRota("/api/auth/verify-two-factor", new TwoFactorHandler(repositorio));
-
-        // Recuperacao de senha
+        // Recuperacao e alteracao de senha
         RecoveryHandler recoveryHandler = new RecoveryHandler(repositorio);
         servidor.registrarRota("/api/auth/send-recovery-otp", recoveryHandler);
         servidor.registrarRota("/api/auth/verify-recovery-otp", recoveryHandler);
         servidor.registrarRota("/api/auth/reset-password", recoveryHandler);
-
-        // Alteracao de senha (autenticado)
         servidor.registrarRota("/api/auth/change-password", new ChangePasswordHandler(repositorio));
+    }
 
-        // Diagnostico de email (apenas admin)
-        servidor.registrarRota("/api/auth/email-diagnostic", new EmailDiagnosticHandler());
+    private static void registrarRotasAdmin(
+            ServidorHttpNativo servidor, RepositorioUsuarios repositorio, ClientePonteAcademica ponte) {
+        servidor.registrarRota("/api/auth/email-diagnostic", new EmailDiagnosticHandler(repositorio));
 
-        // Administracao de contas e usuarios (apenas admin)
         AdminUsersHandler adminUsersHandler = new AdminUsersHandler(repositorio, ponte);
         servidor.registrarRota("/api/admin/users", adminUsersHandler);
         servidor.registrarRota("/api/admin/teachers", adminUsersHandler);
+    }
 
-        // =========================================================================
-        // 2. MODULO DE VIDEOCHAMADA PERSISTIDA & SINALIZACAO WEBRTC
-        // =========================================================================
-        VideoCallMongoHandler videoCallMongoHandler = new VideoCallMongoHandler(repositorio, repositorioVideoCall, ponte);
-        servidor.registrarRota("/api/video-call", videoCallMongoHandler);
+    private static void registrarRotasVideoCall(
+            ServidorHttpNativo servidor,
+            RepositorioUsuarios repositorio,
+            RepositorioVideoCall repositorioVideoCall,
+            ClientePonteAcademica ponte) {
+        // API oficial persistida em MongoDB
+        servidor.registrarRota("/api/video-call", new VideoCallMongoHandler(repositorio, repositorioVideoCall, ponte));
 
-        // Rotas legadas/compatibilidade (sinalizacao HTTP opcional + alias de healthcheck)
+        // API legada em memoria (compatibilidade HTTP)
         VideoCallRoomHandler roomHandler = new VideoCallRoomHandler();
         servidor.registrarRota("/api/videocall/rooms", roomHandler);
         servidor.registrarRota("/api/videocall/open", roomHandler);
@@ -187,12 +155,5 @@ public class Main {
         servidor.registrarRota("/api/videocall/chat", interactionHandler);
 
         servidor.registrarRota("/api/videocall/attendance", new VideoCallAttendanceHandler());
-
-        try {
-            servidor.iniciar();
-        } catch (IOException e) {
-            System.err.println("[FALHA FATAL] Nao foi possivel iniciar o servidor na porta " + porta + ": " + e.getMessage());
-            System.exit(1);
-        }
     }
 }

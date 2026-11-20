@@ -1,6 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package auth;
 
+import auth.utils.OtpService;
+
 /**
  * Teste nativo (sem JUnit) do servico de OTP (OtpService).
  * Verifica:

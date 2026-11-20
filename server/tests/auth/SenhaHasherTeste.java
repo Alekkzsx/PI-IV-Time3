@@ -1,6 +1,9 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package auth;
 
+import auth.utils.BCrypt;
+import auth.utils.SenhaHasher;
+
 /**
  * Teste nativo (sem JUnit) do SenhaHasher com PBKDF2WithHmacSHA256.
  * Verifica:

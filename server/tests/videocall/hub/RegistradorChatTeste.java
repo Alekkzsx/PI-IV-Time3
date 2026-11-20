@@ -3,7 +3,8 @@
 package videocall.hub;
 
 import utils.Json;
-import videocall.VideoCallService;
+import videocall.modules.hub.RegistradorChat;
+import videocall.modules.legado.VideoCallService;
 
 import java.util.List;
 import java.util.Map;

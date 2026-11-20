@@ -9,10 +9,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import videocall.TicketWebSocketValidator;
-import videocall.VideoCallService;
-import videocall.hub.RegistradorChat;
-import videocall.hub.SalaVideoHub;
+import videocall.modules.hub.RegistradorChat;
+import videocall.modules.hub.SalaVideoHub;
+import videocall.modules.legado.VideoCallService;
+import videocall.modules.rooms.TicketWebSocketValidator;
 import websocket.AtendenteWebSocket;
 import websocket.HandshakeWebSocket;
 

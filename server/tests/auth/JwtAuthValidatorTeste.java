@@ -2,10 +2,14 @@
 
 package auth;
 
+import auth.model.UsuarioAutenticado;
+import auth.modules.login.AuthSessionHandler;
+import auth.modules.persistencia.RepositorioUsuarios;
+import auth.utils.JwtAuthValidator;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
 import org.bson.Document;
-import videocall.VideoCallRoomHandler;
+import videocall.modules.legado.VideoCallRoomHandler;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

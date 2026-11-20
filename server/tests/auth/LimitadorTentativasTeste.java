@@ -1,6 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package auth;
 
+import auth.utils.LimitadorTentativas;
+
 /**
  * Teste nativo (sem JUnit) do limitador de tentativas (LimitadorTentativas).
  * Verifica:

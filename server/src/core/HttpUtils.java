@@ -4,6 +4,7 @@ package core;
 
 import utils.ConfigEnv;
 import utils.Json;
+import utils.RedeUtils;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -107,12 +108,7 @@ public final class HttpUtils {
     }
 
     private static String removerBarraFinal(String value) {
-        if (value == null) return "";
-        String v = value.trim();
-        while (v.endsWith("/")) {
-            v = v.substring(0, v.length() - 1);
-        }
-        return v;
+        return RedeUtils.limparBarraFinal(value);
     }
 
     /**

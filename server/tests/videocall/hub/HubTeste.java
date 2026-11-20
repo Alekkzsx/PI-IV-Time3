@@ -3,6 +3,8 @@
 package videocall.hub;
 
 import core.RequisicaoHttp;
+import videocall.modules.hub.RegistradorEnvelope;
+import videocall.modules.hub.SalaVideoHub;
 import websocket.AtendenteWebSocket;
 
 import java.io.ByteArrayOutputStream;

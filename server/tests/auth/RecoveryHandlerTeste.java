@@ -1,6 +1,10 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 package auth;
 
+import auth.model.UsuarioAutenticado;
+import auth.modules.conta.RecoveryHandler;
+import auth.modules.persistencia.RepositorioUsuarios;
+import auth.utils.OtpService;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
 import org.bson.Document;

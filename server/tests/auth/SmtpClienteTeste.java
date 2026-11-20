@@ -1,5 +1,6 @@
 package auth;
 
+import auth.modules.email.SmtpCliente;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
