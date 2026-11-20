@@ -1,11 +1,11 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 1 & Tier 2: Brute-Force Rate Limiting & Cooldown Test Suite
-/// Tests Features 12, 13, 14, 15 and Acceptance Criteria AC-01, AC-02, AC-03.
+/// Camadas 1 e 2: Suíte de Testes de Limitação de Taxa contra Força Bruta e Tempo de Espera
+/// Testa as Funcionalidades 12, 13, 14, 15 e os Critérios de Aceitação AC-01, AC-02, AC-03.
 
 import 'dart:async';
 
-// Reference Contract Implementation for Progressive Testability
+// Implementação de Contrato de Referência para Testabilidade Progressiva
 class LockoutState {
   final int failedAttempts;
   final bool isLockedOut;
@@ -47,7 +47,7 @@ class RateLimiter {
           lockoutEnd: lockoutEnd,
         );
       } else {
-        // Cooldown has elapsed - auto reset
+        // Tempo de espera decorrido - reinicialização automática
         _failures.remove(identity);
         _lockoutEnds.remove(identity);
         return LockoutState.unlocked();
@@ -71,7 +71,7 @@ class RateLimiter {
     final currentTime = now ?? DateTime.now();
     final state = getState(identity, now: currentTime);
     if (state.isLockedOut) {
-      return; // Already locked out
+      return; // Já bloqueado
     }
 
     final currentAttempts = (_failures[identity] ?? 0) + 1;
@@ -94,7 +94,7 @@ class RateLimiter {
   }
 }
 
-// Lightweight Test Assertion Harness
+// Estrutura Leve de Asserções de Teste
 void assertTrue(bool condition, String message) {
   if (!condition) {
     throw Exception('Assertion failed: $message');
@@ -135,7 +135,7 @@ void main() {
   final rateLimiter = RateLimiter();
 
   // -------------------------------------------------------------
-  // TIER 1: FEATURE COVERAGE
+  // CAMADA 1: COBERTURA DE FUNCIONALIDADES
   // -------------------------------------------------------------
   runTest('T1-01: Initial state is unlocked with 0 failed attempts', () {
     final state = rateLimiter.getState('user1@example.com');
@@ -166,7 +166,7 @@ void main() {
     for (int i = 1; i <= 4; i++) {
       rateLimiter.recordFailure(id, now: t0);
     }
-    // 5th failure
+    // 5ª falha
     rateLimiter.recordFailure(id, now: t0);
 
     final state = rateLimiter.getState(id, now: t0);
@@ -180,13 +180,13 @@ void main() {
     final id = 'student_reset_counter';
     rateLimiter.resetAll();
 
-    // 3 failed attempts
+    // 3 tentativas com falha
     for (int i = 0; i < 3; i++) {
       rateLimiter.recordFailure(id);
     }
     assertEqual(rateLimiter.getState(id).failedAttempts, 3, 'Should have 3 failures');
 
-    // Successful login
+    // Login bem-sucedido
     rateLimiter.recordSuccess(id);
     final state = rateLimiter.getState(id);
     assertEqual(state.failedAttempts, 0, 'Counter must reset to 0 upon success');
@@ -195,7 +195,7 @@ void main() {
   });
 
   // -------------------------------------------------------------
-  // TIER 2: BOUNDARY & CORNER CASES
+  // CAMADA 2: CASOS DE BORDA E LIMITES
   // -------------------------------------------------------------
   runTest('T2-01: Boundary attempt 4 vs 5', () {
     final id = 'boundary_test';
@@ -219,20 +219,20 @@ void main() {
       rateLimiter.recordFailure(id, now: t0);
     }
 
-    // At t0 + 15 seconds: still locked out, 15s remaining
+    // Em t0 + 15 segundos: ainda bloqueado, 15s restantes
     final t15 = t0.add(const Duration(seconds: 15));
     final state15 = rateLimiter.getState(id, now: t15);
     assertTrue(state15.isLockedOut, 'Should still be locked out at 15s');
     assertEqual(state15.remainingLockoutSeconds, 15, 'Should have 15s remaining');
     assertFalse(rateLimiter.checkAllowed(id, now: t15), 'Attempt at 15s must be rejected');
 
-    // At t0 + 29s: still locked out, 1s remaining
+    // Em t0 + 29s: ainda bloqueado, 1s restante
     final t29 = t0.add(const Duration(seconds: 29));
     final state29 = rateLimiter.getState(id, now: t29);
     assertTrue(state29.isLockedOut, 'Should be locked out at 29s');
     assertEqual(state29.remainingLockoutSeconds, 1, 'Should have 1s remaining');
 
-    // At t0 + 30.1s: lockout auto-clears
+    // Em t0 + 30.1s: bloqueio é limpo automaticamente
     final t31 = t0.add(const Duration(seconds: 31));
     final state31 = rateLimiter.getState(id, now: t31);
     assertFalse(state31.isLockedOut, 'Lockout must auto-clear after 30s');
