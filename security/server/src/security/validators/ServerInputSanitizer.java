@@ -7,13 +7,13 @@ import security.policies.SecurityConstants;
 import java.util.regex.Pattern;
 
 /**
- * Server-side input sanitizer for academic identities, emails, and passwords.
- * Strips null bytes, non-printable control characters, and blocks XSS/SQLi injection patterns.
+ * Sanitizador de entrada no lado do servidor para identidades acadêmicas, e-mails e senhas.
+ * Remove bytes nulos, caracteres de controle não imprimíveis e bloqueia padrões de injeção XSS/SQLi.
  */
 public final class ServerInputSanitizer {
 
     private ServerInputSanitizer() {
-        // Prevent instantiation
+        // Impedir instanciação
     }
 
     private static final Pattern SCRIPT_PATTERN = Pattern.compile(
@@ -35,7 +35,7 @@ public final class ServerInputSanitizer {
     );
 
     /**
-     * Strips null bytes, non-printable control characters, and leading/trailing whitespace.
+     * Remove bytes nulos, caracteres de controle não imprimíveis e espaços em branco nas extremidades.
      */
     public static String sanitizeString(String input) {
         if (input == null || input.isEmpty()) {
@@ -47,7 +47,7 @@ public final class ServerInputSanitizer {
     }
 
     /**
-     * Checks if the input contains malicious exploit vectors (XSS, SQL meta, null bytes).
+     * Verifica se a entrada contém vetores de exploração maliciosos (XSS, metadados SQL, bytes nulos).
      */
     public static boolean hasDangerousPatterns(String input) {
         if (input == null || input.isEmpty()) return false;
@@ -57,8 +57,8 @@ public final class ServerInputSanitizer {
     }
 
     /**
-     * Sanitizes and validates academic identity (RA/Matrícula).
-     * @throws IllegalArgumentException if length exceeds bounds or malicious patterns exist.
+     * Sanitiza e valida a identidade acadêmica (RA/Matrícula).
+     * @throws IllegalArgumentException se o comprimento exceder os limites ou houver padrões maliciosos.
      */
     public static String sanitizeIdentity(String identity) {
         String cleaned = sanitizeString(identity);
@@ -72,8 +72,8 @@ public final class ServerInputSanitizer {
     }
 
     /**
-     * Sanitizes and validates institutional email address.
-     * @throws IllegalArgumentException if email format is invalid or exceeds bounds.
+     * Sanitiza e valida o endereço de e-mail institucional.
+     * @throws IllegalArgumentException se o formato do e-mail for inválido ou exceder os limites.
      */
     public static String sanitizeEmail(String email) {
         String cleaned = sanitizeString(email);
@@ -87,7 +87,7 @@ public final class ServerInputSanitizer {
     }
 
     /**
-     * Strips null bytes and enforces maximum password bounds.
+     * Remove bytes nulos e impõe o limite máximo de comprimento da senha.
      */
     public static String sanitizePassword(String password) {
         if (password == null) return "";
