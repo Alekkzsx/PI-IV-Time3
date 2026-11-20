@@ -7,13 +7,13 @@ import security.policies.SecurityConstants;
 import java.util.regex.Pattern;
 
 /**
- * Server-side password entropy evaluator.
- * Assesses password strength across 4 security vectors and enforces minimum score >= 3.
+ * Avaliador de entropia de senha no lado do servidor.
+ * Avalia a força da senha em 4 vetores de segurança e impõe pontuação mínima >= 3.
  */
 public final class ServerPasswordEntropyValidator {
 
     private ServerPasswordEntropyValidator() {
-        // Prevent instantiation
+        // Impedir instanciação
     }
 
     private static final Pattern UPPER_PATTERN = Pattern.compile("[A-Z]");
@@ -22,7 +22,7 @@ public final class ServerPasswordEntropyValidator {
     private static final Pattern SPECIAL_PATTERN = Pattern.compile("[!@#$%^&*(),.?\":{}|<>\\-_+=\\[\\]]");
 
     /**
-     * Calculates the 4-factor password entropy score (0 to 4).
+     * Calcula a pontuação de entropia de senha de 4 fatores (0 a 4).
      */
     public static int calculateScore(String password) {
         if (password == null || password.isEmpty()) {
@@ -47,7 +47,7 @@ public final class ServerPasswordEntropyValidator {
     }
 
     /**
-     * Checks if the password meets the minimum criteria for credential update.
+     * Verifica se a senha atende aos critérios mínimos para atualização de credencial.
      */
     public static boolean isEligibleForSubmission(String password) {
         if (password == null || password.length() < SecurityConstants.MIN_PASSWORD_LENGTH) {
