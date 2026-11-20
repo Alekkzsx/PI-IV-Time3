@@ -1,13 +1,13 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 1 & Tier 2: Side-Channel Timing Attack Mitigation Test Suite
-/// Tests Feature 17 and Acceptance Criteria AC-04.
+/// Camadas 1 e 2: Suíte de Testes de Mitigação de Ataques de Temporização por Canal Lateral
+/// Testa a Funcionalidade 17 e o Critério de Aceitação AC-04.
 
 import 'dart:async';
 import 'dart:math';
 
 class TimingAttackMitigation {
-  // Configurable standardized latency floor (in production: 1000ms; in fast test harness: 50ms)
+  // Piso de latência padronizada configurável (em produção: 1000ms; no ambiente rápido de testes: 50ms)
   final int targetLatencyMs;
   final int varianceToleranceMs;
 
@@ -16,18 +16,18 @@ class TimingAttackMitigation {
     this.varianceToleranceMs = 25,
   });
 
-  /// Executes synthetic cryptographic work (dummy hashing) to simulate
-  /// identical CPU cycles for invalid identifiers.
+  /// Executa trabalho criptográfico sintético (hash fictício) para simular
+  /// ciclos de CPU idênticos para identificadores inválidos.
   void executeSyntheticWork() {
     int accumulator = 0;
     for (int i = 0; i < 10000; i++) {
       accumulator ^= (i * 31);
     }
-    // Prevent dead code elimination
+    // Evita a eliminação de código morto
     if (accumulator == -999999) print(accumulator);
   }
 
-  /// Normalizes latency by sleeping for the remainder of targetLatencyMs
+  /// Normaliza a latência aguardando pelo tempo restante de targetLatencyMs
   Future<int> normalizeLatency(Stopwatch stopwatch) async {
     final elapsed = stopwatch.elapsedMilliseconds;
     final remaining = targetLatencyMs - elapsed;
@@ -39,7 +39,7 @@ class TimingAttackMitigation {
   }
 }
 
-// Assertion Helpers
+// Auxiliares de Asserção
 void assertTrue(bool condition, String message) {
   if (!condition) throw Exception('Assertion failed: $message');
 }
@@ -66,7 +66,7 @@ Future<void> main() async {
   final timingDefense = TimingAttackMitigation(targetLatencyMs: 40, varianceToleranceMs: 20);
 
   // -------------------------------------------------------------
-  // TIER 1: FEATURE COVERAGE
+  // CAMADA 1: COBERTURA DE FUNCIONALIDADES
   // -------------------------------------------------------------
   await runAsyncTest('T1-01: Synthetic computational work executes reliably', () async {
     final sw = Stopwatch()..start();
@@ -77,7 +77,7 @@ Future<void> main() async {
 
   await runAsyncTest('T1-02: Latency normalization brings fast execution up to target floor', () async {
     final sw = Stopwatch()..start();
-    // Fast path: immediate execution
+    // Caminho rápido: execução imediata
     final totalElapsed = await timingDefense.normalizeLatency(sw);
     assertTrue(
       totalElapsed >= 35,
@@ -86,17 +86,17 @@ Future<void> main() async {
   });
 
   // -------------------------------------------------------------
-  // TIER 2: BOUNDARY & CORNER CASES
+  // CAMADA 2: CASOS DE BORDA E LIMITES
   // -------------------------------------------------------------
   await runAsyncTest('T2-01: Timing delta between valid user and non-existent user is bounded (AC-04)', () async {
-    // Branch A: Existing user (simulated DB lookup + password verify)
+    // Ramo A: Usuário existente (consulta simulada ao BD + verificação de senha)
     final swA = Stopwatch()..start();
-    await Future.delayed(const Duration(milliseconds: 15)); // Simulated bcrypt
+    await Future.delayed(const Duration(milliseconds: 15)); // bcrypt simulado
     final latencyA = await timingDefense.normalizeLatency(swA);
 
-    // Branch B: Non-existing user (immediate lookup failure + synthetic work)
+    // Ramo B: Usuário inexistente (falha imediata na consulta + trabalho sintético)
     final swB = Stopwatch()..start();
-    timingDefense.executeSyntheticWork(); // Synthetic work
+    timingDefense.executeSyntheticWork(); // Trabalho sintético
     final latencyB = await timingDefense.normalizeLatency(swB);
 
     final delta = (latencyA - latencyB).abs();
