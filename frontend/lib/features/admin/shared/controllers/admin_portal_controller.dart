@@ -314,7 +314,7 @@ class AdminPortalController extends ChangeNotifier {
   }) : remote = remote ?? AdminRemoteDataSource(),
        academicRemote = academicRemote ?? AdminAcademicRemoteDataSource();
 
-  /// Isolated instance for unit tests with injected data sources.
+  /// Instância isolada para testes unitários com fontes de dados injetadas.
   AdminPortalController.forTesting({
     AdminRemoteDataSource? remote,
     AdminAcademicRemoteDataSource? academicRemote,
