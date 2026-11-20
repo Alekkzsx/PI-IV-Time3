@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Defensive stream reader enforcing a strict 64 KB (65,536 bytes) request body ceiling.
- * Rejects oversized payloads to prevent buffer bloat and memory exhaustion attacks (HTTP 413).
+ * Leitor de fluxo defensivo que impõe um limite estrito de 64 KB (65.536 bytes) para o corpo da requisição.
+ * Rejeita payloads excedentes para prevenir ataques de inchaço de buffer e exaustão de memória (HTTP 413).
  */
 public class BoundedBodyReader {
 
@@ -23,8 +23,8 @@ public class BoundedBodyReader {
     }
 
     /**
-     * Reads the input stream up to the 64 KB threshold.
-     * @throws PayloadTooLargeException if declaredContentLength or streamed bytes exceed 65,536 bytes.
+     * Lê o fluxo de entrada até o limite de 64 KB.
+     * @throws PayloadTooLargeException se declaredContentLength ou os bytes recebidos excederem 65.536 bytes.
      */
     public static byte[] readBoundedStream(InputStream in, long declaredContentLength) throws IOException {
         if (declaredContentLength > MAX_BODY_BYTES) {
