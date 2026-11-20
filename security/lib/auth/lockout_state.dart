@@ -1,17 +1,17 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Immutable model representing the account lockout and rate limiting state.
+/// Modelo imutável que representa o estado de bloqueio de conta e limitação de taxa.
 class LockoutState {
-  /// Number of consecutive failed attempts recorded.
+  /// Número de tentativas consecutivas com falha registradas.
   final int failedAttempts;
 
-  /// Whether the account/identity is currently locked out in cooldown.
+  /// Indica se a conta/identidade está atualmente bloqueada em período de espera.
   final bool isLockedOut;
 
-  /// Remaining seconds until the cooldown expires and submissions are unlocked.
+  /// Segundos restantes até que o período de espera expire e os envios sejam desbloqueados.
   final int remainingLockoutSeconds;
 
-  /// Timestamp when the lockout ends, or null if not locked out.
+  /// Carimbo de data/hora de quando o bloqueio termina, ou nulo caso não esteja bloqueado.
   final DateTime? lockoutEnd;
 
   const LockoutState({
@@ -21,7 +21,7 @@ class LockoutState {
     this.lockoutEnd,
   });
 
-  /// Factory creating an unlocked initial state with zero failed attempts.
+  /// Factory que cria um estado inicial desbloqueado com zero tentativas com falha.
   factory LockoutState.unlocked() => const LockoutState(
         failedAttempts: 0,
         isLockedOut: false,
