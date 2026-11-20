@@ -1,6 +1,8 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
 import '../widgets/docente_diary_attendance_table.dart';
@@ -50,22 +52,22 @@ class DocenteDiaryTab extends StatelessWidget {
                                   Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: const [
+                                    children: [
                                       Text(
                                         'Diário de Classe Eletrônico & Registro de Chamada',
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF09090B),
+                                        style: jakarta(
+                                          size: 22,
+                                          weight: FontWeight.w700,
+                                          color: InstColors.ink,
                                           letterSpacing: -0.4,
                                         ),
                                       ),
-                                      SizedBox(height: 4),
+                                      const SizedBox(height: 4),
                                       Text(
                                         'Registro documental de presença, conteúdo ministrado e controle do teto regimental de faltas.',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: Color(0xFF71717A),
+                                        style: jakarta(
+                                          size: 12.5,
+                                          color: InstColors.muted,
                                         ),
                                       ),
                                     ],
@@ -78,12 +80,12 @@ class DocenteDiaryTab extends StatelessWidget {
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Text(
+                                          Text(
                                             'Turma: ',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF71717A),
-                                              fontWeight: FontWeight.w500,
+                                            style: jakarta(
+                                              size: 12,
+                                              color: InstColors.muted,
+                                              weight: FontWeight.w500,
                                             ),
                                           ),
                                           const SizedBox(width: 8),
@@ -97,7 +99,7 @@ class DocenteDiaryTab extends StatelessWidget {
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                               border: Border.all(
-                                                color: const Color(0xFFE4E4E7),
+                                                color: InstColors.border,
                                               ),
                                             ),
                                             child: DropdownButtonHideUnderline(
@@ -106,7 +108,7 @@ class DocenteDiaryTab extends StatelessWidget {
                                                 icon: const Icon(
                                                   Icons.keyboard_arrow_down,
                                                   size: 16,
-                                                  color: Color(0xFF71717A),
+                                                  color: InstColors.muted,
                                                 ),
                                                 onChanged: (newId) {
                                                   if (newId != null) {
@@ -124,13 +126,11 @@ class DocenteDiaryTab extends StatelessWidget {
                                                     value: course.id,
                                                     child: Text(
                                                       '${course.code} - ${course.title}',
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
-                                                        fontWeight:
+                                                      style: jakarta(
+                                                        size: 12,
+                                                        weight:
                                                             FontWeight.w500,
-                                                        color: Color(
-                                                          0xFF18181B,
-                                                        ),
+                                                        color: InstColors.ink,
                                                       ),
                                                     ),
                                                   );
@@ -147,7 +147,7 @@ class DocenteDiaryTab extends StatelessWidget {
                                           vertical: 3,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF4F4F5),
+                                          color: InstColors.stone,
                                           borderRadius: BorderRadius.circular(
                                             4,
                                           ),
@@ -158,15 +158,15 @@ class DocenteDiaryTab extends StatelessWidget {
                                             const Icon(
                                               Icons.schedule,
                                               size: 12,
-                                              color: Color(0xFF71717A),
+                                              color: InstColors.muted,
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
                                               'Dias Letivos: ${selectedCourse.classDaysLabel} (${selectedCourse.schedule})',
-                                              style: const TextStyle(
-                                                fontSize: 10.5,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF71717A),
+                                              style: jakarta(
+                                                size: 10.5,
+                                                weight: FontWeight.w600,
+                                                color: InstColors.muted,
                                               ),
                                             ),
                                           ],
@@ -199,10 +199,10 @@ class DocenteDiaryTab extends StatelessWidget {
                                   vertical: 16,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFBFBFC),
+                                  color: InstColors.stone,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: const Color(0xFFE4E4E7),
+                                    color: InstColors.border,
                                   ),
                                 ),
                                 child: Row(
@@ -210,15 +210,15 @@ class DocenteDiaryTab extends StatelessWidget {
                                     const Icon(
                                       Icons.info_outline,
                                       size: 16,
-                                      color: Color(0xFF71717A),
+                                      color: InstColors.muted,
                                     ),
                                     const SizedBox(width: 10),
-                                    const Expanded(
+                                    Expanded(
                                       child: Text(
                                         'Ao homologar o diário, a frequência é consolidada nos servidores acadêmicos e atualizada no portal do discente.',
-                                        style: TextStyle(
-                                          fontSize: 11.5,
-                                          color: Color(0xFF71717A),
+                                        style: jakarta(
+                                          size: 11.5,
+                                          color: InstColors.muted,
                                         ),
                                       ),
                                     ),
@@ -229,23 +229,22 @@ class DocenteDiaryTab extends StatelessWidget {
                                         ScaffoldMessenger.of(context)
                                           ..removeCurrentSnackBar()
                                           ..showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               behavior:
                                                   SnackBarBehavior.floating,
-                                              backgroundColor: Color(
-                                                0xFF18181B,
-                                              ),
+                                              backgroundColor: InstColors.ink,
                                               content: Row(
                                                 children: [
-                                                  Icon(
+                                                  const Icon(
                                                     Icons
                                                         .check_circle_outline_rounded,
-                                                    color: Color(0xFF22C55E),
+                                                    color: InstColors.success,
                                                     size: 18,
                                                   ),
-                                                  SizedBox(width: 10),
+                                                  const SizedBox(width: 10),
                                                   Text(
                                                     'Aula homologada e presenças consolidadas com sucesso no sistema acadêmico!',
+                                                    style: jakarta(size: 12, color: Colors.white),
                                                   ),
                                                 ],
                                               ),
@@ -257,18 +256,16 @@ class DocenteDiaryTab extends StatelessWidget {
                                         size: 16,
                                         color: Colors.white,
                                       ),
-                                      label: const Text(
+                                      label: Text(
                                         'Salvar e Homologar Aula',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                        style: jakarta(
+                                          size: 12,
+                                          weight: FontWeight.w700,
                                           color: Colors.white,
                                         ),
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFF18181B,
-                                        ),
+                                        backgroundColor: InstColors.ink,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 18,

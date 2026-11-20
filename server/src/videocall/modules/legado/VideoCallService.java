@@ -1,0 +1,267 @@
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+package videocall.modules.legado;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+/**
+ * Servico em memoria para gestao de salas, sinalizacao, presenca e interacao da videochamada.
+ *
+ * Singleton LEGADO (compatibilidade HTTP /api/videocall/*): estado volatil, perdido em
+ * restart - a autoridade duravel das salas e o RepositorioVideoCall (Mongo).
+ * Concorrencia: mutacoes compostas sao synchronized no service; mapas de participantes
+ * e filas de sinalizacao sao concorrentes para leitura sem lock.
+ */
+public class VideoCallService {
+    // Singleton eager: estado puro em memoria, criacao no load da classe e barata.
+    private static final VideoCallService INSTANCIA = new VideoCallService();
+
+    /** @return instancia unica compartilhada pelos handlers legados e pelo hub WS. */
+    public static VideoCallService getInstance() {
+        return INSTANCIA;
+    }
+
+    /** Participante de uma sala: identidade (RA), papel e janela de conexao para presenca. */
+    public static class Participant {
+        public final String ra;
+        public final String name;
+        public final String role;
+        public final long joinedAt;
+        public long leftAt = 0; // 0 = ainda conectado
+        public boolean isHandRaised = false;
+        public long handRaisedAt = 0; // marca temporal para ordenacao da fila de perguntas
+
+        public Participant(String ra, String name, String role) {
+            this.ra = ra;
+            this.name = name;
+            this.role = role != null ? role.toLowerCase(Locale.ROOT) : "aluno";
+            this.joinedAt = System.currentTimeMillis();
+        }
+
+        /** Minutos conectado (ate leftAt ou agora), minimo 1 para nao zerar presencas curtas. */
+        public long getConnectedMinutes() {
+            long end = leftAt > 0 ? leftAt : System.currentTimeMillis();
+            return Math.max(1, (end - joinedAt) / 60000);
+        }
+    }
+
+    /** Mensagem de sinalizacao WebRTC (offer/answer/ice) enderecada a um peer especifico. */
+    public static class SignalingMessage {
+        public final String id;
+        public final String fromRa;
+        public final String toRa;
+        public final String type;
+        public final String data;
+        public final long timestamp;
+
+        public SignalingMessage(String fromRa, String toRa, String type, String data) {
+            this.id = UUID.randomUUID().toString();
+            this.fromRa = fromRa;
+            this.toRa = toRa;
+            this.type = type;
+            this.data = data;
+            this.timestamp = System.currentTimeMillis();
+        }
+    }
+
+    /** Mensagem de chat com horario ja formatado (HH:mm:ss) para exibicao direta no cliente. */
+    public static class ChatMessage {
+        public final String id;
+        public final String senderRa;
+        public final String senderName;
+        public final String senderRole;
+        public final String message;
+        public final String timeFormatted;
+
+        public ChatMessage(String senderRa, String senderName, String senderRole, String message) {
+            this.id = UUID.randomUUID().toString();
+            this.senderRa = senderRa;
+            this.senderName = senderName;
+            this.senderRole = senderRole;
+            this.message = message;
+            this.timeFormatted = new SimpleDateFormat("HH:mm:ss").format(new Date());
+        }
+    }
+
+    /**
+     * Estado completo de uma sala em memoria.
+     * activeParticipants: RA -> participante conectado;
+     * attendanceHistory: append-only (todos que passaram, para calculo de presenca);
+     * handRaiseQueue: fila FIFO de RAs com mao levantada;
+     * peerSignalQueues: caixa de correio de sinalizacao por RA (modelo polling HTTP).
+     */
+    public static class Room {
+        public final String roomCode;
+        public boolean isOpen = false;
+        public String openedByRole = null;
+        public String openedByName = null;
+        public long openedAt = 0;
+        public long closedAt = 0;
+
+        public final Map<String, Participant> activeParticipants = new ConcurrentHashMap<String, Participant>();
+        public final List<Participant> attendanceHistory = new ArrayList<Participant>();
+        public final List<ChatMessage> chatHistory = new ArrayList<ChatMessage>();
+        public final List<String> handRaiseQueue = new ArrayList<String>();
+        public final Map<String, Queue<SignalingMessage>> peerSignalQueues =
+                new ConcurrentHashMap<String, Queue<SignalingMessage>>();
+
+        public Room(String roomCode) {
+            this.roomCode = roomCode;
+        }
+
+        /** Duracao da sala em minutos (abertura ate fechamento ou agora), minimo 1. */
+        public int getTotalDurationMinutes() {
+            if (openedAt == 0) return 0;
+            long end = closedAt > 0 ? closedAt : System.currentTimeMillis();
+            return (int) Math.max(1, (end - openedAt) / 60000);
+        }
+    }
+
+    // Codigo normalizado (uppercase) -> sala; leituras concorrentes sem lock global.
+    private final Map<String, Room> rooms = new ConcurrentHashMap<String, Room>();
+
+    // Salas de demonstracao pre-criadas (disciplinas do semestre) para o fluxo legado.
+    private VideoCallService() {
+        obterOuCriarSala("APS-II");
+        obterOuCriarSala("BD-II");
+        obterOuCriarSala("FSO");
+    }
+
+    /** Obtem ou cria a sala com codigo normalizado (null/vazio vira "GERAL"). */
+    public synchronized Room obterOuCriarSala(String roomCode) {
+        String code = roomCode != null ? roomCode.trim().toUpperCase(Locale.ROOT) : "GERAL";
+        Room r = rooms.get(code);
+        if (r == null) {
+            r = new Room(code);
+            rooms.put(code, r);
+        }
+        return r;
+    }
+
+    /** @return visao somente leitura do mapa de salas (diagnostico). */
+    public Map<String, Room> listarSalas() {
+        return Collections.unmodifiableMap(rooms);
+    }
+
+    /** Abre a sala; aceita papeis docente/admin e aliases legados em ingles (teacher/moderator). */
+    public synchronized boolean abrirSala(String roomCode, String role, String name) {
+        String normalizedRole = role != null ? role.trim().toLowerCase(Locale.ROOT) : "";
+        if (!"docente".equals(normalizedRole) && !"teacher".equals(normalizedRole)
+                && !"admin".equals(normalizedRole) && !"moderator".equals(normalizedRole)) {
+            return false;
+        }
+        Room r = obterOuCriarSala(roomCode);
+        r.isOpen = true;
+        r.openedByRole = normalizedRole;
+        r.openedByName = name != null ? name : "Docente Responsavel";
+        r.openedAt = System.currentTimeMillis();
+        r.closedAt = 0;
+        return true;
+    }
+
+    /** Fecha a sala e carimba leftAt em todos os participantes ainda conectados (presenca final). */
+    public synchronized boolean fecharSala(String roomCode, String role) {
+        Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
+        if (r == null || !r.isOpen) return false;
+        r.isOpen = false;
+        r.closedAt = System.currentTimeMillis();
+        for (Participant p : r.activeParticipants.values()) {
+            p.leftAt = r.closedAt;
+        }
+        return true;
+    }
+
+    /**
+     * Registra entrada: docente/admin abrem a sala implicitamente se fechada; aluno e recusado.
+     * Cria participante + historico + caixa de sinalizacao e notifica os demais via peer-joined.
+     */
+    public synchronized boolean entrarNaSala(String roomCode, String ra, String name, String role) {
+        Room r = obterOuCriarSala(roomCode);
+        String normalizedRole = role != null ? role.trim().toLowerCase(Locale.ROOT) : "aluno";
+        if (!r.isOpen) {
+            if ("docente".equals(normalizedRole) || "admin".equals(normalizedRole)) {
+                abrirSala(roomCode, normalizedRole, name);
+            } else {
+                return false;
+            }
+        }
+        Participant p = new Participant(ra, name, normalizedRole);
+        r.activeParticipants.put(ra, p);
+        r.attendanceHistory.add(p);
+        r.peerSignalQueues.putIfAbsent(ra, new ConcurrentLinkedQueue<SignalingMessage>());
+        for (String otherRa : r.activeParticipants.keySet()) {
+            if (!otherRa.equals(ra)) {
+                enviarSinalizacao(roomCode, ra, otherRa, "peer-joined",
+                        "{\"ra\":\"" + ra + "\",\"name\":\"" + name + "\",\"role\":\"" + normalizedRole + "\"}");
+            }
+        }
+        return true;
+    }
+
+    /** Remove o participante (carimba leftAt), limpa fila de mao/caixa de sinais e avisa peer-left. */
+    public synchronized void sairDaSala(String roomCode, String ra) {
+        Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
+        if (r == null) return;
+        Participant p = r.activeParticipants.remove(ra);
+        if (p != null) {
+            p.leftAt = System.currentTimeMillis();
+        }
+        r.handRaiseQueue.remove(ra);
+        r.peerSignalQueues.remove(ra);
+        for (String otherRa : r.activeParticipants.keySet()) {
+            enviarSinalizacao(roomCode, ra, otherRa, "peer-left", "{\"ra\":\"" + ra + "\"}");
+        }
+    }
+
+    /** Enfileira sinalizacao na caixa do destinatario (entregue no proximo poll HTTP). */
+    public void enviarSinalizacao(String roomCode, String fromRa, String toRa, String type, String data) {
+        Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
+        if (r == null) return;
+        Queue<SignalingMessage> queue = r.peerSignalQueues.get(toRa);
+        if (queue != null) {
+            queue.add(new SignalingMessage(fromRa, toRa, type, data));
+        }
+    }
+
+    /** DRENA a caixa de sinalizacao do RA (poll do cliente legado): cada mensagem sai uma unica vez. */
+    public List<SignalingMessage> buscarSinalizacoes(String roomCode, String ra) {
+        Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
+        if (r == null) return Collections.emptyList();
+        Queue<SignalingMessage> queue = r.peerSignalQueues.get(ra);
+        if (queue == null) return Collections.emptyList();
+        List<SignalingMessage> messages = new ArrayList<SignalingMessage>();
+        SignalingMessage msg;
+        while ((msg = queue.poll()) != null) {
+            messages.add(msg);
+        }
+        return messages;
+    }
+
+    /** Levanta/abaixa a mao mantendo a fila FIFO sem duplicatas (ordem de chegada das perguntas). */
+    public synchronized boolean alternarMaoLevantada(String roomCode, String ra, boolean levantar) {
+        Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
+        if (r == null) return false;
+        Participant p = r.activeParticipants.get(ra);
+        if (p == null) return false;
+        p.isHandRaised = levantar;
+        if (levantar) {
+            p.handRaisedAt = System.currentTimeMillis();
+            if (!r.handRaiseQueue.contains(ra)) {
+                r.handRaiseQueue.add(ra);
+            }
+        } else {
+            r.handRaiseQueue.remove(ra);
+        }
+        return true;
+    }
+
+    /** Acrescenta mensagem ao historico de chat da sala (append-only em memoria). */
+    public synchronized void adicionarMensagemChat(
+            String roomCode, String senderRa, String senderName, String senderRole, String text) {
+        Room r = rooms.get(roomCode.trim().toUpperCase(Locale.ROOT));
+        if (r == null) return;
+        r.chatHistory.add(new ChatMessage(senderRa, senderName, senderRole, text));
+    }
+}

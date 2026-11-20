@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/widgets/create_assignment_modal.dart';

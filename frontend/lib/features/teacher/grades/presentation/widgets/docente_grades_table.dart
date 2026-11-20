@@ -293,6 +293,11 @@ class DocenteGradesTable extends StatelessWidget {
     String label;
 
     switch (status) {
+      case AcademicStatus.semNotas:
+        bg = const Color(0xFFF4F4F5);
+        fg = const Color(0xFF52525B);
+        label = 'Em Curso';
+        break;
       case AcademicStatus.aprovado:
         bg = const Color(0xFFECFDF5);
         fg = DocenteColors.emerald;

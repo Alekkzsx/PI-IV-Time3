@@ -188,7 +188,11 @@ class AcademicModalDialog extends StatelessWidget {
                                     )
                                   : Text(
                                       confirmLabel,
-                                      style: jakarta(size: 13.5, weight: FontWeight.w600),
+                                      style: jakarta(
+                                        size: 13.5,
+                                        weight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
                                     ),
                             ),
                           ],

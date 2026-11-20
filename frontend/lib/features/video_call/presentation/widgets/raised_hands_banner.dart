@@ -45,7 +45,9 @@ class RaisedHandsBanner extends StatelessWidget {
                     child: Chip(
                       key: Key('queue_item_${item.peerId}'),
                       backgroundColor: VideoCallColors.surface,
-                      side: const BorderSide(color: VideoCallColors.borderStrong),
+                      side: const BorderSide(
+                        color: VideoCallColors.borderStrong,
+                      ),
                       label: Text(
                         '${item.name} (${item.ra})',
                         style: const TextStyle(

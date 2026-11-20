@@ -23,12 +23,16 @@ class ToggleMediaStateUseCase {
   }) async {
     final cleanRoomId = roomId.trim();
     if (cleanRoomId.isEmpty) {
-      throw const VideoCallValidationException('Identificador da sala não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador da sala não pode ser vazio.',
+      );
     }
 
     final cleanPeerId = peerId.trim();
     if (cleanPeerId.isEmpty) {
-      throw const VideoCallValidationException('Identificador do participante não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador do participante não pode ser vazio.',
+      );
     }
 
     if (isAudioMuted == null &&

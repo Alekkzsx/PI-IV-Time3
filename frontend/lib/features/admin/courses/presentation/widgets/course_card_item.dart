@@ -1,15 +1,25 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/courses/presentation/widgets/course_matrix_syllabus_modal.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/data/admin_academic_data_source.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Card descritivo de um Curso com carga horária, fórmula e botão de matriz
 class CourseCardItem extends StatelessWidget {
   final AdminCourseModel course;
+  final VoidCallback? onUpdated;
+  final VoidCallback? onEdit;
+  final AdminAcademicDataSource? dataSource;
 
-  const CourseCardItem({super.key, required this.course});
+  const CourseCardItem({
+    super.key,
+    required this.course,
+    this.onUpdated,
+    this.onEdit,
+    this.dataSource,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,24 +57,42 @@ class CourseCardItem extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFE4E4E7)),
-                ),
-                child: Text(
-                  course.modality,
-                  style: jakarta(
-                    size: 12,
-                    weight: FontWeight.w600,
-                    color: const Color(0xFF737373),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFE4E4E7)),
+                    ),
+                    child: Text(
+                      course.modality,
+                      style: jakarta(
+                        size: 12,
+                        weight: FontWeight.w600,
+                        color: const Color(0xFF737373),
+                      ),
+                    ),
                   ),
-                ),
+                  if (onEdit != null) ...[
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: 'Editar dados do curso',
+                      onPressed: onEdit,
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        size: 17,
+                        color: Color(0xFF18181B),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -151,7 +179,12 @@ class CourseCardItem extends StatelessWidget {
 
           // Botão Consultar Matriz Curricular & Ementário
           InkWell(
-            onTap: () => CourseMatrixSyllabusModal.show(context, course),
+            onTap: () => CourseMatrixSyllabusModal.show(
+              context,
+              course,
+              onUpdated: onUpdated,
+              dataSource: dataSource,
+            ),
             borderRadius: BorderRadius.circular(8),
             child: Container(
               width: double.infinity,

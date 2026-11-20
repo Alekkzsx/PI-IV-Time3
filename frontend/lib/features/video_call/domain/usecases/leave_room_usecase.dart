@@ -12,18 +12,19 @@ class LeaveRoomUseCase {
   /// Validações defensivas executadas:
   /// - `roomId`: não vazio.
   /// - `peerId`: não vazio.
-  Future<void> call({
-    required String roomId,
-    required String peerId,
-  }) async {
+  Future<void> call({required String roomId, required String peerId}) async {
     final cleanRoomId = roomId.trim();
     if (cleanRoomId.isEmpty) {
-      throw const VideoCallValidationException('Identificador da sala não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador da sala não pode ser vazio.',
+      );
     }
 
     final cleanPeerId = peerId.trim();
     if (cleanPeerId.isEmpty) {
-      throw const VideoCallValidationException('Identificador do participante não pode ser vazio.');
+      throw const VideoCallValidationException(
+        'Identificador do participante não pode ser vazio.',
+      );
     }
 
     try {

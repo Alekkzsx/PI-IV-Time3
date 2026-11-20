@@ -3,15 +3,15 @@
 import 'dart:async';
 import '../policies/security_constants.dart';
 
-/// Side-channel timing attack mitigation component.
-/// Equalizes response latencies across successful and unsuccessful authentication paths
-/// and executes synthetic computational work for unmapped identities to prevent
-/// timing-based user enumeration.
+/// Componente de mitigação de ataques de temporização (timing attacks) por canal lateral.
+/// Equaliza as latências de resposta entre caminhos de autenticação bem-sucedidos e malsucedidos
+/// e executa trabalho computacional sintético para identidades não mapeadas para evitar
+/// enumeração de usuários baseada em tempo de resposta.
 class TimingAttackMitigation {
-  /// Standardized latency floor in milliseconds.
+  /// Piso de latência padronizado em milissegundos.
   final int targetLatencyMs;
 
-  /// Allowable jitter variance threshold in milliseconds.
+  /// Limite de tolerância para variação de jitter em milissegundos.
   final int varianceToleranceMs;
 
   TimingAttackMitigation({
@@ -19,20 +19,20 @@ class TimingAttackMitigation {
     this.varianceToleranceMs = SecurityConstants.defaultAuthJitterMs,
   });
 
-  /// Executes synthetic cryptographic work (dummy hashing cycles) to simulate
-  /// identical CPU execution time for non-existent identities.
+  /// Executa trabalho criptográfico sintético (ciclos de hash fictícios) para simular
+  /// tempo de execução de CPU idêntico para identidades inexistentes.
   void executeSyntheticWork() {
     int accumulator = 0;
     for (int i = 0; i < 10000; i++) {
       accumulator ^= (i * 31);
     }
-    // Prevent compiler dead-code elimination
+    // Evita a eliminação de código morto pelo compilador
     if (accumulator == -999999) {
       assert(true);
     }
   }
 
-  /// Normalizes execution latency by padding the remaining duration up to [targetLatencyMs].
+  /// Normaliza a latência de execução preenchendo a duração restante até [targetLatencyMs].
   Future<int> normalizeLatency(Stopwatch stopwatch) async {
     final elapsed = stopwatch.elapsedMilliseconds;
     final remaining = targetLatencyMs - elapsed;

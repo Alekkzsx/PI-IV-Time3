@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/teacher/shared/domain/models/attendance_record.dart';
+import 'package:pi_iv_time3/features/teacher/shared/utils/academic_session_date_picker.dart';
+import 'components/session_picker_card_tile.dart';
+import 'components/session_picker_filter_chips.dart';
 
 /// Modal institucional para o professor visualizar e selecionar a data/aula letiva da turma.
 /// Respeita estritamente o calendário de dias de aula da disciplina (ex: Segundas e Quartas).
@@ -21,34 +23,12 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
 
   Future<void> _openInteractiveCalendar() async {
     final course = widget.controller.selectedCourse;
-    final allowedWeekdays = course.classWeekdays;
     final currentSession = widget.controller.currentSession;
 
-    final picked = await showDatePicker(
+    final picked = await showAcademicSessionDatePicker(
       context: context,
       initialDate: currentSession.sessionDate,
-      firstDate: DateTime(2026, 8, 1),
-      lastDate: DateTime(2026, 12, 20),
-      helpText: 'CALENDÁRIO DA TURMA (${course.classDaysLabel.toUpperCase()})',
-      confirmText: 'SELECIONAR AULA',
-      cancelText: 'CANCELAR',
-      selectableDayPredicate: (DateTime day) {
-        // Apenas dias em que a turma tem aula são selecionáveis
-        return allowedWeekdays.contains(day.weekday);
-      },
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF18181B),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF18181B),
-            ),
-          ),
-          child: child!,
-        );
-      },
+      course: course,
     );
 
     if (picked != null && mounted) {
@@ -92,7 +72,7 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header do Modal
+              // Cabeçalho do Modal
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -181,21 +161,13 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
               ),
               const SizedBox(height: 16),
 
-              // Filter Chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildFilterChip(0, 'Todas (${sessions.length})'),
-                  _buildFilterChip(
-                    1,
-                    'Homologadas (${sessions.where((s) => s.isHomologated).length})',
-                  ),
-                  _buildFilterChip(
-                    2,
-                    'Aguardando (${sessions.where((s) => !s.isHomologated).length})',
-                  ),
-                ],
+              // Chips de Filtro
+              SessionPickerFilterChips(
+                selectedIndex: _filterIndex,
+                totalCount: sessions.length,
+                homologatedCount: sessions.where((s) => s.isHomologated).length,
+                pendingCount: sessions.where((s) => !s.isHomologated).length,
+                onSelected: (idx) => setState(() => _filterIndex = idx),
               ),
               const SizedBox(height: 16),
 
@@ -218,13 +190,31 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
                           final s = filteredSessions[index];
                           final isSelected = s.id == activeSession.id;
 
-                          return _buildSessionCard(s, isSelected);
+                          return SessionPickerCardTile(
+                            session: s,
+                            isSelected: isSelected,
+                            onTap: () {
+                              widget.controller.selectSession(s.id);
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context)
+                                ..removeCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Aula Nº ${s.sessionNumber} selecionada com sucesso!',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                            },
+                          );
                         },
                       ),
               ),
               const SizedBox(height: 18),
 
-              // Footer com Botão de Abertura do Calendário Restritivo
+              // Rodapé com Botão de Abertura do Calendário Restritivo
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -280,175 +270,6 @@ class _ClassSessionPickerModalState extends State<ClassSessionPickerModal> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(int index, String label) {
-    final isSelected = _filterIndex == index;
-
-    return InkWell(
-      onTap: () => setState(() => _filterIndex = index),
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF18181B) : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF18181B)
-                : const Color(0xFFE4E4E7),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF71717A),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSessionCard(ClassSession s, bool isSelected) {
-    return InkWell(
-      onTap: () {
-        widget.controller.selectSession(s.id);
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(
-                'Aula Nº ${s.sessionNumber} selecionada com sucesso!',
-              ),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFBFBFC) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF18181B)
-                : const Color(0xFFE4E4E7),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            // Círculo com o número da aula
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? const Color(0xFF18181B)
-                    : const Color(0xFFF4F4F5),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Center(
-                child: Text(
-                  '${s.sessionNumber}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : const Color(0xFF18181B),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-
-            // Informações da Aula
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      Text(
-                        s.dateFormatted,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF09090B),
-                        ),
-                      ),
-                      if (isSelected)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF18181B),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'EM EXIBIÇÃO',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    s.contentProgram,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: Color(0xFF71717A),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Status Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: s.isHomologated
-                    ? const Color(0xFFECFDF5)
-                    : const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: s.isHomologated
-                      ? const Color(0xFFA7F3D0)
-                      : const Color(0xFFFDE68A),
-                ),
-              ),
-              child: Text(
-                s.isHomologated ? 'Homologada' : 'Aguardando',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: s.isHomologated
-                      ? const Color(0xFF16A34A)
-                      : const Color(0xFFD97706),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

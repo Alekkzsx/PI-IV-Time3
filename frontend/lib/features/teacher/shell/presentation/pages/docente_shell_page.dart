@@ -1,6 +1,9 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/teacher/assignments/presentation/pages/docente_assignments_tab.dart';
 import 'package:pi_iv_time3/features/teacher/calendar/presentation/pages/docente_calendar_tab.dart';
 import 'package:pi_iv_time3/features/teacher/courses/presentation/pages/docente_course_hub_page.dart';
@@ -11,16 +14,20 @@ import 'package:pi_iv_time3/features/teacher/grades/presentation/pages/docente_g
 import 'package:pi_iv_time3/features/teacher/messages/presentation/pages/docente_messages_tab.dart';
 import 'package:pi_iv_time3/features/teacher/settings/presentation/pages/docente_settings_tab.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
-import 'package:pi_iv_time3/features/teacher/shared/theme/docente_colors.dart';
 import '../widgets/docente_header.dart';
 import '../widgets/docente_sidebar.dart';
 
-/// Main navigation shell for the Docente Portal providing sidebar, header, and reactive tab rendering.
+/// Shell de navegação principal do Portal Docente, fornecendo barra lateral, cabeçalho e renderização reativa de abas.
 class DocenteShellPage extends StatefulWidget {
-  /// Optional initial tab.
+  /// Aba inicial opcional.
   final DocenteNavTab initialTab;
+  final DocenteController? controller;
 
-  const DocenteShellPage({super.key, this.initialTab = DocenteNavTab.painel});
+  const DocenteShellPage({
+    super.key,
+    this.initialTab = DocenteNavTab.painel,
+    this.controller,
+  });
 
   @override
   State<DocenteShellPage> createState() => _DocenteShellPageState();
@@ -29,11 +36,13 @@ class DocenteShellPage extends StatefulWidget {
 class _DocenteShellPageState extends State<DocenteShellPage> {
   late final DocenteController _controller;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final Map<DocenteNavTab, Widget> _tabsCache = {};
 
   @override
   void initState() {
     super.initState();
-    _controller = DocenteController();
+    _controller = widget.controller ?? DocenteController();
+    if (widget.controller == null) unawaited(_controller.loadRemote());
     if (widget.initialTab != DocenteNavTab.painel) {
       _controller.navigateToTab(widget.initialTab);
     }
@@ -41,7 +50,7 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (widget.controller == null) _controller.dispose();
     super.dispose();
   }
 
@@ -58,39 +67,45 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
   }
 
   void _openVideoCall() {
-    Navigator.of(context).pushNamed('/video-call');
+    final course = _controller.selectedCourse;
+    Navigator.of(
+      context,
+    ).pushNamed('/video-call', arguments: {'roomCode': course.code});
   }
 
   void _logout() {
-    Navigator.of(context).pushReplacementNamed('/');
+    AppUserSession.instance.logout();
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
   }
 
   Widget _buildCurrentTab(DocenteNavTab tab) {
-    switch (tab) {
-      case DocenteNavTab.painel:
-        return DocenteDashboardTab(
-          controller: _controller,
-          onOpenVideoCall: _openVideoCall,
-          onOpenCourseHub: _openCourseHub,
-        );
-      case DocenteNavTab.turmas:
-        return DocenteCoursesTab(
-          controller: _controller,
-          onOpenCourseHub: _openCourseHub,
-        );
-      case DocenteNavTab.diario:
-        return DocenteDiaryTab(controller: _controller);
-      case DocenteNavTab.atividades:
-        return DocenteAssignmentsTab(controller: _controller);
-      case DocenteNavTab.notas:
-        return DocenteGradesTab(controller: _controller);
-      case DocenteNavTab.agenda:
-        return DocenteCalendarTab(controller: _controller);
-      case DocenteNavTab.comunicados:
-        return DocenteMessagesTab(controller: _controller);
-      case DocenteNavTab.configuracoes:
-        return DocenteSettingsTab(controller: _controller);
-    }
+    return _tabsCache.putIfAbsent(tab, () {
+      switch (tab) {
+        case DocenteNavTab.painel:
+          return DocenteDashboardTab(
+            controller: _controller,
+            onOpenVideoCall: _openVideoCall,
+            onOpenCourseHub: _openCourseHub,
+          );
+        case DocenteNavTab.turmas:
+          return DocenteCoursesTab(
+            controller: _controller,
+            onOpenCourseHub: _openCourseHub,
+          );
+        case DocenteNavTab.diario:
+          return DocenteDiaryTab(controller: _controller);
+        case DocenteNavTab.atividades:
+          return DocenteAssignmentsTab(controller: _controller);
+        case DocenteNavTab.notas:
+          return DocenteGradesTab(controller: _controller);
+        case DocenteNavTab.agenda:
+          return DocenteCalendarTab(controller: _controller);
+        case DocenteNavTab.comunicados:
+          return DocenteMessagesTab(controller: _controller);
+        case DocenteNavTab.configuracoes:
+          return DocenteSettingsTab(controller: _controller);
+      }
+    });
   }
 
   @override
@@ -98,13 +113,93 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        if (_controller.isLoadingRemote && _controller.courses.isEmpty) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (_controller.remoteError != null && _controller.courses.isEmpty) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              title: const Text('Portal Docente'),
+              actions: [
+                TextButton.icon(
+                  onPressed: _logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sair'),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_controller.remoteError!, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          unawaited(_controller.loadRemote(force: true)),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         return LayoutBuilder(
           builder: (context, constraints) {
+            if (_controller.courses.isEmpty) {
+              return Scaffold(
+                backgroundColor: Colors.white,
+                appBar: AppBar(
+                  title: const Text('Portal Docente'),
+                  actions: [
+                    TextButton.icon(
+                      onPressed: _logout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sair'),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ),
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Nenhuma turma está vinculada a esta matrícula docente.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed('/video-call'),
+                          icon: const Icon(Icons.video_call_outlined),
+                          label: const Text('Acessar videochamada da turma'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
             final isDesktop = constraints.maxWidth >= 1000;
 
             return Scaffold(
               key: _scaffoldKey,
-              backgroundColor: DocenteColors.offWhite,
+              backgroundColor: Colors.white,
               drawer: isDesktop
                   ? null
                   : Drawer(
@@ -112,31 +207,51 @@ class _DocenteShellPageState extends State<DocenteShellPage> {
                       backgroundColor: Colors.white,
                       child: DocenteSidebar(
                         controller: _controller,
+                        onTabSelected: (_) => Navigator.of(context).pop(),
                         onLogout: () {
                           Navigator.of(context).pop();
                           _logout();
                         },
                       ),
                     ),
-              body: Row(
+              body: Stack(
                 children: [
-                  if (isDesktop)
-                    DocenteSidebar(controller: _controller, onLogout: _logout),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        DocenteHeader(
-                          controller: _controller,
-                          onOpenDrawer: isDesktop
-                              ? null
-                              : () => _scaffoldKey.currentState?.openDrawer(),
+                  Row(
+                    children: [
+                      if (isDesktop)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          width: _controller.isSidebarCollapsed ? 76.0 : 280.0,
                         ),
-                        Expanded(
-                          child: _buildCurrentTab(_controller.activeTab),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            DocenteHeader(
+                              controller: _controller,
+                              onOpenDrawer: isDesktop
+                                  ? null
+                                  : () =>
+                                      _scaffoldKey.currentState?.openDrawer(),
+                            ),
+                            Expanded(
+                              child: _buildCurrentTab(_controller.activeTab),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  if (isDesktop)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: DocenteSidebar(
+                        controller: _controller,
+                        onLogout: _logout,
+                      ),
+                    ),
                 ],
               ),
             );

@@ -1,18 +1,19 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import '../../../../../core/network/authenticated_api_client.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_dossier_modal.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_filter_bar.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_form_modal.dart';
-import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_impersonation_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_list_table.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_reset_password_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_sessions_dialog.dart';
 import 'package:pi_iv_time3/features/admin/users/presentation/widgets/user_suspension_dialog.dart';
+import '../widgets/user_edit_dialog.dart';
 
 /// Tela de Gestão de Usuários & Controle de Acessos da Visão do Administrador.
 /// Refatorada e modularizada com componentes desacoplados em `widgets/`.
@@ -49,20 +50,45 @@ class _UsersPageState extends State<UsersPage> {
       context: context,
       onUserCreated:
           ({
+            required String identity,
+            required String password,
             required String name,
             required String email,
             required String profile,
             required String department,
             required bool require2FA,
-          }) {
-            _controller.addUser(
-              name: name,
-              email: email,
-              profile: profile,
-              department: department,
-              require2FA: require2FA,
+          }) async {
+            final ok = await _controller.persist(
+              () => _controller.remote.request('POST', '/users', {
+                'identity': identity,
+                'password': password,
+                'displayName': name,
+                'email': email,
+                'profile': profile,
+                'departmentOrCourse': department,
+                'twoFactorRequired': require2FA,
+              }),
             );
+            if (!ok) {
+              throw ApiException(
+                _controller.remoteError ?? 'Não foi possível cadastrar.',
+              );
+            }
           },
+    );
+  }
+
+  Future<void> _perform(Future<bool> action, String message) async {
+    final ok = await action;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? message
+              : _controller.remoteError ?? 'Não foi possível concluir.',
+        ),
+      ),
     );
   }
 
@@ -70,31 +96,12 @@ class _UsersPageState extends State<UsersPage> {
     UserResetPasswordDialog.show(
       context: context,
       user: u,
-      onConfirm: () => _controller.resetUserPasswordAdvanced(
-        u.id,
-        forceNextLogin: true,
-        sendRecoveryEmail: true,
-        revokeActiveSessions: true,
-      ),
-    );
-  }
-
-  void _showImpersonateDialog(BuildContext context, AdminUserModel u) {
-    UserImpersonationDialog.show(
-      context: context,
-      user: u,
-      onConfirm: () {
-        _controller.impersonateUser(u);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Modo Suporte ativado para ${u.name}. Visualização auditada sob LGPD iniciada.',
-              style: jakarta(size: 13, color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFF1E3A8A),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      onConfirm: () async {
+        if (!await _controller.persistResetPassword(u.id)) {
+          throw ApiException(
+            _controller.remoteError ?? 'Falha ao solicitar recuperação.',
+          );
+        }
       },
     );
   }
@@ -103,19 +110,10 @@ class _UsersPageState extends State<UsersPage> {
     UserSessionsDialog.show(
       context: context,
       user: u,
-      onTerminateAll: () {
-        _controller.terminateUserSessions(u.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Todas as sessões ativas de ${u.name} foram revogadas com sucesso.',
-              style: jakarta(size: 13, color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFFDC2626),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onTerminateAll: () => _perform(
+        _controller.persistRevokeSessions(u.id),
+        'Sessões revogadas.',
+      ),
     );
   }
 
@@ -123,32 +121,26 @@ class _UsersPageState extends State<UsersPage> {
     UserSuspensionDialog.show(
       context: context,
       user: u,
-      onConfirm: (reason, willSuspend) {
-        _controller.suspendUserWithReason(
-          u.id,
-          reason: reason,
-          suspend: willSuspend,
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              willSuspend
-                  ? 'Acesso de ${u.name} bloqueado administrativamente.'
-                  : 'Acesso de ${u.name} reativado com sucesso.',
-              style: jakarta(size: 13, color: Colors.white),
-            ),
-            backgroundColor: willSuspend
-                ? const Color(0xFFDC2626)
-                : const Color(0xFF059669),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
+      onConfirm: (reason, suspend) => _perform(
+        _controller.persistUserStatus(u.id, active: !suspend, reason: reason),
+        suspend ? 'Usuário suspenso.' : 'Usuário reativado.',
+      ),
     );
   }
 
-  void _showDossierModal(BuildContext context, AdminUserModel u) {
-    UserDossierModal.show(context: context, user: u);
+  Future<void> _showDossierModal(BuildContext context, AdminUserModel u) async {
+    try {
+      final dossier = await _controller.remote.dossier(u.id);
+      if (context.mounted) {
+        UserDossierModal.show(context: context, user: u, dossier: dossier);
+      }
+    } on ApiException catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
   }
 
   @override
@@ -156,7 +148,6 @@ class _UsersPageState extends State<UsersPage> {
     final filteredList = _controller.filteredUsers;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1100;
-    final impersonated = _controller.activeImpersonatedUser;
 
     return Container(
       color: Colors.white,
@@ -172,74 +163,6 @@ class _UsersPageState extends State<UsersPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Banner de Impersonation / Modo Suporte se Ativo
-                      if (impersonated != null) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          color: const Color(0xFF1E3A8A),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.visibility_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'MODO SUPORTE ATIVO: Visualizando contexto acadêmico como ${impersonated.name} (${impersonated.id} - ${impersonated.profile}). Sessão de diagnóstico com trilha auditada.',
-                                  style: jakarta(
-                                    size: 12.5,
-                                    color: Colors.white,
-                                    weight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              OutlinedButton(
-                                onPressed: () {
-                                  _controller.exitImpersonation();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Modo Suporte encerrado. Retornado ao controle administrativo pleno.',
-                                        style: jakarta(
-                                          size: 13,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      backgroundColor: const Color(0xFF0F172A),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white70),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Encerrar Modo Espelho',
-                                  style: jakarta(
-                                    size: 12,
-                                    weight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: isDesktop ? 48.0 : 20.0,
@@ -266,13 +189,22 @@ class _UsersPageState extends State<UsersPage> {
 
                             // Tabela Institucional de Usuários com Ações Expandidas
                             UserListTable(
+                              onEdit: (user) =>
+                                  showUserEditDialog(context, user),
                               users: filteredList,
                               onResetPassword: (u) =>
                                   _showResetSenhaDialog(context, u),
-                              onToggleStatus: (id) =>
-                                  _controller.toggleUserStatus(id),
-                              onImpersonate: (u) =>
-                                  _showImpersonateDialog(context, u),
+                              onToggleStatus: (id) => _perform(
+                                _controller.persistUserStatus(
+                                  id,
+                                  active:
+                                      _controller.users
+                                          .firstWhere((u) => u.id == id)
+                                          .status !=
+                                      'Ativo',
+                                ),
+                                'Status atualizado.',
+                              ),
                               onManageSessions: (u) =>
                                   _showManageSessionsDialog(context, u),
                               onSuspendWithReason: (u) =>

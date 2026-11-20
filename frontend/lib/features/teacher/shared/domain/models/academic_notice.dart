@@ -1,14 +1,14 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+﻿// Desenvolvido por Murillo Caravita - RA: 25014012
 
-/// Classification of academic announcements.
+/// Classificação dos comunicados acadêmicos.
 enum NoticeClassification { informativo, urgencia, convocacao }
 
-/// Represents an institutional or class-targeted notice.
+/// Representa um comunicado institucional ou direcionado à turma.
 class AcademicNotice {
   final String id;
   final String author;
   final String targetCourse;
-  final String targetAudience; // e.g., 'Turma B (Noturno)', 'Toda a Turma'
+  final String targetAudience; // ex.: 'Turma B (Noturno)', 'Toda a Turma'
   final NoticeClassification classification;
   final String publishedAt;
   final String title;
@@ -34,7 +34,7 @@ class AcademicNotice {
   int get readPercentage =>
       totalRecipients == 0 ? 0 : ((readCount / totalRecipients) * 100).round();
 
-  /// Decimal percentage of students who acknowledged reading the notice (0.0 to 1.0).
+  /// Percentual decimal de discentes que confirmaram a leitura do comunicado (0.0 a 1.0).
   double get sciencePercentage =>
       totalRecipients == 0 ? 0.0 : readCount / totalRecipients;
 

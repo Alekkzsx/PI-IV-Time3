@@ -22,9 +22,9 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      // Set states
-      harness.peerA.toggleAudio(); // Muted
-      harness.peerA.toggleVideo(); // Video Off
+      // Define os estados
+      harness.peerA.toggleAudio(); // Silenciado
+      harness.peerA.toggleVideo(); // Vídeo desligado
 
       await tester.pumpWidget(
         MaterialApp(
@@ -33,7 +33,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Assert toolbar icons
+      // Verifica os ícones da barra de ferramentas
       expect(
         find.descendant(
           of: find.byKey(const Key('toolbar_audio_button')),
@@ -57,9 +57,9 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      // Set states
-      harness.peerA.toggleScreenShare(); // Screen share active
-      harness.peerA.toggleChatDrawer(); // Chat drawer open
+      // Define os estados
+      harness.peerA.toggleScreenShare(); // Compartilhamento de tela ativo
+      harness.peerA.toggleChatDrawer(); // Gaveta do chat aberta
 
       await tester.pumpWidget(
         MaterialApp(
@@ -154,7 +154,7 @@ void main() {
 
     test('Toolbar actions mutate states cleanly and broadcast updates to peer',
         () {
-      // Toggle video off
+      // Desativa o vídeo
       harness.peerA.toggleVideo();
 
       final peerAOnRemote = harness.peerB.remoteParticipants.firstWhere(
@@ -162,7 +162,7 @@ void main() {
       );
       expect(peerAOnRemote.isVideoOff, isTrue);
 
-      // Toggle audio off
+      // Desativa o áudio
       harness.peerA.toggleAudio();
 
       final peerAOnRemote2 = harness.peerB.remoteParticipants.firstWhere(
@@ -170,7 +170,7 @@ void main() {
       );
       expect(peerAOnRemote2.isAudioMuted, isTrue);
 
-      // Toggle screen share
+      // Alterna o compartilhamento de tela
       harness.peerA.toggleScreenShare();
 
       final peerAOnRemote3 = harness.peerB.remoteParticipants.firstWhere(

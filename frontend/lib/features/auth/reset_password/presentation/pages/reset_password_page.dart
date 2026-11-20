@@ -6,6 +6,7 @@ import '../../../../../shared/widgets/recovery_footer_links.dart';
 import '../../../../../shared/widgets/top_header_bar.dart';
 import '../../../shared/domain/models/recovery_session.dart';
 import '../../../shared/domain/auth_repository.dart';
+import '../../../shared/external/auth_remote_datasource_impl.dart';
 import '../widgets/academic_identity_card.dart';
 import '../widgets/password_reset_field.dart';
 import '../widgets/password_strength_indicator.dart';
@@ -38,7 +39,7 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   /// Comprimento mínimo exigido para a nova senha.
-  static const int _minPasswordLength = 6;
+  static const int _minPasswordLength = 8;
 
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -86,7 +87,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (password.length < _minPasswordLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('A senha deve ter pelo menos 6 caracteres.'),
+          content: Text('A senha deve ter pelo menos 8 caracteres.'),
           backgroundColor: Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
         ),
@@ -113,7 +114,22 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       await widget.repository.resetPassword(
         identity: session.identity,
         newPassword: password,
+        resetToken: session.resetToken,
       );
+    } on AuthApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      final msg = error.statusCode == 503 || error.statusCode == 504
+          ? error.message
+          : 'Não foi possível atualizar a senha. Tente novamente.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSaving = false);

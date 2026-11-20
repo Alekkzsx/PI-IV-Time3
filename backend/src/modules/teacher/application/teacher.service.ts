@@ -1,0 +1,584 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+import { ObjectId, type Db, type Document } from "mongodb";
+import { AuthError } from "../../../shared/auth-error.js";
+import { TeacherClassAccess } from "./teacher-class-access.js";
+import { TeacherCommunicationService } from "./teacher-communication.service.js";
+import { TeacherDashboardRepository } from "./teacher-dashboard.repository.js";
+import { formatPtBrLongDate, formatShortDate } from "../../../shared/formatting/date-formatters.js";
+import {
+  extractClassCodeCandidates,
+  resolveInstitutionalThresholds,
+} from "../../../shared/academic/grade-formula.js";
+import {
+  mapTeacherEvents,
+  mapTeacherCourses,
+  mapTeacherDashboardOverview,
+  mapTeacherNotices,
+  mapTeacherProfile,
+  mapTeacherProtocols,
+  mapTeacherAssignments,
+  mapTeacherGrades,
+} from "./teacher-dashboard.mapper.js";
+import { TeacherMaterialService } from "./teacher-material.service.js";
+import { TeacherSessionService, type SessionAttendanceUpdate } from "./teacher-session.service.js";
+import { TeacherGradebookService } from "./gradebook/index.js";
+import { TeacherAssignmentService } from "./assignments/index.js";
+import { createDefaultSyllabusUnits, TeacherSyllabusService } from "./syllabus/index.js";
+import type { UnifiedEmailService } from "../../notifications/domain/notification.types.js";
+import {
+  dispatchNotificationSafe,
+  resolveActiveRegisteredRecipientById,
+} from "../../notifications/domain/recipient-guard.js";
+
+export { formatPtBrLongDate, formatShortDate } from "../../../shared/formatting/date-formatters.js";
+
+export class TeacherService {
+  private readonly classAccess: TeacherClassAccess;
+  private readonly communicationService: TeacherCommunicationService;
+  private readonly dashboardRepository: TeacherDashboardRepository;
+  private readonly materialService: TeacherMaterialService;
+  private readonly sessionService: TeacherSessionService;
+  private readonly gradebookService: TeacherGradebookService;
+  private readonly assignmentService: TeacherAssignmentService;
+  private readonly syllabusService: TeacherSyllabusService;
+
+  constructor(
+    private readonly database: Db,
+    private readonly emailService?: UnifiedEmailService,
+  ) {
+    this.classAccess = new TeacherClassAccess(database);
+    this.communicationService = new TeacherCommunicationService(database, this.classAccess, emailService);
+    this.dashboardRepository = new TeacherDashboardRepository(database, this.classAccess);
+    this.materialService = new TeacherMaterialService(database, this.classAccess);
+    this.sessionService = new TeacherSessionService(database, this.classAccess);
+    this.gradebookService = new TeacherGradebookService(database, this.classAccess, emailService);
+    this.assignmentService = new TeacherAssignmentService(database, this.classAccess, emailService);
+    this.syllabusService = new TeacherSyllabusService(database, this.classAccess);
+  }
+
+  private defaultSyllabusUnits(subjectName: string) {
+    return createDefaultSyllabusUnits(subjectName);
+  }
+
+  async getBootstrap(userId: string, user: Document, currentSessionId?: string) {
+    const {
+      classes,
+      classCodes,
+      enrollments,
+      rawSessions,
+      rawAssignments,
+      rawSubmissions,
+      rawGrades,
+      rawMaterials,
+      rawForumTopics,
+      teacherEvents,
+      calendarEvents,
+      announcements,
+      protocols,
+      liveSessions,
+      activeSessions,
+      auditLogs,
+      adminSettings,
+    } = await this.dashboardRepository.load(userId, user);
+
+    const enrollmentsByClass = new Map<string, Document[]>();
+    for (const e of enrollments) {
+      const list = enrollmentsByClass.get(e.classCode) ?? [];
+      list.push(e);
+      enrollmentsByClass.set(e.classCode, list);
+    }
+
+    const materialsByClass = new Map<string, Document[]>();
+    for (const material of rawMaterials) {
+      const list = materialsByClass.get(material.classCode) ?? [];
+      list.push(material);
+      materialsByClass.set(material.classCode, list);
+    }
+
+    const forumByClass = new Map<string, Document[]>();
+    for (const topic of rawForumTopics) {
+      const list = forumByClass.get(topic.classCode) ?? [];
+      list.push(topic);
+      forumByClass.set(topic.classCode, list);
+    }
+
+    const mappedCourses = mapTeacherCourses({
+      classes,
+      enrollmentsByClass,
+      materialsByClass,
+      forumByClass,
+      liveSessions,
+      adminSettings,
+      user,
+      defaultSyllabusUnits: (subjectName) => this.defaultSyllabusUnits(subjectName),
+    });
+
+    // Calcula faltas acumuladas por aluno em cada turma
+    const absencesByClassStudent = new Map<string, number>();
+    for (const s of rawSessions) {
+      const list = Array.isArray(s.attendanceList) ? s.attendanceList : [];
+      const hours = Number(s.hours ?? 2);
+      for (const item of list) {
+        if (item.status === "ausente") {
+          const key = `${s.classCode}:${item.studentId}`;
+          absencesByClassStudent.set(key, (absencesByClassStudent.get(key) ?? 0) + hours);
+        }
+      }
+    }
+
+    // 2. Sessions / Diário de Classe (garante ao menos 1 sessão inicial por turma ativa para chamada imediata)
+    const mappedSessions: Record<string, unknown>[] = [];
+    for (const c of classes) {
+      const code = String(c.code);
+      const classEnrollments = enrollmentsByClass.get(code) ?? [];
+      const totalHours = Number(c.totalHours ?? 80);
+      const maxAbsences = Math.round(totalHours * 0.25);
+      const classSessions = rawSessions.filter((s) => s.classCode === code);
+
+      if (classSessions.length === 0) {
+        const now = new Date();
+        const seeded = {
+          classCode: code,
+          courseCode: c.courseCode,
+          sessionNumber: 1,
+          hours: 2,
+          startsAt: now,
+          endsAt: new Date(now.getTime() + 90 * 60 * 1000),
+          title: `Aula 01 - ${c.subjectName ?? c.courseName ?? code}`,
+          contentProgram: `Apresentação do plano de ensino, critérios de avaliação e introdução a ${c.subjectName ?? c.courseName ?? code}.`,
+          methodology: "Aula expositiva dialogada e alinhamento prático.",
+          location: String(c.location ?? "Sala Virtual"),
+          isHomologated: false,
+          attendanceList: classEnrollments.map((e) => ({
+            studentId: String(e.studentId),
+            ra: String(e.studentIdentity ?? ""),
+            name: String(e.displayName ?? e.studentIdentity ?? ""),
+            status: "presente",
+            accumulatedAbsences: 0,
+            maxAbsences,
+            attendanceRate: 100,
+            riskLevel: "regular",
+            isConnected: false,
+          })),
+          cancelled: false,
+          createdAt: now,
+          createdBy: userId,
+        };
+        const inserted = await this.database.collection("academic_class_sessions").insertOne(seeded);
+        classSessions.push({ _id: inserted.insertedId, ...seeded });
+      }
+
+      classSessions.forEach((s, idx) => {
+        const startDate = s.startsAt ? new Date(s.startsAt) : new Date();
+        const existingList = Array.isArray(s.attendanceList) ? s.attendanceList : [];
+        const byStudent = new Map(existingList.map((a: Document) => [String(a.studentId), a]));
+
+        const mergedAttendance = classEnrollments.map((e) => {
+          const sid = String(e.studentId);
+          const prev = byStudent.get(sid);
+          const excused = Number(e.excusedAbsences ?? 0);
+          const rawAbs = Math.max(0, (absencesByClassStudent.get(`${code}:${sid}`) ?? 0) - excused);
+          const rate = Number(Math.max(0, ((totalHours - rawAbs) / totalHours) * 100).toFixed(1));
+          const riskLevel = rate < 75 ? "critico" : rate < 82 ? "atencao" : "regular";
+          return {
+            studentId: sid,
+            ra: String(e.studentIdentity ?? prev?.ra ?? ""),
+            name: String(e.displayName ?? prev?.name ?? e.studentIdentity ?? ""),
+            status: String(prev?.status ?? "presente"),
+            accumulatedAbsences: rawAbs,
+            maxAbsences,
+            attendanceRate: rate,
+            riskLevel,
+            observation: prev?.observation ?? "",
+            isConnected: prev?.isConnected === true,
+          };
+        });
+
+        mappedSessions.push({
+          id: String(s._id),
+          courseId: code,
+          classCode: code,
+          sessionNumber: Number(s.sessionNumber ?? idx + 1),
+          hours: Number(s.hours ?? 2),
+          date: startDate.toISOString(),
+          dateFormatted: s.dateFormatted ?? formatPtBrLongDate(startDate),
+          contentProgram: String(s.contentProgram ?? s.title ?? ""),
+          methodology: String(s.methodology ?? "Aula expositiva dialogada e prática supervisionada."),
+          location: String(s.location ?? c.location ?? "Sala Virtual"),
+          isHomologated: s.isHomologated === true,
+          attendanceList: mergedAttendance,
+        });
+      });
+    }
+
+    const mappedAssignments = mapTeacherAssignments(rawAssignments, rawSubmissions, enrollmentsByClass);
+    const mappedGrades = mapTeacherGrades(classes, enrollmentsByClass, rawGrades, absencesByClassStudent);
+
+    const mappedEvents = mapTeacherEvents(teacherEvents, calendarEvents);
+    const mappedNotices = mapTeacherNotices(announcements, enrollments, enrollmentsByClass, user);
+    const profile = mapTeacherProfile(userId, user, activeSessions, auditLogs, currentSessionId);
+    const mappedProtocols = mapTeacherProtocols(protocols);
+    const dashboard = mapTeacherDashboardOverview({
+      user,
+      courses: mappedCourses,
+      sessions: mappedSessions,
+      assignments: mappedAssignments,
+      notices: mappedNotices,
+      rawAnnouncements: announcements,
+    });
+
+    return {
+      profile,
+      dashboard,
+      regimentalLockActive: adminSettings?.regimentalLockActive === true,
+      academicThresholds: resolveInstitutionalThresholds(adminSettings),
+      courses: mappedCourses,
+      sessions: mappedSessions,
+      assignments: mappedAssignments,
+      grades: mappedGrades,
+      events: mappedEvents,
+      notices: mappedNotices,
+      protocols: mappedProtocols,
+    };
+  }
+
+  async decideProtocol(
+    userId: string,
+    user: Document,
+    protocolId: string,
+    input: { status: "deferido" | "indeferido"; officialResponse?: string },
+  ) {
+    if (!ObjectId.isValid(protocolId)) {
+      throw new AuthError(400, "invalid_protocol_id", "Identificador de protocolo inválido.");
+    }
+    const existing = await this.database
+      .collection("academic_protocols")
+      .findOne({ _id: new ObjectId(protocolId) });
+    if (!existing) {
+      throw new AuthError(404, "protocol_not_found", "Protocolo não encontrado.");
+    }
+    const resolutionText =
+      input.officialResponse?.trim() ||
+      (input.status === "deferido"
+        ? "Requerimento deferido pelo docente responsável."
+        : "Requerimento indeferido pelo docente responsável.");
+    const now = new Date();
+    await this.database.collection("academic_protocols").updateOne(
+      { _id: new ObjectId(protocolId) },
+      {
+        $set: {
+          status: input.status,
+          resolution: resolutionText,
+          officialResponse: resolutionText,
+          decisionNote: resolutionText,
+          signedBy: String(user.displayName ?? user.identity ?? userId),
+          decidedBy: userId,
+          decidedAt: now,
+          updatedAt: now,
+        },
+      },
+    );
+    const updated = await this.database
+      .collection("academic_protocols")
+      .findOne({ _id: new ObjectId(protocolId) });
+
+    const requestType = String(existing.requestType ?? "").toLowerCase();
+    if (
+      input.status === "deferido" &&
+      existing.studentId &&
+      ["abono", "atestado", "falta"].some((term) => requestType.includes(term))
+    ) {
+      const targetFilter: Document = { studentId: String(existing.studentId), status: "active" };
+      const codeCandidates = extractClassCodeCandidates(existing.targetComponent);
+      if (codeCandidates.length > 0) {
+        targetFilter.classCode = { $in: codeCandidates };
+      }
+      const matchedEnrollments = await this.database
+        .collection("academic_enrollments")
+        .find(targetFilter)
+        .toArray();
+      await this.database.collection("academic_enrollments").updateMany(
+        targetFilter,
+        { $inc: { excusedAbsences: 2 } },
+      );
+      for (const enrollment of matchedEnrollments) {
+        const classCode = String(enrollment.classCode);
+        const existingGrade = await this.database
+          .collection("academic_grades")
+          .findOne({ classCode, studentId: String(existing.studentId) });
+        if (existingGrade && Number(existingGrade.absences ?? 0) > 0) {
+          const classroom = await this.database.collection("academic_classes").findOne({ code: classCode });
+          const totalHours = Number(classroom?.totalHours ?? 80);
+          const nextAbsences = Math.max(0, Number(existingGrade.absences) - 2);
+          const nextAttendanceRate = Number(
+            Math.max(0, ((totalHours - nextAbsences) / totalHours) * 100).toFixed(1),
+          );
+          await this.database.collection("academic_grades").updateOne(
+            { _id: existingGrade._id },
+            { $set: { absences: nextAbsences, attendanceRate: nextAttendanceRate, updatedAt: now } },
+          );
+        }
+      }
+    }
+
+    await this.database.collection("admin_audit_logs").insertOne({
+      actorId: userId,
+      actorName: user.displayName,
+      actorRole: user.profile,
+      action: "protocol_decided",
+      target: String(updated?.code ?? existing.code ?? protocolId),
+      severity: "INFO",
+      details: { approved: input.status === "deferido", decisionNote: resolutionText },
+      createdAt: now,
+    });
+
+    if (this.emailService && existing.studentId) {
+      const signedBy = String(user.displayName ?? user.identity ?? userId);
+      const protocolCode = String(updated?.code ?? existing.code ?? protocolId);
+      void resolveActiveRegisteredRecipientById(this.database, String(existing.studentId))
+        .then((student) => {
+          if (!student) return;
+          dispatchNotificationSafe("teacher-protocol-decided", student.email, () =>
+            this.emailService!.sendProtocolDecided({
+              to: student.email,
+              studentName: student.displayName,
+              protocolCode,
+              requestType: existing.requestType ? String(existing.requestType) : undefined,
+              approved: input.status === "deferido",
+              decisionNote: resolutionText,
+              signedBy,
+            }),
+          );
+        })
+        .catch((err) => {
+          console.warn(`[teacher-protocol-decided] Falha ao localizar discente: ${err?.message}`);
+        });
+    }
+
+    return mapTeacherProtocols(updated ? [updated] : [])[0] ?? null;
+  }
+
+  async createOrSelectSessionByDate(
+    userId: string,
+    user: Document,
+    classCode: string,
+    isoDate: string,
+    hours = 2,
+  ) {
+    return this.sessionService.createOrSelectSessionByDate(userId, user, classCode, isoDate, hours);
+  }
+
+  async updateSessionAttendance(
+    userId: string,
+    user: Document,
+    sessionId: string,
+    payload: SessionAttendanceUpdate,
+  ) {
+    return this.sessionService.updateSessionAttendance(userId, user, sessionId, payload);
+  }
+
+  async advanceSyllabusUnit(userId: string, user: Document, classCode: string, unitId: string) {
+    return this.syllabusService.advanceUnit(userId, user, classCode, unitId);
+  }
+
+  async updateSyllabusPlan(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: {
+      syllabus?: string;
+      objectives?: string;
+      methodology?: string;
+      evaluationFormula?: string;
+      bibliography?: Array<{ type: string; title: string; authors: string; publisher?: string; year?: string }>;
+    },
+  ) {
+    return this.syllabusService.updateSyllabusPlan(userId, user, classCode, input);
+  }
+
+  async publishMaterial(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: {
+      title: string;
+      fileName?: string;
+      size?: string;
+      type?: string;
+      unitAssociated?: string;
+      category?: string;
+      contentBase64?: string;
+    },
+  ) {
+    return this.materialService.publishMaterial(userId, user, classCode, input);
+  }
+
+  async deleteMaterial(userId: string, user: Document, classCode: string, materialId: string) {
+    return this.materialService.deleteMaterial(userId, user, classCode, materialId);
+  }
+
+  async createAssignment(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: {
+      title: string;
+      description?: string;
+      weight: number;
+      stage: string;
+      dueDate?: string;
+      dueHour?: string;
+      dueDateFormatted: string;
+      modality: string;
+      allowLateWithPenalty: boolean;
+      moduleTag?: string;
+      activityType?: string;
+      allowedFormats?: string;
+      rubricCriteria: Array<{ id?: string; title: string; maxPoints: number; description?: string }>;
+    },
+  ) {
+    return this.assignmentService.createAssignment(userId, user, classCode, input);
+  }
+
+  async deleteAssignment(userId: string, user: Document, assignmentId: string) {
+    return this.assignmentService.deleteAssignment(userId, user, assignmentId);
+  }
+
+  async evaluateSubmission(
+    userId: string,
+    user: Document,
+    assignmentId: string,
+    input: {
+      studentId: string;
+      calculatedGrade: number;
+      feedback: string;
+      evaluatedCriteria: Array<{ id: string; title: string; maxPoints: number; assignedScore: number; description?: string }>;
+    },
+  ) {
+    return this.assignmentService.evaluateSubmission(userId, user, assignmentId, input);
+  }
+
+  async replyAssignmentDoubt(
+    userId: string,
+    user: Document,
+    assignmentId: string,
+    doubtId: string,
+    replyText: string,
+  ) {
+    return this.assignmentService.replyAssignmentDoubt(userId, user, assignmentId, doubtId, replyText);
+  }
+
+  async updateStudentGrade(
+    userId: string,
+    user: Document,
+    classCode: string,
+    studentId: string,
+    scores: {
+      assignmentsScore?: number;
+      p1Score?: number;
+      projectsScore?: number;
+      p2Score?: number;
+    },
+  ) {
+    return this.gradebookService.updateStudentGrade(userId, user, classCode, studentId, scores);
+  }
+
+  async updateClassGradesBatch(
+    userId: string,
+    user: Document,
+    classCode: string,
+    entries: Array<{
+      studentId: string;
+      assignmentsScore?: number;
+      p1Score?: number;
+      projectsScore?: number;
+      p2Score?: number;
+    }>,
+  ) {
+    return this.gradebookService.updateClassGradesBatch(userId, user, classCode, entries);
+  }
+
+  async homologateClassGrades(userId: string, user: Document, classCode: string) {
+    return this.gradebookService.homologateClassGrades(userId, user, classCode);
+  }
+
+  async requestGradeRectification(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: { studentId: string; stage: string; newScore: number; justification: string },
+  ) {
+    return this.gradebookService.requestGradeRectification(userId, user, classCode, input);
+  }
+
+  async createForumTopic(
+    userId: string,
+    user: Document,
+    classCode: string,
+    input: { title: string; body: string; category?: string },
+  ) {
+    return this.communicationService.createForumTopic(userId, user, classCode, input);
+  }
+
+  async replyForumTopic(
+    userId: string,
+    user: Document,
+    classCode: string,
+    topicId: string,
+    body: string,
+  ) {
+    return this.communicationService.replyForumTopic(userId, user, classCode, topicId, body);
+  }
+
+  async resolveForumTopic(
+    userId: string,
+    user: Document,
+    classCode: string,
+    topicId: string,
+    isResolved: boolean,
+  ) {
+    return this.communicationService.resolveForumTopic(userId, user, classCode, topicId, isResolved);
+  }
+
+  async saveClassSquads(
+    userId: string,
+    user: Document,
+    classCode: string,
+    squads: Array<{
+      id?: string;
+      name: string;
+      projectTitle: string;
+      repoUrl?: string;
+      sprintStatus?: string;
+      status?: string;
+      members: string[];
+    }>,
+  ) {
+    return this.communicationService.saveClassSquads(userId, user, classCode, squads);
+  }
+
+  async createEvent(
+    userId: string,
+    input: { title: string; date: string; time: string; type: string; location: string },
+  ) {
+    return this.communicationService.createEvent(userId, input);
+  }
+
+  async publishNotice(
+    userId: string,
+    user: Document,
+    input: {
+      targetCourse: string;
+      targetAudience: string;
+      classification: string;
+      title: string;
+      message: string;
+    },
+  ) {
+    return this.communicationService.publishNotice(userId, user, input);
+  }
+
+  async getNoticeReads(userId: string, user: Document, noticeId: string) {
+    return this.communicationService.getNoticeReads(userId, user, noticeId);
+  }
+}

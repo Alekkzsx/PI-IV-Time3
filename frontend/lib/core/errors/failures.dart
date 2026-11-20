@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 /// Representação base abstrata para tratamento de falhas e erros de domínio no padrão Clean Architecture.
 abstract class Failure {

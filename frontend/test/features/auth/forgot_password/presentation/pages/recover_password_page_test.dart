@@ -8,18 +8,34 @@ import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   int recoveryRequests = 0;
+  String? lastProfile;
+  String serverAccountProfile = 'aluno';
 
   @override
-  Future<void> recoverPassword({required String identity}) async {
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {
     recoveryRequests++;
+    lastProfile = profile;
   }
 
   @override
-  Future<void> login({
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async {
+    recoveryRequests++;
+    lastProfile = profile;
+    return {'status': 200, 'profile': serverAccountProfile};
+  }
+
+  @override
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
-  }) async {}
+  }) async => 'test-access-token';
 
   @override
   Future<bool> verifyOtpToken({
@@ -28,9 +44,22 @@ class _FakeAuthRepository implements AuthRepository {
   }) async => true;
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) async => 'test-reset-token';
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async => currentSession.withResetToken('test-reset-token');
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {}
 
   @override
@@ -68,4 +97,56 @@ void main() {
     expect(controller.errorMessage, isNotNull);
     controller.dispose();
   });
+
+  testWidgets(
+    'Bloqueia e exibe erro de tipo de usuário inválido quando Aluno seleciona aba Admin',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final repository = _FakeAuthRepository()..serverAccountProfile = 'aluno';
+      final controller = RecoverPasswordController(
+        recoverPasswordUseCase: RecoverPasswordUseCase(repository),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: RecoverPasswordPage(controller: controller)),
+      );
+
+      // Seleciona a aba Admin
+      await tester.tap(find.text('Admin'));
+      await tester.pumpAndSettle();
+
+      // Digita o e-mail do aluno e tenta recuperar
+      await tester.enterText(
+        find.byType(TextFormField),
+        'aluno@puccampinas.edu.br',
+      );
+      await tester.pump();
+
+      final submitButton = find.text('Enviar Instruções de Recuperação');
+      await tester.ensureVisible(submitButton);
+      await tester.tap(submitButton);
+      await tester.pump();
+
+      expect(repository.lastProfile, 'admin');
+      expect(controller.isSuccess, isFalse);
+      expect(
+        controller.errorMessage,
+        contains('Tipo de usuário inválido'),
+      );
+      expect(
+        find.textContaining('Tipo de usuário inválido'),
+        findsWidgets,
+      );
+
+      // Ao trocar de volta para a aba Aluno, o erro é limpo e o envio funciona
+      await tester.tap(find.text('Aluno'));
+      await tester.pumpAndSettle();
+      expect(controller.errorMessage, isNull);
+
+      controller.dispose();
+    },
+  );
 }

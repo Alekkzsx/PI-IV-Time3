@@ -1,21 +1,29 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_gradebook_table.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_grades_formula_banner.dart';
 import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente_grades_header.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
 
-/// Tab page for managing student official gradebook, PPC formula calculations, and issuing minutes.
+/// Página da aba para gerenciar a pauta oficial de notas dos discentes, cálculos da fórmula do PPC e emissão de atas.
 class DocenteGradesTab extends StatelessWidget {
-  /// Reactive controller for state access and mutations.
+  /// Controlador reativo para acesso e alterações de estado.
   final DocenteController controller;
 
   const DocenteGradesTab({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
+    if (!AppUserSession.instance.hasPermission('view_class_grades')) {
+      return const AccessDeniedView(
+        message: 'Seu perfil não pode consultar as pautas desta turma.',
+      );
+    }
+
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -32,8 +40,8 @@ class DocenteGradesTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: constraints.maxWidth >= 900 ? 40 : 20,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: constraints.maxWidth >= 900 ? 40 : 20,
                         vertical: 32,
                       ),
                       child: Column(
@@ -44,7 +52,12 @@ class DocenteGradesTab extends StatelessWidget {
                             selectedCourse: selectedCourse,
                           ),
                           const SizedBox(height: 20),
-                          const DocenteGradesFormulaBanner(),
+                          DocenteGradesFormulaBanner(
+                            evaluationFormula: selectedCourse.evaluationFormula,
+                            thresholds: controller.academicThresholds,
+                            isLockedByAdmin:
+                                selectedCourse.isFormulaLockedByAdmin,
+                          ),
                           const SizedBox(height: 24),
                           DocenteGradebookTable(
                             controller: controller,

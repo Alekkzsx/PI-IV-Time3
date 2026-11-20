@@ -48,37 +48,43 @@ class InstitutionalTopHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              if (showMobileMenuButton) ...[
-                Builder(
-                  builder: (ctx) => IconButton(
-                    icon: const Icon(
-                      Icons.menu_rounded,
-                      size: 22,
-                      color: Color(0xFF18181B),
+          Expanded(
+            child: Row(
+              children: [
+                if (showMobileMenuButton) ...[
+                  Builder(
+                    builder: (ctx) => IconButton(
+                      icon: const Icon(
+                        Icons.menu_rounded,
+                        size: 22,
+                        color: Color(0xFF18181B),
+                      ),
+                      tooltip: 'Abrir Menu',
+                      onPressed:
+                          onOpenDrawer ?? () => Scaffold.of(ctx).openDrawer(),
                     ),
-                    tooltip: 'Abrir Menu',
-                    onPressed: onOpenDrawer ?? () => Scaffold.of(ctx).openDrawer(),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: jakarta(
+                      size: 18,
+                      weight: FontWeight.w500,
+                      color: const Color(0xFF18181B),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
               ],
-              Text(
-                title,
-                style: jakarta(
-                  size: 18,
-                  weight: FontWeight.w500,
-                  color: const Color(0xFF18181B),
-                ),
-              ),
-            ],
-          ),
-          if (actions.isNotEmpty)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: actions,
             ),
+          ),
+          if (actions.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Row(mainAxisSize: MainAxisSize.min, children: actions),
+          ],
         ],
       ),
     );

@@ -46,9 +46,12 @@ class RecordingState {
     this.elapsedDuration = Duration.zero,
     this.outputPath,
     this.errorMessage,
-  })  : status = status ??
-            ((isRecording ?? false) ? RecordingStatus.recording : RecordingStatus.idle),
-        isRecording = isRecording ?? (status == RecordingStatus.recording);
+  }) : status =
+           status ??
+           ((isRecording ?? false)
+               ? RecordingStatus.recording
+               : RecordingStatus.idle),
+       isRecording = isRecording ?? (status == RecordingStatus.recording);
 
   /// Construtor de conveniência para estado neutro inicial.
   factory RecordingState.initial() => const RecordingState();
@@ -109,15 +112,15 @@ class RecordingState {
 
   @override
   int get hashCode => Object.hash(
-        status,
-        isRecording,
-        startedByPeerId,
-        startedByName,
-        startedAt,
-        elapsedDuration,
-        outputPath,
-        errorMessage,
-      );
+    status,
+    isRecording,
+    startedByPeerId,
+    startedByName,
+    startedAt,
+    elapsedDuration,
+    outputPath,
+    errorMessage,
+  );
 
   @override
   String toString() {

@@ -1,9 +1,9 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/widgets/audit_diff_dialog.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/widgets/admin_footer.dart';
 
 /// Tela de Auditoria de Segurança & Trilha Documental (Audit Trail) da Visão do Administrador.
@@ -58,9 +58,9 @@ class _AuditPageState extends State<AuditPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32.0,
-                    vertical: 28.0,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.sizeOf(context).width >= 1100 ? 48.0 : 20.0,
+                    vertical: 36.0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +424,7 @@ class _AuditPageState extends State<AuditPage> {
                                               const Icon(
                                                 Icons.person_pin_rounded,
                                                 size: 12,
-                                                color: Color(0xFF2563EB),
+                                                color: Color(0xFF18181B),
                                               ),
                                               const SizedBox(width: 4),
                                               Expanded(
@@ -436,7 +436,7 @@ class _AuditPageState extends State<AuditPage> {
                                                   style: const TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w600,
-                                                    color: Color(0xFF2563EB),
+                                                    color: Color(0xFF18181B),
                                                   ),
                                                 ),
                                               ),

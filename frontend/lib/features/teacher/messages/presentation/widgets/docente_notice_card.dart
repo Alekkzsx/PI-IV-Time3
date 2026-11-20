@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -61,7 +61,7 @@ class DocenteNoticeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row: Badges & Turma
+          // Linha de Cabeçalho: Emblemas e Turma
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +120,7 @@ class DocenteNoticeCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Title
+          // Título
           Text(
             notice.title,
             style: jakarta(
@@ -130,7 +130,7 @@ class DocenteNoticeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // Message
+          // Mensagem
           Text(
             notice.message,
             style: jakarta(
@@ -141,7 +141,7 @@ class DocenteNoticeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          // Science read receipt row
+          // Linha de confirmação de ciência
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

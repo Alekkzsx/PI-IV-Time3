@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+﻿// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
@@ -8,9 +8,9 @@ import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_
 import '../widgets/docente_event_item_card.dart';
 import '../widgets/docente_new_appointment_card.dart';
 
-/// Tab page for viewing academic schedule, managing tutoring office hours, and syncing calendar.
+/// Aba para visualização do cronograma acadêmico, gestão de horários de plantão docente e sincronização da agenda.
 class DocenteCalendarTab extends StatefulWidget {
-  /// Reactive controller for state access and mutations.
+  /// Controlador reativo para acesso e alterações de estado.
   final DocenteController controller;
 
   const DocenteCalendarTab({super.key, required this.controller});

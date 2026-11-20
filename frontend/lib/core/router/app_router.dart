@@ -1,6 +1,8 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
+import 'package:pi_iv_time3/core/widgets/access_denied_view.dart';
 import 'package:pi_iv_time3/features/admin/shell/presentation/pages/admin_shell_page.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/presentation/pages/recover_password_page.dart';
@@ -9,16 +11,16 @@ import 'package:pi_iv_time3/features/auth/login/presentation/pages/login_page.da
 import 'package:pi_iv_time3/features/auth/reset_password/presentation/pages/reset_password_page.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
 import 'package:pi_iv_time3/features/auth/verify_code/presentation/pages/verify_code_page.dart';
-import 'package:pi_iv_time3/features/teacher/shell/presentation/pages/docente_shell_page.dart';
-import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/student_dashboard_page.dart';
-import 'package:pi_iv_time3/features/student/calendar/presentation/pages/student_calendar_page.dart';
-import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/student_deliveries_page.dart';
-import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/student_disciplines_page.dart';
-import 'package:pi_iv_time3/features/student/messages/presentation/pages/student_messages_page.dart';
-import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/student_secretariat_page.dart';
-import 'package:pi_iv_time3/features/student/settings/presentation/pages/student_settings_page.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/pages/student_portal_shell.dart';
-import 'package:pi_iv_time3/features/student/shell/presentation/widgets/student_sidebar.dart';
+import 'package:pi_iv_time3/features/teacher/teacher.dart';
+import 'package:pi_iv_time3/features/student/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:pi_iv_time3/features/student/calendar/presentation/pages/calendar_page.dart';
+import 'package:pi_iv_time3/features/student/deliveries/presentation/pages/deliveries_page.dart';
+import 'package:pi_iv_time3/features/student/disciplines/presentation/pages/disciplines_page.dart';
+import 'package:pi_iv_time3/features/student/messages/presentation/pages/messages_page.dart';
+import 'package:pi_iv_time3/features/student/secretariat/presentation/pages/secretariat_page.dart';
+import 'package:pi_iv_time3/features/student/settings/presentation/pages/settings_page.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/pages/portal_shell.dart';
+import 'package:pi_iv_time3/features/student/shell/presentation/widgets/navigation/portal_sidebar.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/pages/video_call_lobby_page.dart';
 
 /// Nomes padronizados das rotas do Portal Acadêmico.
@@ -37,6 +39,13 @@ class AppRoutes {
   static const String studentDeliveries = '/student/entregas';
   static const String studentSettings = '/student/configuracoes';
   static const String docenteHome = '/docente/home';
+  static const String docenteTurmas = '/docente/turmas';
+  static const String docenteDiario = '/docente/diario';
+  static const String docenteAtividades = '/docente/atividades';
+  static const String docenteNotas = '/docente/notas';
+  static const String docenteAgenda = '/docente/agenda';
+  static const String docenteComunicados = '/docente/comunicados';
+  static const String docenteConfiguracoes = '/docente/configuracoes';
   static const String adminShell = '/admin-shell';
   static const String videoCall = '/video-call';
 }
@@ -47,47 +56,136 @@ class AppRouter {
 
   static Map<String, WidgetBuilder> buildRoutes() {
     return {
-      AppRoutes.studentHome: (context) => const StudentPortalShell(
-        headerTitle: 'Painel Geral',
-        activeNavItem: StudentNavItem.painelGeral,
-        child: StudentDashboardPage(),
+      AppRoutes.studentHome: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Painel Geral',
+          activeNavItem: StudentNavItem.painelGeral,
+          child: DashboardPage(),
+        ),
       ),
       // Todas as rotas do aluno usam o mesmo shell. Isso evita que links
       // diretos renderizem uma página sem navegação, cabeçalho e rodapé.
-      AppRoutes.studentMessages: (context) => const StudentPortalShell(
-        headerTitle: 'Mensagens',
-        activeNavItem: StudentNavItem.mensagens,
-        child: StudentMessagesPage(),
+      AppRoutes.studentMessages: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Mensagens',
+          activeNavItem: StudentNavItem.mensagens,
+          child: MessagesPage(),
+        ),
       ),
-      AppRoutes.studentSecretaria: (context) => const StudentPortalShell(
-        headerTitle: 'Secretaria Virtual',
-        activeNavItem: StudentNavItem.secretaria,
-        child: StudentSecretariatPage(),
+      AppRoutes.studentSecretaria: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Secretaria Virtual',
+          activeNavItem: StudentNavItem.secretaria,
+          child: SecretariatPage(),
+        ),
       ),
-      AppRoutes.studentDisciplines: (context) => const StudentPortalShell(
-        headerTitle: 'Disciplinas',
-        activeNavItem: StudentNavItem.disciplinas,
-        child: StudentDisciplinesPage(),
+      AppRoutes.studentDisciplines: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Disciplinas',
+          activeNavItem: StudentNavItem.disciplinas,
+          child: DisciplinesPage(),
+        ),
       ),
-      AppRoutes.studentCalendar: (context) => const StudentPortalShell(
-        headerTitle: 'Calendário',
-        activeNavItem: StudentNavItem.calendario,
-        child: StudentCalendarPage(),
+      AppRoutes.studentCalendar: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Calendário',
+          activeNavItem: StudentNavItem.calendario,
+          child: CalendarPage(),
+        ),
       ),
-      AppRoutes.studentDeliveries: (context) => const StudentPortalShell(
-        headerTitle: 'Entregas',
-        activeNavItem: StudentNavItem.entregas,
-        child: StudentDeliveriesPage(),
+      AppRoutes.studentDeliveries: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Entregas',
+          activeNavItem: StudentNavItem.entregas,
+          child: DeliveriesPage(),
+        ),
       ),
-      AppRoutes.studentSettings: (context) => const StudentPortalShell(
-        headerTitle: 'Configurações',
-        activeNavItem: StudentNavItem.configuracoes,
-        child: StudentSettingsPage(),
+      AppRoutes.studentSettings: _studentRoute(
+        const PortalShell(
+          headerTitle: 'Configurações',
+          activeNavItem: StudentNavItem.configuracoes,
+          child: SettingsPage(),
+        ),
       ),
-      AppRoutes.videoCall: (context) => const VideoCallLobbyPage(),
-      AppRoutes.adminShell: (context) => const AdminShellPage(),
-      AppRoutes.docenteHome: (context) => const DocenteShellPage(),
+      AppRoutes.videoCall: _buildVideoCallRoute,
+      AppRoutes.adminShell: _roleRoute('admin', const AdminShellPage()),
+      AppRoutes.docenteHome: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.painel),
+      ),
+      AppRoutes.docenteTurmas: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.turmas),
+      ),
+      AppRoutes.docenteDiario: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.diario),
+      ),
+      AppRoutes.docenteAtividades: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.atividades),
+      ),
+      AppRoutes.docenteNotas: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.notas),
+      ),
+      AppRoutes.docenteAgenda: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.agenda),
+      ),
+      AppRoutes.docenteComunicados: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.comunicados),
+      ),
+      AppRoutes.docenteConfiguracoes: _roleRoute(
+        'docente',
+        const DocenteShellPage(initialTab: DocenteNavTab.configuracoes),
+      ),
     };
+  }
+
+  static WidgetBuilder _roleRoute(String role, Widget child) => (context) {
+    if (AppUserSession.instance.hasRole(role)) return child;
+    return _accessDenied(context, 'Esta área é exclusiva do perfil $role.');
+  };
+
+  static WidgetBuilder _studentRoute(Widget child) => (context) {
+    final session = AppUserSession.instance;
+
+    // Verifica se o usuário está autenticado como aluno.
+    if (!session.hasRole('aluno')) {
+      return _accessDenied(context, 'Esta área é exclusiva do perfil aluno.');
+    }
+
+    return child;
+  };
+
+  static Widget _buildVideoCallRoute(BuildContext context) {
+    final session = AppUserSession.instance;
+    if (!session.isAuthenticated) {
+      return _accessDenied(
+        context,
+        'Faça login para acessar uma videochamada.',
+      );
+    }
+
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    final roomCode = arguments is Map
+        ? arguments['roomCode']?.toString()
+        : null;
+    return VideoCallLobbyPage(
+      initialRoomCode: roomCode?.trim().isNotEmpty == true ? roomCode : null,
+    );
+  }
+
+  static Widget _accessDenied(BuildContext context, String message) {
+    return AccessDeniedView(
+      message: message,
+      fullPage: true,
+      onReturn: () => Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false),
+    );
   }
 
   static Route<dynamic>? onGenerateRoute({

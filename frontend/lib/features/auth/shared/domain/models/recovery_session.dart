@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa, Marcelo Zarpelon, Murillo Caravita e Rafael Henrique Inácio
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323, Murillo Caravita - RA: 25014012 e Rafael Henrique Inácio - RA: 25009719
 
 import 'package:flutter/material.dart';
 
@@ -36,6 +36,7 @@ class RecoverySession {
 
   /// Distintivo do papel institucional.
   final String roleBadge;
+  final String? resetToken;
 
   const RecoverySession({
     required this.profile,
@@ -44,44 +45,98 @@ class RecoverySession {
     required this.institutionalEmail,
     required this.departmentOrCourse,
     required this.roleBadge,
+    this.resetToken,
   });
+
+  RecoverySession withResetToken(String token) => copyWith(resetToken: token);
+
+  RecoverySession copyWith({
+    UserProfile? profile,
+    String? identity,
+    String? displayName,
+    String? institutionalEmail,
+    String? departmentOrCourse,
+    String? roleBadge,
+    String? resetToken,
+  }) => RecoverySession(
+    profile: profile ?? this.profile,
+    identity: identity ?? this.identity,
+    displayName: displayName ?? this.displayName,
+    institutionalEmail: institutionalEmail ?? this.institutionalEmail,
+    departmentOrCourse: departmentOrCourse ?? this.departmentOrCourse,
+    roleBadge: roleBadge ?? this.roleBadge,
+    resetToken: resetToken ?? this.resetToken,
+  );
+
+  /// Constrói a sessão com dados reais retornados pelo servidor Java / MongoDB.
+  factory RecoverySession.fromServerData({
+    required UserProfile fallbackProfile,
+    required String fallbackIdentity,
+    required Map<String, dynamic> data,
+    String? resetToken,
+  }) {
+    final profileStr = data['profile']?.toString() ?? fallbackProfile.name;
+    final profile = switch (profileStr.toLowerCase()) {
+      'admin' => UserProfile.admin,
+      'docente' => UserProfile.docente,
+      _ => UserProfile.aluno,
+    };
+    final identity = data['identity']?.toString() ?? fallbackIdentity;
+    final displayName = data['displayName']?.toString() ??
+        data['nome']?.toString() ??
+        'Usuário';
+    final email = data['email']?.toString() ??
+        data['maskedEmail']?.toString() ??
+        (identity.contains('@') ? identity : 'e-mail cadastrado');
+    final departmentOrCourse = data['departmentOrCourse']?.toString() ??
+        data['department']?.toString() ??
+        '';
+    final token = resetToken ??
+        data['resetToken']?.toString() ??
+        data['recoveryToken']?.toString();
+
+    return RecoverySession(
+      profile: profile,
+      identity: identity,
+      displayName: displayName,
+      institutionalEmail: email,
+      departmentOrCourse: departmentOrCourse,
+      roleBadge: profile == UserProfile.admin
+          ? 'Administrador'
+          : profile == UserProfile.docente
+          ? 'Docente'
+          : 'Aluno',
+      resetToken: token,
+    );
+  }
 
   /// Constrói a sessão de recuperação com os dados institucionais oficiais padronizados
   /// de acordo com o perfil e o identificador fornecido.
   factory RecoverySession.fromProfileAndIdentity({
     required UserProfile profile,
     required String identity,
+    String? displayName,
+    String? institutionalEmail,
+    String? departmentOrCourse,
   }) {
     final cleanIdentity = identity.trim();
-    switch (profile) {
-      case UserProfile.aluno:
-        return RecoverySession(
-          profile: profile,
-          identity: cleanIdentity.isNotEmpty ? cleanIdentity : '2024.1.00892',
-          displayName: 'Gabriel Soares de Oliveira',
-          institutionalEmail: 'gabriel.oliveira@aluno.universidade.edu.br',
-          departmentOrCourse: 'Engenharia de Software • 5º Semestre',
-          roleBadge: 'Discente Regular',
-        );
-      case UserProfile.docente:
-        return RecoverySession(
-          profile: profile,
-          identity: cleanIdentity.isNotEmpty ? cleanIdentity : 'DOC-40892',
-          displayName: 'Profa. Dra. Helena Cristina Santos',
-          institutionalEmail: 'helena.santos@docente.universidade.edu.br',
-          departmentOrCourse: 'Ciência da Computação & Engenharia',
-          roleBadge: 'Corpo Docente',
-        );
-      case UserProfile.admin:
-        return RecoverySession(
-          profile: profile,
-          identity: cleanIdentity.isNotEmpty ? cleanIdentity : 'ADM-00123',
-          displayName: 'Carlos Alberto Silveira',
-          institutionalEmail: 'carlos.silveira@admin.universidade.edu.br',
-          departmentOrCourse: 'DTI • Secretaria Geral Acadêmica',
-          roleBadge: 'Administrador de Sistemas',
-        );
-    }
+    if (cleanIdentity.isEmpty) throw ArgumentError('Identidade obrigatória.');
+    return RecoverySession(
+      profile: profile,
+      identity: cleanIdentity,
+      displayName: displayName != null && displayName.trim().isNotEmpty
+          ? displayName.trim()
+          : (cleanIdentity.contains('@') ? cleanIdentity.split('@').first : 'Usuário'),
+      institutionalEmail: institutionalEmail != null && institutionalEmail.trim().isNotEmpty
+          ? institutionalEmail.trim()
+          : (cleanIdentity.contains('@') ? cleanIdentity : 'e-mail cadastrado'),
+      departmentOrCourse: departmentOrCourse ?? '',
+      roleBadge: profile == UserProfile.admin
+          ? 'Administrador'
+          : profile == UserProfile.docente
+          ? 'Docente'
+          : 'Aluno',
+    );
   }
 
   /// Retorna o e-mail mascarado com asteriscos para privacidade e conformidade com a LGPD.

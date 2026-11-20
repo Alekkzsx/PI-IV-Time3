@@ -1,498 +1,361 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
+import 'course_hub_ui.dart';
 
-/// Aba de Módulos & Conteúdos de Aprendizagem do curso no Portal Docente.
-class CourseHubModulesTab extends StatelessWidget {
-  final VoidCallback onNewUnit;
-  final VoidCallback onUploadSlides;
-  final VoidCallback onPublishAssignment;
-  final VoidCallback onQuickNotice;
-  final VoidCallback onReviewSyllabus;
-  final VoidCallback onNavigateToAssignments;
+/// Aba de módulos didáticos, progresso programático e repositório de materiais da turma.
+class CourseHubModulesTab extends StatefulWidget {
+  final DocenteCourse course;
+  final DocenteController controller;
+  final VoidCallback onAddContent;
 
   const CourseHubModulesTab({
     super.key,
-    required this.onNewUnit,
-    required this.onUploadSlides,
-    required this.onPublishAssignment,
-    required this.onQuickNotice,
-    required this.onReviewSyllabus,
-    required this.onNavigateToAssignments,
+    required this.course,
+    required this.controller,
+    required this.onAddContent,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Coluna Principal de Unidades Didáticas
-        Expanded(
-          flex: 65,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Módulos & Conteúdos de Aprendizagem',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF09090B),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Unidades ativas e materiais didáticos disponibilizados para a turma.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF71717A),
-                        ),
-                      ),
-                    ],
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: onNewUnit,
-                    icon: const Icon(Icons.add, size: 14, color: Colors.white),
-                    label: const Text(
-                      'Nova Unidade',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF18181B),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
+  State<CourseHubModulesTab> createState() => _CourseHubModulesTabState();
+}
 
-              // Unidade 1
-              _buildDocenteUnitCard(
-                tag: 'UNIDADE 1 • SEMANAS 1 A 4 • 20 HORAS LETIVAS',
-                title:
-                    'Unidade 1: Engenharia de Requisitos & Processos Ágeis de Software',
-                items: [
-                  'Plano de Ensino & Contrato Pedagógico da Disciplina (Pdf • 420 KB)',
-                  'Slides da Aula 01: Processo Unificado e Engenharia de Software Moderna (Pdf • 3.8 MB)',
-                  'Gravação da Aula Síncrona: Elicitação de Requisitos e Casos de Uso (Vídeo • 1h 35min)',
-                  'Exercício 01: Mapeamento de Requisitos e Especificação de Casos de Uso (Tarefa • Prazo 05 Set)',
-                ],
-              ),
-              const SizedBox(height: 20),
+class _CourseHubModulesTabState extends State<CourseHubModulesTab> {
+  String _selectedCategory = 'Todos';
 
-              // Unidade 2
-              _buildDocenteUnitCard(
-                tag:
-                    'UNIDADE 2 • SEMANAS 5 A 9 • 24 HORAS LETIVAS • EM ANDAMENTO',
-                title:
-                    'Unidade 2: Modelagem Orientada a Objetos com Notação UML 2.5',
-                items: [
-                  'Slides da Aula 03: Diagrama de Classes, Multiplicidades e Visibilidade (Pdf • 4.2 MB)',
-                  'Template Oficial de Diagramação (.drawio e .uml) (Arquivo • 180 KB)',
-                  'Slides da Aula 04: Diagrama de Sequência e Interações Temporais (Pdf • 2.9 MB)',
-                  'Entrega da Sprint 1: Diagrama de Classes e Sequência do AVA (Tarefa • Prazo Hoje)',
-                ],
-              ),
-            ],
-          ),
+  static const List<String> _categories = [
+    'Todos',
+    'Slides de Aula',
+    'Institucional',
+    'Material Complementar',
+    'Laboratórios & Códigos',
+  ];
+
+  Future<void> _downloadMaterial(
+    BuildContext context,
+    CourseMaterial mat,
+  ) async {
+    final res = await widget.controller.downloadMaterial(mat.id);
+    if (!context.mounted) return;
+    if (res == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível baixar o material selecionado.'),
+          backgroundColor: Color(0xFFB91C1C),
         ),
-        const SizedBox(width: 24),
+      );
+      return;
+    }
+    final b64 = res['contentBase64']?.toString() ?? '';
+    final bytes = b64.isNotEmpty
+        ? base64Decode(b64)
+        : Uint8List.fromList(utf8.encode(mat.title));
+    await PlatformFileHelper.saveAndLaunchFile(
+      bytes: bytes,
+      fileName: res['fileName']?.toString() ??
+          (mat.fileName.isNotEmpty ? mat.fileName : '${mat.title}.txt'),
+      mimeType: 'application/octet-stream',
+    );
+  }
 
-        // Coluna Lateral: Gestão Pedagógica Docente
-        SizedBox(
-          width: 310,
-          child: Column(
-            children: [
-              // Card 1: Controle Docente da Turma
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE4E4E7)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'CONTROLE DA TURMA',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF09090B),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCFCE7),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'Em Andamento',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF16A34A),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _buildMetaRow('Carga Horária:', '80h (4 créditos)'),
-                    const SizedBox(height: 8),
-                    _buildMetaRow('Cumprimento:', '54h concluídas (67.5%)'),
-                    const SizedBox(height: 8),
-                    _buildMetaRow(
-                      'Regime Semestral:',
-                      '100 Dias Letivos (Semana 10)',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildMetaRow(
-                      'Pauta / Fechamento:',
-                      'Diário Aberto para Lançamentos',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Card 2: Ações Rápidas de Gestão Pedagógica
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE4E4E7)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'AÇÕES DOCENTE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF09090B),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActionDocenteButton(
-                      Icons.upload_file,
-                      'Upload de Slides ou Apostila',
-                      onTap: onUploadSlides,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildActionDocenteButton(
-                      Icons.add_task,
-                      'Publicar Nova Tarefa',
-                      onTap: onPublishAssignment,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildActionDocenteButton(
-                      Icons.announcement_outlined,
-                      'Disparar Comunicado à Turma',
-                      onTap: onQuickNotice,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildActionDocenteButton(
-                      Icons.menu_book,
-                      'Revisar Ementa / PPC',
-                      onTap: onReviewSyllabus,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Card 3: Correções Pendentes
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE4E4E7)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'CORREÇÕES PENDENTES',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF09090B),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        Text(
-                          '6 envios',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFD97706),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Entrega da Sprint 1: 28 submetidos de 34 alunos.',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: onNavigateToAssignments,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF18181B),
-                        minimumSize: const Size(double.infinity, 34),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Corrigir Submissões',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+  Future<void> _confirmDeleteMaterial(
+    BuildContext context,
+    CourseMaterial mat,
+  ) async {
+    final confirmed = await CourseHubModal.show<bool>(
+      context: context,
+      overlineTag: 'CONFIRMAÇÃO',
+      title: 'Remover material didático',
+      subtitle: mat.title,
+      maxWidth: 440,
+      actionsBuilder: (ctx) => [
+        CourseHubPillButton(
+          label: 'Cancelar',
+          variant: CourseHubButtonVariant.secondary,
+          onPressed: () => Navigator.of(ctx).pop(false),
+        ),
+        CourseHubPillButton(
+          label: 'Remover arquivo',
+          variant: CourseHubButtonVariant.danger,
+          onPressed: () => Navigator.of(ctx).pop(true),
         ),
       ],
-    );
-  }
-
-  static Widget _buildDocenteUnitCard({
-    required String tag,
-    required String title,
-    required List<String> items,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tag,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF71717A),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF09090B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, size: 12),
-                  label: const Text(
-                    'Adicionar Item',
-                    style: TextStyle(fontSize: 11),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE4E4E7)),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFF4F4F5)),
-          ...items.map((item) {
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.drag_indicator,
-                            size: 16,
-                            color: Color(0xFFA1A1AA),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Color(0xFF16A34A),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            item,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF09090B),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.edit_outlined,
-                              size: 14,
-                              color: Color(0xFF71717A),
-                            ),
-                            onPressed: () {},
-                            constraints: const BoxConstraints(),
-                            padding: const EdgeInsets.all(4),
-                          ),
-                          const SizedBox(width: 6),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.visibility_outlined,
-                              size: 14,
-                              color: Color(0xFF71717A),
-                            ),
-                            onPressed: () {},
-                            constraints: const BoxConstraints(),
-                            padding: const EdgeInsets.all(4),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Color(0xFFF4F4F5),
-                ),
-              ],
-            );
-          }),
-        ],
+      builder: (_) => Text(
+        'O material deixará de aparecer no Repositório e nos Módulos dos discentes desta turma.',
+        style: jakarta(size: 13, color: const Color(0xFF52525B)),
       ),
     );
-  }
-
-  static Widget _buildActionDocenteButton(
-    IconData icon,
-    String label, {
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFBFBFC),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: const Color(0xFFE4E4E7)),
+    if (confirmed != true || !context.mounted) return;
+    final removed = await widget.controller.deleteMaterial(
+      widget.course.id,
+      mat.id,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          removed
+              ? 'Material removido com sucesso.'
+              : (widget.controller.remoteError ??
+                    'Erro ao remover material.'),
         ),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: const Color(0xFF09090B)),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF09090B),
-              ),
-            ),
-          ],
-        ),
+        backgroundColor: removed
+            ? const Color(0xFF166534)
+            : const Color(0xFFB91C1C),
       ),
     );
   }
 
-  static Widget _buildMetaRow(String label, String value) {
-    return Row(
+  @override
+  Widget build(BuildContext context) {
+    final units = widget.course.syllabusUnits;
+    final filteredMaterials = widget.course.materials.where((mat) {
+      if (_selectedCategory == 'Todos') return true;
+      return mat.category.toLowerCase() == _selectedCategory.toLowerCase();
+    }).toList();
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 105,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
+        CourseHubSectionHeader(
+          overline: 'CONTEÚDO PROGRAMÁTICO • ${widget.course.code}',
+          title: 'Módulos, Unidades e Materiais',
+          subtitle:
+              'Organize unidades didáticas, avance a carga horária cumprida e publique apostilas visíveis aos alunos.',
+          trailing: CourseHubPillButton(
+            label: 'Publicar Material',
+            icon: Icons.upload_file_outlined,
+            onPressed: widget.onAddContent,
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF09090B),
+        const SizedBox(height: 18),
+
+        // Progresso da carga horária
+        CourseHubSurfaceCard(
+          overlineTag: 'CUMPRIMENTO DA CARGA HORÁRIA',
+          title:
+              '${widget.course.workloadCompletedLabel}${widget.course.workloadTotalLabel} ministradas',
+          subtitle: widget.course.progressCaption,
+          headerTrailing: CourseHubBadge(
+            label: widget.course.progressPercentageFormatted,
+            tone: CourseHubBadgeTone.info,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: widget.course.progress.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: const Color(0xFFF4F4F5),
+              color: InstColors.ink,
             ),
           ),
         ),
+        const SizedBox(height: 20),
+
+        // Lista de Unidades Programáticas
+        Text(
+          'Unidades Didáticas (${units.length})',
+          style: jakarta(
+            size: 14.5,
+            weight: FontWeight.w700,
+            color: InstColors.ink,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (units.isEmpty)
+          const CourseHubEmptyState(
+            icon: Icons.layers_outlined,
+            title: 'Nenhuma unidade curricular cadastrada.',
+            subtitle:
+                'As unidades programadas do componente aparecerão aqui para controle de progresso.',
+          )
+        else
+          for (final unit in units)
+            CourseHubSurfaceCard(
+              margin: const EdgeInsets.only(bottom: 12),
+              overlineTag: 'UNIDADE ${unit.unitNumber}',
+              title: unit.title,
+              headerTrailing: CourseHubBadge(
+                label: '${unit.completedClasses}/${unit.totalClasses} aulas',
+                tone: unit.isCompleted
+                    ? CourseHubBadgeTone.success
+                    : CourseHubBadgeTone.neutral,
+                icon: unit.isCompleted ? Icons.check_circle_outline : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (unit.topics.isNotEmpty) ...[
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: unit.topics.map((topic) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFAF8F5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFFE5E7EB),
+                            ),
+                          ),
+                          child: Text(
+                            topic,
+                            style: jakarta(
+                              size: 11.5,
+                              color: const Color(0xFF52525B),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: unit.progress.clamp(0.0, 1.0),
+                            minHeight: 6,
+                            backgroundColor: const Color(0xFFF4F4F5),
+                            color: unit.isCompleted
+                                ? const Color(0xFF16A34A)
+                                : InstColors.ink,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      CourseHubPillButton(
+                        label: unit.isCompleted
+                            ? 'Unidade Concluída'
+                            : '+ Avançar 1 aula',
+                        variant: CourseHubButtonVariant.secondary,
+                        compact: true,
+                        onPressed: unit.isCompleted
+                            ? null
+                            : () => widget.controller.advanceSyllabusClasses(
+                                widget.course.id,
+                                unit.id,
+                              ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+        const SizedBox(height: 22),
+
+        // Repositório de Materiais
+        CourseHubSectionHeader(
+          title: 'Repositório de Materiais (${widget.course.materials.length})',
+          subtitle:
+              'Arquivos disponíveis imediatamente nas abas Página Inicial e Arquivos do portal discente.',
+          trailing: CourseHubFilterBar(
+            options: _categories,
+            selected: _selectedCategory,
+            onSelected: (cat) => setState(() => _selectedCategory = cat),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (filteredMaterials.isEmpty)
+          CourseHubEmptyState(
+            icon: Icons.folder_open_outlined,
+            title: 'Nenhum material encontrado neste filtro',
+            subtitle:
+                'Envie slides, listas de exercícios ou códigos-fonte para disponibilizar à turma.',
+            actionLabel: 'Publicar Material',
+            onAction: widget.onAddContent,
+          )
+        else
+          for (final mat in filteredMaterials)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF8F5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        mat.type.toUpperCase(),
+                        style: jakarta(
+                          size: 10,
+                          weight: FontWeight.w700,
+                          color: InstColors.ink,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mat.title,
+                          style: jakarta(
+                            size: 13.5,
+                            weight: FontWeight.w700,
+                            color: InstColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${mat.unitAssociated} • ${mat.category} • ${mat.date} • ${mat.size}',
+                          style: jakarta(
+                            size: 11.5,
+                            color: const Color(0xFF71717A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _downloadMaterial(context, mat),
+                    tooltip: 'Baixar material',
+                    icon: const Icon(
+                      Icons.download_outlined,
+                      size: 18,
+                      color: Color(0xFF52525B),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _confirmDeleteMaterial(context, mat),
+                    tooltip: 'Remover material',
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: Color(0xFFB91C1C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       ],
     );
   }

@@ -1,140 +1,137 @@
-# Backend — Enterprise Academic Services & Persistence
+# Backend Acadêmico (TypeScript + Express + MongoDB)
 
-The `backend` module defines the target architecture for the enterprise business logic, persistence layer, identity management, and orchestration services of the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3).
+Serviço modular em TypeScript dedicado ao núcleo acadêmico (`student`, `teacher`, operações acadêmicas de `admin`, download de arquivos `/api/files/*`) e à ponte HTTP interna (`/api/internal/academic/*`).
 
----
+Roda na porta `3001` por padrão e opera em conjunto com o servidor Java SE em `../server` (porta `8080`), que detém a autoridade exclusiva sobre autenticação, sessão, gestão de usuários (`/api/admin/users*`, `POST /api/admin/teachers`) e sinalização/persistência de videochamada (`/api/video-call/*`, `/ws/video-call/*`). Este serviço realiza apenas validação passiva de JWT HS256 contra `auth_users` e `auth_sessions` no MongoDB e carrega a configuração exclusivamente do `.env` na raiz (`../.env`).
 
-## 🏛️ Architectural Purpose & Scope
+## Organização
 
-The `backend` module serves as the long-term domain and persistence core of the AGMRM ecosystem. While the lightweight, zero-dependency native Java server in [`server/`](../server/README.md) provides specialized, high-performance execution of standalone academic calculation algorithms and raw HTTP socket handling, the `backend` module is scoped to accommodate:
-
-1. **Persistent Data Storage**: Relational databases, migration pipelines, and Object-Relational Mapping (ORM) / Data Access Objects (DAO).
-2. **Enterprise Business Microservices**: Complex student management workflows, enrollment validation, and curriculum lifecycle tracking.
-3. **Identity & Access Management (IAM)**: Centralized OAuth2/OpenID Connect provider or JWT authentication engine.
-4. **API Gateway & Orchestration**: Unified REST and GraphQL gateway mediating requests between the Flutter frontend client and core services.
-
----
-
-## 📂 Current Repository State & Structural Reservation
-
-On disk, the `backend` directory currently contains a versioned placeholder:
-
-```
+```text
 backend/
-├── .gitkeep                      # Git placeholder maintaining directory structure
-└── README.md                     # Architectural documentation (this file)
+├── src/
+│   ├── app.ts                        # Composição das rotas acadêmicas, ponte interna e 404 explícitos
+│   ├── server.ts                     # Bootstrap HTTP e conexão com MongoDB
+│   ├── config/                       # Carregamento e validação estrita de variáveis de ambiente
+│   ├── shared/
+│   │   ├── auth/                     # Middleware passivo JWT + auth_users / auth_sessions
+│   │   ├── formatting/               # Formatação reutilizável de datas e sanitizeRoomCode
+│   │   ├── mongo/                    # MongoAcademicDatabase e criação de índices por domínio
+│   │   └── ...                       # Erros HTTP, transações e validação compartilhada
+│   ├── modules/
+│   │   ├── internal/                 # Ponte HTTP interna (/api/internal/academic/*)
+│   │   ├── notifications/            # ResilientEmailSender (SMTP / outbox local / banco)
+│   │   ├── admin/
+│   │   │   ├── infrastructure/       # Middleware adminOnly, auditoria e sanitização de registros
+│   │   │   └── presentation/
+│   │   │       ├── academic/         # Rotas de cursos, turmas, matrículas e GET /teachers
+│   │   │       └── operations/
+│   │   │           ├── calendar/     # Calendário institucional
+│   │   │           ├── protocols/    # Requerimentos e decisões da secretaria
+│   │   │           ├── announcements/ # Comunicados institucionais
+│   │   │           ├── settings/     # Configurações institucionais
+│   │   │           └── system/       # Diagnóstico de e-mail / sistema
+│   │   ├── student/
+│   │   │   ├── application/          # Casos de uso discentes (painel, entregas, notas, fórum, protocolos)
+│   │   │   └── presentation/
+│   │   │       ├── dashboard/        # Rotas /api/student/*
+│   │   │       └── files/            # Downloads (/api/files/*)
+│   │   └── teacher/
+│   │       ├── application/          # Casos de uso docentes (diário, materiais, notas, homologação)
+│   │       └── presentation/         # Rotas docentes (/api/teacher/*)
+│   ├── scripts/
+│   │   ├── index.ts                  # Orquestrador mestre das seeds do ecossistema
+│   │   ├── modules/                  # Seeds 01-users .. 06-institutional
+│   │   ├── shared/                   # Runner e tipagens compartilhadas de seeds
+│   │   ├── create-auth-user.ts       # Provisionamento seguro de contas via CLI
+│   │   └── test-email-resilience.ts  # Teste de envio e resiliência de e-mail (outbox)
+│   └── tests/
+│       ├── unit/                     # Testes unitários isolados
+│       └── integration/              # Testes de integração HTTP (incluindo ponte interna e fronteira)
+├── .env.example
+├── backend-config.json
+├── package.json
+└── tsconfig.json
 ```
 
-### Why is `.gitkeep` Present?
-In the initial development milestone of the AGMRM project:
-- Core calculation handlers (attendance percentage, assignment penalty deductions, and report card weighted grading) were developed inside [`server/src/`](../server/README.md) using native Java SE standard library APIs without third-party frameworks.
-- The `backend/` directory is deliberately preserved in source control via `.gitkeep` to establish an explicit boundary between the protocol-level Java socket server (`server/`) and the full enterprise application backend tier.
-- As the project advances through future sprints, enterprise backend frameworks, data schemas, and API definitions will be integrated directly into this module without disrupting the native socket server.
+As dependências de persistência e serviços externos são injetadas nos casos de uso, permitindo testar regras de negócio sem conexão externa com MongoDB ou SMTP.
 
----
+## Perfis e contas
 
-## 🗺️ Architectural Roadmap & Future Contracts
+Os únicos perfis aceitos são `aluno`, `docente` e `admin`. Contas são lidas da coleção `auth_users` no banco MongoDB escolhido. O serviço não cria contas fictícias automaticamente nem aceita credenciais hardcoded.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Flutter Client (frontend/)                     │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                       HTTP / JSON (REST / GraphQL)
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       AGMRM Backend Services (backend/)                │
-│                                                                        │
-│   ┌───────────────────────────┐      ┌─────────────────────────────┐   │
-│   │   Identity & Auth (IAM)   │      │    Academic Core Service    │   │
-│   │  - OAuth2 / JWT Tokens    │      │  - Enrollments & Courses    │   │
-│   │  - Argon2 Password Hashing│      │  - Gradebook Lifecycle      │   │
-│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
-│                 │                                   │                  │
-│   ┌─────────────▼─────────────┐      ┌──────────────▼──────────────┐   │
-│   │   Attendance Sync Worker  │      │     Assignment Service      │   │
-│   │  - Virtual Class Sessions │      │  - Submissions & Penalties  │   │
-│   └─────────────┬─────────────┘      └──────────────┬──────────────┘   │
-│                 │                                   │                  │
-│                 └─────────────────┬─────────────────┘                  │
-│                                   │                                    │
-│                                   ▼                                    │
-│                     Persistence Layer (ORM / DAO)                     │
-│               PostgreSQL / SQLite + Flyway/Liquibase Migrations        │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                     Calculations / Socket Dispatch
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│               Native Java Calculation Engine (server/src/)             │
-│    (/api/teste-tipos, /api/presenca, /api/tarefas, /api/notas/boletim)  │
-└────────────────────────────────────────────────────────────────────────┘
+Cada documento contém:
+
+```json
+{
+  "identity": "identificador institucional",
+  "normalizedIdentity": "identificador institucional em minúsculas",
+  "email": "endereço institucional",
+  "displayName": "nome de exibição",
+  "profile": "aluno",
+  "passwordHash": "hash produzido por bcrypt",
+  "active": true
+}
 ```
 
-### Planned Subsystems & Target Contracts
+`normalizedIdentity` é único. A inicialização cria esse índice e os índices TTL das coleções `auth_recovery`, `auth_sessions`, `academic_live_sessions` e `video_call_ws_tickets`. Senhas são armazenadas exclusivamente como hashes bcrypt.
 
-| Subsystem | Planned Technology / Standard | Target Responsibilities |
+Para provisionar uma conta autorizada localmente, com o ambiente configurado no `.env` da raiz, execute `npm run create-user` na pasta `backend`.
+
+## Configuração, execução e testes
+
+Requer Node.js 20 ou superior e MongoDB acessível. A configuração é unificada no `.env` da raiz do projeto (`../.env`):
+
+```powershell
+# Na pasta backend:
+npm install
+npm run dev
+```
+
+O arquivo mestre `.env` na raiz já contém as variáveis compartilhadas (`MONGODB_URI`, `AUTH_JWT_SECRET`, `AUTH_OTP_SECRET`, `SMTP_*`, etc.), lidas automaticamente por todos os serviços.
+
+Comandos de verificação e build (suíte com **61 testes automatizados** distribuídos entre 10 arquivos unitários e 4 arquivos de integração):
+
+```powershell
+npm test                  # Compila TypeScript e executa toda a suíte (61 testes: unit + integration)
+npm run test:unit         # Executa apenas src/tests/unit
+npm run test:integration  # Executa apenas src/tests/integration
+npm run build             # Gera build de produção em dist/
+npm start                 # Inicia build compilado
+```
+
+## Endpoints principais
+
+Base local: `http://127.0.0.1:3001`
+
+| Método | Caminho | Descrição |
 |---|---|---|
-| **Identity & Access Management (IAM)** | JWT (RFC 7519), OAuth2, Argon2id | Secure token issuance, token refresh rotation, role-based access control (Student, Faculty, Admin), and credential hashing. |
-| **Academic Records Service** | REST / JSON Schema, gRPC | Course catalog, student registrations (RA), semester curriculum, and transcript archival. |
-| **Gradebook & Calculation Orchestrator** | Spring Boot / Quarkus / Micronaut | Orchestrating grade submissions with the native calculation engine (`BoletimHandler` and `TarefasHandler`). |
-| **Attendance Reconciliation Service** | Event-Driven / Webhooks | Real-time synchronization of virtual and in-person attendance logs, driving `PresencaHandler`. |
-| **Persistence Engine** | PostgreSQL / SQLite with Flyway | ACID-compliant transactional persistence, audit logs, and automated schema migration scripts. |
+| `GET` | `/health` | Health check do serviço acadêmico (`agmrm-academic-api`) |
+| `GET` / `POST` | `/api/student/*` | Painel, boletim, entregas, fórum, anotações e protocolos do discente |
+| `GET` | `/api/files/*` | Downloads autenticados de materiais, entregas e protocolos |
+| `GET` / `POST` / `PATCH` | `/api/teacher/*` | Diário de aula, materiais, tarefas, avaliação, notas e homologação |
+| `GET` | `/api/admin/teachers` | Listagem somente leitura de docentes para alocação de turmas (`adminOnly`) |
+| `GET` / `POST` / `PATCH` | `/api/admin/courses`, `/classes`, `/protocols`, `/announcements`, `/calendar`, `/settings`, `/audit-logs`, `/system/*` | Operações acadêmicas e institucionais administrativas (`adminOnly`) |
+| `GET` / `POST` / `PATCH` | `/api/internal/academic/*` | Ponte interna autenticada via `X-Internal-Service-Secret` para o servidor Java |
 
----
+Rotas públicas de `/api/auth/*`, `/api/admin/users*`, `POST /api/admin/teachers` e `/api/video-call/*` pertencem exclusivamente ao servidor Java (`:8080`) e retornam `404` nesta API.
 
-## 🔌 API Contract Specifications (Preview)
+## Seeds do Ecossistema Acadêmico
 
-When fully instantiated, the backend will expose standardized REST endpoints adhering to the following OpenAPI-style specifications:
+Execute para popular o banco de dados de desenvolvimento com o ecossistema acadêmico completo (bloqueado em produção):
 
-### 1. Authentication Contract (`POST /api/v1/auth/token`)
-- **Request Headers**: `Content-Type: application/json`
-- **Request Body**:
-  ```json
-  {
-    "identity": "24802449",
-    "password": "SecurePassword#2026",
-    "role": "aluno"
-  }
-  ```
-- **Response (`200 OK`)**:
-  ```json
-  {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsIn...",
-    "tokenType": "Bearer",
-    "expiresIn": 900,
-    "refreshToken": "d8f3a9e2-1b4c-4e8a-...",
-    "user": {
-      "ra": "24802449",
-      "name": "Alex Gabriel Soares Sousa",
-      "role": "aluno"
-    }
-  }
-  ```
+```powershell
+npm run seed
+```
 
-### 2. Password Recovery Contract (`POST /api/v1/auth/recover-password`)
-- **Request Body**:
-  ```json
-  {
-    "identity": "24802449",
-    "profile": "aluno"
-  }
-  ```
-- **Response (`200 OK`)**:
-  ```json
-  {
-    "status": "INSTRUCTIONS_SENT",
-    "expiresInSeconds": 300,
-    "maskedDestination": "al***@puc-campinas.edu.br"
-  }
-  ```
+Você também pode executar módulos específicos através das opções:
 
----
+```powershell
+npm run seed:users          # Apenas contas de usuários (Admin, Docentes e Alunos)
+npm run seed:courses        # Apenas cursos e matriz curricular
+npm run seed:classes        # Apenas turmas e matrículas
+npm run seed:teacher        # Apenas domínio do docente (aulas, materiais, tarefas)
+npm run seed:student        # Apenas domínio do aluno (entregas, notas, protocolos)
+npm run seed:institutional  # Apenas domínio institucional (calendário, comunicados, configurações)
+```
 
-## 🔗 Cross-Module Integration
-
-- **Frontend Integration**: The Flutter client ([`frontend/`](../frontend/README.md)) connects its feature modules (`features/auth_view/` and `features/student_view/`) and shared data layer (`shared/auth/external/auth_remote_datasource_impl.dart`) to these REST endpoints.
-- **Server Integration**: The native Java HTTP server ([`server/`](../server/README.md)) continues to operate as a high-speed computational service for primitive parsing and mathematical evaluation or can be embedded as an internal microservice.
-- **Security Policy**: All backend operations comply with the defense-in-depth guards, threat models, and governance policies implemented in [`security/`](../security/README.md).
+Defina opcionalmente `SEED_DEMO_PASSWORD` localmente (entre 8 caracteres e 72 bytes UTF-8) em `.env.local` ou variável de terminal (caso não definida, o valor padrão de desenvolvimento `Agmrm@2026` será utilizado de forma segura). Se o resolvedor local apresentar `querySrv ECONNREFUSED`, configure opcionalmente `$env:SEED_DNS_SERVERS = "1.1.1.1,8.8.8.8"` antes de rodar o comando.

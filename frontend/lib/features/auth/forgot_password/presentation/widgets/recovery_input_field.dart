@@ -21,7 +21,7 @@ class RecoveryInputField extends StatelessWidget {
   /// Título contextual do campo (ex: R.A. do Aluno, Matrícula do Docente).
   final String inputTitle;
 
-  /// Exemplo textual da sintaxe esperada (ex: `ex: 2024.1.00892`).
+  /// Exemplo textual da sintaxe esperada (ex: `ex: 202610401`).
   final String example;
 
   /// Texto temporário exibido no interior do campo antes da digitação (placeholder).
@@ -67,11 +67,14 @@ class RecoveryInputField extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              example,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontSize: 12,
-                color: AppColors.textMuted,
+            Flexible(
+              child: Text(
+                example,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
               ),
             ),
           ],

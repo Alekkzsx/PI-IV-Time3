@@ -1,19 +1,19 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Represents a physical participant in the video conference room.
+/// Representa um participante físico na sala de videoconferência.
 ///
-/// Invariant: ZERO BOTS. Only actual connected peers exist as instances.
+/// Invariante: ZERO BOTS. Apenas pares realmente conectados existem como instâncias.
 class Participant {
   final String id;
   final String name;
   final String ra;
-  final String role; // 'student' or 'teacher'
+  final String role; // 'student' ou 'teacher'
   final bool isAudioMuted;
   final bool isVideoOff;
   final bool isScreenSharing;
   final bool isHandRaised;
   final bool isSpeaking;
-  final double audioLevel; // 0.0 to 1.0 RMS
+  final double audioLevel; // 0.0 a 1.0 RMS
 
   const Participant({
     required this.id,
@@ -111,7 +111,7 @@ class Participant {
       );
 }
 
-/// Represents the meeting room identity and configuration.
+/// Representa a identidade e a configuração da sala de reunião.
 class MeetingRoom {
   final String id;
   final String code;
@@ -136,7 +136,7 @@ class MeetingRoom {
       );
 }
 
-/// Real-time chat message exchanged peer-to-peer.
+/// Mensagem de chat em tempo real trocada ponto a ponto.
 class ChatMessage {
   final String id;
   final String senderId;
@@ -173,7 +173,7 @@ class ChatMessage {
       );
 }
 
-/// Floating emoji reaction broadcast to peers.
+/// Reação flutuante de emoji transmitida aos pares.
 class EmojiReaction {
   final String id;
   final String peerId;
@@ -206,7 +206,7 @@ class EmojiReaction {
       );
 }
 
-/// An entry in the ordered raised-hands participant queue.
+/// Uma entrada na fila ordenada de participantes com a mão levantada.
 class HandRaiseItem {
   final String peerId;
   final String name;
@@ -235,7 +235,7 @@ class HandRaiseItem {
       );
 }
 
-/// Dynamic media state update broadcast when audio/video/screen change.
+/// Atualização dinâmica de estado de mídia transmitida quando áudio/vídeo/tela mudam.
 class MediaStateUpdate {
   final String peerId;
   final bool? isAudioMuted;
@@ -269,7 +269,7 @@ class MediaStateUpdate {
       );
 }
 
-/// Global recording state synchronized across all peers in the room.
+/// Estado global de gravação sincronizado entre todos os pares da sala.
 class RecordingState {
   final bool isRecording;
   final DateTime? startedAt;
@@ -316,7 +316,7 @@ class RecordingState {
       );
 }
 
-/// Snapshot ledger of the recorded meeting session for export.
+/// Registro consolidado da sessão de reunião gravada para exportação.
 class SessionExport {
   final String roomCode;
   final DateTime startedAt;
@@ -351,14 +351,14 @@ class SessionExport {
       };
 }
 
-/// Abstract contract for the raw P2P signaling channel.
+/// Contrato abstrato para o canal bruto de sinalização P2P.
 abstract class ISignalingChannel {
   Stream<String> get messageStream;
   Future<void> send(String data);
   Future<void> close();
 }
 
-/// Abstract repository contract adhering to Clean Architecture.
+/// Contrato abstrato de repositório seguindo a Arquitetura Limpa.
 abstract class VideoCallRepository {
   Stream<Participant> get participantJoinedStream;
   Stream<String> get participantLeftStream;

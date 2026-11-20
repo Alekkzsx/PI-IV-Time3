@@ -42,11 +42,7 @@ class RealVideoRenderer extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              fallbackIcon,
-              color: VideoCallColors.textSecondary,
-              size: 48,
-            ),
+            Icon(fallbackIcon, color: VideoCallColors.textSecondary, size: 48),
             if (streamLabel != null && streamLabel!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(

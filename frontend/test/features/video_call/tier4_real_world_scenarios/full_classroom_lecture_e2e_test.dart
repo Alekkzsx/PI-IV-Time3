@@ -31,7 +31,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      // 1. Mount Professor Carlos's room UI
+      // 1. Monta a interface da sala do Professor Carlos
       await tester.pumpWidget(
         MaterialApp(
           home: VideoCallRoomPage(controller: harness.peerA),
@@ -43,14 +43,14 @@ void main() {
       expect(find.text('Prof. Carlos (DOC-1020)'), findsOneWidget);
       expect(find.text('Alex Sousa (24802449)'), findsOneWidget);
 
-      // 2. Professor Carlos starts Screen Sharing (spotlight presentation mode)
+      // 2. O Professor Carlos inicia o compartilhamento de tela (modo de apresentação em destaque)
       harness.peerA.toggleScreenShare();
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
       expect(find.text('Apresentação de Tela Ativa'), findsOneWidget);
 
-      // 3. Student Alex raises hand in the class
+      // 3. O aluno Alex levanta a mão na aula
       harness.peerB.toggleHandRaise();
       await tester.pumpAndSettle();
 
@@ -63,22 +63,22 @@ void main() {
         findsOneWidget,
       );
 
-      // 4. Professor Carlos begins meeting recording
+      // 4. O Professor Carlos inicia a gravação da reunião
       harness.peerA.toggleRecording();
       await tester.pump();
 
       expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
       expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
 
-      // 5. Student Alex sends a question in the in-call chat
+      // 5. O aluno Alex envia uma pergunta no chat da chamada
       harness.peerB.sendChatMessage('Professor, haverá revisão para a prova final?');
       await tester.pump();
 
-      // Professor's toolbar displays unread chat badge
+      // A barra de ferramentas do professor exibe o emblema de mensagens não lidas
       expect(find.byKey(const Key('unread_chat_badge')), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
 
-      // 6. Professor opens chat drawer to review question
+      // 6. O professor abre a gaveta de chat para ver a pergunta
       harness.peerA.toggleChatDrawer();
       await tester.pumpAndSettle();
 
@@ -86,16 +86,16 @@ void main() {
       expect(find.text('Professor, haverá revisão para a prova final?'), findsOneWidget);
       expect(harness.peerA.unreadChatCount, 0);
 
-      // 7. Student sends applause reaction
+      // 7. O aluno envia uma reação de aplausos
       harness.peerB.sendReaction('👏');
       await tester.pump();
 
       expect(harness.peerA.activeReactions.any((r) => r.emoji == '👏'), isTrue);
 
-      // Allow reaction 2500ms duration to expire cleanly
+      // Aguarda a duração de 2500ms da reação expirar normalmente
       await tester.pump(const Duration(milliseconds: 2600));
 
-      // 8. Professor stops recording and concludes session
+      // 8. O professor para a gravação e conclui a sessão
       harness.peerA.toggleRecording();
       await tester.pump();
 

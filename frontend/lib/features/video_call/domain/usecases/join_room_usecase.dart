@@ -57,7 +57,10 @@ class JoinRoomUseCase {
       );
     }
 
-    final validatedRoom = room.copyWith(id: sanitizedRoomId, title: sanitizedTitle);
+    final validatedRoom = room.copyWith(
+      id: sanitizedRoomId,
+      title: sanitizedTitle,
+    );
     final validatedParticipant = localParticipant.copyWith(
       id: sanitizedPeerId,
       name: sanitizedName,

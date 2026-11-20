@@ -1,6 +1,7 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 class AdminRecentProtocolItemData {
@@ -22,38 +23,22 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
   final VoidCallback? onSeeAll;
   final ValueChanged<AdminRecentProtocolItemData>? onItemTap;
 
-  const AdminRecentProtocolsPanel({
-    super.key,
-    this.onSeeAll,
-    this.onItemTap,
-  });
-
-  static const List<AdminRecentProtocolItemData> defaultProtocols = [
-    AdminRecentProtocolItemData(
-      studentName: 'Camila Duarte Fagundes',
-      dateText: 'Hoje, 09:15',
-      protocolTitle: 'PROT-2026/8841 • APS-II e BD-II (Afastamento 29 a 30/09)',
-      description:
-          'Apresentação de atestado médico com CID-10 J06.9 para abono e justificativa legal de ausências.',
-    ),
-    AdminRecentProtocolItemData(
-      studentName: 'Gabriel Soares de Oliveira',
-      dateText: 'Ontem, 16:20',
-      protocolTitle: 'PROT-2026/8835 • Validação de Curso Extracurricular (40h)',
-      description:
-          'Certificado de conclusão do curso avançado de Arquitetura Limpa e Microsserviços (40 horas).',
-    ),
-    AdminRecentProtocolItemData(
-      studentName: 'Rodrigo Antunes Nogueira',
-      dateText: 'Hoje, 10:45',
-      protocolTitle: 'PROT-2026/8850 • APS-II – Prova Substitutiva',
-      description:
-          'Solicitação de 2ª chamada da Prova Parcial por motivo de declaração de trabalho em regime de escala.',
-    ),
-  ];
+  const AdminRecentProtocolsPanel({super.key, this.onSeeAll, this.onItemTap});
 
   @override
   Widget build(BuildContext context) {
+    final portal = AdminPortalController.instance;
+    final protocols = portal.protocols
+        .take(3)
+        .map(
+          (item) => AdminRecentProtocolItemData(
+            studentName: item.studentName,
+            dateText: item.date,
+            protocolTitle: item.requestType,
+            description: item.justification,
+          ),
+        )
+        .toList();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -89,13 +74,20 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          for (int i = 0; i < defaultProtocols.length; i++) ...[
+          if (protocols.isEmpty) const Text('Nenhum protocolo cadastrado.'),
+          for (int i = 0; i < protocols.length; i++) ...[
             if (i > 0) const SizedBox(height: 22),
-            _buildProtocolItem(defaultProtocols[i]),
+            _buildProtocolItem(protocols[i]),
           ],
         ],
       ),
     );
+  }
+
+  String _formatDateLabel(String raw) {
+    final parsed = DateTime.tryParse(raw.trim())?.toLocal();
+    if (parsed == null) return raw;
+    return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
   }
 
   Widget _buildProtocolItem(AdminRecentProtocolItemData item) {
@@ -106,22 +98,31 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                item.studentName,
-                style: jakarta(
-                  size: 13.5,
-                  weight: FontWeight.w700,
-                  color: const Color(0xFF1A1A1A),
+              Expanded(
+                child: Text(
+                  item.studentName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 13.5,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF1A1A1A),
+                  ),
                 ),
               ),
-              Text(
-                item.dateText,
-                style: jakarta(
-                  size: 12.5,
-                  weight: FontWeight.w400,
-                  color: const Color(0xFFA3A3A3),
+              const SizedBox(width: 8),
+              Flexible(
+                flex: 0,
+                child: Text(
+                  _formatDateLabel(item.dateText),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: jakarta(
+                    size: 12.5,
+                    weight: FontWeight.w400,
+                    color: const Color(0xFFA3A3A3),
+                  ),
                 ),
               ),
             ],
@@ -153,4 +154,3 @@ class AdminRecentProtocolsPanel extends StatelessWidget {
     );
   }
 }
-

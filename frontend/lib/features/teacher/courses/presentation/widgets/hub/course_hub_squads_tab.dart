@@ -1,155 +1,222 @@
-// Desenvolvido por Murillo Caravita - RA: 25014012
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
+import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
+import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
+import 'course_hub_ui.dart';
 
-/// Aba de Equipes de Projeto & Squads Integradores do curso no Portal Docente.
+/// Aba de Equipes e Squads Integradores sincronizada com Colaborações no AVA do Aluno.
 class CourseHubSquadsTab extends StatelessWidget {
-  final VoidCallback? onNewSquad;
+  final DocenteCourse course;
+  final DocenteController controller;
+  final VoidCallback onAddSquad;
 
-  const CourseHubSquadsTab({super.key, this.onNewSquad});
+  const CourseHubSquadsTab({
+    super.key,
+    required this.course,
+    required this.controller,
+    required this.onAddSquad,
+  });
+
+  Future<void> _removeSquad(BuildContext context, int index) async {
+    final squads = course.squads;
+    final target = squads[index];
+    final confirmed = await CourseHubModal.show<bool>(
+      context: context,
+      overlineTag: 'GERENCIAR EQUIPES',
+      title: 'Remover equipe de projeto',
+      subtitle: (target['name'] ?? 'Squad').toString(),
+      maxWidth: 440,
+      actionsBuilder: (ctx) => [
+        CourseHubPillButton(
+          label: 'Cancelar',
+          variant: CourseHubButtonVariant.secondary,
+          onPressed: () => Navigator.of(ctx).pop(false),
+        ),
+        CourseHubPillButton(
+          label: 'Remover',
+          variant: CourseHubButtonVariant.danger,
+          onPressed: () => Navigator.of(ctx).pop(true),
+        ),
+      ],
+      builder: (_) => Text(
+        'Tem certeza que deseja excluir esta equipe? Os dados do squad deixarão de aparecer para os alunos.',
+        style: jakarta(size: 13, color: const Color(0xFF52525B)),
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final updated = <Map<String, Object?>>[];
+    for (int i = 0; i < squads.length; i++) {
+      if (i == index) continue;
+      final sq = squads[i];
+      updated.add({
+        if (sq['id'] != null) 'id': sq['id'].toString(),
+        'name': (sq['name'] ?? 'Equipe').toString(),
+        'projectTitle': (sq['projectTitle'] ?? sq['name'] ?? 'Projeto Integrador')
+            .toString(),
+        if ((sq['repoUrl'] ?? '').toString().isNotEmpty)
+          'repoUrl': sq['repoUrl'].toString(),
+        if ((sq['sprintStatus'] ?? '').toString().isNotEmpty)
+          'sprintStatus': sq['sprintStatus'].toString(),
+        'members': ((sq['members'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+      });
+    }
+    final ok = await controller.saveSquads(updated);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Equipe removida com sucesso.'
+              : (controller.remoteError ?? 'Erro ao remover equipe.'),
+        ),
+        backgroundColor: ok
+            ? const Color(0xFF18181B)
+            : const Color(0xFFB91C1C),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final squads = course.squads;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Equipes de Projeto & Squads Integradores',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF09090B),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Organização dos discentes em squads de desenvolvimento prático e entregas da Sprint.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF71717A)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                if (onNewSquad != null) {
-                  onNewSquad!();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Abrindo assistente de criação de squad...',
-                      ),
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.group_add, size: 14, color: Colors.white),
-              label: const Text(
-                'Nova Equipe',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF18181B),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ],
+        CourseHubSectionHeader(
+          overline: 'PROJETOS INTEGRADOS • ${course.code}',
+          title: 'Equipes de Projeto & Squads Integradores',
+          subtitle:
+              'Organize grupos com título de projeto, integrantes matriculados e acompanhe os repositórios atualizados pelos discentes.',
+          trailing: CourseHubPillButton(
+            label: 'Nova Equipe',
+            icon: Icons.add_rounded,
+            onPressed: onAddSquad,
+          ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
 
-        _buildSquadCard(
-          'Squad Alpha: Sistema de Gestão Hospitalar',
-          'Mariana Rios Costa (Líder), Gabriel Soares, Lucas Mendes, Camila Duarte',
-          'Sprint 1 Entregue (Nota 9.5)',
-        ),
-        const SizedBox(height: 12),
-        _buildSquadCard(
-          'Squad Beta: Plataforma de E-commerce Sustentável',
-          'Rodrigo Antunes (Líder), Vinicius Ferraz, Ana Paula Silva, Felipe Ramos',
-          'Sprint 1 em Correção',
-        ),
-        const SizedBox(height: 12),
-        _buildSquadCard(
-          'Squad Gamma: App de Logística e Rastreamento IoT',
-          'Beatriz Lima (Líder), Carlos Eduardo, Thiago Rocha, Larissa Santos',
-          'Sprint 1 Entregue (Nota 8.8)',
-        ),
+        if (squads.isEmpty)
+          CourseHubEmptyState(
+            icon: Icons.groups_outlined,
+            title: 'Nenhuma equipe ou squad cadastrado',
+            subtitle:
+                'Crie equipes de projeto para que os discentes visualizem os colegas e vinculem repositórios Git no AVA.',
+            actionLabel: 'Criar Primeira Equipe',
+            onAction: onAddSquad,
+          )
+        else
+          for (int i = 0; i < squads.length; i++)
+            _buildSquadCard(context, squads[i], i),
       ],
     );
   }
 
-  static Widget _buildSquadCard(
-    String squadName,
-    String members,
-    String status,
+  Widget _buildSquadCard(
+    BuildContext context,
+    Map<String, dynamic> squad,
+    int index,
   ) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE4E4E7)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final name = (squad['name'] ?? 'Squad Integrador').toString();
+    final projectTitle =
+        (squad['projectTitle'] ?? 'Projeto sem título definido').toString();
+    final repoUrl = (squad['repoUrl'] ?? '').toString();
+    final statusLabel =
+        (squad['sprintStatus'] ?? squad['status'] ?? 'Em andamento').toString();
+    final members = (squad['members'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const <String>[];
+
+    return CourseHubSurfaceCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      overlineTag: name.toUpperCase(),
+      title: projectTitle,
+      headerTrailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          CourseHubBadge(label: statusLabel, tone: CourseHubBadgeTone.success),
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: () => _removeSquad(context, index),
+            tooltip: 'Remover equipe',
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              size: 18,
+              color: Color(0xFFB91C1C),
+            ),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (repoUrl.isNotEmpty) ...[
+            Row(
               children: [
-                Text(
-                  squadName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF09090B),
+                const Icon(Icons.code_rounded, size: 14, color: Color(0xFF52525B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    repoUrl,
+                    overflow: TextOverflow.ellipsis,
+                    style: jakarta(
+                      size: 12,
+                      weight: FontWeight.w600,
+                      color: const Color(0xFF1D4ED8),
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Membros: $members',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF71717A),
-                  ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              status,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF16A34A),
-              ),
+            const SizedBox(height: 10),
+          ],
+          Text(
+            'Integrantes (${members.length})',
+            style: jakarta(
+              size: 11.5,
+              weight: FontWeight.w600,
+              color: const Color(0xFF71717A),
             ),
           ),
+          const SizedBox(height: 8),
+          if (members.isEmpty)
+            Text(
+              'Nenhum integrante atribuído.',
+              style: jakarta(size: 12.5, color: const Color(0xFF71717A)),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: members.map((member) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF8F5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Text(
+                    member,
+                    style: jakarta(
+                      size: 12,
+                      weight: FontWeight.w500,
+                      color: InstColors.ink,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
         ],
       ),
     );

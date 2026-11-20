@@ -1,6 +1,7 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
 
@@ -106,7 +107,7 @@ class DocenteChancelaDialog extends StatelessWidget {
                   const SizedBox(height: 8),
                   _buildSummaryItem(
                     'Docente Titular',
-                    'Profa. Dra. Helena Bittencourt (DOC-88410)',
+                    '${AppUserSession.instance.effectiveName} (${AppUserSession.instance.identity ?? ''})',
                   ),
                   const SizedBox(height: 8),
                   _buildSummaryItem('Período Letivo', course.term),
@@ -186,7 +187,11 @@ class DocenteChancelaDialog extends StatelessWidget {
                   ),
                   label: Text(
                     'Aplicar Chancela & Homologar',
-                    style: jakarta(size: 13, weight: FontWeight.w700),
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E3A8A),

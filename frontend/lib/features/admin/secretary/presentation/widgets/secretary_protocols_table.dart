@@ -1,10 +1,10 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/secretary/presentation/widgets/secretary_review_modal.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Tabela responsiva de protocolos da Secretaria Geral
 class SecretaryProtocolsTable extends StatelessWidget {
@@ -29,8 +29,9 @@ class SecretaryProtocolsTable extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           const minWidth = 1100.0;
-          final tableWidth =
-              constraints.maxWidth < minWidth ? minWidth : constraints.maxWidth;
+          final tableWidth = constraints.maxWidth < minWidth
+              ? minWidth
+              : constraints.maxWidth;
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -63,17 +64,12 @@ class SecretaryProtocolsTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE5E5E5), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
-            flex: 16,
-            child: Text('PROTOCOLO', style: headerStyle),
-          ),
+          Expanded(flex: 16, child: Text('PROTOCOLO', style: headerStyle)),
           const SizedBox(width: 12),
           Expanded(
             flex: 22,
@@ -90,10 +86,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
             child: Text('OBJETO / COMPONENTE', style: headerStyle),
           ),
           const SizedBox(width: 12),
-          Expanded(
-            flex: 14,
-            child: Text('STATUS', style: headerStyle),
-          ),
+          Expanded(flex: 14, child: Text('STATUS', style: headerStyle)),
           const SizedBox(width: 12),
           Expanded(
             flex: 20,
@@ -108,15 +101,17 @@ class SecretaryProtocolsTable extends StatelessWidget {
   }
 
   Widget _buildTableRow(BuildContext context, AdminProtocolModel p) {
-    final isDeferido = p.status == 'Deferido';
-    final isAguardando =
-        p.status == 'Aguardando' || p.status == 'Aguardando Parecer';
+    final normalizedStatus =
+        AdminPortalController.normalizeProtocolStatus(p.status);
+    final isPositive =
+        normalizedStatus == 'Deferido' || normalizedStatus == 'Concluído';
+    final isAguardando = normalizedStatus == 'Aguardando Parecer';
 
     Color statusBg;
     Color statusBorder;
     Color statusText;
 
-    if (isDeferido) {
+    if (isPositive) {
       statusBg = const Color(0xFFF0FDF4);
       statusBorder = const Color(0xFFDCFCE7);
       statusText = const Color(0xFF16A34A);
@@ -134,9 +129,7 @@ class SecretaryProtocolsTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -190,7 +183,10 @@ class SecretaryProtocolsTable extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F4F5),
                   borderRadius: BorderRadius.circular(6),
@@ -230,14 +226,17 @@ class SecretaryProtocolsTable extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: statusBorder),
                 ),
                 child: Text(
-                  p.status,
+                  normalizedStatus,
                   style: jakarta(
                     size: 12,
                     weight: FontWeight.w600,

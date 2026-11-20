@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Murillo Caravita - RA: 25014012
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 e Murillo Caravita - RA: 25014012
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -121,8 +121,8 @@ class LoginPasswordField extends StatelessWidget {
             if (value == null || value.isEmpty) {
               return 'Informe sua senha.';
             }
-            if (value.length < 6) {
-              return 'A senha precisa ter pelo menos 6 caracteres.';
+            if (value.length < 8) {
+              return 'A senha precisa ter pelo menos 8 caracteres.';
             }
             return null;
           },

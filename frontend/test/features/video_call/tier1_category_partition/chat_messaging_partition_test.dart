@@ -17,19 +17,19 @@ void main() {
 
     test('Valid chat message sent by Peer A appears in Peer B chat list with sender details',
         () async {
-      // Act
+      // Ação
       harness.peerA.sendChatMessage('Olá turma, bom dia!');
 
-      // Allow in-memory bus async event dispatch
+      // Aguarda o despacho assíncrono de eventos no barramento em memória
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      // Assert Peer A has message
+      // Verifica se o Peer A possui a mensagem
       expect(harness.peerA.chatMessages.length, 1);
       expect(harness.peerA.chatMessages.first.text, 'Olá turma, bom dia!');
       expect(harness.peerA.chatMessages.first.senderName, 'Alex Sousa');
       expect(harness.peerA.chatMessages.first.senderRa, '24802449');
 
-      // Assert Peer B received message over P2P bus
+      // Verifica se o Peer B recebeu a mensagem pelo barramento P2P
       expect(harness.peerB.chatMessages.length, 1);
       expect(harness.peerB.chatMessages.first.text, 'Olá turma, bom dia!');
       expect(harness.peerB.chatMessages.first.senderName, 'Alex Sousa');
@@ -49,25 +49,25 @@ void main() {
 
     test('Unread chat counter increments when drawer is closed and resets to 0 when opened',
         () async {
-      // Drawer is initially closed
+      // A gaveta está inicialmente fechada
       expect(harness.peerB.isChatDrawerOpen, isFalse);
       expect(harness.peerB.unreadChatCount, 0);
 
-      // Peer A sends 2 messages
+      // Peer A envia 2 mensagens
       harness.peerA.sendChatMessage('Mensagem 1');
       await Future<void>.delayed(const Duration(milliseconds: 10));
       harness.peerA.sendChatMessage('Mensagem 2');
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      // Assert unread count is 2
+      // Verifica se a contagem de não lidas é 2
       expect(harness.peerB.unreadChatCount, 2);
 
-      // Peer B opens chat drawer
+      // Peer B abre a gaveta do chat
       harness.peerB.toggleChatDrawer();
       expect(harness.peerB.isChatDrawerOpen, isTrue);
       expect(harness.peerB.unreadChatCount, 0);
 
-      // Subsequent message while drawer is open does NOT increment unread counter
+      // Mensagem subsequente enquanto a gaveta está aberta NÃO incrementa o contador de não lidas
       harness.peerA.sendChatMessage('Mensagem 3 enquanto aberto');
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(harness.peerB.unreadChatCount, 0);

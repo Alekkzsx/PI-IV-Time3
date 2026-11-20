@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 // Modelo desacoplado e reutilizável de item da Sidebar Institucional
 
 import 'package:flutter/widgets.dart';

@@ -71,15 +71,8 @@ class ChatMessage {
   }
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        senderId,
-        senderName,
-        senderRa,
-        text,
-        timestamp,
-        isLocal,
-      );
+  int get hashCode =>
+      Object.hash(id, senderId, senderName, senderRa, text, timestamp, isLocal);
 
   @override
   String toString() {

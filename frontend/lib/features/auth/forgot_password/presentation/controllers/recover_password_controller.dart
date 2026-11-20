@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../../../../../core/utils/input_validators.dart';
+import '../../../shared/external/auth_remote_datasource_impl.dart';
 import '../../domain/usecases/recover_password_usecase.dart';
 
 /// Controller de apresentação responsável por gerenciar o estado reativo da tela
@@ -22,9 +23,13 @@ class RecoverPasswordController extends ChangeNotifier {
   String? _errorMessage;
   bool _isSuccess = false;
   int _operationId = 0;
+  Map<String, dynamic>? _lastRecoveryResponse;
 
   /// Retorna o valor atual da credencial ou e-mail digitado pelo usuário.
   String get identity => _identity;
+
+  /// Retorna a resposta com dados reais (como maskedEmail) vinda do servidor Java / MongoDB.
+  Map<String, dynamic>? get lastRecoveryResponse => _lastRecoveryResponse;
 
   /// Indica se a operação de envio de recuperação está em processamento ativo.
   bool get isLoading => _isLoading;
@@ -54,19 +59,29 @@ class RecoverPasswordController extends ChangeNotifier {
     }
   }
 
+  /// Limpa qualquer mensagem de erro exibida atualmente (ex.: ao trocar de aba de perfil).
+  void clearError() {
+    if (_errorMessage != null || _isSuccess) {
+      _errorMessage = null;
+      _isSuccess = false;
+      notifyListeners();
+    }
+  }
+
   /// Valida o identificador e submete a solicitação de recuperação de credencial.
   ///
   /// Executa:
   /// 1. Validação de formato via [InputValidators.validateIdentity].
   /// 2. Atualização reativa de [isLoading] e limpeza de mensagens de erro.
   /// 3. Invocação assíncrona de [recoverPasswordUseCase] com sanitização de espaços em branco.
-  /// 4. Captura exceções sem expor detalhes internos do serviço.
+  /// 4. Validação de compatibilidade do tipo de usuário ([profile]) contra o perfil da conta.
   ///
   /// Retorna `true` caso a operação seja concluída com sucesso ou `false` em caso de falha.
-  Future<bool> submit() async {
+  Future<bool> submit({String? profile}) async {
     if (_isLoading) return false;
 
     final identity = _identity.trim();
+    final selectedProfile = profile?.trim().toLowerCase();
     final validationError = InputValidators.validateIdentity(identity);
     if (validationError != null) {
       _errorMessage = validationError;
@@ -82,21 +97,114 @@ class RecoverPasswordController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await recoverPasswordUseCase(identity: identity);
+      final repository = recoverPasswordUseCase.repository;
+      final response = await repository.recoverPasswordDetails(
+        identity: identity,
+        profile: selectedProfile,
+      );
       if (operationId != _operationId) return false;
+
+      final responseProfile = _normalizeProfile(response['profile']?.toString());
+      if (selectedProfile != null &&
+          selectedProfile.isNotEmpty &&
+          responseProfile.isNotEmpty &&
+          responseProfile != _normalizeProfile(selectedProfile)) {
+        _isLoading = false;
+        _isSuccess = false;
+        _lastRecoveryResponse = null;
+        _errorMessage = _buildInvalidUserTypeMessage(
+          selectedProfile: selectedProfile,
+          actualProfile: responseProfile,
+        );
+        notifyListeners();
+        return false;
+      }
+
+      _lastRecoveryResponse = response;
       _isLoading = false;
       _isSuccess = true;
       notifyListeners();
       return true;
-    } catch (_) {
+    } on AuthApiException catch (error) {
       if (operationId != _operationId) return false;
       _isLoading = false;
-      _errorMessage =
-          'Não foi possível solicitar a recuperação agora. Tente novamente.';
+      _errorMessage = _resolveApiErrorMessage(error);
       _isSuccess = false;
       notifyListeners();
       return false;
+    } catch (_) {
+      try {
+        await recoverPasswordUseCase(
+          identity: identity,
+          profile: selectedProfile,
+        );
+        if (operationId != _operationId) return false;
+        _isLoading = false;
+        _isSuccess = true;
+        notifyListeners();
+        return true;
+      } on AuthApiException catch (error) {
+        if (operationId != _operationId) return false;
+        _isLoading = false;
+        _errorMessage = _resolveApiErrorMessage(error);
+        _isSuccess = false;
+        notifyListeners();
+        return false;
+      } catch (_) {
+        if (operationId != _operationId) return false;
+        _isLoading = false;
+        _errorMessage =
+            'Não foi possível solicitar a recuperação agora. Tente novamente.';
+        _isSuccess = false;
+        notifyListeners();
+        return false;
+      }
     }
+  }
+
+  static const Set<int> _clientVisibleStatuses = {
+    400,
+    401,
+    403,
+    404,
+    422,
+    429,
+    503,
+    504,
+  };
+
+  static String _normalizeProfile(String? raw) {
+    if (raw == null) return '';
+    final p = raw.trim().toLowerCase();
+    if (p == 'student' || p == 'discente') return 'aluno';
+    if (p == 'teacher' || p == 'professor') return 'docente';
+    if (p == 'administrator' || p == 'administrador') return 'admin';
+    return p;
+  }
+
+  static String _profileLabel(String raw) {
+    final norm = _normalizeProfile(raw);
+    if (norm == 'aluno') return 'Aluno';
+    if (norm == 'docente') return 'Docente';
+    if (norm == 'admin') return 'Admin';
+    return raw;
+  }
+
+  static String _buildInvalidUserTypeMessage({
+    required String selectedProfile,
+    required String actualProfile,
+  }) {
+    return 'Tipo de usuário inválido: esta conta pertence ao perfil de '
+        '${_profileLabel(actualProfile)}, não ao perfil selecionado '
+        '(${_profileLabel(selectedProfile)}).';
+  }
+
+  String _resolveApiErrorMessage(AuthApiException error) {
+    final trimmed = error.message.trim();
+    if (_clientVisibleStatuses.contains(error.statusCode) && trimmed.isNotEmpty) {
+      return trimmed;
+    }
+    return 'Não foi possível solicitar a recuperação agora. Tente novamente.';
   }
 
   /// Restaura todas as variáveis de estado do controller para suas condições
@@ -107,6 +215,7 @@ class RecoverPasswordController extends ChangeNotifier {
     _errorMessage = null;
     _isSuccess = false;
     _isLoading = false;
+    _lastRecoveryResponse = null;
     notifyListeners();
   }
 

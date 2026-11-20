@@ -1,204 +1,268 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
+import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/docente_course.dart';
+import 'course_hub_ui.dart';
 
-/// Cabeçalho superior da disciplina com navegação breadcrumb e ações de comando do professor.
+/// Cabeçalho institucional da sala de aula virtual (AVA) da turma selecionada.
 class CourseHubHeader extends StatelessWidget {
   final DocenteCourse course;
+  final List<DocenteCourse> courses;
   final VoidCallback onBack;
-  final VoidCallback onQuickNotice;
-  final VoidCallback onNewContent;
-  final VoidCallback onLiveClass;
+  final ValueChanged<DocenteCourse>? onSwitchCourse;
+  final VoidCallback onNewNotice;
+  final VoidCallback? onNewContent;
+  final VoidCallback? onNewAssignment;
+  final VoidCallback onLiveStream;
 
   const CourseHubHeader({
     super.key,
     required this.course,
+    this.courses = const [],
     required this.onBack,
-    required this.onQuickNotice,
-    required this.onNewContent,
-    required this.onLiveClass,
+    this.onSwitchCourse,
+    required this.onNewNotice,
+    this.onNewContent,
+    this.onNewAssignment,
+    required this.onLiveStream,
   });
 
   @override
   Widget build(BuildContext context) {
-    final courseCode = course.code.isNotEmpty ? course.code : '218131 - APS-II';
-    final courseTitle = course.title.isNotEmpty
-        ? course.title
-        : 'Análise e Projeto de Sistemas II';
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final horizontalPad = screenWidth >= 1000 ? 32.0 : 16.0;
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPad, vertical: 14),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFE4E4E7))),
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Breadcrumb de navegação
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 860;
+
+          final leftInfo = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              InkWell(
-                onTap: onBack,
-                borderRadius: BorderRadius.circular(4),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.arrow_back,
-                        size: 13,
-                        color: Color(0xFF71717A),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  InkWell(
+                    onTap: onBack,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 2,
+                        horizontal: 2,
                       ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Minhas Turmas',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF71717A),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.arrow_back,
+                            size: 13,
+                            color: Color(0xFF71717A),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Minhas Turmas',
+                            style: jakarta(
+                              size: 12,
+                              weight: FontWeight.w500,
+                              color: const Color(0xFF71717A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 14,
+                    color: Color(0xFFA1A1AA),
+                  ),
+                  Text(
+                    course.code,
+                    style: jakarta(
+                      size: 12,
+                      weight: FontWeight.w700,
+                      color: InstColors.ink,
+                    ),
+                  ),
+                  if (courses.length > 1 && onSwitchCourse != null)
+                    PopupMenuButton<DocenteCourse>(
+                      tooltip: 'Alternar turma no AVA',
+                      color: Colors.white,
+                      surfaceTintColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      onSelected: onSwitchCourse,
+                      itemBuilder: (_) => courses.map((item) {
+                        final isCurrent = item.id == course.id;
+                        return PopupMenuItem<DocenteCourse>(
+                          value: item,
+                          child: Row(
+                            children: [
+                              Icon(
+                                isCurrent
+                                    ? Icons.radio_button_checked_rounded
+                                    : Icons.radio_button_off_rounded,
+                                size: 15,
+                                color: isCurrent
+                                    ? InstColors.ink
+                                    : const Color(0xFFA1A1AA),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${item.code} — ${item.title}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: jakarta(
+                                    size: 12,
+                                    weight: isCurrent
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: InstColors.ink,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFAF8F5),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Trocar turma',
+                              style: jakarta(
+                                size: 11,
+                                weight: FontWeight.w600,
+                                color: const Color(0xFF52525B),
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            const Icon(
+                              Icons.unfold_more_rounded,
+                              size: 13,
+                              color: Color(0xFF52525B),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  if (course.isLive)
+                    const CourseHubBadge(
+                      label: 'Ao Vivo',
+                      tone: CourseHubBadgeTone.success,
+                      icon: Icons.sensors_rounded,
+                    ),
+                  if (course.pautaHomologated)
+                    const CourseHubBadge(
+                      label: 'Pauta Homologada',
+                      tone: CourseHubBadgeTone.info,
+                      icon: Icons.verified_rounded,
+                    ),
+                ],
               ),
-              const Text(
-                '  >  ',
-                style: TextStyle(fontSize: 12, color: Color(0xFFA1A1AA)),
-              ),
+              const SizedBox(height: 8),
               Text(
-                courseCode,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF71717A),
+                course.title,
+                style: jakarta(
+                  size: 20,
+                  weight: FontWeight.w700,
+                  color: InstColors.ink,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Turma ${course.code} • ${course.enrolledCount} discentes • ${course.shift} • ${course.term} • ${course.room}',
+                style: jakarta(size: 12, color: const Color(0xFF71717A)),
+              ),
+            ],
+          );
+
+          final actionsBar = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment:
+                isCompact ? WrapAlignment.start : WrapAlignment.end,
+            children: [
+              CourseHubPillButton(
+                label: 'Aviso à Turma',
+                icon: Icons.campaign_outlined,
+                variant: CourseHubButtonVariant.secondary,
+                compact: true,
+                onPressed: onNewNotice,
+              ),
+              CourseHubPillButton(
+                label: 'Novo Conteúdo',
+                icon: Icons.add_rounded,
+                variant: CourseHubButtonVariant.secondary,
+                compact: true,
+                onPressed: onNewContent,
+              ),
+              if (onNewAssignment != null)
+                CourseHubPillButton(
+                  label: 'Nova Atividade',
+                  icon: Icons.add_task_rounded,
+                  variant: CourseHubButtonVariant.secondary,
+                  compact: true,
+                  onPressed: onNewAssignment,
+                ),
+              CourseHubPillButton(
+                label: 'Transmissão ao Vivo',
+                icon: Icons.videocam_rounded,
+                compact: true,
+                onPressed: onLiveStream,
+              ),
+            ],
+          );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                leftInfo,
+                const SizedBox(height: 14),
+                actionsBar,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(flex: 5, child: leftInfo),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 5,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: actionsBar,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-
-          // Título e Botões de Comando e Acessos Rápidos do Professor
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            runSpacing: 10,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    courseTitle,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF09090B),
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Turma $courseCode • 34 Alunos Matriculados • Turno Noturno • Semestre 2026/2 • Sala Lab 04',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF71717A),
-                    ),
-                  ),
-                ],
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: onQuickNotice,
-                    icon: const Icon(
-                      Icons.campaign_outlined,
-                      size: 14,
-                      color: Color(0xFF09090B),
-                    ),
-                    label: const Text(
-                      'Aviso à Turma',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF09090B),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFE4E4E7)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: onNewContent,
-                    icon: const Icon(
-                      Icons.add,
-                      size: 14,
-                      color: Color(0xFF09090B),
-                    ),
-                    label: const Text(
-                      'Novo Conteúdo',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF09090B),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFE4E4E7)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
-                      ),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: onLiveClass,
-                    icon: const Icon(
-                      Icons.videocam_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: const Text(
-                      'Transmissão ao Vivo',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF18181B),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

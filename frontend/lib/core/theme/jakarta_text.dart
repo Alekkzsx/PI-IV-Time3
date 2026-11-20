@@ -14,6 +14,7 @@ TextStyle jakarta({
   double? letterSpacing,
   double? height,
   TextDecoration? decoration,
+  FontStyle? fontStyle,
 }) {
   try {
     return GoogleFonts.plusJakartaSans(
@@ -23,6 +24,7 @@ TextStyle jakarta({
       letterSpacing: letterSpacing,
       height: height,
       decoration: decoration,
+      fontStyle: fontStyle,
     );
   } catch (_) {
     return TextStyle(
@@ -33,6 +35,7 @@ TextStyle jakarta({
       letterSpacing: letterSpacing,
       height: height,
       decoration: decoration,
+      fontStyle: fontStyle,
     );
   }
 }

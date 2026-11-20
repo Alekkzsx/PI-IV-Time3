@@ -1,6 +1,7 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import '../../../shared/controllers/admin_portal_controller.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 class AdminCourseCardData {
@@ -25,39 +26,20 @@ class AdminCoursesGridSection extends StatelessWidget {
 
   const AdminCoursesGridSection({super.key, this.onSeeAll});
 
-  static const List<AdminCourseCardData> defaultCourses = [
-    AdminCourseCardData(
-      code: 'ENG-SOFT-2024',
-      modality: 'Graduação',
-      name: 'Bacharelado em Engenharia de Software',
-      enrolledText: '420 discentes matriculados',
-      workload: '3200h',
-    ),
-    AdminCourseCardData(
-      code: 'SIS-INFO-2023',
-      modality: 'Graduação',
-      name: 'Bacharelado em Sistemas de Informação',
-      enrolledText: '380 discentes matriculados',
-      workload: '3000h',
-    ),
-    AdminCourseCardData(
-      code: 'CIEN-COMP-2022',
-      modality: 'Graduação',
-      name: 'Bacharelado em Ciência da Computação',
-      enrolledText: '310 discentes matriculados',
-      workload: '3400h',
-    ),
-    AdminCourseCardData(
-      code: 'TEC-ADS-2025',
-      modality: 'Tecnólogo',
-      name: 'Tecnologia em Análise e Desenvolvimento de Sistemas',
-      enrolledText: '130 discentes matriculados',
-      workload: '2400h',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final portal = AdminPortalController.instance;
+    final courses = portal.courses
+        .map(
+          (course) => AdminCourseCardData(
+            code: course.code,
+            modality: course.modality,
+            name: course.name,
+            enrolledText: '${course.studentsCount} discentes matriculados',
+            workload: course.workload,
+          ),
+        )
+        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -102,21 +84,21 @@ class AdminCoursesGridSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(child: _buildCourseCard(defaultCourses[0])),
-            const SizedBox(width: 16),
-            Expanded(child: _buildCourseCard(defaultCourses[1])),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(child: _buildCourseCard(defaultCourses[2])),
-            const SizedBox(width: 16),
-            Expanded(child: _buildCourseCard(defaultCourses[3])),
-          ],
-        ),
+        if (courses.isEmpty) const Text('Nenhum curso cadastrado.'),
+        for (var i = 0; i < courses.length; i += 2) ...[
+          Row(
+            children: [
+              Expanded(child: _buildCourseCard(courses[i])),
+              const SizedBox(width: 16),
+              Expanded(
+                child: i + 1 < courses.length
+                    ? _buildCourseCard(courses[i + 1])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
       ],
     );
   }
@@ -221,4 +203,3 @@ class AdminCoursesGridSection extends StatelessWidget {
     );
   }
 }
-

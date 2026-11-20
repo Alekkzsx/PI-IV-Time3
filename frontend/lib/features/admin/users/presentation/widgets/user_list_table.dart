@@ -1,8 +1,8 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
 
 /// Tabela responsiva de usuários com identificação, perfil, curso/lotação, status e ações de segurança.
@@ -10,20 +10,20 @@ class UserListTable extends StatelessWidget {
   final List<AdminUserModel> users;
   final ValueChanged<AdminUserModel> onResetPassword;
   final ValueChanged<String> onToggleStatus;
-  final ValueChanged<AdminUserModel>? onImpersonate;
   final ValueChanged<AdminUserModel>? onManageSessions;
   final ValueChanged<AdminUserModel>? onSuspendWithReason;
   final ValueChanged<AdminUserModel>? onViewDossier;
+  final ValueChanged<AdminUserModel>? onEdit;
 
   const UserListTable({
     super.key,
     required this.users,
     required this.onResetPassword,
     required this.onToggleStatus,
-    this.onImpersonate,
     this.onManageSessions,
     this.onSuspendWithReason,
     this.onViewDossier,
+    this.onEdit,
   });
 
   @override
@@ -38,7 +38,7 @@ class UserListTable extends StatelessWidget {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SizedBox(
-          width: 1460,
+          width: 1540,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -121,7 +121,7 @@ class UserListTable extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     SizedBox(
-                      width: 440,
+                      width: 520,
                       child: Text(
                         'AÇÕES DE SEGURANÇA & GOVERNANÇA',
                         style: jakarta(
@@ -159,7 +159,7 @@ class UserListTable extends StatelessWidget {
           SizedBox(
             width: 130,
             child: Text(
-              u.id,
+              u.identity,
               style: jakarta(
                 size: 13.5,
                 weight: FontWeight.w700,
@@ -272,9 +272,15 @@ class UserListTable extends StatelessWidget {
 
           // Ações de Segurança & Governança
           SizedBox(
-            width: 440,
+            width: 520,
             child: Row(
               children: [
+                if (onEdit != null)
+                  IconButton(
+                    tooltip: 'Editar usuário',
+                    onPressed: () => onEdit!(u),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  ),
                 // 1. Reset Senha
                 InkWell(
                   onTap: () => onResetPassword(u),
@@ -332,7 +338,7 @@ class UserListTable extends StatelessWidget {
                         const Icon(
                           Icons.badge_outlined,
                           size: 13,
-                          color: Color(0xFF1E3A8A),
+                          color: Color(0xFF18181B),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -340,7 +346,7 @@ class UserListTable extends StatelessWidget {
                           style: jakarta(
                             size: 12,
                             weight: FontWeight.w600,
-                            color: const Color(0xFF1E3A8A),
+                            color: const Color(0xFF18181B),
                           ),
                         ),
                       ],
@@ -373,9 +379,6 @@ class UserListTable extends StatelessWidget {
                   elevation: 4,
                   onSelected: (val) {
                     switch (val) {
-                      case 'impersonate':
-                        onImpersonate?.call(u);
-                        break;
                       case 'sessions':
                         onManageSessions?.call(u);
                         break;
@@ -392,23 +395,6 @@ class UserListTable extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'impersonate',
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.visibility_outlined,
-                            size: 16,
-                            color: Color(0xFF2563EB),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Modo Suporte (Impersonate)',
-                            style: jakarta(size: 12.5),
-                          ),
-                        ],
-                      ),
-                    ),
                     PopupMenuItem(
                       value: 'sessions',
                       child: Row(
@@ -482,11 +468,11 @@ class UserListTable extends StatelessWidget {
     Color border;
     Color textColor;
 
-    if (profile == 'Docente') {
-      bg = const Color(0xFFEFF6FF);
-      border = const Color(0xFFDBEAFE);
-      textColor = const Color(0xFF2563EB);
-    } else if (profile == 'Administrador') {
+    if (profile == 'docente') {
+      bg = const Color(0xFFF2F0EB);
+      border = const Color(0xFFD4D4D4);
+      textColor = const Color(0xFF18181B);
+    } else if (profile == 'admin') {
       bg = const Color(0xFFFEF2F2);
       border = const Color(0xFFFEE2E2);
       textColor = const Color(0xFFDC2626);
@@ -503,10 +489,12 @@ class UserListTable extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: border),
       ),
-      child: Text(
-        profile,
-        style: jakarta(size: 12, weight: FontWeight.w600, color: textColor),
-      ),
+      child: Text(switch (profile) {
+        'aluno' => 'Aluno',
+        'docente' => 'Docente',
+        'admin' => 'Admin',
+        _ => profile,
+      }, style: jakarta(size: 12, weight: FontWeight.w600, color: textColor)),
     );
   }
 }

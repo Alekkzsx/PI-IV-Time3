@@ -23,9 +23,8 @@ class VideoCallRepositoryImpl
   final IVideoCallSignalingDataSource _dataSource;
   Participant? _localParticipant;
 
-  VideoCallRepositoryImpl({
-    required IVideoCallSignalingDataSource dataSource,
-  }) : _dataSource = dataSource;
+  VideoCallRepositoryImpl({required IVideoCallSignalingDataSource dataSource})
+    : _dataSource = dataSource;
 
   @override
   Stream<Participant> get participantJoinedStream =>
@@ -46,7 +45,8 @@ class VideoCallRepositoryImpl
   Stream<HandRaiseItem> get handRaiseStream => _dataSource.onHandRaise;
 
   @override
-  Stream<MediaStateUpdate> get mediaStateStream => _dataSource.onMediaStateUpdate;
+  Stream<MediaStateUpdate> get mediaStateStream =>
+      _dataSource.onMediaStateUpdate;
 
   @override
   Stream<RecordingState> get recordingStateStream =>
@@ -56,10 +56,7 @@ class VideoCallRepositoryImpl
   Future<void> joinRoom(MeetingRoom room, Participant localParticipant) async {
     _localParticipant = localParticipant;
     final model = ParticipantModel.fromEntity(localParticipant);
-    await _dataSource.connect(
-      roomId: room.code,
-      localParticipant: model,
-    );
+    await _dataSource.connect(roomId: room.code, localParticipant: model);
   }
 
   @override
@@ -81,7 +78,11 @@ class VideoCallRepositoryImpl
   }
 
   @override
-  Future<void> toggleHandRaise(String roomId, String peerId, bool isRaised) async {
+  Future<void> toggleHandRaise(
+    String roomId,
+    String peerId,
+    bool isRaised,
+  ) async {
     await _dataSource.broadcastHandRaise(
       roomId,
       peerId: peerId,

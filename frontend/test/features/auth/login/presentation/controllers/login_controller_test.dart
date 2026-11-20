@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pi_iv_time3/core/state/app_user_session.dart';
 import 'package:pi_iv_time3/features/auth/login/domain/usecases/login_usecase.dart';
 import 'package:pi_iv_time3/features/auth/login/presentation/controllers/login_controller.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
@@ -17,10 +18,19 @@ class FakeAuthRepository implements AuthRepository {
   int loginCalls = 0;
 
   @override
-  Future<void> recoverPassword({required String identity}) async {}
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {}
 
   @override
-  Future<void> login({
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async => {};
+
+  @override
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
@@ -30,6 +40,7 @@ class FakeAuthRepository implements AuthRepository {
     if (shouldThrow) {
       throw Exception('Credenciais inválidas no servidor.');
     }
+    return 'test-access-token';
   }
 
   @override
@@ -39,9 +50,22 @@ class FakeAuthRepository implements AuthRepository {
   }) async => true;
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) async => 'test-reset-token';
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async => currentSession.withResetToken('test-reset-token');
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {}
 
   @override
@@ -57,42 +81,49 @@ void main() {
   late LoginController controller;
 
   setUp(() {
+    AppUserSession.instance.signOut();
     repository = FakeAuthRepository();
     useCase = LoginUseCase(repository);
-    controller = LoginController(loginUseCase: useCase);
+    controller = LoginController(
+      loginUseCase: useCase,
+      refreshProfile: () async => false,
+    );
   });
 
   test('Estado inicial deve ser sem erros e sem loading', () {
-    // Assert
+    // Verificação
     expect(controller.isLoading, false);
     expect(controller.errorMessage, null);
     expect(controller.isSuccess, false);
   });
 
   test('Deve realizar login com sucesso para credenciais válidas', () async {
-    // Act
+    // Ação
     final result = await controller.login(
       identity: 'ADM-00123',
       password: 'password123',
       profile: 'admin',
     );
 
-    // Assert
+    // Verificação
     expect(result, true);
     expect(controller.isSuccess, true);
     expect(controller.isLoading, false);
     expect(controller.errorMessage, null);
+    expect(AppUserSession.instance.identity, 'ADM-00123');
+    expect(AppUserSession.instance.role, 'admin');
+    expect(AppUserSession.instance.accessToken, 'test-access-token');
   });
 
   test('Deve capturar e expor erro quando usecase falhar', () async {
-    // Act
+    // Ação
     final result = await controller.login(
       identity: '   ',
       password: '123',
       profile: 'admin',
     );
 
-    // Assert
+    // Verificação
     expect(result, false);
     expect(controller.isSuccess, false);
     expect(controller.isLoading, false);
@@ -102,17 +133,17 @@ void main() {
   test(
     'Deve capturar e expor erro quando repositório lançar exceção',
     () async {
-      // Arrange
+      // Preparação
       repository.shouldThrow = true;
 
-      // Act
+      // Ação
       final result = await controller.login(
         identity: 'ADM-00123',
         password: 'password123',
         profile: 'admin',
       );
 
-      // Assert
+      // Verificação
       expect(result, false);
       expect(controller.isSuccess, false);
       expect(
@@ -149,14 +180,14 @@ void main() {
   );
 
   test('clearError deve resetar mensagem de erro', () async {
-    // Arrange
+    // Preparação
     await controller.login(identity: '', password: '', profile: 'admin');
     expect(controller.errorMessage, isNotNull);
 
-    // Act
+    // Ação
     controller.clearError();
 
-    // Assert
+    // Verificação
     expect(controller.errorMessage, null);
   });
 }

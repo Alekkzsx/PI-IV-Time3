@@ -1,13 +1,15 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';
 import 'package:pi_iv_time3/features/teacher/shared/theme/docente_colors.dart';
+import 'components/notice_audience_selector.dart';
+import 'components/notice_urgency_chip_group.dart';
 
-/// Modal dialog for authoring and broadcasting official academic notices to students.
+/// Modal para elaboração e transmissão de comunicados acadêmicos oficiais aos estudantes.
 class CreateNoticeModal extends StatefulWidget {
-  /// Reactive controller for dispatching notices.
+  /// Controlador reativo para envio de comunicados.
   final DocenteController controller;
 
   const CreateNoticeModal({super.key, required this.controller});
@@ -47,16 +49,29 @@ class _CreateNoticeModalState extends State<CreateNoticeModal> {
     super.dispose();
   }
 
-  void _submitNotice() {
+  Future<void> _submitNotice() async {
     if (!_formKey.currentState!.validate()) return;
 
-    widget.controller.publishNotice(
+    final published = await widget.controller.publishNotice(
       targetCourse: _selectedCourse,
       targetAudience: _selectedAudience,
       classification: _selectedClassification,
       title: _titleController.text.trim(),
       message: _messageController.text.trim(),
     );
+
+    if (!mounted) return;
+
+    if (!published) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível publicar o comunicado para esta turma.',
+          ),
+        ),
+      );
+      return;
+    }
 
     Navigator.of(context).pop();
 
@@ -101,9 +116,28 @@ class _CreateNoticeModalState extends State<CreateNoticeModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildClassificationSelector(),
+                      NoticeUrgencyChipGroup(
+                        selectedClassification: _selectedClassification,
+                        onClassificationChanged: (c) =>
+                            setState(() => _selectedClassification = c),
+                      ),
                       const SizedBox(height: 20),
-                      _buildCourseAndAudiencePickers(),
+                      NoticeAudienceSelector(
+                        courses: widget.controller.courses,
+                        selectedCourse: _selectedCourse,
+                        onCourseChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedCourse = val);
+                          }
+                        },
+                        audiences: _audiences,
+                        selectedAudience: _selectedAudience,
+                        onAudienceChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedAudience = val);
+                          }
+                        },
+                      ),
                       const SizedBox(height: 20),
                       _buildTitleField(),
                       const SizedBox(height: 20),
@@ -169,207 +203,6 @@ class _CreateNoticeModalState extends State<CreateNoticeModal> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildClassificationSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Classificação do Comunicado',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: DocenteColors.charcoal,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: NoticeClassification.values.map((classification) {
-            final isSelected = _selectedClassification == classification;
-            Color activeColor;
-            String label;
-
-            switch (classification) {
-              case NoticeClassification.informativo:
-                activeColor = const Color(0xFF2563EB); // Blue
-                label = 'Informativo';
-                break;
-              case NoticeClassification.urgencia:
-                activeColor = DocenteColors.amber;
-                label = 'Urgência';
-                break;
-              case NoticeClassification.convocacao:
-                activeColor = DocenteColors.crimson;
-                label = 'Convocação';
-                break;
-            }
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedClassification = classification;
-                  });
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? activeColor.withValues(alpha: 0.12)
-                        : DocenteColors.offWhite,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected ? activeColor : DocenteColors.border,
-                      width: isSelected ? 1.5 : 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: activeColor,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                          color: isSelected
-                              ? activeColor
-                              : DocenteColors.charcoal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCourseAndAudiencePickers() {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Turma / Disciplina',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: DocenteColors.charcoal,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: DocenteColors.offWhite,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: DocenteColors.border),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedCourse,
-                    isExpanded: true,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: DocenteColors.charcoal,
-                    ),
-                    items: [
-                      ...widget.controller.courses.map((c) {
-                        return DropdownMenuItem<String>(
-                          value: c.code,
-                          child: Text('${c.code} - ${c.name}'),
-                        );
-                      }),
-                      const DropdownMenuItem<String>(
-                        value: 'TODAS',
-                        child: Text('Todas as Turmas do Semestre'),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedCourse = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Público-Alvo',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: DocenteColors.charcoal,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: DocenteColors.offWhite,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: DocenteColors.border),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedAudience,
-                    isExpanded: true,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: DocenteColors.charcoal,
-                    ),
-                    items: _audiences.map((aud) {
-                      return DropdownMenuItem<String>(
-                        value: aud,
-                        child: Text(aud),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedAudience = val;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

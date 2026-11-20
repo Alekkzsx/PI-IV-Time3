@@ -1,26 +1,35 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 import 'package:pi_iv_time3/features/admin/audit/presentation/widgets/audit_diff_dialog.dart';
 import 'package:pi_iv_time3/features/admin/shared/controllers/admin_portal_controller.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 import 'package:pi_iv_time3/shared/widgets/academic_status_badge.dart';
+import 'package:pi_iv_time3/core/utils/platform_file_helper.dart';
 
 /// Modal completo do Dossiê do Titular (LGPD) e Trilha de Auditoria Individual do Usuário.
 class UserDossierModal extends StatefulWidget {
   final AdminUserModel user;
+  final Map<String, dynamic> dossier;
 
-  const UserDossierModal({super.key, required this.user});
+  const UserDossierModal({
+    super.key,
+    required this.user,
+    required this.dossier,
+  });
 
   static Future<void> show({
     required BuildContext context,
     required AdminUserModel user,
+    required Map<String, dynamic> dossier,
   }) {
     return showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (ctx) => UserDossierModal(user: user),
+      builder: (ctx) => UserDossierModal(user: user, dossier: dossier),
     );
   }
 
@@ -29,7 +38,8 @@ class UserDossierModal extends StatefulWidget {
 }
 
 class _UserDossierModalState extends State<UserDossierModal> {
-  int _selectedTab = 0; // 0: Dossiê Cadastral & Vínculos, 1: Trilha de Auditoria Individual
+  int _selectedTab =
+      0; // 0: Dossiê Cadastral & Vínculos, 1: Trilha de Auditoria Individual
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +59,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Bar: Identificação e Fechar
+            // Barra Superior: Identificação e Fechar
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,7 +68,11 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   backgroundColor: const Color(0xFFEFF6FF),
                   child: Text(
                     widget.user.name.isNotEmpty ? widget.user.name[0] : 'U',
-                    style: jakarta(size: 18, weight: FontWeight.w700, color: const Color(0xFF1E40AF)),
+                    style: jakarta(
+                      size: 18,
+                      weight: FontWeight.w700,
+                      color: const Color(0xFF1E40AF),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -79,13 +93,15 @@ class _UserDossierModalState extends State<UserDossierModal> {
                           const SizedBox(width: 10),
                           AcademicStatusBadge(
                             label: widget.user.status,
-                            type: isAtivo ? AcademicStatusType.ativo : AcademicStatusType.inativo,
+                            type: isAtivo
+                                ? AcademicStatusType.ativo
+                                : AcademicStatusType.inativo,
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'ID / R.A.: ${widget.user.id} • ${widget.user.profile} • ${widget.user.email}',
+                        'Identidade: ${widget.user.identity} • ${widget.user.profile} • ${widget.user.email}',
                         style: jakarta(
                           size: 13,
                           weight: FontWeight.w400,
@@ -97,14 +113,18 @@ class _UserDossierModalState extends State<UserDossierModal> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF94A3B8)),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: Color(0xFF94A3B8),
+                  ),
                   tooltip: 'Fechar',
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // Tab Switcher
+            // Seletor de Abas
             Container(
               decoration: const BoxDecoration(
                 border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
@@ -119,7 +139,8 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   const SizedBox(width: 8),
                   _buildTabButton(
                     index: 1,
-                    title: 'Trilha de Auditoria Individual (${userLogs.length})',
+                    title:
+                        'Trilha de Auditoria Individual (${userLogs.length})',
                     icon: Icons.history_edu_rounded,
                   ),
                 ],
@@ -127,14 +148,14 @@ class _UserDossierModalState extends State<UserDossierModal> {
             ),
             const SizedBox(height: 20),
 
-            // Tab Content
+            // Conteúdo da Aba
             Expanded(
               child: _selectedTab == 0
                   ? _buildCadastralTab(context)
                   : _buildAuditTab(context, userLogs),
             ),
 
-            // Footer com Ações LGPD
+            // Rodapé com Ações LGPD
             const SizedBox(height: 16),
             const Divider(height: 1, color: Color(0xFFE2E8F0)),
             const SizedBox(height: 16),
@@ -143,7 +164,11 @@ class _UserDossierModalState extends State<UserDossierModal> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.verified_user_outlined, size: 16, color: Color(0xFF059669)),
+                    const Icon(
+                      Icons.verified_user_outlined,
+                      size: 16,
+                      color: Color(0xFF059669),
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Dossiê compatível com o Art. 18 da LGPD (Direito de Acesso)',
@@ -156,25 +181,26 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Dossiê digital de ${widget.user.name} exportado com sucesso.',
-                          style: jakarta(size: 13, color: Colors.white),
-                        ),
-                        backgroundColor: const Color(0xFF0F172A),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: _exportDossier,
                   icon: const Icon(Icons.download_rounded, size: 16),
-                  label: Text('Exportar Dossiê JSON/PDF', style: jakarta(size: 13, weight: FontWeight.w600)),
+                  label: Text(
+                    'Exportar Dossiê JSON/PDF',
+                    style: jakarta(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F172A),
+                    backgroundColor: const Color(0xFF18181B),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
                 ),
@@ -184,6 +210,23 @@ class _UserDossierModalState extends State<UserDossierModal> {
         ),
       ),
     );
+  }
+
+  Future<void> _exportDossier() async {
+    final path = await PlatformFileHelper.saveOrDownloadFile(
+      fileName: 'dossie-${widget.user.identity}.json',
+      bytes: utf8.encode(const JsonEncoder.withIndent('  ').convert(widget.dossier)),
+      mimeType: 'application/json',
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path == null ? 'Não foi possível exportar o dossiê.' : 'Dossiê exportado: $path',
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildTabButton({
@@ -199,7 +242,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? const Color(0xFF1E3A8A) : Colors.transparent,
+              color: isSelected ? const Color(0xFF18181B) : Colors.transparent,
               width: 2.5,
             ),
           ),
@@ -209,7 +252,9 @@ class _UserDossierModalState extends State<UserDossierModal> {
             Icon(
               icon,
               size: 17,
-              color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFF64748B),
+              color: isSelected
+                  ? const Color(0xFF18181B)
+                  : const Color(0xFF737373),
             ),
             const SizedBox(width: 8),
             Text(
@@ -217,7 +262,9 @@ class _UserDossierModalState extends State<UserDossierModal> {
               style: jakarta(
                 size: 13,
                 weight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF1E3A8A) : const Color(0xFF64748B),
+                color: isSelected
+                    ? const Color(0xFF18181B)
+                    : const Color(0xFF737373),
               ),
             ),
           ],
@@ -254,20 +301,45 @@ class _UserDossierModalState extends State<UserDossierModal> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(child: _buildItem('Nível de Papel', widget.user.roleLevel)),
-                    Expanded(child: _buildItem('Autenticação em 2 Etapas', widget.user.twoFactorRequired ? 'Obrigatória (Ativa)' : 'Opcional')),
+                    Expanded(
+                      child: _buildItem(
+                        'Nível de Papel',
+                        widget.user.roleLevel,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildItem(
+                        'Autenticação em 2 Etapas',
+                        widget.user.twoFactorRequired
+                            ? 'Obrigatória (Ativa)'
+                            : 'Opcional',
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: _buildItem('Sessões Ativas', '${widget.user.activeSessionsCount} dispositivo(s)')),
-                    Expanded(child: _buildItem('Último Acesso Registrado', widget.user.lastLogin)),
+                    Expanded(
+                      child: _buildItem(
+                        'Sessões Ativas',
+                        '${widget.user.activeSessionsCount} dispositivo(s)',
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildItem(
+                        'Último Acesso Registrado',
+                        widget.user.lastLogin,
+                      ),
+                    ),
                   ],
                 ),
                 if (widget.user.suspensionReason != null) ...[
                   const SizedBox(height: 12),
-                  _buildItem('Justificativa da Suspensão', widget.user.suspensionReason!),
+                  _buildItem(
+                    'Justificativa da Suspensão',
+                    widget.user.suspensionReason!,
+                  ),
                 ],
               ],
             ),
@@ -295,10 +367,31 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                _buildItem('Curso / Departamento', widget.user.departmentOrCourse),
+                _buildItem(
+                  'Curso / Departamento',
+                  widget.user.departmentOrCourse,
+                ),
                 const SizedBox(height: 12),
-                _buildItem('Informações Integradas de Turma/Docência', widget.user.linkedInfo ?? 'Matrícula regularizada sem pendências regimentais.'),
+                _buildItem(
+                  'Informações Integradas de Turma/Docência',
+                  widget.user.linkedInfo ??
+                      'Nenhum vínculo adicional informado.',
+                ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: SelectableText(
+              const JsonEncoder.withIndent('  ').convert(widget.dossier),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
             ),
           ),
         ],
@@ -312,11 +405,19 @@ class _UserDossierModalState extends State<UserDossierModal> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.policy_outlined, size: 40, color: Color(0xFF94A3B8)),
+            const Icon(
+              Icons.policy_outlined,
+              size: 40,
+              color: Color(0xFF94A3B8),
+            ),
             const SizedBox(height: 12),
             Text(
               'Nenhum evento registrado especificamente para este usuário',
-              style: jakarta(size: 13.5, weight: FontWeight.w600, color: const Color(0xFF475569)),
+              style: jakarta(
+                size: 13.5,
+                weight: FontWeight.w600,
+                color: const Color(0xFF475569),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -330,7 +431,8 @@ class _UserDossierModalState extends State<UserDossierModal> {
 
     return ListView.separated(
       itemCount: logs.length,
-      separatorBuilder: (_, __) => const Divider(height: 12, color: Color(0xFFF1F5F9)),
+      separatorBuilder: (_, __) =>
+          const Divider(height: 12, color: Color(0xFFF1F5F9)),
       itemBuilder: (context, i) {
         final log = logs[i];
         final hasDiff = log.diffBefore != null || log.diffAfter != null;
@@ -352,7 +454,11 @@ class _UserDossierModalState extends State<UserDossierModal> {
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFFCBD5E1)),
                 ),
-                child: const Icon(Icons.terminal_rounded, size: 16, color: Color(0xFF334155)),
+                child: const Icon(
+                  Icons.terminal_rounded,
+                  size: 16,
+                  color: Color(0xFF334155),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -363,12 +469,19 @@ class _UserDossierModalState extends State<UserDossierModal> {
                       children: [
                         Text(
                           log.actionType,
-                          style: jakarta(size: 12.5, weight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                          style: jakarta(
+                            size: 12.5,
+                            weight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           log.timestamp,
-                          style: jakarta(size: 11.5, color: const Color(0xFF64748B)),
+                          style: jakarta(
+                            size: 11.5,
+                            color: const Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
@@ -388,14 +501,23 @@ class _UserDossierModalState extends State<UserDossierModal> {
               if (hasDiff) ...[
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
-                  onPressed: () => AuditDiffDialog.show(context: context, log: log),
+                  onPressed: () =>
+                      AuditDiffDialog.show(context: context, log: log),
                   icon: const Icon(Icons.compare_arrows_rounded, size: 14),
-                  label: Text('Diff', style: jakarta(size: 11.5, weight: FontWeight.w600)),
+                  label: Text(
+                    'Diff',
+                    style: jakarta(size: 11.5, weight: FontWeight.w600),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1E3A8A),
-                    side: const BorderSide(color: Color(0xFFBFDBFE)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    foregroundColor: const Color(0xFF18181B),
+                    side: const BorderSide(color: Color(0xFFE5E5E5)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                   ),
                 ),
               ],
@@ -412,12 +534,20 @@ class _UserDossierModalState extends State<UserDossierModal> {
       children: [
         Text(
           label,
-          style: jakarta(size: 11.5, weight: FontWeight.w500, color: const Color(0xFF64748B)),
+          style: jakarta(
+            size: 11.5,
+            weight: FontWeight.w500,
+            color: const Color(0xFF64748B),
+          ),
         ),
         const SizedBox(height: 3),
         Text(
           value,
-          style: jakarta(size: 13, weight: FontWeight.w600, color: const Color(0xFF0F172A)),
+          style: jakarta(
+            size: 13,
+            weight: FontWeight.w600,
+            color: const Color(0xFF0F172A),
+          ),
         ),
       ],
     );

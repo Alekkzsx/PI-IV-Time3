@@ -1,11 +1,14 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Callback para conclusão de cadastro de usuário institucional.
 typedef OnUserCreatedCallback =
-    void Function({
+    Future<void> Function({
+      required String identity,
+      required String password,
       required String name,
       required String email,
       required String profile,
@@ -41,10 +44,16 @@ class _UserFormModalState extends State<UserFormModal> {
     text: 'Engenharia de Software (1º Semestre)',
   );
   String _selectedRole = 'Discente (Aluno)';
-  String _generatedRa = '2024.2.01045';
+  final _identityController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _require2FA = false;
+  bool _busy = false;
+  String? _error;
 
   @override
   void dispose() {
+    _identityController.dispose();
+    _passwordController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _deptController.dispose();
@@ -127,7 +136,7 @@ class _UserFormModalState extends State<UserFormModal> {
                       onTap: () {
                         setState(() {
                           _selectedRole = 'Discente (Aluno)';
-                          _generatedRa = '2024.2.01045';
+
                           _deptController.text =
                               'Engenharia de Software (1º Semestre)';
                         });
@@ -140,7 +149,7 @@ class _UserFormModalState extends State<UserFormModal> {
                       onTap: () {
                         setState(() {
                           _selectedRole = 'Docente (Professor)';
-                          _generatedRa = 'DOC-88425';
+
                           _deptController.text =
                               'Departamento de Computação e Sistemas';
                         });
@@ -153,7 +162,7 @@ class _UserFormModalState extends State<UserFormModal> {
                       onTap: () {
                         setState(() {
                           _selectedRole = 'Administração';
-                          _generatedRa = 'ADM-00135';
+
                           _deptController.text =
                               'Secretaria Geral Acadêmica & Auditoria';
                         });
@@ -259,7 +268,7 @@ class _UserFormModalState extends State<UserFormModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'R.A. Gerado Oficial',
+                            'R.A. / Matrícula',
                             style: jakarta(
                               size: 13.5,
                               weight: FontWeight.w700,
@@ -267,24 +276,18 @@ class _UserFormModalState extends State<UserFormModal> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Container(
-                            height: 44,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            alignment: Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFAFAFA),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: const Color(0xFFE5E5E5),
-                              ),
+                          TextFormField(
+                            controller: _identityController,
+                            style: jakarta(
+                              size: 13.5,
+                              color: const Color(0xFF18181B),
                             ),
-                            child: Text(
-                              _generatedRa,
-                              style: jakarta(
-                                size: 13.5,
-                                color: const Color(0xFF18181B),
-                                weight: FontWeight.w600,
-                              ),
+                            validator: (value) =>
+                                (value?.trim().length ?? 0) >= 3
+                                ? null
+                                : 'Informe uma identidade institucional.',
+                            decoration: InstText.inputDecoration(
+                              hintText: 'Identidade institucional',
                             ),
                           ),
                         ],
@@ -296,7 +299,9 @@ class _UserFormModalState extends State<UserFormModal> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Curso de Ingresso',
+                            _selectedRole == 'Discente (Aluno)'
+                                ? 'Curso de Ingresso'
+                                : 'Departamento / Unidade',
                             style: jakarta(
                               size: 13.5,
                               weight: FontWeight.w700,
@@ -314,29 +319,10 @@ class _UserFormModalState extends State<UserFormModal> {
                               size: 13.5,
                               color: const Color(0xFF18181B),
                             ),
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF18181B),
-                                ),
-                              ),
+                            decoration: InstText.inputDecoration(
+                              hintText: _selectedRole == 'Discente (Aluno)'
+                                  ? 'Curso e semestre'
+                                  : 'Departamento / Setor',
                             ),
                           ),
                         ],
@@ -346,7 +332,98 @@ class _UserFormModalState extends State<UserFormModal> {
                 ),
                 const SizedBox(height: 18),
 
-                // Aviso explicativo de 2FA
+                Text(
+                  'Senha Inicial Provisória',
+                  style: jakarta(
+                    size: 13.5,
+                    weight: FontWeight.w700,
+                    color: const Color(0xFF18181B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: jakarta(
+                    size: 13.5,
+                    color: const Color(0xFF18181B),
+                  ),
+                  validator: (value) => (value?.length ?? 0) >= 8
+                      ? null
+                      : 'Use pelo menos oito caracteres.',
+                  decoration: InstText.inputDecoration(
+                    hintText: 'Senha inicial (mínimo 8 caracteres)',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: InstColors.stone,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: InstColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Exigir segundo fator por e-mail',
+                              style: jakarta(
+                                size: 13.5,
+                                weight: FontWeight.w600,
+                                color: InstColors.ink,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Requer serviço de e-mail configurado.',
+                              style: jakarta(
+                                size: 12,
+                                color: InstColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: _require2FA,
+                        activeTrackColor: InstColors.ink,
+                        onChanged: _busy
+                            ? null
+                            : (value) => setState(() => _require2FA = value),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: InstColors.dangerBg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: InstColors.danger.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _error!,
+                      style: jakarta(size: 12.5, color: InstColors.danger),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                // Orienta??o de primeiro acesso
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -358,7 +435,7 @@ class _UserFormModalState extends State<UserFormModal> {
                     border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Text(
-                    'Será encaminhado um e-mail com senha temporária criptografada e link para ativação de 2FA obrigatório no primeiro acesso.',
+                    'Informe a identidade e a senha inicial ao titular por um canal seguro. A senha é armazenada somente como hash.',
                     style: jakarta(
                       size: 12.5,
                       weight: FontWeight.w400,
@@ -398,35 +475,47 @@ class _UserFormModalState extends State<UserFormModal> {
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        if (!(_formKey.currentState?.validate() ?? false)) {
-                          return;
-                        }
+                      onPressed: _busy
+                          ? null
+                          : () async {
+                              if (!(_formKey.currentState?.validate() ??
+                                  false)) {
+                                return;
+                              }
 
-                        final name = _nameController.text.trim();
-                        final email = _emailController.text.trim();
-                        final profile = _selectedRole.contains('Discente')
-                            ? 'Discente'
-                            : _selectedRole.contains('Docente')
-                            ? 'Docente'
-                            : 'Administrador';
+                              final name = _nameController.text.trim();
+                              final email = _emailController.text.trim();
+                              final profile = _selectedRole.contains('Discente')
+                                  ? 'aluno'
+                                  : _selectedRole.contains('Docente')
+                                  ? 'docente'
+                                  : 'admin';
 
-                        widget.onUserCreated(
-                          name: name,
-                          email: email,
-                          profile: profile,
-                          department: _deptController.text.trim(),
-                          require2FA: true,
-                        );
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Usuário cadastrado com sucesso! Credenciais e token 2FA despachados.',
-                            ),
-                          ),
-                        );
-                      },
+                              setState(() {
+                                _busy = true;
+                                _error = null;
+                              });
+                              try {
+                                await widget.onUserCreated(
+                                  identity: _identityController.text.trim(),
+                                  password: _passwordController.text,
+                                  name: name,
+                                  email: email,
+                                  profile: profile,
+                                  department: _deptController.text.trim(),
+                                  require2FA: _require2FA,
+                                );
+                                if (!context.mounted) return;
+                                Navigator.pop(context);
+                              } catch (error) {
+                                if (mounted) {
+                                  setState(() {
+                                    _busy = false;
+                                    _error = error.toString();
+                                  });
+                                }
+                              }
+                            },
                       icon: const Icon(
                         Icons.check_circle_outline_rounded,
                         size: 17,

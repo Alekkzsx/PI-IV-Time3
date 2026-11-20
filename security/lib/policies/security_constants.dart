@@ -1,172 +1,191 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Invariant security constants, thresholds, and timeout configurations
-/// for the AGMRM Enterprise Defense-in-Depth Architecture.
+/// Constantes de segurança invariantes, limites e configurações de timeout
+/// para a Arquitetura Corporativa de Defesa em Profundidade do AGMRM.
 abstract final class SecurityConstants {
-  // Private constructor to prevent instantiation
+  // Construtor privado para evitar instanciação
   SecurityConstants._();
 
-  // ─── BRUTE-FORCE & LOCKOUT CONTROLS (R2) ───
+  // ─── CONTROLES DE FORÇA BRUTA E BLOQUEIO (R2) ───
 
-  /// Maximum consecutive failed login attempts before temporary lockout.
+  /// Máximo de tentativas de login consecutivas com falha antes do bloqueio temporário.
   static const int maxFailedLoginAttempts = 5;
 
-  /// Duration of temporary account lockout in seconds.
+  /// Duração do bloqueio temporário de conta em segundos.
   static const int lockoutDurationSeconds = 30;
 
-  /// Lockout duration as a typed Duration object.
+  /// Duração do bloqueio como um objeto Duration tipado.
   static const Duration lockoutDuration = Duration(seconds: lockoutDurationSeconds);
 
-  // ─── EPHEMERAL RECOVERY TOKEN LIFECYCLE (R3) ───
+  // ─── CICLO DE VIDA DO TOKEN EFÊMERO DE RECUPERAÇÃO (R3) ───
 
-  /// Time-To-Live (TTL) for ephemeral password recovery tokens in seconds (5 minutes).
+  /// Tempo de vida (TTL) para tokens efêmeros de recuperação de senha em segundos (5 minutos).
   static const int recoveryTokenTtlSeconds = 300;
 
-  /// Default token TTL alias.
+  /// Alias padrão de TTL do token.
   static const int defaultTokenTtlSeconds = recoveryTokenTtlSeconds;
 
-  /// Recovery token TTL in minutes.
+  /// TTL do token de recuperação em minutos.
   static const int recoveryTokenTtlMinutes = 5;
 
-  /// Ephemeral token TTL as a typed Duration object.
+  /// TTL do token efêmero como um objeto Duration tipado.
   static const Duration recoveryTokenTtl = Duration(seconds: recoveryTokenTtlSeconds);
 
-  /// Maximum invalid OTP verification attempts before token session revocation.
+  /// Máximo de tentativas inválidas de verificação de OTP antes da revogação da sessão do token.
   static const int maxVerificationAttempts = 3;
 
-  /// Maximum invalid OTP verification attempts (alias for consistency across specs).
+  /// Máximo de tentativas inválidas de verificação de OTP (alias para consistência entre especificações).
   static const int maxInvalidVerificationAttempts = 3;
 
-  /// Maximum OTP verification attempts alias.
+  /// Alias de máximo de tentativas de verificação de OTP.
   static const int maxOtpVerificationAttempts = maxVerificationAttempts;
 
-  /// Length of the numeric OTP verification code.
+  /// Comprimento do código numérico de verificação OTP.
   static const int otpCodeLength = 6;
 
-  // ─── PASSWORD ENTROPY BOUNDS (R3) ───
+  // ─── LIMITES DE ENTROPIA DE SENHA (R3) ───
 
-  /// Minimum password length required for acceptance.
+  /// Comprimento mínimo de senha exigido para aceitação.
   static const int minPasswordLength = 8;
 
-  /// Maximum password length to mitigate hashing Denial-of-Service attacks.
+  /// Comprimento máximo de senha para mitigar ataques de negação de serviço por hashing.
   static const int maxPasswordLength = 128;
 
-  /// Minimum entropy score required to enable reset password submission (out of 4).
+  /// Pontuação mínima de entropia necessária para habilitar o envio de redefinição de senha (de 4).
   static const int minPasswordEntropyScore = 3;
 
-  /// Minimum entropy score required (alias for consistency across specs).
+  /// Pontuação mínima de entropia necessária (alias para consistência entre especificações).
   static const int minRequiredEntropyScore = 3;
 
-  /// Maximum achievable entropy score.
+  /// Pontuação máxima de entropia atingível.
   static const int maxPasswordEntropyScore = 4;
 
-  /// Maximum possible entropy score (alias for consistency across specs).
+  /// Pontuação máxima de entropia possível (alias para consistência entre especificações).
   static const int maxEntropyScore = 4;
 
-  // ─── INPUT SANITIZATION & PAYLOAD BOUNDARIES (R2, R4) ───
+  // ─── SANITIZAÇÃO DE ENTRADA E LIMITES DE PAYLOAD (R2, R4) ───
 
-  /// Minimum length for academic identity (RA / Matrícula / ADM).
+  /// Comprimento mínimo para identidade acadêmica (RA / Matrícula / ADM).
   static const int minIdentityLength = 3;
 
-  /// Maximum length for academic identity (RA / Matrícula / ADM).
+  /// Comprimento máximo para identidade acadêmica (RA / Matrícula / ADM).
   static const int maxIdentityLength = 32;
 
-  /// RA maximum length alias.
+  /// Alias de comprimento máximo de RA.
   static const int maxRaLength = maxIdentityLength;
 
-  /// Maximum RFC-compliant email length (RFC 5321).
+  /// Comprimento máximo de e-mail em conformidade com a RFC (RFC 5321).
   static const int maxEmailLength = 254;
 
-  /// Maximum HTTP request payload size in bytes (64 KB ceiling).
+  /// Tamanho máximo do payload de requisição HTTP em bytes (limite de 64 KB).
   static const int maxRequestBodySizeBytes = 65536;
 
-  /// Maximum HTTP request payload size in kilobytes.
+  /// Tamanho máximo do payload de requisição HTTP em kilobytes.
   static const int maxBodySizeKb = 64;
 
-  /// Buffer chunk size in bytes for streaming body readers.
+  /// Tamanho do bloco de buffer em bytes para leitores de corpo em streaming.
   static const int bufferChunkSizeBytes = 4096;
 
-  // ─── TIMING ATTACK MITIGATION & LATENCY NORMALIZATION (R2) ───
+  // ─── MITIGAÇÃO DE ATAQUES DE TEMPORIZAÇÃO E NORMALIZAÇÃO DE LATÊNCIA (R2) ───
 
-  /// Standardized artificial delay duration for authentication responses (milliseconds).
+  /// Duração padronizada de atraso artificial para respostas de autenticação (milissegundos).
   static const int standardizedAuthLatencyMs = 1000;
 
-  /// Standardized artificial delay duration alias (milliseconds).
+  /// Alias da duração padronizada de atraso artificial (milissegundos).
   static const int standardAuthLatencyMs = 1000;
 
-  /// Default auth latency alias (milliseconds).
+  /// Alias de latência padrão de autenticação (milissegundos).
   static const int defaultAuthLatencyMs = standardizedAuthLatencyMs;
 
-  /// Standardized artificial delay as a typed Duration.
+  /// Atraso artificial padronizado como um Duration tipado.
   static const Duration standardizedAuthLatency = Duration(milliseconds: standardizedAuthLatencyMs);
 
-  /// Standardized artificial delay alias as a typed Duration.
+  /// Alias de atraso artificial padronizado como um Duration tipado.
   static const Duration standardAuthLatency = Duration(milliseconds: standardAuthLatencyMs);
 
-  /// Timing jitter tolerance in milliseconds.
+  /// Tolerância de jitter de temporização em milissegundos.
   static const int timingJitterToleranceMs = 50;
 
-  /// Default auth jitter tolerance alias.
+  /// Alias padrão de tolerância de jitter de autenticação.
   static const int defaultAuthJitterMs = timingJitterToleranceMs;
 
-  /// Minimum dummy work iterations for constant-time simulation on non-existent identities.
+  /// Mínimo de iterações de trabalho fictício para simulação de tempo constante em identidades inexistentes.
   static const int minDummyWorkIterations = 10000;
 
-  // ─── NETWORK, SERVER & CACHE DEFAULTS (R4) ───
+  // ─── PADRÕES DE REDE, SERVIDOR E CACHE (R4) ───
 
-  /// Default HTTP server binding port.
+  /// Porta padrão de vínculo (binding) do servidor HTTP.
   static const int defaultServerPort = 8080;
 
-  /// Default HTTP server host address.
+  /// Endereço de host padrão do servidor HTTP.
   static const String defaultServerHost = '0.0.0.0';
 
-  /// Default HTTP read/idle timeout in seconds.
+  /// Timeout padrão de leitura/ocioso HTTP em segundos.
   static const int defaultRequestTimeoutSeconds = 30;
 
-  /// CORS pre-flight cache max age in seconds (24 hours).
+  /// Idade máxima em cache de pre-flight CORS em segundos (24 horas).
   static const int corsMaxAgeSeconds = 86400;
 
-  // ─── HTTP DEFENSIVE SECURITY HEADERS (R4) ───
+  // ─── CABEÇALHOS DE SEGURANÇA DEFENSIVOS HTTP (R4) ───
 
-  /// Header name for MIME sniffing prevention.
+  /// Nome do cabeçalho para prevenção de MIME sniffing.
   static const String headerXContentTypeOptions = 'X-Content-Type-Options';
-  /// Header value enforcing MIME sniffing prohibition.
+  /// Valor do cabeçalho que impõe a proibição de MIME sniffing.
   static const String headerContentTypeOptions = 'nosniff';
-  /// Header value enforcing MIME sniffing prohibition (alias).
+  /// Valor do cabeçalho que impõe a proibição de MIME sniffing (alias).
   static const String headerValueNosniff = 'nosniff';
 
-  /// Header name for clickjacking defense.
+  /// Nome do cabeçalho para defesa contra clickjacking.
   static const String headerXFrameOptions = 'X-Frame-Options';
-  /// Header value denying framing in iframes.
+  /// Valor do cabeçalho que nega a exibição em iframes.
   static const String headerFrameOptions = 'DENY';
-  /// Header value denying framing in iframes (alias).
+  /// Valor do cabeçalho que nega a exibição em iframes (alias).
   static const String headerValueDeny = 'DENY';
 
-  /// Header name for XSS protection.
+  /// Nome do cabeçalho para proteção contra XSS.
   static const String headerXssProtection = '1; mode=block';
 
-  /// Header value for HTTP Strict Transport Security.
+  /// Valor do cabeçalho para HTTP Strict Transport Security.
   static const String headerHsts = 'max-age=31536000; includeSubDomains';
 
-  /// Header name for Content Security Policy.
+  /// Nome do cabeçalho para Content Security Policy.
   static const String headerContentSecurityPolicy = 'Content-Security-Policy';
-  /// Standard restrictive CSP policy.
+  /// Política CSP restritiva padrão.
   static const String headerCsp =
       "default-src 'self'; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none';";
-  /// Standard restrictive CSP policy sandbox variant.
+  /// Variante sandbox da política CSP restritiva padrão.
   static const String headerValueCspDefault =
       "default-src 'none'; frame-ancestors 'none'; sandbox";
 
-  /// Header name for Cross-Origin Resource Sharing.
+  /// Nome do cabeçalho para Cross-Origin Resource Sharing.
   static const String headerAccessControlAllowOrigin = 'Access-Control-Allow-Origin';
-  /// Standard CORS origin fallback.
+  /// Fallback padrão de origem CORS.
   static const String headerValueCorsWildcard = '*';
 
-  /// Header name for HTTP cache control.
+  /// Nome do cabeçalho para controle de cache HTTP.
   static const String headerCacheControl = 'Cache-Control';
-  /// Cache control value prohibiting persistence of sensitive responses.
+  /// Valor de controle de cache que proíbe a persistência de respostas sensíveis.
   static const String headerValueNoStore = 'no-store, no-cache, must-revalidate, max-age=0';
 
-  /// Header name for HTTP 1.0 pragma cache control.
+  /// Nome do cabeçalho para controle de cache pragma HTTP 1.0.
   static const String headerPragma = 'no-cache';
+
+  // ─── CONTROLES DE DISPONIBILIDADE DO SERVIDOR FAIL-CLOSED ───
+
+  /// Intervalo entre verificações periódicas de saúde dos servidores (segundos).
+  static const int serverHealthCheckIntervalSeconds = 5;
+
+  /// Timeout máximo de cada probe /health antes de considerar o servidor offline (segundos).
+  static const int serverHealthCheckTimeoutSeconds = 3;
+
+  /// Número de falhas consecutivas necessárias para acionar o bloqueio imediato.
+  static const int serverHealthMaxConsecutiveFailures = 1;
+
+  /// Intervalo de heartbeat como Duration.
+  static const Duration serverHealthCheckInterval =
+      Duration(seconds: serverHealthCheckIntervalSeconds);
+
+  /// Timeout de probe /health como Duration.
+  static const Duration serverHealthCheckTimeout =
+      Duration(seconds: serverHealthCheckTimeoutSeconds);
 }

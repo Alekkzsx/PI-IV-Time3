@@ -1,6 +1,6 @@
-// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
+﻿// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
-/// Represents a single grading criterion in an evaluation rubric matrix.
+/// Representa um critério individual de avaliação em uma matriz de rubrica.
 class RubricCriterion {
   final String id;
   final String title;
@@ -16,7 +16,7 @@ class RubricCriterion {
     this.assignedScore,
   });
 
-  /// Alias for maxPoints for convenient UI usage.
+  /// Alias para maxPoints para uso conveniente na interface.
   double get maxScore => maxPoints;
 
   RubricCriterion copyWith({

@@ -23,10 +23,10 @@ void main() {
         harness.peerA.sendReaction(emoji);
         await Future<void>.delayed(const Duration(milliseconds: 10));
 
-        // Check Peer A active reactions
+        // Verifica as reações ativas do Peer A
         expect(harness.peerA.activeReactions.any((r) => r.emoji == emoji), isTrue);
 
-        // Check Peer B active reactions
+        // Verifica as reações ativas do Peer B
         expect(harness.peerB.activeReactions.any((r) => r.emoji == emoji), isTrue);
       }
     });

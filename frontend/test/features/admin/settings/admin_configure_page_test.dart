@@ -13,19 +13,20 @@ import 'package:pi_iv_time3/features/admin/settings/presentation/widgets/system_
 
 void main() {
   group('AdminConfigurePage Widget Tests', () {
-    testWidgets('renders initial header and default AcademicGuidelinesTab', (tester) async {
+    testWidgets('renders initial header and default AcademicGuidelinesTab', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: AdminConfigurePage(),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: AdminConfigurePage()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Configurações da Conta de Administração'), findsOneWidget);
+      expect(
+        find.text('Configurações da Conta de Administração'),
+        findsOneWidget,
+      );
       expect(find.byType(AcademicGuidelinesTab), findsOneWidget);
       expect(find.text('Diretrizes Acadêmicas Regimentais'), findsOneWidget);
       expect(find.text('MÉDIA DE APROVAÇÃO'), findsOneWidget);
@@ -33,86 +34,99 @@ void main() {
       expect(find.text('EXAME ESPECIAL'), findsOneWidget);
     });
 
-    testWidgets('uses the reusable footer and opens its help and privacy links', (tester) async {
+    testWidgets(
+      'uses the reusable footer and opens its help and privacy links',
+      (tester) async {
+        tester.view.physicalSize = const Size(1280, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        await tester.pumpWidget(const MaterialApp(home: AdminConfigurePage()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AdminFooter), findsOneWidget);
+
+        await tester.tap(find.text('Ajuda'));
+        await tester.pumpAndSettle();
+        expect(find.text('Central de ajuda'), findsOneWidget);
+        expect(
+          find.textContaining('entre em contato com a DTI'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Entendi'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Privacidade'));
+        await tester.pumpAndSettle();
+        expect(find.text('Privacidade'), findsNWidgets(2));
+        expect(find.textContaining('Governança e LGPD'), findsOneWidget);
+      },
+    );
+
+    testWidgets('switches between all 6 configuration tabs cleanly', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(
-        const MaterialApp(home: AdminConfigurePage()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: AdminConfigurePage()));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AdminFooter), findsOneWidget);
-
-      await tester.tap(find.text('Ajuda'));
-      await tester.pumpAndSettle();
-      expect(find.text('Central de ajuda'), findsOneWidget);
-      expect(find.textContaining('entre em contato com a DTI'), findsOneWidget);
-
-      await tester.tap(find.text('Entendi'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Privacidade'));
-      await tester.pumpAndSettle();
-      expect(find.text('Privacidade'), findsNWidgets(2));
-      expect(find.textContaining('Governança e LGPD'), findsOneWidget);
-    });
-
-    testWidgets('switches between all 6 configuration tabs cleanly', (tester) async {
-      tester.view.physicalSize = const Size(1280, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: AdminConfigurePage(),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // 1. Administrative Profile Tab
+      // 1. Aba Perfil Administrativo
       await tester.tap(find.text('Perfil Administrativo').first);
       await tester.pumpAndSettle();
       expect(find.byType(AdminProfileTab), findsOneWidget);
-      expect(find.text('Identidade Visual & Foto'), findsOneWidget);
-      expect(find.text('Carlos Eduardo Mendes'), findsOneWidget);
+      expect(find.text('Identidade Visual & Avatar'), findsOneWidget);
+      expect(find.text('Não informado'), findsWidgets);
 
-      // 2. Security & Credentials Tab
+      // 2. Aba Segurança e Credenciais
       await tester.tap(find.text('Segurança & Credenciais').first);
       await tester.pumpAndSettle();
       expect(find.byType(SecurityCredentialsTab), findsOneWidget);
       expect(find.text('Credencial de Acesso (Senha)'), findsOneWidget);
       expect(find.text('Autenticação em Duas Etapas (2FA)'), findsOneWidget);
 
-      // 3. Campus Alerts Tab
+      // 3. Aba Alertas do Campus
       await tester.tap(find.text('Alertas do Campus').first);
       await tester.pumpAndSettle();
       expect(find.byType(CampusAlertsTab), findsOneWidget);
-      expect(find.text('Canais de Comunicação'), findsOneWidget);
-      expect(find.text('Prazos de Tarefas & Trabalhos'), findsOneWidget);
+      expect(find.text('Canais de Monitoramento Institucional'), findsOneWidget);
+      expect(find.text('Protocolos & Requerimentos Pendentes'), findsOneWidget);
 
-      // 4. System Preferences Tab
+      // 4. Aba Preferências do Sistema
       await tester.tap(find.text('Preferências do Sistema').first);
       await tester.pumpAndSettle();
       expect(find.byType(SystemPreferencesTab), findsOneWidget);
       expect(find.text('Aparência & Tema'), findsOneWidget);
       expect(find.text('Acessibilidade & Leitura'), findsOneWidget);
 
-      // 5. Governance & LGPD Tab
+      // 5. Aba Governança e LGPD
       await tester.tap(find.text('Governança & LGPD').first);
       await tester.pumpAndSettle();
       expect(find.byType(GovernanceLgpdTab), findsOneWidget);
-      expect(find.text('Visibilidade de Perfil & Dados entre Colegas'), findsOneWidget);
-      expect(find.text('Privacidade & Direitos do Titular (LGPD)'), findsOneWidget);
-      expect(find.text('Salvar Preferências de Privacidade'), findsOneWidget);
+      expect(
+        find.text('Política Institucional de Diretório & LGPD'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Privacidade & Direitos do Titular (LGPD)'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Salvar Políticas de Governança & LGPD'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('renders individual tabs directly in isolation', (tester) async {
+    testWidgets('renders individual tabs directly in isolation', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 900);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      // Renders GovernanceLgpdTab and asserts export buttons
+      // Renderiza GovernanceLgpdTab e verifica os botões de exportação
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -121,11 +135,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Exportar Relatório de Dados Cadastrais & Histórico'), findsOneWidget);
+      expect(
+        find.text('Exportar Relatório de Dados Cadastrais & Histórico'),
+        findsOneWidget,
+      );
       expect(find.text('Arquivo JSON'), findsOneWidget);
       expect(find.text('Relatório (.txt)'), findsOneWidget);
 
-      // Renders SecurityCredentialsTab and asserts backup codes badge and buttons
+      // Renderiza SecurityCredentialsTab e verifica o emblema de códigos de backup e os botões
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -134,8 +151,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('8 disponíveis'), findsOneWidget);
-      expect(find.text('Gerenciar Códigos'), findsOneWidget);
+      expect(find.text('Hash bcrypt'), findsOneWidget);
+      expect(find.text('Ativar'), findsOneWidget);
     });
   });
 }

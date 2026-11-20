@@ -1,252 +1,176 @@
-# Server — Zero-Dependency Native Java HTTP Server
+# Server — Servidor HTTP e WebSocket Nativo em Java sem Dependências (AGMRM)
 
-The `server` module contains an autonomous, **100% native Java HTTP server** developed from scratch for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3). 
+> **Módulo Principal do Servidor**: `.../PI-IV-Time3/server/`  
+> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
+> **Padrões de Engenharia**: Biblioteca padrão Java SE pura (Java 8+), zero dependências externas, sockets TCP determinísticos e WebSockets RFC 6455, Arquitetura OO Limpa (`abstratas/` + `modules/` + `utils/`)
 
-Designed and implemented by **Guilherme Henrique Moreira** (`@GuilhermeMoreira07`), this server operates entirely on the standard **Java SE 17+** runtime library without depending on external frameworks, application containers, or build automation tools (no Spring, Quarkus, Maven, Gradle, or Tomcat).
+O módulo `server` contém o servidor HTTP e WebSocket nativo, autônomo e de alto desempenho desenvolvido para a **Plataforma Educacional Integrada AGMRM** (*PI-IV Time 3*).
 
----
+Ele opera 100% sobre a **biblioteca padrão do Java SE** (compilado com `--release 8`, compatível do Java 8 ao 25) sem frameworks pesados (sem Spring, Quarkus, Maven, JUnit ou Tomcat).
 
-## 🏛️ Architectural Overview & Design Principles
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│               Client Request (Flutter Web/Desktop or cURL)             │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTP / Port 8080
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        ServidorHttpNativo.java                         │
-│             (HttpServer.create(new InetSocketAddress(8080), 0))        │
-│                       server.setExecutor(null)                         │
-└───────┬───────────────────┬───────────────────┬───────────────────┬────┘
-        │                   │                   │                   │
-        │ /api/teste-tipos  │ /api/presenca     │ /api/tarefas/...  │ /api/notas/boletim
-        ▼                   ▼                   ▼                   ▼
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│TesteTipos-    │   │Presenca-      │   │Tarefas-       │   │Boletim-       │
-│Handler.java   │   │Handler.java   │   │Handler.java   │   │Handler.java   │
-└───────┬───────┘   └───────┬───────┘   └───────┬───────┘   └───────┬───────┘
-        │                   │                   │                   │
-        └───────────────────┼───────────────────┼───────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                            HttpUtils.java                              │
-│  - aplicarHeadersCors() (CORS Pre-flight OPTIONS & Headers)            │
-│  - lerCorpoRequisicao() (UTF-8 InputStream Reader)                     │
-│  - parseFormUrlEncoded() (x-www-form-urlencoded Map Parser)            │
-│  - enviarResposta() (Status Code, Byte Counting & Response Stream)     │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Key Technical Characteristics
-- **Zero Third-Party Dependencies**: Compiles directly with standard `javac` and executes on standard `java` Virtual Machine (JVM).
-- **Standard Socket Abstraction**: Built on `com.sun.net.httpserver.HttpServer` and `java.net.InetSocketAddress`.
-- **Default Port & Address**: Listens on port `8080` bound to all interfaces (`0.0.0.0`), utilizing the operating system default TCP socket connection backlog (`0`).
-- **Threading Model**: Operates with `server.setExecutor(null)`, utilizing the default single-threaded dispatcher of `com.sun.net.httpserver`.
-- **Cross-Origin Resource Sharing (CORS)**: Out-of-the-box support for browser pre-flight requests (`OPTIONS` yielding `204 No Content`) and cross-origin header injection (`Access-Control-Allow-Origin: *`).
+**Responsabilidades Principais (Contexto Delimitado na Porta `8080`)**:
+- **Gestão Autoritativa de Identidade e Acesso**: Sistema completo de login com validação estrita de compatibilidade de perfil (`aluno`, `docente`, `admin` — rejeitando divergências com HTTP `403 invalid_user_type`), verificação PBKDF2/BCrypt, tokens JWT HS256 de acesso/atualização/recuperação, 2FA + códigos de backup, recuperação com OTP de uso único, troca de senha, exportação de perfil/preferências/sessões/LGPD e gerenciamento administrativo de usuários + provisionamento de docentes
+- **Videoconferência e Sinalização em Tempo Real**: Salas persistidas e tickets WebSocket de uso único (`academic_live_sessions`, `video_call_ws_tickets`, `video_call_attendance_logs`) via `/api/video-call/rooms*`, `/ws/video-call/{roomCode}` em RFC 6455, sincronização de chat e telemetria legada em `/api/videocall/*`
+- **Monitoramento Fail-Closed e Ponte Interna**: Monitora proativamente a disponibilidade do `backend/` (`:3001/health`) via `MonitorBackendAcademico` (bloqueando requisições dependentes com HTTP `503 backend_unavailable` caso o núcleo acadêmico caia, mantendo `/health` acessível para diagnóstico) e consome `/api/internal/academic/*` com `X-Internal-Service-Secret` (`ClientePonteAcademica`) para autorizar vínculo acadêmico em turmas, listar salas permitidas e buscar resumos acadêmicos para LGPD/dossiê
 
 ---
 
-## 📂 Complete Directory Tree
+## 🏛️ Arquitetura OO Modular (`abstratas/` + `modules/` + `utils/`)
 
-```
-server/
-├── README.md                     # Native Java server documentation (this file)
-├── src/                          # Java source code files (default package)
-│   ├── BoletimHandler.java       # Weighted academic report card average & status
-│   ├── HttpUtils.java            # Shared HTTP helper (CORS, body reader, form parser, responder)
-│   ├── PresencaHandler.java      # Attendance rate calculation & manual teacher adjustment
-│   ├── ServidorHttpNativo.java   # Main server bootstrap entry point & routing configuration
-│   ├── TarefasHandler.java       # Late assignment submission penalty calculation
-│   └── TesteTiposHandler.java    # Primitive data type extraction & parsing handler
-└── tests/
-    └── testeServidor.txt         # Compilation commands & automated cURL test suite
-```
+Cada domínio principal (`core`, `auth`, `videocall`) segue a mesma estrutura previsível e autodocumentada:
+- **`abstratas/`** — Classes base abstratas implementando *Template Method*, *Strategy/Chain of Responsibility* e tratamento polimórfico de erros HTTP.
+- **`modules/`** — Módulos concretos coesos agrupados por funcionalidade (cada arquivo focado em uma única responsabilidade).
+- **`utils/`** — Funções auxiliares reutilizáveis e primitivas criptográficas compartilhadas entre módulos.
 
----
-
-## 🧩 Source Code Breakdown (`server/src/`)
-
-### 1. `ServidorHttpNativo.java` (Main Entry Point)
-- **Role**: Entry point containing the `public static void main(String[] args)` method.
-- **Port Constant**: `PORTA_PADRAO = 8080`.
-- **Socket Initialization**:
-  ```java
-  HttpServer server = HttpServer.create(new InetSocketAddress(porta), 0);
-  ```
-- **Context Routing**:
-  - `/api/teste-tipos` $\rightarrow$ `TesteTiposHandler`
-  - `/api/presenca` $\rightarrow$ `PresencaHandler`
-  - `/api/tarefas/calcular-nota` $\rightarrow$ `TarefasHandler`
-  - `/api/notas/boletim` $\rightarrow$ `BoletimHandler`
-- **Lifecycle**: Invokes `server.start()` and logs interactive startup banners and endpoint references to `System.out`.
-
-### 2. `HttpUtils.java` (Shared HTTP Utility)
-- **Role**: Static utility helper providing foundational protocol handling:
-  - `aplicarHeadersCors(HttpExchange exchange)`: Sets `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS`, and `Access-Control-Allow-Headers: Content-Type, Authorization`.
-  - `lerCorpoRequisicao(HttpExchange exchange)`: Reads raw request payload stream into a `String` using `BufferedReader` and UTF-8 encoding.
-  - `parseFormUrlEncoded(String body)`: Splits string parameters on delimiter `&` and key-value tokens on `=`, mapping them into a `Map<String, String>`.
-  - `enviarResposta(HttpExchange exchange, int statusCode, String resposta)`: Converts output payload into UTF-8 byte stream, executes `sendResponseHeaders(statusCode, bytes.length)`, flushes payload, and terminates the response stream.
-
-### 3. `TesteTiposHandler.java` (Data Type Extraction)
-- **Endpoint**: `POST /api/teste-tipos`
-- **Purpose**: Exercises and validates native type conversion from form parameters into Java primitive and wrapper types:
-  - `texto`: String (default: `"vazio"`)
-  - `inteiro`: `int` via `Integer.parseInt` (default: `0`)
-  - `flutuante`: `float` via `Float.parseFloat` (default: `0.0f`)
-  - `duplo`: `double` via `Double.parseDouble` (default: `0.0d`)
-  - `caractere`: `char` from initial index of param (default: `'X'`)
-- **Responses**: Returns `200 OK` with serialized type array, or `400 Bad Request` upon parse failure.
-
-### 4. `PresencaHandler.java` (Class Attendance Computation)
-- **Endpoint**: `POST /api/presenca`
-- **Input Parameters**: `minutosAssistidos` (int), `duracaoTotal` (int, default `60`), optional `statusManual` (string).
-- **Business Logic**:
-  - If `statusManual` is supplied: overrides calculation, returning `<STATUS> (Ajuste Manual do Professor)`.
-  - Otherwise, computes percentage:
-    $$\text{percentual} = \left(\frac{\text{minutosAssistidos}}{\text{duracaoTotal}}\right) \times 100$$
-    - $\ge 75.0\%$: `PRESENCA_INTEGRAL (X%)`
-    - $\ge 50.0\%$: `MEIA_PRESENCA (X%)`
-    - $< 50.0\%$: `FALTA_AUTOMATICA (X%)`
-- **Responses**: `200 OK` with attendance status, or `400 Bad Request`.
-
-### 5. `TarefasHandler.java` (Late Assignment Penalty)
-- **Endpoint**: `POST /api/tarefas/calcular-nota`
-- **Input Parameters**: `diasAtraso` (int), `notaBase` (double, default `10.0`).
-- **Business Logic**:
-  - `PENALIDADE_DIARIA = 0.20` (20% penalty per calendar day late).
-  - Deduction formula:
-    $$\text{notaMaximaPermitida} = \text{notaBase} \times (1.0 - (\text{diasAtraso} \times 0.20))$$
-  - Bound to minimum score: $\max(0.0, \text{notaMaximaPermitida})$.
-- **Responses**: `200 OK` with allowed ceiling score, or `400 Bad Request`.
-
-### 6. `BoletimHandler.java` (Weighted Report Card Average)
-- **Endpoint**: `POST /api/notas/boletim`
-- **Input Parameters**:
-  - Exam 1: `p1` (default `0.0`), `peso1` (default `0.4`)
-  - Exam 2: `p2` (default `0.0`), `peso2` (default `0.4`)
-  - Project: `trabalho` (default `0.0`), `pesoTrabalho` (default `0.2`)
-- **Business Logic**:
-  - Computes weighted average:
-    $$\text{media} = \frac{(p1 \times peso1) + (p2 \times peso2) + (trabalho \times pesoTrabalho)}{peso1 + peso2 + pesoTrabalho}$$
-  - Rounded to 2 decimal places.
-  - Status evaluation:
-    - $\text{media} \ge 7.0$: `APROVADO`
-    - $\text{media} \ge 5.0$: `EM_RECUPERACAO`
-    - $\text{media} < 5.0$: `REPROVADO_POR_NOTA`
-- **Responses**: `200 OK` with `Media Final: X.X | Status: STATUS`, or `400 Bad Request`.
-
----
-
-## 🛠️ Compilation and Execution Guide
-
-### Prerequisites
-- **Java SE Development Kit (JDK)**: Version 17, 21, or newer.
-- Ensure `javac` and `java` are available in your system path (`PATH`).
-
-### Option A: From Repository Root (Recommended)
-1. **Compile all Java source files**:
-   ```bash
-   javac server/src/*.java
-   ```
-2. **Execute the server**:
-   ```bash
-   java -cp server/src ServidorHttpNativo
-   ```
-
-### Option B: From Inside `server/src/`
-1. **Navigate to the source directory**:
-   ```bash
-   cd server/src
-   ```
-2. **Compile**:
-   ```bash
-   javac ServidorHttpNativo.java
-   ```
-   *(Java compiler automatically resolves dependencies: `HttpUtils`, `BoletimHandler`, etc.)*
-3. **Execute**:
-   ```bash
-   java ServidorHttpNativo
-   ```
-
-### Script Wrappers (`run-server.bat` / `run-server.sh`)
-While the core repository intentionally provides lightweight direct command execution, developers can optionally create standard shell or batch wrapper scripts to streamline local workflows:
-- **Windows (`run-server.bat`)**:
-  ```bat
-  @echo off
-  javac server\src\*.java
-  java -cp server\src ServidorHttpNativo
-  ```
-- **macOS / Linux (`run-server.sh`)**:
-  ```bash
-  #!/usr/bin/env bash
-  javac server/src/*.java
-  java -cp server/src ServidorHttpNativo
-  ```
-
----
-
-## 🧪 Automated Testing Suite & cURL Verifications
-
-Test procedures and sample payloads are cataloged in `server/tests/testeServidor.txt`. With the server running, execute the following commands in an independent terminal window:
-
-### 1. Primitive Type Extraction Test
-```bash
-curl -X POST http://localhost:8080/api/teste-tipos \
-  -d "texto=Calculo1&inteiro=42&flutuante=7.5&duplo=99.99&caractere=A"
-```
-**Expected Response (`200 OK`)**:
 ```text
-OK - Tipos Processados: [Calculo1, 42, 7.5, 99.99, A]
-```
-
-### 2. Student Attendance Evaluation Test
-```bash
-curl -X POST http://localhost:8080/api/presenca \
-  -d "minutosAssistidos=50&duracaoTotal=60"
-```
-**Expected Response (`200 OK`)**:
-```text
-Resultado Presenca: PRESENCA_INTEGRAL (83%)
-```
-
-*(Manual adjustment test)*:
-```bash
-curl -X POST http://localhost:8080/api/presenca \
-  -d "statusManual=PRESENCA_ABONADA"
-```
-**Expected Response (`200 OK`)**:
-```text
-Resultado Presenca: PRESENCA_ABONADA (Ajuste Manual do Professor)
-```
-
-### 3. Late Assignment Deduction Test
-```bash
-curl -X POST http://localhost:8080/api/tarefas/calcular-nota \
-  -d "diasAtraso=1&notaBase=10.0"
-```
-**Expected Response (`200 OK`)**:
-```text
-Nota Maxima Permitida: 8.0
-```
-
-### 4. Weighted Academic Report Card Test
-```bash
-curl -X POST http://localhost:8080/api/notas/boletim \
-  -d "p1=8.0&peso1=0.4&p2=6.0&peso2=0.4&trabalho=10.0&pesoTrabalho=0.2"
-```
-**Calculation Check**:
-$$\text{media} = \frac{(8.0 \times 0.4) + (6.0 \times 0.4) + (10.0 \times 0.2)}{0.4 + 0.4 + 0.2} = \frac{3.2 + 2.4 + 2.0}{1.0} = 7.6$$
-**Expected Response (`200 OK`)**:
-```text
-Media Final: 7.6 | Status: APROVADO
+.../PI-IV-Time3/server/
+├── bin/                                              # Bytecode Java 8 compilado (.class)
+├── lib/                                              # JARs do MongoDB Java Sync Driver
+├── src/
+│   ├── Main.java                                     # Índice central de rotas (Saude, Auth, Admin, VideoCall)
+│   ├── utils/                                        # Utilitários globais reutilizáveis
+│   │   ├── BsonUtils.java                            # Conversão recursiva Document <-> Map/List
+│   │   ├── ConfigEnv.java                            # Leitor mestre do .env da raiz
+│   │   ├── Json.java                                 # Parser/serializador JSON completo (RFC 8259)
+│   │   ├── JsonSimples.java                          # Escape de strings e auxiliar JSON plano
+│   │   └── RedeUtils.java                            # Stream UTF-8, codificação URL, extração de IP, loopback
+│   ├── core/                                         # Motor de sockets HTTP nativo e infraestrutura MongoDB
+│   │   ├── abstratas/
+│   │   │   ├── ExcecaoHttpAbstrata.java              # Base polimórfica de exceções HTTP (statusHttp + codigo)
+│   │   │   ├── HandlerHttpAbstrato.java              # Template Method HTTP (CORS, OPTIONS, 405, catch)
+│   │   │   └── RepositorioMongoAbstrato.java         # Template Method MongoDB (índices, failover, erros)
+│   │   ├── ConexaoMongo.java                         # MongoClient, failover SRV->Direct e cache de saúde
+│   │   ├── DatabaseUnavailableException.java         # Exceção 503 para MongoDB bloqueado por DNS/rede
+│   │   ├── HealthHandler.java                        # GET /health e /health/ready
+│   │   ├── HttpUtils.java                            # CORS e cabeçalhos defensivos de segurança
+│   │   ├── ManipuladorHttp.java                      # Interface de contrato do handler HTTP
+│   │   ├── MonitorBackendAcademico.java              # Monitor proativo Fail-Closed do backend acadêmico (:3001)
+│   │   ├── RequisicaoHttp.java                       # Parser de requisições HTTP/1.1 em socket TCP
+│   │   ├── ResilientDnsClient.java                   # Resolvedor JNDI + DNS-over-HTTPS (DoH)
+│   │   ├── RespostaHttp.java                         # Escritor nativo de respostas HTTP/1.1
+│   │   └── ServidorHttpNativo.java                   # ServerSocket, ThreadPool, roteamento e upgrade WS
+│   ├── auth/                                         # Identidade, sessões, conta, admin e e-mail resiliente
+│   │   ├── abstratas/
+│   │   │   ├── HandlerAutenticadoAbstrato.java       # Guarda obrigatória de JWT + sessão no MongoDB
+│   │   │   ├── HandlerAuthPublicoAbstrato.java       # Emissão compartilhada de token/sessão para fluxos públicos
+│   │   │   ├── AdminHandlerAbstrato.java             # RBAC admin obrigatório + ponte + guarda de escrita
+│   │   │   ├── CanalEnvioEmailAbstrato.java          # Contrato resiliente de canal de e-mail (Camadas 1/2/3)
+│   │   │   ├── CanalHttpsEmailAbstrato.java          # Transporte JSON HTTPS POST compartilhado (Camada 2)
+│   │   │   └── TemplateEmailAbstrato.java            # Layout HTML institucional único + escape contra XSS
+│   │   ├── model/
+│   │   │   └── UsuarioAutenticado.java               # Modelo de identidade autenticada
+│   │   ├── utils/
+│   │   │   ├── AuthHttpUtils.java                    # Mascaramento de e-mail, latência constante, DTOs de usuário/perfil
+│   │   │   ├── BCrypt.java                           # Implementação padrão Blowfish/BCrypt
+│   │   │   ├── JwtAuthValidator.java                 # Validação JWT HS256 + verificação de sessão no MongoDB
+│   │   │   ├── JwtGerador.java                       # Gerador unificado de tokens HS256 (acesso/atualização/recuperação)
+│   │   │   ├── LimitadorTentativas.java              # Limitador progressivo contra força bruta
+│   │   │   ├── OtpService.java                       # OTP de 6 dígitos SecureRandom + HMAC-SHA256 + SHA-256
+│   │   │   ├── RevogacaoTokens.java                  # Lista de revogação JTI em memória
+│   │   │   └── SenhaHasher.java                      # Verificação PBKDF2WithHmacSHA256 (600k) + BCrypt
+│   │   └── modules/
+│   │       ├── login/                                # LoginHandler, TwoFactorHandler, RefreshTokenHandler, LogoutHandler, AuthSessionHandler
+│   │       ├── conta/                                # ProfileAccountHandler, ProfileHandler, AccountSecurityHandler, ChangePasswordHandler, RecoveryHandler
+│   │       ├── admin/                                # AdminUsersHandler, AdminUserCrudHandler, AdminUserSecurityHandler, AdminUserDossierHandler, AdminTeacherHandler, EmailDiagnosticHandler
+│   │       ├── persistencia/                         # RepositorioUsuarios (Facade), RepositorioContas, RepositorioSessoes, RepositorioOtps, RepositorioAuditoria
+│   │       └── email/                                # SmtpCliente (Facade), MensagemEmail, CircuitBreakerSmtp, CanalSmtpNativo, CanalResendEmail, CanalBrevoEmail, CanalWebhookEmail, CanalOutboxLocal, TemplateEmail*
+│   ├── videocall/                                    # REST de videoconferência, persistência e hub WebRTC
+│   │   ├── abstratas/
+│   │   │   └── HandlerVideoCallLegadoAbstrato.java   # Handler base com JWT opcional + VideoCallService
+│   │   ├── utils/
+│   │   │   └── VideoCallUtils.java                   # Sanitizador de código de sala, resolução de participante e cálculo de presença
+│   │   └── modules/
+│   │       ├── rooms/                                # VideoCallMongoHandler, RepositorioVideoCall, TicketWebSocketValidator
+│   │       ├── legado/                               # VideoCallService, VideoCallRoomHandler, VideoCallSignalingHandler, VideoCallInteractionHandler, VideoCallAttendanceHandler
+│   │       └── hub/                                  # SalaVideoHub, RegistradorChat, RegistradorEnvelope
+│   ├── bridge/                                       # Cliente HTTP interno autenticado (:3001)
+│   │   └── ClientePonteAcademica.java
+│   └── websocket/                                    # Motor WebSocket RFC 6455 puro
+│       ├── AtendenteWebSocket.java
+│       ├── ConexaoWebSocket.java
+│       ├── HandshakeWebSocket.java
+│       ├── OuvinteWebSocket.java
+│       └── QuadroWebSocket.java
+└── tests/                                            # Suítes de testes Java sem dependências (17 suítes)
+    ├── SuiteTestesServidor.java
+    ├── auth/                                         # 9 suítes de auth/rede/e-mail
+    ├── core/                                         # HttpUtilsCorsTeste + ArquiteturaAbstrataTeste
+    ├── utils/                                        # ConfigEnvTeste + JsonTeste
+    ├── videocall/hub/                                # HubTeste + RegistradorChatTeste
+    └── websocket/                                    # HandshakeTeste + QuadroTeste
 ```
 
 ---
 
-## 🔒 Security & Robustness Considerations
+## 🧩 10 Classes Abstratas (Pilares de OO)
 
-- **Input Isolation**: All request parsing operations are wrapped in `try-catch` blocks, preventing malicious or malformed parameters from crashing the server thread.
-- **CORS Hardening**: Permissive CORS headers are configured for local multi-origin prototyping; production environments should restrict `Access-Control-Allow-Origin` to authorized domain origins.
-- For comprehensive security standards across all tiers, see the [`security/`](../security/README.md) module documentation.
+| Classe Abstrata | Pacote | Padrão | Responsabilidade |
+|---|---|---|---|
+| `ExcecaoHttpAbstrata` | `core.abstratas` | Polimorfismo | Unifica status HTTP + código de erro entre `DatabaseUnavailableException`, `HttpSecurityException` e `ExcecaoPonteAcademica` |
+| `HandlerHttpAbstrato` | `core.abstratas` | Template Method | Padroniza CORS, cabeçalhos de segurança, `OPTIONS 204`, validação `405`, auxiliares JSON e tratamento polimórfico de erros |
+| `RepositorioMongoAbstrato` | `core.abstratas` | Template Method | Centraliza acesso ao banco MongoDB, criação segura e assíncrona de índices (tratamento de conflitos `85`/`86`) e tradução de erros |
+| `HandlerAutenticadoAbstrato` | `auth.abstratas` | Template Method | Impõe validação de Bearer JWT + sessão ativa no MongoDB antes de invocar subclasses |
+| `HandlerAuthPublicoAbstrato` | `auth.abstratas` | Template Method | Centraliza emissão de par de tokens, persistência de sessão e montagem padrão do payload de autenticação |
+| `AdminHandlerAbstrato` | `auth.abstratas` | Template Method | Impõe perfil `admin`, injeta `ClientePonteAcademica`, valida guarda de escrita e IDs de usuário |
+| `CanalEnvioEmailAbstrato` | `auth.abstratas` | Strategy / Chain | Contrato comum de entrega para Camada 1 (SMTP), Camada 2 (HTTPS) e Camada 3 (Outbox) |
+| `CanalHttpsEmailAbstrato` | `auth.abstratas` | Template Method | Transporte JSON HTTPS POST compartilhado com tratamento opcional de redirecionamento 302 para Resend, Brevo e Webhook |
+| `TemplateEmailAbstrato` | `auth.abstratas` | Template Method | Layout HTML institucional único com escape embutido contra XSS compartilhado entre os 4 templates de e-mail |
+| `HandlerVideoCallLegadoAbstrato` | `videocall.abstratas` | Template Method | Autenticação JWT opcional e auxiliares do `VideoCallService` para rotas legadas `/api/videocall/*` |
+
+---
+
+## 🚀 Compilação e Execução
+
+### Execução Manual (Linux / macOS)
+```bash
+cd server
+find src -name "*.java" > /tmp/server_src.txt
+javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin @/tmp/server_src.txt
+java -Dfile.encoding=UTF-8 -cp "bin:lib/*" Main
+```
+
+### Suíte Automatizada de Testes Nativos (17 Suítes)
+```bash
+cd server
+mkdir -p /tmp/server_test_bin
+find src tests -name "*.java" > /tmp/server_all.txt
+javac --release 8 -encoding UTF-8 -cp "lib/*" -d /tmp/server_test_bin @/tmp/server_all.txt
+java -Dfile.encoding=UTF-8 -cp "/tmp/server_test_bin:lib/*" SuiteTestesServidor
+```
+
+**Suítes de Teste (17/17)**:
+1. `ConfigEnvTeste` — Carregamento e validação do `.env` mestre
+2. `JsonTeste` — Parsing/serialização completa de JSON e JsonSimples
+3. `HandshakeTeste` — `Sec-WebSocket-Accept` conforme RFC 6455
+4. `QuadroTeste` — Enquadramento e mascaramento conforme RFC 6455
+5. `RegistradorChatTeste` — Registro e sincronização de chat via WebSocket
+6. `HubTeste` — Roteamento do hub WebSocket ao vivo e isolamento de salas
+7. `JwtAuthValidatorTeste` — Validação JWT HS256, revogação, guarda de troca de senha e RBAC
+8. `SenhaHasherTeste` — Verificação PBKDF2WithHmacSHA256 e BCrypt + regras de complexidade
+9. `RevogacaoTokensTeste` — Lista de revogação JTI em memória e limpeza por expiração
+10. `LimitadorTentativasTeste` — Bloqueio progressivo contra força bruta
+11. `OtpServiceTeste` — Geração de OTP de 6 dígitos, armazenamento HMAC e validação
+12. `RecoveryHandlerTeste` — Concessão de redefinição de recuperação de uso único e proteção contra replay
+13. `HandlerLifecycleTeste` — Preservação de pool de banco de dados compartilhado entre handlers
+14. `HttpUtilsCorsTeste` — Resolução dinâmica de origem e Private Network Access
+15. `ResilientNetworkTeste` — Parsing de DNS-over-HTTPS (DoH) e diagnósticos de rede HTTP 503
+16. `SmtpClienteTeste` — CRLF/dot-stuffing conforme RFC 5321, AUTH LOGIN/PLAIN, validação de Webhook e Circuit Breaker
+17. `ArquiteturaAbstrataTeste` — Classes abstratas (*Template Method*, exceções HTTP, canais/templates de e-mail) e utilitários compartilhados
+
+---
+
+## 📡 Catálogo de Endpoints de API Registrados
+
+URL Base: `http://localhost:8080`
+
+| Grupo | Método | Endpoint | Handler |
+|---|---|---|---|
+| **Saúde** | `GET` | `/health`, `/health/ready` | `HealthHandler` |
+| **Login** | `POST` | `/api/auth/login`, `/logout`, `/refresh`, `/verify-two-factor` | `auth.modules.login.*` |
+| **Sessão** | `GET` / `POST` | `/api/auth/session`, `/api/auth/me` | `AuthSessionHandler` |
+| **Conta** | `PATCH` / `GET` / `POST` / `DELETE` | `/api/auth/profile`, `/lgpd-export`, `/sessions*`, `/logout-others`, `/two-factor`, `/backup-codes`, `/security-logs` | `ProfileAccountHandler` (`ProfileHandler` + `AccountSecurityHandler`) |
+| **Senha** | `POST` | `/api/auth/send-recovery-otp`, `/verify-recovery-otp`, `/reset-password`, `/change-password` | `RecoveryHandler`, `ChangePasswordHandler` |
+| **Admin** | `GET` / `POST` / `PATCH` | `/api/admin/users*`, `/api/admin/teachers`, `/api/auth/email-diagnostic` | `AdminUsersHandler` (4 sub-handlers), `EmailDiagnosticHandler` |
+| **VideoCall (Mongo)** | `GET` / `POST` | `/api/video-call/rooms`, `/enter`, `/close`, `/attendance` | `VideoCallMongoHandler` |
+| **VideoCall (Legado)** | `GET` / `POST` | `/api/videocall/rooms`, `/open`, `/close`, `/join`, `/leave`, `/signal`, `/hand-raise`, `/chat`, `/attendance` | `videocall.modules.legado.*` |
+| **WebSocket** | `WS` | `/ws/video-call/{roomCode}?ticket=...` | `ServidorHttpNativo` + `SalaVideoHub` |

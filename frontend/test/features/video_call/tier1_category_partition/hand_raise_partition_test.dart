@@ -21,17 +21,17 @@ void main() {
       expect(harness.peerA.raisedHandsQueue, isEmpty);
       expect(harness.peerB.raisedHandsQueue, isEmpty);
 
-      // Peer A raises hand
+      // Peer A levanta a mão
       harness.peerA.toggleHandRaise();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      // Assert Peer A state
+      // Verifica o estado do Peer A
       expect(harness.peerA.localParticipant.isHandRaised, isTrue);
       expect(harness.peerA.raisedHandsQueue.length, 1);
       expect(harness.peerA.raisedHandsQueue.first.peerId, 'peer_a_id');
       expect(harness.peerA.raisedHandsQueue.first.name, 'Alex Sousa');
 
-      // Assert Peer B received hand raise event
+      // Verifica se o Peer B recebeu o evento de mão levantada
       expect(harness.peerB.raisedHandsQueue.length, 1);
       expect(harness.peerB.raisedHandsQueue.first.peerId, 'peer_a_id');
       expect(harness.peerB.raisedHandsQueue.first.name, 'Alex Sousa');
@@ -39,12 +39,12 @@ void main() {
 
     test('Toggling hand raise again lowers hand and removes participant from queue',
         () async {
-      // Raise
+      // Levantar
       harness.peerA.toggleHandRaise();
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(harness.peerA.raisedHandsQueue.length, 1);
 
-      // Lower
+      // Abaixar
       harness.peerA.toggleHandRaise();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -55,20 +55,20 @@ void main() {
 
     test('Multiple participants raising hands preserves exact FIFO queue ordering',
         () async {
-      // Peer A raises hand first
+      // Peer A levanta a mão primeiro
       harness.peerA.toggleHandRaise();
       await Future<void>.delayed(const Duration(milliseconds: 15));
 
-      // Peer B raises hand second
+      // Peer B levanta a mão em segundo
       harness.peerB.toggleHandRaise();
       await Future<void>.delayed(const Duration(milliseconds: 15));
 
-      // Check Peer A queue: A is index 0, B is index 1
+      // Verifica a fila do Peer A: A está no índice 0 e B no índice 1
       expect(harness.peerA.raisedHandsQueue.length, 2);
       expect(harness.peerA.raisedHandsQueue[0].name, 'Alex Sousa');
       expect(harness.peerA.raisedHandsQueue[1].name, 'Beatriz Lima');
 
-      // Lower A's hand -> B advances to position 0
+      // Abaixa a mão de A -> B avança para a posição 0
       harness.peerA.toggleHandRaise();
       await Future<void>.delayed(const Duration(milliseconds: 15));
 

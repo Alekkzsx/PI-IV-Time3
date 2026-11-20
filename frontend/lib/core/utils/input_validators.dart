@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
+﻿// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 /// Conjunto de validadores utilitários para campos de entrada e formulários institucionais.
 class InputValidators {

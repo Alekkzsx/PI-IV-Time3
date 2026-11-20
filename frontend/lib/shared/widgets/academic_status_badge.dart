@@ -112,6 +112,8 @@ class AcademicStatusBadge extends StatelessWidget {
           str == 'inativo' ||
           str.contains('atrasad')) {
         return AcademicStatusType.reprovado;
+      } else if (str.contains('semnotas')) {
+        return AcademicStatusType.custom;
       } else if (str.contains('recupera') ||
           str.contains('exame') ||
           str == 'pendente' ||
@@ -134,6 +136,7 @@ class AcademicStatusBadge extends StatelessWidget {
     if (academicStatus != null) {
       if (academicStatus is Enum) {
         final name = (academicStatus as Enum).name;
+        if (name == 'semNotas') return 'EM CURSO';
         if (name == 'aprovado') return 'APROVADO';
         if (name == 'exame') return 'EM EXAME';
         if (name == 'reprovadoPorNota') return 'REPR. NOTA';

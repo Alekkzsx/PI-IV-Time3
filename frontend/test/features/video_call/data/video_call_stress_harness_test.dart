@@ -54,7 +54,7 @@ void main() {
 
   group('Milestone 1 Empirical Stress Harness: Zero-Bot & P2P Transport', () {
     // -------------------------------------------------------------------------
-    // Invariant 1: 1 peer alone in a room receives 0 remote discovery events
+    // Invariante 1: 1 peer sozinho em uma sala recebe 0 eventos de descoberta remota
     // -------------------------------------------------------------------------
     group('Invariant 1: Solitary Peer receives 0 remote discovery events', () {
       test('Single peer joining SALA-101 produces exactly ZERO remote discovery events', () async {
@@ -122,7 +122,7 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Invariant 2: Reciprocal discovery via JOIN <-> PRESENCE_SYNC in < 50ms
+    // Invariante 2: Descoberta recíproca via JOIN <-> PRESENCE_SYNC em < 50ms
     // -------------------------------------------------------------------------
     group('Invariant 2: Reciprocal Discovery Timing & Handshake (< 50ms)', () {
       test('Peer 1 and Peer 2 reciprocally discover each other in strictly < 50ms', () async {
@@ -239,7 +239,7 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Invariant 3: 3 peers connect -> all 3 see each other (Full-Mesh N*(N-1))
+    // Invariante 3: 3 peers se conectam -> todos os 3 se veem (Malha Completa N*(N-1))
     // -------------------------------------------------------------------------
     group('Invariant 3: 3-Peer Full-Mesh Topology Dynamic Discovery', () {
       test('When Peer 3 connects, all 3 peers discover each other', () async {
@@ -332,7 +332,7 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Invariant 4: Peer 2 leaves -> Peer 1 and Peer 3 receive leave event immediately
+    // Invariante 4: Peer 2 sai -> Peer 1 e Peer 3 recebem o evento de saída imediatamente
     // -------------------------------------------------------------------------
     group('Invariant 4: Immediate Leave Event Propagation', () {
       test('When Peer 2 leaves, both Peer 1 and Peer 3 receive onParticipantLeft immediately', () async {
@@ -442,7 +442,7 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Invariant 5: Multi-Room Strict Isolation (ZERO cross-room leakage)
+    // Invariante 5: Isolamento Estrito entre Múltiplas Salas (ZERO vazamento entre salas)
     // -------------------------------------------------------------------------
     group('Invariant 5: Multi-Room Strict Isolation & Zero Leakage', () {
       test('Peer in SALA-101 and Peer in SALA-102 have ZERO cross-discovery', () async {
@@ -638,7 +638,7 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Invariant 6: Adversarial Stress & Malformed Packet Resilience
+    // Invariante 6: Estresse Adversarial e Resiliência a Pacotes Malformados
     // -------------------------------------------------------------------------
     group('Invariant 6: Adversarial Stress & Malformed Envelope Resilience', () {
       test('High-throughput burst: 100 concurrent messages delivered without loss or race condition', () async {

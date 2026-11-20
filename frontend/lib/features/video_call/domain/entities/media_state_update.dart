@@ -64,13 +64,13 @@ class MediaStateUpdate {
 
   @override
   int get hashCode => Object.hash(
-        peerId,
-        isAudioMuted,
-        isVideoOff,
-        isScreenSharing,
-        audioLevel,
-        timestamp,
-      );
+    peerId,
+    isAudioMuted,
+    isVideoOff,
+    isScreenSharing,
+    audioLevel,
+    timestamp,
+  );
 
   @override
   String toString() {

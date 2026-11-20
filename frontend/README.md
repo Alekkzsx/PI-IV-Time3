@@ -1,254 +1,113 @@
-# Frontend — AGMRM Academic Portal Client
+# Frontend — Portal Acadêmico Integrado AGMRM
 
-The `frontend` module houses the cross-platform client application for the **AGMRM Integrated Educational Platform** (*Plataforma Educacional Integrada* — PI-IV Time 3). Built with **Flutter 3** and Dart, this application provides a responsive, institutional user interface for Students (*Aluno*), Faculty (*Docente*), and Administrators (*Admin*).
+> **Módulo da Aplicação Cliente**: `.../PI-IV-Time3/frontend/`  
+> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
+> **Padrões de Engenharia**: Clean Architecture Feature-First, Segurança Multi-Perfil, Inicialização Automatizada de Backend  
 
-The codebase strictly adheres to **Feature-First Clean Architecture**, enforcing clear separation of concerns, modularity, framework independence in domain layers, and comprehensive automated testability across both authentication workflows (`auth`) and the student academic portal (`student`).
+O módulo `frontend` abriga a aplicação cliente multiplataforma da **Plataforma Educacional Integrada AGMRM** (*PI-IV Time 3*), construída com **Flutter 3** e Dart. Ele fornece uma interface institucional abrangente, acessível e responsiva para três perfis de usuário: **Discente (*Student*)**, **Docente (*Teacher*)** e **Administrador (*Admin*)**.
 
 ---
 
-## 🏛️ Architectural Overview (Feature-First Clean Architecture)
+## 🏛️ Arquitetura (Clean Architecture Feature-First)
 
-The application organizes features by functional domain (`auth` and `student`), isolating business rules and entities from presentation widgets and external data sources:
+A base de código segue estritamente os princípios da Clean Architecture Feature-First, desacoplando regras de negócio de domínio dos frameworks de apresentação de interface e das fontes de dados externas:
 
-$$\text{Presentation Layer} \longleftrightarrow \text{Domain Layer} \longleftrightarrow \text{Data Layer} \longleftrightarrow \text{External Layer}$$
+$$\text{Camada de Apresentação (Widgets \& Controllers)} \longleftrightarrow \text{Camada de Domínio (UseCases \& Entities)} \longleftrightarrow \text{Camada de Dados (Repositories \& DataSources)}$$
 
-```text
-frontend/
+### Módulos Funcionais Principais:
+1. **`auth`**: Fluxos seguros de autenticação e recuperação de credenciais:
+   - Login multi-perfil (**Aluno**, **Docente**, **Admin**) com validação estrita de compatibilidade entre o perfil selecionado e o cadastro institucional (`invalid_user_type` HTTP `403`).
+   - Recuperação de senha com verificação prévia de perfil, mitigação de ataques de temporização (*side-channel timing*) e banner de orientação contextual.
+   - Verificação de código OTP de 6 dígitos (`OtpCodeInputSection`) com centralização óptica, agrupamento visual `3 - 3`, pílula de progresso, feedback inline de erro e temporizador regressivo efêmero.
+   - Redefinição de senha com indicador de avaliação de entropia em 4 fatores.
+2. **`student`**: Portal do Discente com notas semestrais, diário de frequência, grade horária de aulas, calendário acadêmico e requerimentos da secretaria virtual.
+3. **`teacher`**: Portal do Docente com lançamento de notas, chamada digital em aula, validação de frequência e gestão de materiais pedagógicos.
+4. **`admin`**: Portal de Administração Acadêmica com gestão do ciclo de vida de identidades de usuários, cockpit de auditoria, balcão de secretaria e trava regimental de notas do CONSEPE.
+5. **`video_call`**: Módulo institucional de Videochamada WebRTC P2P com:
+   - Lobby pré-chamada em paleta monocromática escura de alto contraste (`VideoCallColors`), isolada do tema claro global (`AppTheme.lightTheme`), com diagnósticos de hardware (câmera e microfone) e seletor de salas vinculadas.
+   - Grade de vídeo dinâmica com detecção de orador ativo baseada em histerese.
+   - Fila ordenada FIFO de dúvidas (Mãos Levantadas) e chat da sessão em tempo real.
+   - Compartilhamento de tela e gravação de sessão com registro de auditoria institucional.
+   - Acesso regimental de abertura de sala restrito estritamente a Docente ou Administrador.
+   - Entrada na sala, emissão de tíquete de uso único e sinalização WebSocket executam no servidor Java (`:8080`); mídia de áudio/vídeo permanece peer-to-peer via WebRTC.
+6. **`multiperfil`**: Ponte de interoperabilidade acadêmica (*Academic Bridge*) orquestrando eventos sincronizados entre perfis de Discente, Docente e Administrador.
+
+---
+
+## 📂 Estrutura de Diretórios
+
+```
+.../PI-IV-Time3/frontend/
 ├── lib/
-│   ├── core/                                    # Shared design tokens, failures, and validators
-│   │   ├── errors/
-│   │   │   └── failures.dart
-│   │   ├── theme/
-│   │   │   └── app_theme.dart
-│   │   └── utils/
-│   │       └── input_validators.dart
+│   ├── core/
+│   │   ├── academic/                         # Calculadora regimental de médias e frequência
+│   │   ├── backend/
+│   │   │   └── backend_process_launcher.dart # Inicializador transparente em segundo plano dos módulos principais
+│   │   ├── errors/                           # Falhas e exceções tipadas de domínio
+│   │   ├── network/                          # Cliente HTTP resiliente, endpoints e ServerHealthMonitor (:8080 e :3001)
+│   │   ├── router/                           # Roteamento centralizado da aplicação
+│   │   ├── state/                            # Sessão autenticada, armazenamento seguro e política de papéis
+│   │   ├── theme/                            # AppTheme, InstitutionalTokens e tipografia Plus Jakarta Sans
+│   │   ├── utils/                            # Validadores de entrada e utilitários de arquivos multiplataforma
+│   │   └── widgets/                          # AccessDeniedView e ServerUnavailableGuard (trava Fail-Closed)
 │   ├── features/
-│   │   ├── auth/                           # Authentication & Password Recovery Flows
-│   │   │   ├── login/
-│   │   │   │   ├── domain/usecases/
-│   │   │   │   │   └── login_usecase.dart
-│   │   │   │   └── presentation/
-│   │   │   │       ├── controllers/
-│   │   │   │       │   └── login_controller.dart
-│   │   │   │       ├── pages/
-│   │   │   │       │   └── login_page.dart
-│   │   │   │       └── widgets/
-│   │   │   │           ├── brand_panel.dart
-│   │   │   │           └── login_profile_tabs.dart
-│   │   │   ├── forgot_password/
-│   │   │   │   ├── domain/usecases/
-│   │   │   │   │   └── recover_password_usecase.dart
-│   │   │   │   └── presentation/
-│   │   │   │       ├── controllers/
-│   │   │   │       │   └── recover_password_controller.dart
-│   │   │   │       ├── pages/
-│   │   │   │       │   └── recover_password_page.dart
-│   │   │   │       └── widgets/
-│   │   │   │           ├── primary_action_button.dart
-│   │   │   │           ├── profile_selector_tabs.dart
-│   │   │   │           ├── recovery_input_field.dart
-│   │   │   │           └── security_alert_banner.dart
-│   │   │   ├── verify_code/
-│   │   │   │   └── presentation/pages/
-│   │   │   │       └── verify_code_page.dart
-│   │   │   └── reset_password/
-│   │   │       └── presentation/
-│   │   │           ├── pages/
-│   │   │           │   └── reset_password_page.dart
-│   │   │           └── widgets/
-│   │   │               ├── academic_identity_card.dart
-│   │   │               ├── password_reset_field.dart
-│   │   │               └── password_strength_indicator.dart
-│   │   └── student/                        # Student Portal (Visão do Aluno - Portal AVA)
-│   │       ├── student_messages/
-│   │       │   ├── domain/entities/
-│   │       │   │   └── academic_message.dart
-│   │       │   └── presentation/
-│   │       │       ├── controllers/
-│   │       │       │   └── student_messages_controller.dart
-│   │       │       ├── pages/
-│   │       │       │   └── student_messages_page.dart
-│   │       │       └── widgets/
-│   │       │           ├── academic_message_card.dart
-│   │       │           └── message_filter_bar.dart
-│   │       └── student_secretariat/
-│   │           ├── domain/entities/
-│   │           │   ├── academic_record_summary.dart
-│   │           │   └── protocol_request.dart
-│   │           └── presentation/
-│   │               ├── controllers/
-│   │               │   └── student_secretariat_controller.dart
-│   │               ├── pages/
-│   │               │   └── student_secretariat_page.dart
-│   │               └── widgets/
-│   │                   ├── academic_record_card.dart
-│   │                   └── protocol_requests_table.dart
-│   ├── shared/                                  # Shared cross-feature repositories, layouts & widgets
+│   │   ├── admin/
 │   │   ├── auth/
-│   │   │   ├── data/
-│   │   │   │   ├── auth_remote_datasource.dart
-│   │   │   │   └── auth_repository_impl.dart
-│   │   │   ├── domain/
-│   │   │   │   └── auth_repository.dart
-│   │   │   └── external/
-│   │   │       └── auth_remote_datasource_impl.dart
-│   │   ├── student_layout/
-│   │   │   ├── student_portal_shell.dart
-│   │   │   └── student_sidebar.dart
-│   │   └── widgets/
-│   │       ├── recovery_footer_links.dart
-│   │       └── top_header_bar.dart
-│   └── main.dart                                # Application entry point, DI & route registry
-└── test/                                        # Unit and Widget test suites
-    ├── features/
-    │   ├── auth/
-    │   │   ├── forgot_password/
-    │   │   │   ├── domain/usecases/
-    │   │   │   │   └── recover_password_usecase_test.dart
-    │   │   │   └── presentation/controllers/
-    │   │   │       └── recover_password_controller_test.dart
-    │   │   └── login/
-    │   │       ├── domain/usecases/
-    │   │       │   └── login_usecase_test.dart
-    │   │       └── presentation/controllers/
-    │   │           └── login_controller_test.dart
-    │   └── student/
-    │       └── student_portal_test.dart
-    └── widget_test.dart
+│   │   ├── multiperfil/
+│   │   ├── student/
+│   │   ├── teacher/
+│   │   └── video_call/
+│   └── main.dart                             # Ponto de entrada com guarda Fail-Closed (ENABLE_SERVER_GUARD)
+├── test/                                     # Suíte abrangente de testes automatizados (57 arquivos de teste)
+│   ├── core/                                 # Testes do monitor de saúde e guarda Fail-Closed
+│   ├── features/
+│   │   ├── admin/
+│   │   ├── auth/
+│   │   ├── multiperfil/
+│   │   ├── student/
+│   │   ├── teacher/
+│   │   └── video_call/
+│   └── widget_test.dart
+├── pubspec.yaml                              # Dependências da aplicação (incluindo agmrm_security)
+└── README.md                                 # Manual técnico do frontend (este arquivo)
 ```
 
 ---
 
-## 🧩 Module & Layer Breakdown
+## 🚀 Executando o Projeto
 
-### 1. Core Layer (`lib/core/`)
-Provides shared domain-agnostic utilities, error abstractions, and design tokens:
-- **`errors/failures.dart`**: Implements an immutable failure hierarchy (`Failure`, `ValidationFailure`, `ServerFailure`) for structured error propagation.
-- **`theme/app_theme.dart`**: Centralizes the AGMRM institutional design tokens (`AppColors`) and typography powered by Google Fonts.
-- **`utils/input_validators.dart`**: Provides static input validation utilities for academic registration numbers (RA/Matrícula) and institutional emails.
-
-### 2. Shared Layer (`lib/shared/`)
-Encapsulates infrastructure, layouts, and UI components reused across multiple features:
-- **`shared/auth/`**:
-  - `domain/auth_repository.dart`: Abstract contract defining authentication and password recovery operations.
-  - `data/auth_remote_datasource.dart` & `data/auth_repository_impl.dart`: Repository implementation and remote data source contract.
-  - `external/auth_remote_datasource_impl.dart`: Concrete network adapter simulating transport latency and error conditions.
-- **`shared/student_layout/`**:
-  - `student_sidebar.dart`: Collapsible vertical navigation sidebar (`StudentSidebar`, `StudentNavItem`) with 8 student portal sections (*Início*, *Disciplinas*, *Agenda*, *Desempenho*, *Mensagens*, *Secretaria*, *Perfil*, *Sair*).
-  - `student_portal_shell.dart`: Responsive portal wrapper combining the sidebar (or mobile drawer), top institutional header bar with history and notification indicators, scrollable content container, and institutional footer.
-- **`shared/widgets/`**:
-  - `top_header_bar.dart` & `recovery_footer_links.dart`: Shared header and footer components for the authentication and recovery flows.
-
-### 3. Authentication & Password Recovery (`lib/features/auth/`)
-Groups all screens, controllers, use cases, and widgets dedicated to user authentication and credential recovery:
-- **`login/`**:
-  - `LoginUseCase`, `LoginController`, `LoginPage`, `BrandPanel`, and `LoginProfileTabs`.
-  - Supports role selection (Student, Faculty, Admin), responsive split-panel desktop layout, and credential validation.
-- **`forgot_password/`**:
-  - `RecoverPasswordUseCase`, `RecoverPasswordController`, `RecoverPasswordPage`, `ProfileSelectorTabs`, `RecoveryInputField`, `SecurityAlertBanner`, and `PrimaryActionButton`.
-  - Validates academic identity and initiates the 5-minute TTL recovery flow.
-- **`verify_code/`**:
-  - `VerifyCodePage`: 6-digit OTP verification step with countdown timer, code resending, and paste support.
-- **`reset_password/`**:
-  - `ResetPasswordPage`, `AcademicIdentityCard`, `PasswordResetField`, and `PasswordStrengthIndicator` (4-level reactive password entropy scoring).
-
-### 4. Student Portal View (`lib/features/student/`)
-Implements the authenticated student workspace (*Visão do Aluno* — Portal AVA AGMRM):
-- **`student_messages/`** (Route: `/student/messages`):
-  - `AcademicMessage` entity (`MessageCategory.institutional` and `MessageCategory.discipline`).
-  - `StudentMessagesController`: Reactive filtering by category (*Todos Os Comunicados*, *Secretaria & Reitoria*, *Disciplinas*) and real-time search by keyword or faculty name.
-  - `StudentMessagesPage`, `MessageFilterBar`, and `AcademicMessageCard`: Displays official university announcements with `INSTITUCIONAL` / `DISCIPLINA` badges and `Novo` indicators.
-- **`student_secretariat/`** (Route: `/student/secretaria`):
-  - `AcademicRecordSummary` and `ProtocolRequest` (`ProtocolStatus`) entities.
-  - `StudentSecretariatController`: Manages the student's academic summary and registered protocol requests.
-  - `StudentSecretariatPage`, `AcademicRecordCard`, and `ProtocolRequestsTable`: Displays the *Prontuário Acadêmico Regular* (R.A., course, CR, curriculum completion percentage, active enrollment badge), interactive modals for issuing digital enrollment declarations and submitting new requests, and the registered protocols table with official opinion viewer (*Ver Parecer*).
-
-### 5. P2P Real-Time Video Call (`lib/features/video_call/`)
-WebRTC video conferencing with browser-native media capture:
-- **Lobby & Room Pages**: `VideoCallLobbyPage` (mic/cam preview & room creation) and `VideoCallRoomPage` (dynamic multi-peer conference).
-- **Media compatibility**: Local capture requires HTTPS (or localhost), browser permission, and available devices. Incoming audio uses Web Audio after a user gesture, while video elements remain muted to avoid autoplay-policy failures.
-- **Network connectivity**: The default ICE configuration uses public STUN servers only. Networks that block direct P2P traffic require TURN servers; inject short-lived credentials from a trusted backend as `window.__AGMRM_ICE_SERVERS__` before `flutter_bootstrap.js`.
-- **Signaling limitation**: The current Web `BroadcastChannel` transport only connects compatible same-origin browser contexts; it is not a cross-device or cross-browser signaling service. Production calls between distinct browsers/devices require a shared signaling backend. BroadcastChannel and WebRTC support alone cannot provide that service.
-- **Collaborative Controls**: Dynamic video grid, active speaker highlighting, screen share spotlight, live chat drawer, rising animated emoji reactions, raised hands queue, and meeting recording with downloadable session export.
-
----
-
-## 🧭 Application Routes (`lib/main.dart`)
-
-| Route | Page Widget | Feature Group | Description |
-|---|---|---|---|
-| `/` | `LoginPage` | `auth` | Main institutional login screen |
-| `/recover-password` | `RecoverPasswordPage` | `auth` | Password recovery identity request |
-| `/verify-code` | `VerifyCodePage` | `auth` | 6-digit verification code (OTP) entry |
-| `/reset-password` | `ResetPasswordPage` | `auth` | New password creation with strength meter |
-| `/student/messages` | `StudentMessagesPage` | `student` | Student Messages & Official Announcements Center |
-| `/student/secretaria` | `StudentSecretariatPage` | `student` | Virtual Secretariat, Academic Record & Protocols |
-| `/video-call` | `VideoCallLobbyPage` | `video_call` | P2P Video Conferencing, Screen Share & Live Chat |
-
----
-
-## 🚀 Execution & Build Guide
-
-### Prerequisites
-- **Flutter SDK**: `^3.9.2` (or compatible Flutter 3.x release)
-- **Dart SDK**: `^3.9.2`
-
-### 1. Dependency Installation
 ```bash
-cd frontend
-flutter pub get
+# 1. Navegue até o diretório frontend
+cd .../PI-IV-Time3/frontend
+
+# 2. Inicie a aplicação (com guarda Fail-Closed ativa por padrão)
+flutter run
+
+# Opcional: iniciar desativando a trava Fail-Closed de disponibilidade dos servidores
+flutter run --dart-define=ENABLE_SERVER_GUARD=false
 ```
 
-### 2. Running the Client
-- **Web Browser (Chrome)**:
-  ```bash
-  flutter run -d chrome
-  ```
-- **Linux / Windows / macOS Desktop**:
-  ```bash
-  flutter run -d linux
-  # or: flutter run -d windows / flutter run -d macos
-  ```
-- **Android / iOS**:
-  ```bash
-  flutter run -d android
-  # or: flutter run -d ios
-  ```
+Ao executar `flutter run`:
+- O Flutter compila e inicia o cliente desktop/web.
+- O servidor Java de Identidade, Usuários Administrativos e WebSocket de Videochamada em `server/` (`:8080`) é iniciado automaticamente quando necessário.
+- O Núcleo Acadêmico e API de Arquivos em TypeScript em `backend/` (`:3001`) deve estar em execução (`npm run dev` ou inicializador automático do desktop).
+- O pacote corporativo de segurança (`security/`) é declarado como dependência local em `pubspec.yaml`.
+
+Para uma implantação Web não local, configure:
+- `AUTH_API_BASE_URL` para o servidor Java de Identidade e Videochamada (padrão `http://127.0.0.1:8080`)
+- `ACADEMIC_API_BASE_URL` (ou fallback `API_BASE_URL`) para o Núcleo Acadêmico em TypeScript (padrão `http://127.0.0.1:3001`)
+- `VIDEO_CALL_WS_BASE_URL` para o endpoint WebSocket em Java (padrão `ws://127.0.0.1:8080`, utilize `wss://` em produção)
 
 ---
 
-## 🧪 Automated Testing Suite
+## 🧪 Qualidade de Código e Testes
 
-The test directory (`frontend/test/`) mirrors the feature organization of `lib/`:
-- **`test/features/auth/`**:
-  - `login/domain/usecases/login_usecase_test.dart`: Unit tests for `LoginUseCase`.
-  - `login/presentation/controllers/login_controller_test.dart`: State transition tests for `LoginController`.
-  - `forgot_password/domain/usecases/recover_password_usecase_test.dart`: Unit tests for `RecoverPasswordUseCase`.
-  - `forgot_password/presentation/controllers/recover_password_controller_test.dart`: Validation and state tests for `RecoverPasswordController`.
-- **`test/features/student/`**:
-  - `student_portal_test.dart`: Unit and widget tests for `StudentMessagesController`, `StudentMessagesPage`, `StudentSecretariatController`, and `StudentSecretariatPage`.
-- **`test/widget_test.dart`**:
-  - End-to-end widget navigation tests covering the full authentication and password recovery lifecycle across desktop and mobile viewports.
+A base de código mantém padrões rigorosos de engenharia corporativa:
 
-### Running Tests & Static Analysis
 ```bash
-cd frontend
-
-# Run static analyzer
+# Análise estática de código (0 problemas / 0 avisos)
 flutter analyze
 
-# Run all unit and widget tests
+# Execução da suíte abrangente de testes automatizados (396 testes aprovados)
 flutter test
-
-# Run tests with coverage report
-flutter test --coverage
 ```
-
----
-
-## 🔒 Security Alignment
-
-Client-side security controls in `frontend/` align with the platform-wide defense-in-depth policies defined in the [`security/`](../security/README.md) module:
-- **Short-Lived Recovery Tokens**: Visual enforcement of the 5-minute (300s) token TTL via `SecurityAlertBanner` and `VerifyCodePage` countdown timers.
-- **Input Validation & Sanitization**: Pre-flight validation via `InputValidators` and format restrictions on OTP inputs.
-- **Credential Hygiene**: Multi-factor password strength validation via `PasswordStrengthIndicator` before allowing password reset submission.

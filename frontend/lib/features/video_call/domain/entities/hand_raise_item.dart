@@ -25,8 +25,8 @@ class HandRaiseItem {
     String? ra,
     required this.raisedAt,
     this.isRaised = true,
-  })  : participantName = participantName ?? name ?? '',
-        academicId = academicId ?? ra ?? '';
+  }) : participantName = participantName ?? name ?? '',
+       academicId = academicId ?? ra ?? '';
 
   /// Aliases de conveniência.
   String get name => participantName;
@@ -62,7 +62,8 @@ class HandRaiseItem {
   }
 
   @override
-  int get hashCode => Object.hash(peerId, participantName, academicId, raisedAt, isRaised);
+  int get hashCode =>
+      Object.hash(peerId, participantName, academicId, raisedAt, isRaised);
 
   @override
   String toString() {

@@ -1,5 +1,8 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
+export 'models/recovery_session.dart';
+import 'models/recovery_session.dart';
+
 /// Resultado detalhado de uma tentativa de autenticação, suportando prontidão para 2FA.
 class AuthResult {
   /// Indica se a autenticação foi completada com sucesso.
@@ -36,12 +39,18 @@ abstract class AuthRepository {
   /// Solicita o envio de instruções para recuperação de senha associada à [identity].
   ///
   /// Lança exceção de domínio caso o identificador não seja encontrado ou ocorra falha de rede.
-  Future<void> recoverPassword({required String identity});
+  Future<void> recoverPassword({required String identity, String? profile});
+
+  /// Solicita instruções e devolve metadados da resposta (ex.: maskedEmail real do MongoDB).
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  });
 
   /// Realiza a autenticação do usuário utilizando [identity], [password] e [profile].
   ///
   /// Lança exceção de domínio caso as credenciais sejam inválidas ou haja erro de comunicação.
-  Future<void> login({
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
@@ -50,10 +59,23 @@ abstract class AuthRepository {
   /// Valida o token numérico OTP informado na recuperação de senha ou 2FA.
   Future<bool> verifyOtpToken({required String identity, required String code});
 
+  /// Confirma um código de recuperação e devolve o token de redefinição de uso único.
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  });
+
+  /// Confirma o código OTP e devolve a sessão enriquecida com os dados reais do MongoDB.
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  });
+
   /// Executa a redefinição da senha do usuário após verificação bem-sucedida do código.
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   });
 
   /// Verifica se o usuário possui autenticação de dois fatores (2FA) ativada.

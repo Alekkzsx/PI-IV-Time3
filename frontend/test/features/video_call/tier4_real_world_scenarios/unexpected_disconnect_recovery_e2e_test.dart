@@ -33,22 +33,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. Initial 2-peer connection
+      // 1. Conexão inicial com 2 pares
       expect(harness.peerA.allParticipants.length, 2);
       expect(find.byType(ParticipantVideoTile), findsNWidgets(2));
 
-      // 2. Peer B abruptly leaves / closes tab
+      // 2. O par B sai abruptamente / fecha a aba
       harness.peerB.leaveCall();
       await tester.pumpAndSettle();
 
-      // 3. Peer A's grid immediately prunes Peer B's tile without errors
+      // 3. A grade do par A remove imediatamente o bloco do par B sem erros
       expect(harness.peerA.allParticipants.length, 1);
       expect(harness.peerA.remoteParticipants, isEmpty);
       expect(find.byType(ParticipantVideoTile), findsOneWidget);
       expect(find.byKey(const Key('participant_tile_peer_a_id')), findsOneWidget);
       expect(find.byKey(const Key('participant_tile_peer_b_id')), findsNothing);
 
-      // 4. Remaining user maintains full interactive capabilities
+      // 4. O usuário restante mantém todas as funcionalidades interativas
       harness.peerA.toggleAudio();
       harness.peerA.toggleVideo();
       harness.peerA.sendChatMessage('Permaneço conectado na sala com sucesso');

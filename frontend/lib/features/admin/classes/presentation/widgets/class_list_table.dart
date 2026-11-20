@@ -1,8 +1,8 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
-import 'package:pi_iv_time3/features/admin/shared/data/admin_mock_data.dart';
+import 'package:pi_iv_time3/features/admin/shared/models/admin_models.dart';
 
 /// Tabela responsiva de turmas ativas com indicadores de ensalamento, regime e ações de supervisão.
 class ClassListTable extends StatelessWidget {
@@ -10,6 +10,9 @@ class ClassListTable extends StatelessWidget {
   final ValueChanged<AdminClassModel> onSupervise;
   final ValueChanged<AdminClassModel> onOpenRegime;
   final ValueChanged<AdminClassModel> onOpenAlocar;
+  final ValueChanged<AdminClassModel> onManageRecords;
+  final bool canManageClasses;
+  final bool canManageVideoCalls;
 
   const ClassListTable({
     super.key,
@@ -17,6 +20,9 @@ class ClassListTable extends StatelessWidget {
     required this.onSupervise,
     required this.onOpenRegime,
     required this.onOpenAlocar,
+    required this.onManageRecords,
+    required this.canManageClasses,
+    required this.canManageVideoCalls,
   });
 
   @override
@@ -31,7 +37,9 @@ class ClassListTable extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           const minWidth = 1180.0;
-          final tableWidth = constraints.maxWidth < minWidth ? minWidth : constraints.maxWidth;
+          final tableWidth = constraints.maxWidth < minWidth
+              ? minWidth
+              : constraints.maxWidth;
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -68,17 +76,29 @@ class ClassListTable extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(flex: 22, child: Text('CÓDIGO / DISCIPLINA', style: headerStyle)),
+          Expanded(
+            flex: 22,
+            child: Text('CÓDIGO / DISCIPLINA', style: headerStyle),
+          ),
           const SizedBox(width: 12),
           Expanded(flex: 18, child: Text('CURSO & TURNO', style: headerStyle)),
           const SizedBox(width: 12),
-          Expanded(flex: 18, child: Text('LOCAL / ENSALAMENTO', style: headerStyle)),
+          Expanded(
+            flex: 18,
+            child: Text('LOCAL / ENSALAMENTO', style: headerStyle),
+          ),
           const SizedBox(width: 12),
           Expanded(flex: 12, child: Text('VAGAS OCUPADAS', style: headerStyle)),
           const SizedBox(width: 12),
-          Expanded(flex: 18, child: Text('DOCENTE RESPONSÁVEL', style: headerStyle)),
+          Expanded(
+            flex: 18,
+            child: Text('DOCENTE RESPONSÁVEL', style: headerStyle),
+          ),
           const SizedBox(width: 12),
-          Expanded(flex: 16, child: Text('REGIME DE AVALIAÇÃO', style: headerStyle)),
+          Expanded(
+            flex: 16,
+            child: Text('REGIME DE AVALIAÇÃO', style: headerStyle),
+          ),
           const SizedBox(width: 12),
           Expanded(
             flex: 26,
@@ -268,21 +288,32 @@ class ClassListTable extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: isAutonomia ? const Color(0xFFECFDF5) : const Color(0xFFF4F4F5),
+                      color: isAutonomia
+                          ? const Color(0xFFECFDF5)
+                          : const Color(0xFFF4F4F5),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isAutonomia ? const Color(0xFFA7F3D0) : const Color(0xFFE4E4E7),
+                        color: isAutonomia
+                            ? const Color(0xFFA7F3D0)
+                            : const Color(0xFFE4E4E7),
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isAutonomia ? Icons.lock_open_outlined : Icons.lock_outline,
+                          isAutonomia
+                              ? Icons.lock_open_outlined
+                              : Icons.lock_outline,
                           size: 12,
-                          color: isAutonomia ? const Color(0xFF059669) : const Color(0xFF737373),
+                          color: isAutonomia
+                              ? const Color(0xFF059669)
+                              : const Color(0xFF737373),
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -290,7 +321,9 @@ class ClassListTable extends StatelessWidget {
                           style: jakarta(
                             size: 11.5,
                             weight: FontWeight.w700,
-                            color: isAutonomia ? const Color(0xFF059669) : const Color(0xFF737373),
+                            color: isAutonomia
+                                ? const Color(0xFF059669)
+                                : const Color(0xFF737373),
                           ),
                         ),
                       ],
@@ -303,7 +336,9 @@ class ClassListTable extends StatelessWidget {
                   style: jakarta(
                     size: 11,
                     weight: FontWeight.w400,
-                    color: isAutonomia ? const Color(0xFF059669) : const Color(0xFF737373),
+                    color: isAutonomia
+                        ? const Color(0xFF059669)
+                        : const Color(0xFF737373),
                   ),
                 ),
               ],
@@ -322,14 +357,27 @@ class ClassListTable extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    IconButton(
+                      tooltip: 'Matrículas e aulas',
+                      onPressed: canManageClasses
+                          ? () => onManageRecords(c)
+                          : null,
+                      icon: const Icon(Icons.event_note_outlined, size: 18),
+                      color: const Color(0xFF18181B),
+                    ),
                     // Botão Supervisionar
                     InkWell(
-                      onTap: () => onSupervise(c),
+                      onTap: canManageVideoCalls ? () => onSupervise(c) : null,
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF18181B),
+                          color: canManageVideoCalls
+                              ? const Color(0xFF18181B)
+                              : const Color(0xFF9CA3AF),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -357,10 +405,13 @@ class ClassListTable extends StatelessWidget {
 
                     // Botão Regime
                     InkWell(
-                      onTap: () => onOpenRegime(c),
+                      onTap: canManageClasses ? () => onOpenRegime(c) : null,
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(6),
@@ -372,7 +423,7 @@ class ClassListTable extends StatelessWidget {
                             const Icon(
                               Icons.balance,
                               size: 13,
-                              color: Color(0xFF4F46E5),
+                              color: Color(0xFF18181B),
                             ),
                             const SizedBox(width: 5),
                             Text(
@@ -391,10 +442,13 @@ class ClassListTable extends StatelessWidget {
 
                     // Botão Alocar
                     InkWell(
-                      onTap: () => onOpenAlocar(c),
+                      onTap: canManageClasses ? () => onOpenAlocar(c) : null,
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(6),

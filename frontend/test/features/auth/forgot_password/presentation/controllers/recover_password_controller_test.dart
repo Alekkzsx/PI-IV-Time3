@@ -6,30 +6,54 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
 import 'package:pi_iv_time3/features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'package:pi_iv_time3/features/auth/shared/domain/auth_repository.dart';
+import 'package:pi_iv_time3/features/auth/shared/external/auth_remote_datasource_impl.dart';
 
 /// Repositório dublê (Fake) implementando o contrato [AuthRepository]
 /// para testes de unidade do [RecoverPasswordController].
 class FakeAuthRepository implements AuthRepository {
   /// Define se o método assíncrono deve simular um lançamento de exceção.
   bool shouldThrow = false;
+  Object? customError;
   Completer<void>? recoveryCompleter;
   String? lastIdentity;
+  String? lastProfile;
+  String? responseProfile;
 
   @override
-  Future<void> recoverPassword({required String identity}) async {
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {
     lastIdentity = identity;
+    lastProfile = profile;
     await recoveryCompleter?.future;
+    if (customError != null) {
+      throw customError!;
+    }
     if (shouldThrow) {
       throw Exception('Erro de servidor');
     }
   }
 
   @override
-  Future<void> login({
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async {
+    await recoverPassword(identity: identity, profile: profile);
+    return {
+      'status': 200,
+      'maskedEmail': 't***t@example.com',
+      if (responseProfile != null) 'profile': responseProfile,
+    };
+  }
+
+  @override
+  Future<String> login({
     required String identity,
     required String password,
     required String profile,
-  }) async {}
+  }) async => 'test-access-token';
 
   @override
   Future<bool> verifyOtpToken({
@@ -38,9 +62,22 @@ class FakeAuthRepository implements AuthRepository {
   }) async => true;
 
   @override
+  Future<String> verifyPasswordRecoveryCode({
+    required String identity,
+    required String code,
+  }) async => 'test-reset-token';
+
+  @override
+  Future<RecoverySession> verifyRecoverySession({
+    required RecoverySession currentSession,
+    required String code,
+  }) async => currentSession.withResetToken('test-reset-token');
+
+  @override
   Future<void> resetPassword({
     required String identity,
     required String newPassword,
+    String? resetToken,
   }) async {}
 
   @override
@@ -125,4 +162,37 @@ void main() {
       'Não foi possível solicitar a recuperação agora. Tente novamente.',
     );
   });
+
+  test('Exibe erro explícito 404 quando e-mail ou RA não está cadastrado', () async {
+    repository.customError = const AuthApiException(
+      'E-mail ou identificador nao cadastrado no sistema.',
+      statusCode: 404,
+    );
+    controller.setIdentity('naoexiste@gmail.com');
+
+    expect(await controller.submit(), false);
+    expect(
+      controller.errorMessage,
+      'E-mail ou identificador nao cadastrado no sistema.',
+    );
+    expect(controller.isSuccess, false);
+  });
+
+  test(
+    'Rejeita com erro de tipo de usuário inválido quando perfil selecionado diverge da conta',
+    () async {
+      repository.responseProfile = 'aluno';
+      controller.setIdentity('alex@puccampinas.edu.br');
+
+      final result = await controller.submit(profile: 'admin');
+
+      expect(result, isFalse);
+      expect(controller.isSuccess, isFalse);
+      expect(repository.lastProfile, 'admin');
+      expect(
+        controller.errorMessage,
+        'Tipo de usuário inválido: esta conta pertence ao perfil de Aluno, não ao perfil selecionado (Admin).',
+      );
+    },
+  );
 }

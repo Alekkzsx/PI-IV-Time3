@@ -1,14 +1,31 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
 import 'package:flutter/material.dart';
+import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 import 'package:pi_iv_time3/core/theme/jakarta_text.dart';
 
 /// Banner descritivo da Fórmula Regimental de Avaliação (PPC) com critérios de aprovação
 class DocenteGradesFormulaBanner extends StatelessWidget {
-  const DocenteGradesFormulaBanner({super.key});
+  final String? evaluationFormula;
+  final AcademicThresholds thresholds;
+  final bool isLockedByAdmin;
+
+  const DocenteGradesFormulaBanner({
+    super.key,
+    this.evaluationFormula,
+    this.thresholds = AcademicThresholds.defaults,
+    this.isLockedByAdmin = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final formulaText = (evaluationFormula != null &&
+            evaluationFormula!.trim().isNotEmpty)
+        ? evaluationFormula!.trim()
+        : thresholds.evaluationFormula;
+    final minGrade = thresholds.minimumGrade.toStringAsFixed(1);
+    final minFreq = thresholds.minimumAttendance.toStringAsFixed(0);
+    final examMin = thresholds.specialExamGrade.toStringAsFixed(1);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
@@ -33,7 +50,9 @@ class DocenteGradesFormulaBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Fórmula Regimental de Avaliação (PPC da Disciplina)',
+                      isLockedByAdmin
+                          ? 'Fórmula Regimental de Avaliação (Imposta pelo Admin)'
+                          : 'Fórmula Regimental de Avaliação (PPC da Disciplina)',
                       style: jakarta(
                         size: 13,
                         weight: FontWeight.w700,
@@ -42,7 +61,7 @@ class DocenteGradesFormulaBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Média Semestral = (N1 x 0.4) + (N2 x 0.6) • Onde N1 e N2 são compostas por: 40% Atividades/Entregas + 60% Provas Regimentais.',
+                      'Critério aplicado: $formulaText',
                       style: jakarta(
                         size: 11.5,
                         weight: FontWeight.w400,
@@ -60,11 +79,11 @@ class DocenteGradesFormulaBanner extends StatelessWidget {
             runSpacing: 8,
             children: [
               _buildCriteriaBadge(
-                'Aprovação Direta: Média ≥ 7.0 e Freq. ≥ 75%',
+                'Aprovação Direta: Média ≥ $minGrade e Freq. ≥ $minFreq%',
                 const Color(0xFF16A34A),
               ),
               _buildCriteriaBadge(
-                'Exame: 4.0 ≤ Média < 7.0',
+                'Exame: $examMin ≤ Média < $minGrade',
                 const Color(0xFFD97706),
               ),
             ],

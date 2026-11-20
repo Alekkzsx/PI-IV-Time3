@@ -2,10 +2,10 @@
 
 import 'dart:async';
 
-/// Pure Dart in-memory signaling bus for testing serverless P2P communication.
+/// Barramento de sinalização em memória em Dart puro para testar comunicação P2P sem servidor.
 ///
-/// Simulates cross-tab/cross-window broadcast channel communication across
-/// multiple virtual peers within the same room code.
+/// Simula comunicação de canal de broadcast entre abas/janelas para
+/// múltiplos pares virtuais com o mesmo código de sala.
 class InMemorySignalingBus {
   static final Map<String, InMemorySignalingBus> _instances = {};
 
@@ -15,7 +15,7 @@ class InMemorySignalingBus {
 
   InMemorySignalingBus._(this.roomCode);
 
-  /// Retrieves or creates an in-memory bus for a specific room.
+  /// Obtém ou cria um barramento em memória para uma sala específica.
   factory InMemorySignalingBus.forRoom(String roomCode) {
     return _instances.putIfAbsent(
       roomCode.toUpperCase().trim(),
@@ -23,7 +23,7 @@ class InMemorySignalingBus {
     );
   }
 
-  /// Broadcasts a message to all connected peers in this room except the sender.
+  /// Transmite uma mensagem para todos os pares conectados nesta sala, exceto o remetente.
   void broadcast({required String senderId, required String rawData}) {
     if (!_streamController.isClosed) {
       _streamController.add(
@@ -36,20 +36,20 @@ class InMemorySignalingBus {
     }
   }
 
-  /// Subscribes to messages received in this room from other peers.
+  /// Inscreve-se para receber mensagens enviadas nesta sala por outros pares.
   Stream<String> subscribe(String peerId) {
     return _streamController.stream
         .where((payload) => payload.senderId != peerId)
         .map((payload) => payload.rawData);
   }
 
-  /// Closes the room bus and cleans up listeners.
+  /// Fecha o barramento da sala e limpa os ouvintes.
   void dispose() {
     _streamController.close();
     _instances.remove(roomCode);
   }
 
-  /// Resets all rooms in memory (for test isolation teardown).
+  /// Redefine todas as salas em memória (para limpeza e isolamento entre testes).
   static void resetAll() {
     for (final bus in _instances.values) {
       bus._streamController.close();
@@ -58,7 +58,7 @@ class InMemorySignalingBus {
   }
 }
 
-/// Represents a raw signaling payload transit through the in-memory bus.
+/// Representa uma carga bruta de sinalização trafegando pelo barramento em memória.
 class SignalingPayload {
   final String senderId;
   final String rawData;

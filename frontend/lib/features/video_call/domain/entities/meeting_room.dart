@@ -31,8 +31,8 @@ class MeetingRoom {
     this.hostId = '',
     this.isLocked = false,
     this.maxParticipants = 50,
-  })  : code = code ?? id,
-        createdAt = createdAt ?? DateTime.now();
+  }) : code = code ?? id,
+       createdAt = createdAt ?? DateTime.now();
 
   MeetingRoom copyWith({
     String? id,
@@ -67,14 +67,8 @@ class MeetingRoom {
   }
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        code,
-        title,
-        hostId,
-        isLocked,
-        maxParticipants,
-      );
+  int get hashCode =>
+      Object.hash(id, code, title, hostId, isLocked, maxParticipants);
 
   @override
   String toString() {

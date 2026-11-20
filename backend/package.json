@@ -1,0 +1,49 @@
+{
+  "name": "pi-iv-time3-auth-backend",
+  "author": "Alex Gabriel Soares Sousa <RA: 24802449>",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Serviço modular de autenticação, administração acadêmica, portal do aluno e autorização de videochamadas em TypeScript.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "create-user": "tsx src/scripts/create-auth-user.ts",
+    "build": "node -e \"import('node:fs').then(m => m.rmSync('dist', { recursive: true, force: true }))\" && tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "test": "npm run build && node --test dist/tests/unit/*.test.js dist/tests/integration/*.test.js",
+    "test:unit": "npm run build && node --test dist/tests/unit/*.test.js",
+    "test:integration": "npm run build && node --test dist/tests/integration/*.test.js",
+    "test:email": "tsx src/scripts/test-email-resilience.ts",
+    "seed": "tsx src/scripts/index.ts",
+    "seed:all": "tsx src/scripts/index.ts",
+    "seed:users": "tsx src/scripts/index.ts --users",
+    "seed:courses": "tsx src/scripts/index.ts --courses",
+    "seed:classes": "tsx src/scripts/index.ts --classes",
+    "seed:teacher": "tsx src/scripts/index.ts --teacher",
+    "seed:student": "tsx src/scripts/index.ts --student",
+    "seed:institutional": "tsx src/scripts/index.ts --institutional",
+    "seed:admin": "tsx src/scripts/index.ts --users",
+    "seed:ecosystem": "tsx src/scripts/index.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.19.0",
+    "nodemailer": "^10.3.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.19.2",
+    "@types/nodemailer": "^7.0.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
