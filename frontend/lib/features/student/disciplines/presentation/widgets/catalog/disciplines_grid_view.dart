@@ -95,7 +95,7 @@ class DisciplinesGridView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Row: Code Chip + Status Badges
+                // Linha Superior: Chip de Código + Emblemas de Status
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -218,7 +218,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                // Title & Docente
+                // Título e Docente
                 Text(
                   d.name,
                   maxLines: 1,
@@ -238,7 +238,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // Location Pin & Schedule
+                // Localização e Horário
                 Row(
                   children: [
                     const Icon(
@@ -262,7 +262,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Progress Row & Indicator
+                // Linha e Indicador de Progresso
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -298,7 +298,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Grades Box (N1, N2, Média Parcial)
+                // Caixa de Notas (N1, N2, Média Parcial)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     vertical: 10,
@@ -392,7 +392,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Action Buttons: Entrar na Disciplina (AVA) + Sala Virtual
+                // Botões de Ação: Entrar na Disciplina (AVA) + Sala Virtual
                 Row(
                   children: [
                     Expanded(
@@ -492,7 +492,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Quick tabs shortcuts row (Tarefas, Fórum, Conteúdos)
+                // Linha de atalhos rápidos de abas (Tarefas, Fórum, Conteúdos)
                 Row(
                   children: [
                     _buildQuickTabChip(
@@ -516,7 +516,7 @@ class DisciplinesGridView extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Footer: Ver Plano de Ensino & Ementa + Faltas
+                // Rodapé: Ver Plano de Ensino & Ementa + Faltas
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
