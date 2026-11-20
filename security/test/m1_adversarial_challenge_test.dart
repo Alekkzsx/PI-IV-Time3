@@ -7,23 +7,23 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('M1 Adversarial Challenge Suite - Mathematical Identity Non-Enumeration', () {
     test('Anti-Enumeration Oracle: Recovery feedback is bitwise identical for existent and non-existent users', () {
-      // Simulate response for a valid, enrolled student RA
+      // Simula a resposta para um RA de aluno válido e matriculado
       final validUserFeedback = GenericFeedbackPolicy.passwordResetRequestedMessage;
-      // Simulate response for an unmapped, malicious, or non-existent RA
+      // Simula a resposta para um RA não mapeado, malicioso ou inexistente
       final invalidUserFeedback = GenericFeedbackPolicy.passwordResetRequestedMessage;
 
-      // Mathematical identity: exact string equality, identical length, identical hash
+      // Identidade matemática: igualdade exata de string, comprimento idêntico, hash idêntico
       expect(validUserFeedback, equals(invalidUserFeedback));
       expect(validUserFeedback.length, equals(invalidUserFeedback.length));
       expect(validUserFeedback.hashCode, equals(invalidUserFeedback.hashCode));
 
-      // Neutral wording audit: must be conditional ("Se o identificador...")
+      // Auditoria de redação neutra: deve ser condicional ("Se o identificador...")
       expect(validUserFeedback.startsWith('Se o identificador'), isTrue);
       expect(validUserFeedback.contains('não encontrado'), isFalse);
       expect(validUserFeedback.contains('inexistente'), isFalse);
       expect(validUserFeedback.contains('encontrado'), isFalse);
 
-      // Verify institutional variant as well
+      // Verifica também a variante institucional
       final instFeedbackValid = GenericFeedbackPolicy.recoveryRequestSuccessMessage;
       final instFeedbackInvalid = GenericFeedbackPolicy.recoveryRequestSuccessMessage;
       expect(instFeedbackValid, equals(instFeedbackInvalid));
@@ -31,11 +31,11 @@ void main() {
     });
 
     test('Anti-Enumeration Oracle: Auth failure feedback is invariant across user states', () {
-      // Scenario A: Nonexistent user + wrong password
+      // Cenário A: Usuário inexistente + senha incorreta
       final feedbackUnknownUser = GenericFeedbackPolicy.authFailureMessage;
-      // Scenario B: Existing user + wrong password
+      // Cenário B: Usuário existente + senha incorreta
       final feedbackWrongPassword = GenericFeedbackPolicy.authFailureMessage;
-      // Scenario C: Locked user attempting unauthorized access
+      // Cenário C: Usuário bloqueado tentando acesso não autorizado
       final failureResponseMap = GenericFeedbackPolicy.createAuthFailureResponse();
 
       expect(feedbackUnknownUser, equals(feedbackWrongPassword));
@@ -78,7 +78,7 @@ void main() {
     });
 
     test('Adversarial Stack Trace Dump: Source paths, line numbers, and internal class names never leak', () {
-      // Stack trace from a generic internal service
+      // Rastreamento de pilha de um serviço interno genérico
       const hostileGenericTrace =
           'NullPointerException: Cannot read field "credentials" because "account" is null\n'
           '  at com.agmrm.service.DataProcessingService.verify(DataProcessingService.java:187)\n'
@@ -94,7 +94,7 @@ void main() {
       expect(sanitizedGeneric.contains('InternalModule.java:42'), isFalse);
       expect(sanitizedGeneric.contains('catalina'), isFalse);
 
-      // Stack trace from a security component with keyword 'lockout'
+      // Rastreamento de pilha de um componente de segurança com a palavra-chave 'lockout'
       const hostileSecurityTrace =
           'IllegalStateException: Component crashed during verification\n'
           '  at com.agmrm.security.auth.AccountLockoutManager.verify(AccountLockoutManager.java:187)\n'
@@ -102,7 +102,7 @@ void main() {
 
       final sanitizedSecurity = GenericFeedbackPolicy.sanitizeErrorMessage(hostileSecurityTrace);
 
-      // Maps to sanitized lockout message, but still NEVER leaks internal traces or paths
+      // Mapeia para a mensagem de bloqueio sanitizada, mas ainda NUNCA vaza rastreamentos internos ou caminhos
       expect(sanitizedSecurity, equals('Acesso temporariamente bloqueado por excesso de tentativas.'));
       expect(sanitizedSecurity.contains('AccountLockoutManager'), isFalse);
       expect(sanitizedSecurity.contains('/home/alekkzsx'), isFalse);
@@ -141,7 +141,7 @@ void main() {
       stopwatch.stop();
 
       expect(sanitized, equals(GenericFeedbackPolicy.authFailureMessage));
-      // Sanitization should complete within 10ms even for 100KB input
+      // A sanitização deve ser concluída em até 10ms mesmo para entradas de 100KB
       expect(stopwatch.elapsedMilliseconds, lessThan(50));
     });
 
@@ -181,22 +181,22 @@ void main() {
 
   group('M1 Adversarial Challenge Suite - Invariant Boundaries on Dynamic Formatters', () {
     test('lockoutMessage underflow, zero, and boundary constraints', () {
-      // Nominal standard
+      // Padrão nominal
       expect(
         GenericFeedbackPolicy.lockoutMessage(30),
         equals('Muitas tentativas incorretas. Tente novamente em 30 segundos.'),
       );
-      // Immediate boundary: 1 second
+      // Limite imediato: 1 segundo
       expect(
         GenericFeedbackPolicy.lockoutMessage(1),
         equals('Muitas tentativas incorretas. Tente novamente em 1 segundo.'),
       );
-      // Zero boundary: 0 seconds
+      // Limite zero: 0 segundos
       expect(
         GenericFeedbackPolicy.lockoutMessage(0),
         equals('Muitas tentativas incorretas. Tente novamente em 0 segundos.'),
       );
-      // Underflow protection: negative values must clamp to 0, never displaying negative numbers
+      // Proteção contra underflow: valores negativos devem ser limitados a 0, nunca exibindo números negativos
       expect(
         GenericFeedbackPolicy.lockoutMessage(-1),
         equals('Muitas tentativas incorretas. Tente novamente em 0 segundos.'),
@@ -205,7 +205,7 @@ void main() {
         GenericFeedbackPolicy.lockoutMessage(-99999),
         equals('Muitas tentativas incorretas. Tente novamente em 0 segundos.'),
       );
-      // Large integer boundary: 2147483647
+      // Limite de inteiro grande: 2147483647
       expect(
         GenericFeedbackPolicy.lockoutMessage(2147483647),
         equals('Muitas tentativas incorretas. Tente novamente em 2147483647 segundos.'),
@@ -244,7 +244,7 @@ void main() {
         GenericFeedbackPolicy.invalidOtpCodeMessage(0),
         equals('Código de verificação incorreto. Tentativas restantes: 0.'),
       );
-      // Underflow: negative attempts remaining clamped to 0
+      // Underflow: tentativas restantes negativas limitadas a 0
       expect(
         GenericFeedbackPolicy.invalidOtpCodeMessage(-1),
         equals('Código de verificação incorreto. Tentativas restantes: 0.'),
@@ -302,7 +302,7 @@ void main() {
       expect(SecurityConstants.maxBodySizeKb, equals(64));
       expect(SecurityConstants.maxRequestBodySizeBytes, equals(SecurityConstants.maxBodySizeKb * 1024));
 
-      // Buffer chunk alignment
+      // Alinhamento de bloco do buffer
       expect(SecurityConstants.bufferChunkSizeBytes, equals(4096));
       expect(SecurityConstants.maxRequestBodySizeBytes % SecurityConstants.bufferChunkSizeBytes, equals(0));
     });
@@ -362,10 +362,10 @@ void main() {
 
         final sanitized = GenericFeedbackPolicy.sanitizeErrorMessage(payload);
 
-        // Invariant: The sanitized response MUST be strictly one of the allowed static messages
+        // Invariante: A resposta sanitizada DEVE ser estritamente uma das mensagens estáticas permitidas
         expect(allowedOutputs.contains(sanitized), isTrue);
 
-        // Invariant: The generated secret token MUST NEVER be present in the output
+        // Invariante: O token secreto gerado NUNCA DEVE estar presente na saída
         expect(sanitized.contains(randomToken), isFalse);
       }
     });
