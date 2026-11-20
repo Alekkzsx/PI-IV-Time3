@@ -22,11 +22,11 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      // 1. Peer A starts speaking
+      // 1. Peer A começa a falar
       harness.peerA.setAudioLevel(0.45);
-      // 2. Peer B raises hand
+      // 2. Peer B levanta a mão
       harness.peerB.toggleHandRaise();
-      // 3. Peer A starts recording
+      // 3. Peer A inicia a gravação
       harness.peerA.toggleRecording();
 
       await tester.pumpWidget(
@@ -36,14 +36,14 @@ void main() {
       );
       await tester.pump();
 
-      // Assert Peer A's tile shows active speaking highlight
+      // Verifica se o bloco do Peer A exibe o destaque de fala ativa
       final peerABox = tester.widget<Container>(
         find.byKey(const Key('participant_tile_peer_a_id')),
       );
       final borderA = (peerABox.decoration as BoxDecoration).border as Border;
       expect(borderA.top.color, Colors.greenAccent);
 
-      // Assert Peer B has raised hand badge and raised hands banner is visible
+      // Verifica se o Peer B possui o emblema de mão levantada e se o banner de mãos levantadas está visível
       expect(find.byKey(const Key('raised_hands_banner')), findsOneWidget);
       expect(
         find.descendant(
@@ -53,11 +53,11 @@ void main() {
         findsOneWidget,
       );
 
-      // Assert recording banner and badge are active
+      // Verifica se o banner e o emblema de gravação estão ativos
       expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
       expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
 
-      // Clean up recording timer before ending test
+      // Limpa o temporizador de gravação antes de encerrar o teste
       harness.peerA.toggleRecording();
       await tester.pump();
     });
@@ -67,7 +67,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      // Peer A initiates screen share while silent
+      // Peer A inicia o compartilhamento de tela enquanto está em silêncio
       harness.peerA.toggleScreenShare();
 
       await tester.pumpWidget(
@@ -77,19 +77,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Primary presentation screen visible
+      // Tela principal de apresentação visível
       expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
-      // No raised hands banner
+      // Nenhum banner de mãos levantadas
       expect(find.byKey(const Key('raised_hands_banner')), findsNothing);
-      // Horizontal filmstrip contains both participants
+      // A faixa horizontal contém ambos os participantes
       expect(find.byType(ListView), findsOneWidget);
     });
 
     test('Concurrent message and reaction dispatch during active recording', () async {
-      // Start recording
+      // Inicia a gravação
       harness.peerA.toggleRecording();
 
-      // Peer B sends chat and reaction concurrently
+      // Peer B envia mensagem no chat e reação simultaneamente
       harness.peerB.sendChatMessage('Pergunta importante durante a gravação');
       harness.peerB.sendReaction('❤️');
 
