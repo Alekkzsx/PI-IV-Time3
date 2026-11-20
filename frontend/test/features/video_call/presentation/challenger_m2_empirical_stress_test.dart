@@ -17,7 +17,7 @@ import 'package:pi_iv_time3/features/video_call/presentation/widgets/floating_re
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/in_call_chat_drawer.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/meeting_controls_toolbar.dart';
 
-/// Test repository that interconnects two peer controllers synchronously in memory.
+/// Repositório de teste que interconecta dois controladores de peer sincronamente em memória.
 class LinkedDomainVideoCallRepository implements VideoCallRepository {
   LinkedDomainVideoCallRepository? peerRepo;
 
@@ -145,7 +145,7 @@ void main() {
         localParticipant: pB,
       );
 
-      // Register peers mutually
+      // Registra os peers mutuamente
       controllerA.registerRemoteParticipant(pB);
       controllerB.registerRemoteParticipant(pA);
     });
@@ -158,27 +158,27 @@ void main() {
     });
 
     // =========================================================================
-    // 1. IN-CALL CHAT DRAWER EMPIRICAL TESTS
+    // 1. TESTES EMPÍRICOS DA GAVETA DE CHAT NA CHAMADA
     // =========================================================================
     group('1. In-Call Chat Drawer Tests', () {
       test('Chat Drawer: Peer-to-peer message exchange between simulated peers', () {
         expect(controllerA.chatMessages, isEmpty);
         expect(controllerB.chatMessages, isEmpty);
 
-        // Peer A sends a message
+        // Peer A envia uma mensagem
         controllerA.sendChatMessage('Olá turma!');
         expect(controllerA.chatMessages.length, 1);
         expect(controllerA.chatMessages.first.text, 'Olá turma!');
         expect(controllerA.chatMessages.first.isLocal, isTrue);
 
-        // Peer B receives Peer A's message
+        // Peer B recebe a mensagem do Peer A
         expect(controllerB.chatMessages.length, 1);
         expect(controllerB.chatMessages.first.text, 'Olá turma!');
         expect(controllerB.chatMessages.first.senderId, 'peer_a');
         expect(controllerB.chatMessages.first.senderName, 'Alex Sousa');
         expect(controllerB.chatMessages.first.senderRa, '24802449');
 
-        // Peer B replies
+        // Peer B responde
         controllerB.sendChatMessage('Olá Alex!');
         expect(controllerB.chatMessages.length, 2);
         expect(controllerA.chatMessages.length, 2);
@@ -199,29 +199,29 @@ void main() {
         expect(controllerB.isChatDrawerOpen, isFalse);
         expect(controllerB.unreadChatCount, 0);
 
-        // Message 1 from Peer A
+        // Mensagem 1 do Peer A
         controllerA.sendChatMessage('Mensagem 1');
         expect(controllerB.unreadChatCount, 1);
 
-        // Message 2 from Peer A
+        // Mensagem 2 do Peer A
         controllerA.sendChatMessage('Mensagem 2');
         expect(controllerB.unreadChatCount, 2);
 
-        // Peer B opens drawer -> unreadChatCount resets to 0
+        // Peer B abre a gaveta -> unreadChatCount volta para 0
         controllerB.toggleChatDrawer();
         expect(controllerB.isChatDrawerOpen, isTrue);
         expect(controllerB.unreadChatCount, 0);
 
-        // Message 3 while drawer is open -> unreadChatCount remains 0
+        // Mensagem 3 com a gaveta aberta -> unreadChatCount permanece 0
         controllerA.sendChatMessage('Mensagem 3');
         expect(controllerB.unreadChatCount, 0);
 
-        // Peer B closes drawer
+        // Peer B fecha a gaveta
         controllerB.toggleChatDrawer();
         expect(controllerB.isChatDrawerOpen, isFalse);
         expect(controllerB.unreadChatCount, 0);
 
-        // Message 4 with closed drawer -> unreadChatCount increments to 1
+        // Mensagem 4 com a gaveta fechada -> unreadChatCount incrementa para 1
         controllerA.sendChatMessage('Mensagem 4');
         expect(controllerB.unreadChatCount, 1);
       });
@@ -239,11 +239,11 @@ void main() {
         );
         await tester.pump();
 
-        // Sender header and text are present
+        // Cabeçalho do remetente e texto estão presentes
         expect(find.text('Alex Sousa (24802449)'), findsOneWidget);
         expect(find.text('Mensagem com carimbo de tempo'), findsOneWidget);
 
-        // Check if ANY timestamp is displayed in the drawer
+        // Verifica se ALGUM carimbo de horário é exibido na gaveta
         final msg = controllerB.chatMessages.first;
         final hourMinute = '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}';
         final hasFormattedTimestamp = find.textContaining(hourMinute).evaluate().isNotEmpty;
@@ -256,7 +256,7 @@ void main() {
     });
 
     // =========================================================================
-    // 2. FLOATING EMOJI REACTIONS EMPIRICAL TESTS
+    // 2. TESTES EMPÍRICOS DE REAÇÕES DE EMOJI FLUTUANTES
     // =========================================================================
     group('2. Floating Emoji Reactions Tests', () {
       testWidgets('Reactions: Real-time broadcast and 2500ms self-pruning timer', (tester) async {
@@ -279,19 +279,19 @@ void main() {
         expect(cA.activeReactions, isEmpty);
         expect(cB.activeReactions, isEmpty);
 
-        // Peer A triggers reaction ❤️
+        // Peer A dispara a reação ❤️
         cA.sendReaction('❤️');
         expect(cA.activeReactions.length, 1);
         expect(cA.activeReactions.first.emoji, '❤️');
         expect(cB.activeReactions.length, 1);
         expect(cB.activeReactions.first.emoji, '❤️');
 
-        // At t = 2000ms: reactions are still alive
+        // Em t = 2000ms: as reações ainda estão ativas
         await tester.pump(const Duration(milliseconds: 2000));
         expect(cA.activeReactions.length, 1, reason: 'Reação local deve persistir aos 2000ms');
         expect(cB.activeReactions.length, 1, reason: 'Reação remota deve persistir aos 2000ms');
 
-        // At t = 3000ms+: self-pruning timer (2500ms) has fired and purges reactions
+        // Em t = 3000ms+: o temporizador de autopoda (2500ms) disparou e limpa as reações
         await tester.pump(const Duration(milliseconds: 1000));
         debugPrint('Empirical finding [Reaction Timers] - cA reactions: ${cA.activeReactions.length}, cB reactions: ${cB.activeReactions.length}');
         expect(cA.activeReactions, isEmpty, reason: 'Reação local deve auto-remover aos 2500ms');
@@ -342,7 +342,7 @@ void main() {
 
         final initialPosition = tester.getBottomLeft(find.byKey(const Key('reaction_item_r1')));
 
-        // Advance 500ms and 1000ms
+        // Avança 500ms e 1000ms
         await tester.pump(const Duration(milliseconds: 500));
         final midPosition = tester.getBottomLeft(find.byKey(const Key('reaction_item_r1')));
 
@@ -385,21 +385,21 @@ void main() {
     });
 
     // =========================================================================
-    // 3. HAND RAISING EMPIRICAL TESTS & INVERTED BOOLEAN BUG VERIFICATION
+    // 3. TESTES EMPÍRICOS DE LEVANTAR A MÃO E VERIFICAÇÃO DO BUG DE BOOLEANO INVERTIDO
     // =========================================================================
     group('3. Hand Raising & Queue Synchronization Tests', () {
       test('Hand Raise: FIFO queue ordering and lower-hand synchronization', () {
         expect(controllerA.raisedHandsQueue, isEmpty);
         expect(controllerB.raisedHandsQueue, isEmpty);
 
-        // Peer A raises hand first
+        // Peer A levanta a mão primeiro
         controllerA.toggleHandRaise();
         expect(controllerA.raisedHandsQueue.length, 1);
         expect(controllerA.raisedHandsQueue.first.peerId, 'peer_a');
         expect(controllerB.raisedHandsQueue.length, 1);
         expect(controllerB.raisedHandsQueue.first.peerId, 'peer_a');
 
-        // Peer B raises hand second
+        // Peer B levanta a mão em segundo
         controllerB.toggleHandRaise();
         expect(controllerA.raisedHandsQueue.length, 2);
         expect(controllerA.raisedHandsQueue[0].peerId, 'peer_a');
@@ -409,38 +409,38 @@ void main() {
         expect(controllerB.raisedHandsQueue[0].peerId, 'peer_a');
         expect(controllerB.raisedHandsQueue[1].peerId, 'peer_b');
 
-        // Peer A lowers hand -> Peer B advances to index 0
+        // Peer A abaixa a mão -> Peer B avança para o índice 0
         controllerA.toggleHandRaise();
         expect(controllerA.raisedHandsQueue.length, 1);
         expect(controllerA.raisedHandsQueue.first.peerId, 'peer_b');
         expect(controllerB.raisedHandsQueue.length, 1);
         expect(controllerB.raisedHandsQueue.first.peerId, 'peer_b');
 
-        // Peer B lowers hand -> Queue empty
+        // Peer B abaixa a mão -> Fila vazia
         controllerB.toggleHandRaise();
         expect(controllerA.raisedHandsQueue, isEmpty);
         expect(controllerB.raisedHandsQueue, isEmpty);
       });
 
       test('Hand Raise: _onHandRaiseReceived sets remote isHandRaised correctly', () {
-        // Initial state
+        // Estado inicial
         expect(controllerA.localParticipant.isHandRaised, isFalse);
         expect(controllerB.remoteParticipants.first.isHandRaised, isFalse);
 
-        // Peer A raises hand
+        // Peer A levanta a mão
         controllerA.toggleHandRaise();
 
-        // Local state on Peer A is correct:
+        // Estado local no Peer A está correto:
         expect(controllerA.localParticipant.isHandRaised, isTrue);
 
-        // Remote state on Peer B:
+        // Estado remoto no Peer B:
         final peerAInB = controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
         debugPrint('Empirical finding [Hand Raise Inversion] - When Peer A raises hand, Peer B sees peerA.isHandRaised = ${peerAInB.isHandRaised}');
 
         expect(peerAInB.isHandRaised, isTrue,
             reason: 'Remote participant isHandRaised is TRUE when hand is raised');
 
-        // Now Peer A LOWERS hand
+        // Agora Peer A ABAIXA a mão
         controllerA.toggleHandRaise();
 
         final peerAInBLowered = controllerB.remoteParticipants.firstWhere((p) => p.id == 'peer_a');
@@ -451,10 +451,10 @@ void main() {
       });
 
       testWidgets('Hand Raise: ✋ tile badge is shown when remote hand is raised, and hidden when lowered', (tester) async {
-        // Peer A raises hand
+        // Peer A levanta a mão
         controllerA.toggleHandRaise();
 
-        // Build Peer B's meeting room page
+        // Constrói a página da sala de reunião do Peer B
         await tester.pumpWidget(
           MaterialApp(
             home: VideoCallRoomPage(controller: controllerB),
@@ -462,12 +462,12 @@ void main() {
         );
         await tester.pump();
 
-        // Queue banner shows Peer A
+        // O banner de fila mostra o Peer A
         expect(find.byKey(const Key('raised_hands_banner')), findsOneWidget);
         expect(find.byKey(const Key('queue_item_peer_a')), findsOneWidget);
 
-        // On Peer A's video tile inside Peer B's view:
-        // Hand raised icon key: 'hand_raised_icon_peer_a'
+        // No bloco de vídeo do Peer A dentro da visão do Peer B:
+        // Chave do ícone de mão levantada: 'hand_raised_icon_peer_a'
         final handIconFinder = find.byKey(const Key('hand_raised_icon_peer_a'));
         final isHandBadgeRenderedWhenRaised = handIconFinder.evaluate().isNotEmpty;
         debugPrint('Empirical finding [Tile Badge] - Is ✋ badge rendered on Peer A tile when hand is raised: $isHandBadgeRenderedWhenRaised');
@@ -475,7 +475,7 @@ void main() {
         expect(isHandBadgeRenderedWhenRaised, isTrue,
             reason: '✋ badge is rendered on remote participant tile when hand is raised');
 
-        // Now Peer A LOWERS their hand
+        // Agora Peer A ABAIXA a mão
         controllerA.toggleHandRaise();
         await tester.pump();
 
@@ -488,34 +488,34 @@ void main() {
     });
 
     // =========================================================================
-    // 4. MEETING RECORDING & SESSION EXPORT EMPIRICAL TESTS
+    // 4. TESTES EMPÍRICOS DE GRAVAÇÃO DE REUNIÃO E EXPORTAÇÃO DE SESSÃO
     // =========================================================================
     group('4. Meeting Recording & Session Export Tests', () {
       test('Recording: State broadcast, timer accumulation and stop behavior', () {
         expect(controllerA.recordingState.isRecording, isFalse);
         expect(controllerB.recordingState.isRecording, isFalse);
 
-        // Peer A starts recording
+        // Peer A inicia a gravação
         controllerA.toggleRecording();
 
         expect(controllerA.recordingState.isRecording, isTrue);
         expect(controllerB.recordingState.isRecording, isTrue);
         expect(controllerB.recordingState.startedByPeerId, 'peer_a');
 
-        // Peer A stops recording
+        // Peer A para a gravação
         controllerA.toggleRecording();
 
         expect(controllerA.recordingState.isRecording, isFalse);
         expect(controllerB.recordingState.isRecording, isFalse);
 
-        // SessionExport generated
+        // SessionExport gerado
         expect(controllerA.lastSessionExport, isNotNull);
         expect(controllerA.lastSessionExport!.roomCode, 'CHALLENGER-M2');
         expect(controllerA.lastSessionExport!.totalParticipants, 2);
       });
 
       testWidgets('Recording: Banner and badge rendering in VideoCallRoomPage', (tester) async {
-        // Start recording
+        // Inicia a gravação
         controllerA.toggleRecording();
 
         await tester.pumpWidget(
@@ -525,15 +525,15 @@ void main() {
         );
         await tester.pump();
 
-        // Verify institutional banner
+        // Verifica o banner institucional
         expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
         expect(find.textContaining('fins acadêmicos e pedagógicos'), findsOneWidget);
 
-        // Verify REC timer badge
+        // Verifica o emblema de temporizador REC
         expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
         expect(find.textContaining('● REC'), findsWidgets);
 
-        // Verify badge is pulsating
+        // Verifica se o emblema está pulsando
         final badgeFinder = find.byKey(const Key('recording_timer_badge'));
         final isAnimatedWidget = find.descendant(
           of: badgeFinder,
@@ -544,16 +544,16 @@ void main() {
         expect(isAnimatedWidget, isTrue,
             reason: 'Recording badge has pulsating animation');
 
-        // Stop recording to cleanly cancel recording timer
+        // Para a gravação para cancelar o temporizador de gravação de forma limpa
         controllerA.toggleRecording();
         await tester.pump();
       });
 
       testWidgets('Recording: Session export reactionCount maintains cumulative count after 2500ms self-pruning timer', (tester) async {
-        // Start recording
+        // Inicia a gravação
         controllerA.toggleRecording();
 
-        // Dispatch 3 chat messages and 4 emoji reactions
+        // Dispara 3 mensagens de chat e 4 reações de emoji
         controllerA.sendChatMessage('Mensagem 1');
         controllerA.sendChatMessage('Mensagem 2');
         controllerA.sendChatMessage('Mensagem 3');
@@ -565,13 +565,13 @@ void main() {
         expect(controllerA.chatMessages.length, 3);
         expect(controllerA.activeReactions.length, 4);
 
-        // Advance fake time past the 2500ms self-pruning window
+        // Avança o tempo simulado além da janela de autopoda de 2500ms
         await tester.pump(const Duration(milliseconds: 2600));
 
-        // Active reactions pruned from UI
+        // Reações ativas podadas da UI
         expect(controllerA.activeReactions, isEmpty);
 
-        // Stop recording to generate SessionExport ledger
+        // Para a gravação para gerar o registro SessionExport
         controllerA.toggleRecording();
 
         final export = controllerA.lastSessionExport;
