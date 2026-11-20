@@ -91,7 +91,7 @@ class _DocenteAssignmentFeedbackDialogState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar
+              // Barra Superior
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -172,7 +172,7 @@ class _DocenteAssignmentFeedbackDialogState
               ),
               const SizedBox(height: 16),
 
-              // Tab Switcher
+              // Seletor de Abas
               Container(
                 decoration: const BoxDecoration(
                   border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
@@ -195,7 +195,7 @@ class _DocenteAssignmentFeedbackDialogState
               ),
               const SizedBox(height: 16),
 
-              // Tab Content
+              // Conteúdo da Aba
               Expanded(
                 child: _activeTab == 0
                     ? FeedbackGradingSection(
@@ -206,7 +206,7 @@ class _DocenteAssignmentFeedbackDialogState
                     : _buildDoubtsTab(doubtThread),
               ),
 
-              // Bottom Actions
+              // Ações Inferiores
               const SizedBox(height: 14),
               const Divider(height: 1, color: Color(0xFFE2E8F0)),
               const SizedBox(height: 14),
