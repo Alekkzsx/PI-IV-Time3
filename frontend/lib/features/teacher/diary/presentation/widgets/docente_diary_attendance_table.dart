@@ -42,7 +42,7 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Top Summary Bar + Botão Marcar Todos
+          // Barra de Resumo Superior + Botão Marcar Todos
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             child: Wrap(
@@ -129,7 +129,7 @@ class DocenteDiaryAttendanceTable extends StatelessWidget {
           ),
           const Divider(height: 1, color: InstColors.border),
 
-          // Table with Horizontal Scroll
+          // Tabela com Rolagem Horizontal
           LayoutBuilder(
             builder: (context, constraints) {
               const minWidth = 1000.0;
