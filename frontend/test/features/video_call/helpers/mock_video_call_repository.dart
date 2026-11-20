@@ -5,10 +5,10 @@ import 'dart:convert';
 import 'in_memory_signaling_bus.dart';
 import 'video_call_contracts.dart';
 
-/// In-memory implementation of [VideoCallRepository] operating over [InMemorySignalingBus].
+/// Implementação em memória de [VideoCallRepository] operando sobre [InMemorySignalingBus].
 ///
-/// Provides zero-backend real-time P2P simulation across multiple controller
-/// instances in memory, enabling full end-to-end multi-peer tests on Dart VM.
+/// Fornece simulação P2P em tempo real sem backend entre múltiplas instâncias de
+/// controlador em memória, permitindo testes ponta a ponta com vários pares na Dart VM.
 class MockVideoCallRepository implements VideoCallRepository {
   final StreamController<Participant> _participantJoinedController =
       StreamController<Participant>.broadcast(sync: true);
@@ -59,10 +59,10 @@ class MockVideoCallRepository implements VideoCallRepository {
     _localParticipant = localParticipant;
     _bus = InMemorySignalingBus.forRoom(room.code);
 
-    // Subscribe to bus messages sent by other peers
+    // Inscreve-se nas mensagens do barramento enviadas por outros pares
     _busSubscription = _bus!.subscribe(localParticipant.id).listen(_handleRawEnvelope);
 
-    // Broadcast JOIN envelope to room
+    // Transmite o envelope JOIN para a sala
     final joinEnvelope = jsonEncode({
       'type': 'JOIN',
       'senderId': localParticipant.id,
@@ -83,7 +83,7 @@ class MockVideoCallRepository implements VideoCallRepository {
           );
           _participantJoinedController.add(participant);
 
-          // Respond with PRESENCE_SYNC so the new peer discovers us
+          // Responde com PRESENCE_SYNC para que o novo par nos descubra
           if (_localParticipant != null && _bus != null) {
             scheduleMicrotask(() {
               if (_localParticipant != null && _bus != null) {
@@ -153,7 +153,7 @@ class MockVideoCallRepository implements VideoCallRepository {
           break;
       }
     } catch (_) {
-      // Ignore malformed payloads defensively
+      // Ignora cargas malformadas de forma defensiva
     }
   }
 
