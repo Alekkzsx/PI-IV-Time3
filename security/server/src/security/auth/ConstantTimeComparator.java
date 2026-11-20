@@ -6,17 +6,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 /**
- * Constant-time comparison utility mitigating side-channel timing attacks.
- * Prevents attackers from deducing secret tokens or password hashes by measuring string comparison latency.
+ * Utilitário de comparação em tempo constante para mitigar ataques de canal lateral por temporização (timing attacks).
+ * Impede que invasores deduzam tokens secretos ou hashes de senha medindo a latência da comparação de strings.
  */
 public final class ConstantTimeComparator {
 
     private ConstantTimeComparator() {
-        // Prevent instantiation
+        // Impedir instanciação
     }
 
     /**
-     * Compares two byte arrays in constant time using {@link MessageDigest#isEqual(byte[], byte[])}.
+     * Compara dois arrays de bytes em tempo constante usando {@link MessageDigest#isEqual(byte[], byte[])}.
      */
     public static boolean isEqual(byte[] a, byte[] b) {
         if (a == null || b == null) {
@@ -26,7 +26,7 @@ public final class ConstantTimeComparator {
     }
 
     /**
-     * Compares two strings in constant time using UTF-8 byte representation.
+     * Compara duas strings em tempo constante usando representação em bytes UTF-8.
      */
     public static boolean isEqual(String a, String b) {
         if (a == null || b == null) {
@@ -38,7 +38,7 @@ public final class ConstantTimeComparator {
     }
 
     /**
-     * Performs synthetic constant-time computational work to normalize execution latency.
+     * Executa trabalho computacional sintético em tempo constante para normalizar a latência de execução.
      */
     public static void executeSyntheticWork(int iterations) {
         int accumulator = 0;
