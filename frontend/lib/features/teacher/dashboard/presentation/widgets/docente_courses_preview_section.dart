@@ -1,6 +1,6 @@
 // Desenvolvido por Rafael Henrique Inácio - RA: 25009719 e Alex Gabriel Soares Sousa - RA: 24802449
 // Seção "Minhas Turmas" do Painel Geral - Pixel-perfect fiel ao PDF
-// Header com título "Minhas Turmas" + link "Ver grade →"
+// Cabeçalho com título "Minhas Turmas" + link "Ver grade →"
 
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/core/theme/institutional_tokens.dart';
@@ -9,7 +9,7 @@ import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controll
 import 'docente_course_card.dart';
 
 /// Seção que renderiza a grade de turmas ativas do docente no Painel Geral.
-/// Fiel ao PDF: header "Minhas Turmas" + "Ver grade →" à direita.
+/// Fiel ao PDF: cabeçalho "Minhas Turmas" + "Ver grade →" à direita.
 class DocenteCoursesPreviewSection extends StatelessWidget {
   final DocenteController controller;
   final void Function(String courseId)? onOpenCourseHub;
@@ -37,7 +37,7 @@ class DocenteCoursesPreviewSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ═══════════════════════════════════════════
-        // HEADER: "Minhas Turmas" + "Ver grade →"
+        // CABEÇALHO: "Minhas Turmas" + "Ver grade →"
         // ═══════════════════════════════════════════
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -81,7 +81,7 @@ class DocenteCoursesPreviewSection extends StatelessWidget {
         const SizedBox(height: 14),
 
         // ═══════════════════════════════════════════
-        // GRID DE TURMAS
+        // GRADE DE TURMAS
         // ═══════════════════════════════════════════
         if (courses.isEmpty)
           Container(
