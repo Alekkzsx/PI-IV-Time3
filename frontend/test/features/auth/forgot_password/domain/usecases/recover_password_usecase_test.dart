@@ -16,7 +16,10 @@ class MockAuthRepository implements AuthRepository {
   bool shouldFail = false;
 
   @override
-  Future<void> recoverPassword({required String identity}) async {
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {
     if (shouldFail) {
       throw Exception('Identificador não encontrado.');
     }
@@ -24,8 +27,11 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async {
-    await recoverPassword(identity: identity);
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async {
+    await recoverPassword(identity: identity, profile: profile);
     return {'status': 200};
   }
 
