@@ -45,7 +45,10 @@ abstract class AuthRemoteDataSource {
 
   /// Envia requisição remota de redefinição de senha para a [identity] informada.
   /// Retorna o mapa de resposta do servidor contendo o maskedEmail real quando disponível.
-  Future<Map<String, dynamic>> sendPasswordResetInstructions({required String identity});
+  Future<Map<String, dynamic>> sendPasswordResetInstructions({
+    required String identity,
+    String? profile,
+  });
 
   /// Envia credenciais ([identity], [password], [profile]) para autenticação remota junto ao servidor.
   ///
@@ -72,6 +75,7 @@ abstract class AuthRemoteDataSource {
   Future<RecoveryVerificationResult> verifyRecoverySessionRemote({
     required String identity,
     required String code,
+    String? profile,
   });
 
   /// Atualiza a credencial de senha do usuário no servidor backend.
