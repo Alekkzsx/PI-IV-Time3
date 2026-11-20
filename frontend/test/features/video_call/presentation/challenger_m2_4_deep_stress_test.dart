@@ -17,7 +17,7 @@ import 'package:pi_iv_time3/features/video_call/presentation/widgets/floating_re
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/in_call_chat_drawer.dart';
 import 'package:pi_iv_time3/features/video_call/presentation/widgets/meeting_controls_toolbar.dart';
 
-/// Test repository that interconnects two peer controllers synchronously in memory.
+/// Repositório de teste que interconecta dois controladores de peer sincronamente em memória.
 class InterconnectedVideoCallRepository implements VideoCallRepository {
   InterconnectedVideoCallRepository? peerRepo;
 
@@ -157,7 +157,7 @@ void main() {
     });
 
     // =========================================================================
-    // 1. VERIFY FLOATING REACTIONS RISING ANIMATION: VERTICAL DELTA > 0
+    // 1. VERIFICA ANIMAÇÃO DE SUBIDA DAS REAÇÕES FLUTUANTES: DELTA VERTICAL > 0
     // =========================================================================
     group('1. Floating Reactions Rising Animation Metrics', () {
       testWidgets('Empirical trajectory profiling: vertical delta > 0 at all progressive intervals', (tester) async {
@@ -184,7 +184,7 @@ void main() {
         final finder = find.byKey(const Key('reaction_item_reaction_rising_test'));
         expect(finder, findsOneWidget);
 
-        // Sample trajectory across t = 0 to t = 2500ms
+        // Amostra a trajetória de t = 0 até t = 2500ms
         final dy0 = tester.getBottomLeft(finder).dy;
         await tester.pump(const Duration(milliseconds: 250));
         final dy250 = tester.getBottomLeft(finder).dy;
@@ -215,7 +215,7 @@ void main() {
         debugPrint('  t=2000ms: dy=$dy2000, delta=$delta2000');
         debugPrint('  t=2500ms: dy=$dy2500, delta=$delta2500');
 
-        // Assert strictly positive vertical deltas (rising upwards in Flutter screen coordinates)
+        // Garante deltas verticais estritamente positivos (subindo nas coordenadas de tela do Flutter)
         expect(delta250, greaterThan(0.0), reason: 'Must rise upwards after 250ms');
         expect(delta500, greaterThan(delta250), reason: 'Must rise higher at 500ms');
         expect(delta1000, greaterThan(delta500), reason: 'Must rise higher at 1000ms');
@@ -223,7 +223,7 @@ void main() {
         expect(delta2000, greaterThan(delta1500), reason: 'Must rise higher at 2000ms');
         expect(delta2500, greaterThan(delta2000), reason: 'Must reach apex at 2500ms');
 
-        // Net vertical displacement must equal Tween range (280.0 - 60.0 = 220.0 pixels)
+        // O deslocamento vertical líquido deve ser igual ao intervalo do Tween (280.0 - 60.0 = 220.0 pixels)
         expect(delta2500, closeTo(220.0, 0.5), reason: 'Total vertical displacement must reach 220.0 px');
       });
 
@@ -253,7 +253,7 @@ void main() {
 
         expect(find.byType(FloatingReactionsOverlay), findsOneWidget);
 
-        // Advance 1000ms
+        // Avança 1000ms
         await tester.pump(const Duration(milliseconds: 1000));
 
         for (var i = 0; i < 20; i++) {
@@ -266,7 +266,7 @@ void main() {
     });
 
     // =========================================================================
-    // 2. VERIFY CHAT MESSAGE TIMESTAMPS RENDERED IN WIDGET TREE
+    // 2. VERIFICA CARIMBOS DE HORÁRIO DAS MENSAGENS DE CHAT RENDERIZADOS NA ÁRVORE DE WIDGETS
     // =========================================================================
     group('2. Chat Message Timestamps in Widget Tree', () {
       testWidgets('Timestamps rendered with correct HH:mm formatting for local and remote messages', (tester) async {
@@ -286,7 +286,7 @@ void main() {
           localParticipant: Participant(id: 'peer_b', name: 'Beatriz Lima', ra: '24801122'),
         );
 
-        // Inject 3 messages with precise timestamps through repository stream
+        // Injeta 3 mensagens com carimbos de horário precisos através do stream do repositório
         await rA.sendChatMessage(
           room.code,
           ChatMessage(
@@ -387,7 +387,7 @@ void main() {
         );
         await tester.pump();
 
-        // Must render timestamp without Throwing RenderFlex overflow exception
+        // Deve renderizar o carimbo de horário sem lançar exceção de overflow de RenderFlex
         expect(find.text('12:00'), findsOneWidget);
         expect(tester.takeException(), isNull);
 
@@ -399,7 +399,7 @@ void main() {
     });
 
     // =========================================================================
-    // 3. VERIFY ALL 6 EMOJIS ACCESSIBLE IN TOOLBAR
+    // 3. VERIFICA TODOS OS 6 EMOJIS ACESSÍVEIS NA BARRA DE FERRAMENTAS
     // =========================================================================
     group('3. All 6 Emojis Accessible in Toolbar', () {
       testWidgets('All 6 emoji buttons present, interactive, and trigger real-time P2P dispatch', (tester) async {
@@ -474,14 +474,14 @@ void main() {
           final iconBtn = tester.widget<IconButton>(btnFinder);
           expect(iconBtn.tooltip, equals(tooltip));
 
-          // Tap the button
+          // Toca no botão
           await tester.tap(btnFinder);
           await tester.pump();
 
-          // Verify controller A sent reaction
+          // Verifica se o controlador A enviou a reação
           expect(cA.activeReactions.last.emoji, equals(emoji));
 
-          // Verify controller B received reaction via P2P bus
+          // Verifica se o controlador B recebeu a reação pelo barramento P2P
           expect(cB.activeReactions.last.emoji, equals(emoji));
 
           debugPrint('Empirical finding [Toolbar Trigger] - $emoji ($tooltip) triggered and synchronized to remote peer');
@@ -490,7 +490,7 @@ void main() {
         expect(cA.activeReactions.length, equals(6));
         expect(cB.activeReactions.length, equals(6));
 
-        // Advance fake time past 2500ms self-pruning timer so no timers are pending on test exit
+        // Avança o tempo simulado além do temporizador de autopoda de 2500ms para não deixar temporizadores pendentes ao encerrar o teste
         await tester.pump(const Duration(milliseconds: 2600));
         expect(cA.activeReactions, isEmpty);
         expect(cB.activeReactions, isEmpty);
@@ -503,7 +503,7 @@ void main() {
     });
 
     // =========================================================================
-    // 4. VERIFY SESSION EXPORT REACTION RETENTION AFTER 2500MS SELF-PRUNING
+    // 4. VERIFICA RETENÇÃO DE REAÇÕES NA EXPORTAÇÃO DA SESSÃO APÓS AUTOPODA DE 2500MS
     // =========================================================================
     group('4. Session Export Reaction Retention', () {
       testWidgets('Auditable session ledger preserves total reaction count after multi-stage self-pruning', (tester) async {
@@ -526,12 +526,12 @@ void main() {
         cA.registerRemoteParticipant(cB.localParticipant);
         cB.registerRemoteParticipant(cA.localParticipant);
 
-        // Start recording
+        // Inicia a gravação
         cA.toggleRecording();
         expect(cA.recordingState.isRecording, isTrue);
         expect(cB.recordingState.isRecording, isTrue);
 
-        // Stage 1: Send 6 reactions from Peer A
+        // Etapa 1: Envia 6 reações do Peer A
         final batch1 = ['❤️', '👍', '👏', '😂', '😮', '🎉'];
         for (final emoji in batch1) {
           cA.sendReaction(emoji);
@@ -542,16 +542,16 @@ void main() {
         expect(cA.totalReactionsCount, 6);
         expect(cB.totalReactionsCount, 6);
 
-        // Advance 3000ms: All batch 1 reactions must be pruned from UI
+        // Avança 3000ms: Todas as reações do lote 1 devem ser podadas da UI
         await tester.pump(const Duration(milliseconds: 3000));
         expect(cA.activeReactions, isEmpty, reason: 'Active reactions must be self-pruned');
         expect(cB.activeReactions, isEmpty, reason: 'Remote active reactions must be self-pruned');
 
-        // Counters must remain intact:
+        // Contadores devem permanecer intactos:
         expect(cA.totalReactionsCount, 6);
         expect(cB.totalReactionsCount, 6);
 
-        // Stage 2: Send 4 reactions from Peer B
+        // Etapa 2: Envia 4 reações do Peer B
         final batch2 = ['👍', '🎉', '❤️', '👏'];
         for (final emoji in batch2) {
           cB.sendReaction(emoji);
@@ -562,29 +562,29 @@ void main() {
         expect(cA.totalReactionsCount, 10);
         expect(cB.totalReactionsCount, 10);
 
-        // Advance another 3000ms: All batch 2 reactions self-pruned
+        // Avança mais 3000ms: Todas as reações do lote 2 são autopodadas
         await tester.pump(const Duration(milliseconds: 3000));
         expect(cA.activeReactions, isEmpty);
         expect(cB.activeReactions, isEmpty);
 
-        // Stop recording
+        // Para a gravação
         cA.toggleRecording();
         expect(cA.recordingState.isRecording, isFalse);
         expect(cB.recordingState.isRecording, isFalse);
 
-        // Verify SessionExport on Peer A (initiator)
+        // Verifica SessionExport no Peer A (iniciador)
         final exportA = cA.lastSessionExport;
         expect(exportA, isNotNull);
         expect(exportA!.reactionCount, equals(10), reason: 'Export reactionCount must retain all 10 cumulative reactions');
         expect(exportA.roomCode, equals('CHALLENGER-M2-4'));
         expect(exportA.totalParticipants, equals(2));
 
-        // Verify SessionExport on Peer B (remote listener)
+        // Verifica SessionExport no Peer B (ouvinte remoto)
         final exportB = cB.lastSessionExport;
         expect(exportB, isNotNull);
         expect(exportB!.reactionCount, equals(10), reason: 'Remote peer export reactionCount must also retain 10 reactions');
 
-        // Verify JSON serialization format conforms to academic_session_ledger_v1
+        // Verifica se o formato de serialização JSON segue academic_session_ledger_v1
         final jsonA = exportA.toJson();
         expect(jsonA['exportFormat'], equals('academic_session_ledger_v1'));
         expect(jsonA['reactionCount'], equals(10));
@@ -600,7 +600,7 @@ void main() {
     });
 
     // =========================================================================
-    // 5. VERIFY PULSATING REC BADGE ANIMATION
+    // 5. VERIFICA ANIMAÇÃO PULSANTE DO EMBLEMA REC
     // =========================================================================
     group('5. Pulsating REC Badge Animation', () {
       testWidgets('Pulsating REC badge dynamically modulates opacity between 0.6 and 1.0 periodically', (tester) async {
@@ -616,14 +616,14 @@ void main() {
         final badgeFinder = find.byKey(const Key('recording_timer_badge'));
         expect(badgeFinder, findsOneWidget);
 
-        // Locate inner Opacity widget inside _PulsatingRecBadge
+        // Localiza o widget Opacity interno dentro de _PulsatingRecBadge
         final opacityFinder = find.descendant(
           of: badgeFinder,
           matching: find.byType(Opacity),
         );
         expect(opacityFinder, findsOneWidget);
 
-        // Sample opacity at t=0ms, 250ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+        // Amostra a opacidade em t=0ms, 250ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
         final op0 = tester.widget<Opacity>(opacityFinder).opacity;
 
         await tester.pump(const Duration(milliseconds: 250));
@@ -653,14 +653,14 @@ void main() {
         debugPrint('  t=1500ms: opacity=$op1500');
         debugPrint('  t=2000ms: opacity=$op2000');
 
-        // Assert bound limits [0.6, 1.0]
+        // Garante os limites [0.6, 1.0]
         final allOpacities = [op0, op250, op500, op750, op1000, op1500, op2000];
         for (final op in allOpacities) {
           expect(op, greaterThanOrEqualTo(0.5999));
           expect(op, lessThanOrEqualTo(1.0001));
         }
 
-        // Verify opacity is actively oscillating (min < max with significant delta)
+        // Verifica se a opacidade está oscilando ativamente (min < max com delta significativo)
         final minOp = allOpacities.reduce((a, b) => a < b ? a : b);
         final maxOp = allOpacities.reduce((a, b) => a > b ? a : b);
         final modulationRange = maxOp - minOp;
@@ -669,11 +669,11 @@ void main() {
         expect(maxOp, closeTo(1.0, 0.05));
         expect(modulationRange, greaterThan(0.35), reason: 'Opacity must oscillate across at least 0.35 units');
 
-        // Stop recording to avoid active timer leaks
+        // Para a gravação para evitar vazamento de temporizadores ativos
         controllerA.toggleRecording();
         await tester.pump();
 
-        // Badge must disappear when recording is stopped
+        // O emblema deve desaparecer quando a gravação é interrompida
         expect(find.byKey(const Key('recording_timer_badge')), findsNothing);
       });
     });
