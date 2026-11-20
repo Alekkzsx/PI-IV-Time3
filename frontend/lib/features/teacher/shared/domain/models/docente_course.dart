@@ -1,6 +1,6 @@
 // Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
-/// Represents a syllabus unit within a course curriculum.
+/// Representa uma unidade programática dentro do currículo de uma disciplina.
 class SyllabusUnit {
   final String id;
   final int unitNumber;
@@ -21,10 +21,10 @@ class SyllabusUnit {
   double get progress =>
       totalClasses == 0 ? 0.0 : completedClasses / totalClasses;
 
-  /// Whether all planned classes for this unit have been given.
+  /// Indica se todas as aulas planejadas para esta unidade foram ministradas.
   bool get isCompleted => totalClasses > 0 && completedClasses >= totalClasses;
 
-  /// Human readable description of topics.
+  /// Descrição legível dos tópicos.
   String get description => topics.join(' • ');
 
   SyllabusUnit copyWith({
@@ -46,7 +46,7 @@ class SyllabusUnit {
   }
 }
 
-/// Represents educational support material uploaded by the professor.
+/// Representa um material de apoio educacional enviado pelo docente.
 class CourseMaterial {
   final String id;
   final String courseId;
@@ -73,7 +73,7 @@ class CourseMaterial {
   });
 }
 
-/// Represents a course/class taught by the professor.
+/// Representa uma disciplina/turma ministrada pelo docente.
 class DocenteCourse {
   final String id;
   final String teacherIdentity;
