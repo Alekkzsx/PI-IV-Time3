@@ -53,7 +53,7 @@ class _VideoCallRoomPageState extends State<VideoCallRoomPage> {
       );
       _attendanceJoinSent = true;
     } on VideoCallRoomApiException {
-      // The meeting continues; attendance errors are reported by server logs.
+      // A reunião continua; erros de presença são registrados nos logs do servidor.
     }
   }
 
@@ -155,7 +155,7 @@ class _VideoCallRoomPageState extends State<VideoCallRoomPage> {
                       Expanded(
                         child: Stack(
                           children: [
-                            // Grade dinâmica responsiva de vídeos reais (Strictly Zero Bots)
+                            // Grade dinâmica responsiva de vídeos reais (estritamente zero bots)
                             Positioned.fill(
                               child: DynamicVideoGrid(
                                 participants: widget.controller.allParticipants,
