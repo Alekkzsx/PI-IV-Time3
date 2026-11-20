@@ -1,7 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Tier 1 & Tier 2: Input Sanitization & Attack Neutralization Test Suite
-/// Tests Features 6, 7, 8, 9 and Acceptance Criteria AC-05.
+/// Camadas 1 e 2: Suíte de Testes de Sanitização de Entrada e Neutralização de Ataques
+/// Testa as Funcionalidades 6, 7, 8, 9 e o Critério de Aceitação AC-05.
 
 class InputSanitizer {
   static const int maxRaLength = 32;
@@ -22,7 +22,7 @@ class InputSanitizer {
 
   static String sanitizeString(String input) {
     if (input.isEmpty) return input;
-    // Strip null bytes and control chars
+    // Remove bytes nulos e caracteres de controle
     var cleaned = input.replaceAll(_nullBytePattern, '');
     cleaned = cleaned.replaceAll(RegExp(r'[\x01-\x1F\x7F]'), '');
     return cleaned.trim();
@@ -51,7 +51,7 @@ class InputSanitizer {
     if (cleaned.length > maxEmailLength) {
       throw ArgumentError('Email exceeds maximum length of $maxEmailLength characters');
     }
-    // Basic RFC email validation check
+    // Verificação básica de validação de e-mail RFC
     final emailPattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailPattern.hasMatch(cleaned)) {
       throw ArgumentError('Invalid email format');
@@ -68,7 +68,7 @@ class InputSanitizer {
   }
 }
 
-// Assertion Helpers
+// Auxiliares de Asserção
 void assertTrue(bool condition, String message) {
   if (!condition) throw Exception('Assertion failed: $message');
 }
@@ -103,7 +103,7 @@ void main() {
   print('===============================================================');
 
   // -------------------------------------------------------------
-  // TIER 1: FEATURE COVERAGE
+  // CAMADA 1: COBERTURA DE FUNCIONALIDADES
   // -------------------------------------------------------------
   runTest('T1-01: Valid clean inputs pass through unchanged', () {
     assertEqual(InputSanitizer.sanitizeIdentity('24802449'), '24802449', 'Valid RA should pass');
@@ -169,7 +169,7 @@ void main() {
   });
 
   // -------------------------------------------------------------
-  // TIER 2: BOUNDARY & CORNER CASES
+  // CAMADA 2: CASOS DE BORDA E LIMITES
   // -------------------------------------------------------------
   runTest('T2-01: Length boundary for RA (max 32 characters)', () {
     final exactly32 = 'A' * 32;
