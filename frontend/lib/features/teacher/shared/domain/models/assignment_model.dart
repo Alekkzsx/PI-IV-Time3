@@ -2,7 +2,7 @@
 
 import 'rubric_model.dart';
 
-/// Submission status of a student assignment.
+/// Status de entrega de uma atividade discente.
 enum SubmissionStatus {
   entregue,
   aguardandoCorrecao,
@@ -11,7 +11,7 @@ enum SubmissionStatus {
   naoEntregue,
 }
 
-/// Represents a student's submission for an assignment.
+/// Representa a entrega de um discente para uma atividade.
 class StudentSubmission {
   final String id;
   final String studentId;
@@ -68,18 +68,18 @@ class StudentSubmission {
   }
 }
 
-/// Represents an assignment/evaluative task for a course.
+/// Representa uma atividade/tarefa avaliativa de uma disciplina.
 class AssignmentItem {
   final String id;
   final String courseId;
   final String courseCode;
   final String title;
   final String description;
-  final double weight; // Assignment weight in points.
-  final String stage; // e.g. 'Etapa N1'
+  final double weight; // Peso da atividade em pontos.
+  final String stage; // ex.: 'Etapa N1'
   final String dueDateFormatted;
   final bool isUrgent;
-  final String modality; // e.g. 'Individual com Rubrica'
+  final String modality; // ex.: 'Individual com Rubrica'
   final bool allowLateWithPenalty;
   final List<RubricCriterion> rubricCriteria;
   final List<StudentSubmission> submissions;
