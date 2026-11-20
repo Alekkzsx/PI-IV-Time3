@@ -40,7 +40,7 @@ void main() {
 
       expect(harness.peerA.localParticipant.isSpeaking, isTrue);
 
-      // Verify Peer B receives speaking highlight
+      // Verifica se o Peer B recebe o destaque de fala
       final peerAOnRemote = harness.peerB.remoteParticipants.firstWhere(
         (p) => p.id == 'peer_a_id',
       );
@@ -50,18 +50,18 @@ void main() {
 
     test('Hysteresis: isSpeaking remains true for 800ms cooldown after volume drops to 0.05',
         () async {
-      // Step 1: Volume surges above 0.15
+      // Passo 1: o volume sobe acima de 0.15
       harness.peerA.setAudioLevel(0.60);
       expect(harness.peerA.localParticipant.isSpeaking, isTrue);
 
-      // Step 2: Volume drops back down to 0.05
+      // Passo 2: o volume cai de volta para 0.05
       harness.peerA.setAudioLevel(0.05);
 
-      // Within the 800ms hysteresis window, isSpeaking remains TRUE
+      // Dentro da janela de histerese de 800ms, isSpeaking permanece TRUE
       await Future<void>.delayed(const Duration(milliseconds: 200));
       expect(harness.peerA.localParticipant.isSpeaking, isTrue);
 
-      // After 850ms, cooldown timer expires and resets isSpeaking to false
+      // Após 850ms, o temporizador de resfriamento expira e redefine isSpeaking para false
       await Future<void>.delayed(const Duration(milliseconds: 700));
       expect(harness.peerA.localParticipant.isSpeaking, isFalse);
     });
@@ -70,7 +70,7 @@ void main() {
       harness.peerA.setAudioLevel(0.85);
       expect(harness.peerA.localParticipant.isSpeaking, isTrue);
 
-      // Toggle audio off (mute)
+      // Desativa o áudio (silenciar)
       harness.peerA.toggleAudio();
       expect(harness.peerA.localParticipant.isAudioMuted, isTrue);
       expect(harness.peerA.localParticipant.isSpeaking, isFalse);
