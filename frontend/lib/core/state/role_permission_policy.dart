@@ -1,6 +1,6 @@
 // Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 
-/// Central authorization policy for the three user profiles in the application.
+/// Política central de autorização para os três perfis de usuário na aplicação.
 class RolePermissionPolicy {
   RolePermissionPolicy._();
 
