@@ -2,10 +2,10 @@
 
 import 'package:pi_iv_time3/core/academic/grade_calculator.dart';
 
-/// Academic standing of a student in the official gradebook.
+/// Situação acadêmica de um discente na pauta oficial de notas.
 enum AcademicStatus { semNotas, aprovado, exame, reprovadoPorNota, reprovadoPorFalta }
 
-/// Represents a student's grade record inside the official gradebook.
+/// Representa o registro de notas de um discente na pauta oficial.
 class StudentGrade {
   final String studentId;
   final String courseId;
@@ -42,7 +42,7 @@ class StudentGrade {
     formula: evaluationFormula,
   );
 
-  /// Alias for n1Total.
+  /// Alias para n1Total.
   double get n1Score => n1Total;
 
   /// N2 calculada dinamicamente pela fórmula da turma.
@@ -52,7 +52,7 @@ class StudentGrade {
     formula: evaluationFormula,
   );
 
-  /// Alias for n2Total.
+  /// Alias para n2Total.
   double get n2Score => n2Total;
 
   /// Média semestral calculada dinamicamente pela fórmula da turma.
@@ -64,7 +64,7 @@ class StudentGrade {
     formula: evaluationFormula,
   );
 
-  /// Academic standing as an enum according to institutional thresholds.
+  /// Situação acadêmica como enum de acordo com os limites institucionais.
   AcademicStatus get status {
     if (attendanceRate < thresholds.minimumAttendance) {
       return AcademicStatus.reprovadoPorFalta;
@@ -87,7 +87,7 @@ class StudentGrade {
     return AcademicStatus.reprovadoPorNota;
   }
 
-  /// Academic standing as string.
+  /// Situação acadêmica como string.
   String get statusLabel {
     switch (status) {
       case AcademicStatus.semNotas:
