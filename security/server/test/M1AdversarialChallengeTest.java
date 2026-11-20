@@ -13,9 +13,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Adversarial Challenge Suite & Empirical Stress Harness for Milestone 1 (M1).
- * Validates anti-enumeration, zero-leakage error sanitization, invariant bounds,
- * and high-volume adversarial resilience in native Java SE.
+ * Suíte de Desafios Adversariais e Arcabouço de Estresse Empírico para o Marco 1 (M1).
+ * Valida anti-enumeração, sanitização de erros com vazamento zero, limites invariantes
+ * e resiliência adversarial de alto volume em Java SE nativo.
  */
 public final class M1AdversarialChallengeTest {
 
@@ -53,7 +53,7 @@ public final class M1AdversarialChallengeTest {
         System.out.println("===============================================================");
 
         // -------------------------------------------------------------
-        // GROUP 1: Mathematical Anti-Enumeration Invariants
+        // GRUPO 1: Invariantes Matemáticos Anti-Enumeração
         // -------------------------------------------------------------
         runTest("ADV-01: Password recovery feedback identical for existent vs unmapped identities", () -> {
             String validUserFeedback = GenericFeedbackPolicy.PASSWORD_RESET_REQUESTED_MESSAGE;
@@ -79,7 +79,7 @@ public final class M1AdversarialChallengeTest {
         });
 
         // -------------------------------------------------------------
-        // GROUP 2: Zero-Leakage Error Sanitizer Adversarial Challenge
+        // GRUPO 2: Desafio Adversarial do Sanitizador de Erros com Vazamento Zero
         // -------------------------------------------------------------
         runTest("ADV-03: Raw PostgreSQL credentials and connection string never leak", () -> {
             String hostileDbError =
@@ -153,14 +153,14 @@ public final class M1AdversarialChallengeTest {
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage((String) null),
                 GenericFeedbackPolicy.AUTH_FAILURE_MESSAGE, "Null string must return auth failure");
 
-            // Throwable with null message
+            // Throwable com mensagem nula
             Throwable emptyThrowable = new RuntimeException((String) null);
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage(emptyThrowable),
                 GenericFeedbackPolicy.AUTH_FAILURE_MESSAGE, "Throwable with null message must return auth failure");
         });
 
         // -------------------------------------------------------------
-        // GROUP 3: Dynamic Formatters Boundary & Underflow Protection
+        // GRUPO 3: Limites dos Formatadores Dinâmicos e Proteção contra Underflow
         // -------------------------------------------------------------
         runTest("ADV-09: getLockoutMessage handles underflow, zero, and boundary limits", () -> {
             assertEquals(GenericFeedbackPolicy.getLockoutMessage(30),
@@ -202,7 +202,7 @@ public final class M1AdversarialChallengeTest {
         });
 
         // -------------------------------------------------------------
-        // GROUP 4: SecurityConstants Invariant Mathematical Integrity
+        // GRUPO 4: Integridade Matemática Invariante de SecurityConstants
         // -------------------------------------------------------------
         runTest("ADV-12: SecurityConstants invariant mathematical relationships", () -> {
             assertTrue(SecurityConstants.MAX_FAILED_LOGIN_ATTEMPTS == 5, "Max failed login attempts must be 5");
@@ -245,7 +245,7 @@ public final class M1AdversarialChallengeTest {
         });
 
         // -------------------------------------------------------------
-        // GROUP 5: High-Volume Adversarial Stress & Zero-Leakage Harness
+        // GRUPO 5: Estresse Adversarial de Alto Volume e Arcabouço de Vazamento Zero
         // -------------------------------------------------------------
         runTest("ADV-13: 10,000 randomized hostile payloads yield 0% data leakage", () -> {
             Random rand = new Random(1337);
@@ -281,19 +281,19 @@ public final class M1AdversarialChallengeTest {
         });
 
         runTest("ADV-14: Auth failure attempt messages never leak recovery token revocation", () -> {
-            // Must NOT trigger TOKEN_REVOKED_MESSAGE
+            // NÃO deve acionar TOKEN_REVOKED_MESSAGE
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Erro ao decrementar tentativas de login"),
                 GenericFeedbackPolicy.AUTH_FAILURE_MESSAGE, "Login attempts decrement must map to generic auth failure");
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Falha de autenticação após 3 tentativas"),
                 GenericFeedbackPolicy.AUTH_FAILURE_MESSAGE, "Auth failure with attempt count must map to generic failure");
 
-            // Legitimate lockout
+            // Bloqueio legítimo
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Limite de tentativas de login excedido"),
                 GenericFeedbackPolicy.ACCOUNT_LOCKED_MESSAGE, "Login attempts limit must map to account locked");
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Cooldown ativo para o usuário"),
                 GenericFeedbackPolicy.ACCOUNT_LOCKED_MESSAGE, "Cooldown must map to account locked");
 
-            // Legitimate OTP revocation
+            // Revogação legítima de OTP
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Código de verificação: limite de 3 tentativas excedido"),
                 GenericFeedbackPolicy.TOKEN_REVOKED_MESSAGE, "OTP attempt limit must map to token revoked");
             assertEquals(GenericFeedbackPolicy.sanitizeErrorMessage("Tentativas de código OTP esgotadas"),
