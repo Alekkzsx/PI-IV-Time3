@@ -139,9 +139,9 @@ void main() {
 
     test('PPC Grade calculations follow institutional formula accurately', () {
       final grade = controller.gradebook.first;
-      // Formula:
-      // N1 = (assignments * 0.4) + (p1 * 0.6)
-      // N2 = (projects * 0.4) + (p2 * 0.6)
+      // Fórmula:
+      // N1 = (atividades * 0.4) + (p1 * 0.6)
+      // N2 = (projetos * 0.4) + (p2 * 0.6)
       // MS = (N1 * 0.4) + (N2 * 0.6)
       final expectedN1 = double.parse(
         ((grade.assignmentsScore * 0.4) + (grade.p1Score * 0.6))
@@ -364,7 +364,7 @@ void main() {
       final initialSession = controller.currentSession;
       final initialCount = controller.sessions.length;
 
-      controller.selectSessionByDate(DateTime(2026, 10, 1)); // Thursday
+      controller.selectSessionByDate(DateTime(2026, 10, 1)); // Quinta-feira
 
       expect(controller.currentSession.id, equals(initialSession.id));
       expect(controller.sessions.length, equals(initialCount));
@@ -492,10 +492,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Verify Header and Sidebar render Painel Geral
+        // Verifica se o cabeçalho e a barra lateral renderizam Painel Geral
         expect(find.text('Painel Geral'), findsWidgets);
 
-        // Verify Hero Header and KPI Cards from Backend Dashboard Overview
+        // Verifica o cabeçalho principal e os cartões de KPI da visão geral do painel do backend
         expect(find.text('Bem-vinda, Helena.'), findsOneWidget);
         expect(find.text('Departamento de Computação'), findsOneWidget);
         expect(find.text('Docência 2026/2'), findsOneWidget);
@@ -504,33 +504,33 @@ void main() {
         expect(find.text('CARGA HORÁRIA TOTAL'), findsOneWidget);
         expect(find.text('FREQUÊNCIA MÉDIA'), findsOneWidget);
 
-        // Verify Aula do Dia & Atendimento Docente
+        // Verifica Aula do Dia e Atendimento Docente
         expect(find.text('Aula do Dia'), findsOneWidget);
         expect(find.text('Atendimento Docente'), findsOneWidget);
 
-        // Verify Dashboard Course Cards matching reference UI
+        // Verifica os cartões de disciplinas do painel correspondentes à interface de referência
         expect(find.text('Análise e Projeto de Sistemas II'), findsWidgets);
         expect(find.text('Sala de Aula AVA'), findsWidgets);
         expect(find.text('Progresso do Plano'), findsWidgets);
         expect(find.text('Autoria & Edição habilitadas'), findsWidgets);
 
-        // Verify Academic Requirements section
+        // Verifica a seção de Requerimentos Acadêmicos
         expect(find.text('Requerimentos Acadêmicos das Turmas'), findsOneWidget);
         expect(find.text('Camila Duarte Fagundes'), findsOneWidget);
         expect(find.text('Rodrigo Antunes Nogueira'), findsOneWidget);
         expect(find.text('PROT - 2026/0541'), findsOneWidget);
         expect(find.text('PROT - 2026/0650'), findsOneWidget);
 
-        // Verify Right Column Cards (Assessment preview & Notices preview)
+        // Verifica os cartões da coluna direita (prévia de avaliações e prévia de avisos)
         expect(find.text('Prazos e Entregas'), findsOneWidget);
         expect(find.text('Mensagens e Avisos'), findsOneWidget);
         expect(find.text('Ver todos'), findsOneWidget);
 
-        // Verify DocenteFooter is present
+        // Verifica se DocenteFooter está presente
         expect(find.byType(DocenteFooter), findsOneWidget);
         expect(find.text('© 2026 AGMRM'), findsOneWidget);
 
-        // Navigate to Turmas tab and verify 3-column Disciplinas view
+        // Navega para a aba Turmas e verifica a visualização de Disciplinas em 3 colunas
         await tester.tap(find.byKey(const Key('docente_sidebar_item_turmas')));
         await tester.pumpAndSettle();
 
@@ -593,11 +593,11 @@ void main() {
         expect(find.text('Equipes de Projeto'), findsOneWidget);
         expect(find.text('Média geral'), findsOneWidget);
 
-        // Verify DocenteFooter is rendered
+        // Verifica se DocenteFooter é renderizado
         expect(find.byType(DocenteFooter), findsOneWidget);
         expect(find.text('© 2026 AGMRM'), findsOneWidget);
 
-        // Switch to Equipes de Projeto (tab index 7) to verify footer layout in short content
+        // Alterna para Equipes de Projeto (índice de aba 7) para verificar o layout do rodapé em conteúdo curto
         await tester.tap(find.text('Equipes de Projeto'));
         await tester.pumpAndSettle();
 
@@ -685,7 +685,7 @@ void main() {
         expect(find.text('Marcar Todos como Presentes'), findsOneWidget);
         expect(find.byType(DocenteFooter), findsOneWidget);
 
-        // Tap Marcar Todos como Presentes
+        // Toca em Marcar Todos como Presentes
         await tester.tap(find.text('Marcar Todos como Presentes'));
         await tester.pumpAndSettle();
 
@@ -693,7 +693,7 @@ void main() {
         expect(find.text('Faltas: 0'), findsOneWidget);
         expect(find.text('Justificadas: 0'), findsOneWidget);
 
-        // Tap Salvar e Homologar Aula
+        // Toca em Salvar e Homologar Aula
         await tester.ensureVisible(find.text('Salvar e Homologar Aula'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Salvar e Homologar Aula'));
@@ -702,7 +702,7 @@ void main() {
         expect(controller.currentSession.isHomologated, isTrue);
         expect(find.text('Homologado no Sistema'), findsOneWidget);
 
-        // Scroll back up and navigate to previous session via chevron left
+        // Rola de volta para cima e navega para a aula anterior pela seta à esquerda
         await tester.ensureVisible(find.byIcon(Icons.chevron_left));
         await tester.pumpAndSettle();
         await tester.tap(find.byIcon(Icons.chevron_left));
@@ -714,7 +714,7 @@ void main() {
           findsOneWidget,
         );
 
-        // Open ClassSessionPickerModal via Trocar Aula
+        // Abre o ClassSessionPickerModal por meio de Trocar Aula
         await tester.tap(find.text('Trocar Aula'));
         await tester.pumpAndSettle();
 
@@ -724,7 +724,7 @@ void main() {
         );
         expect(find.text('Abrir Calendário Interativo'), findsOneWidget);
 
-        // Tap on Aula 25 inside modal to select it
+        // Toca na Aula 25 dentro do modal para selecioná-la
         await tester.tap(find.text('23 de Setembro de 2026 (Quarta-feira)'));
         await tester.pumpAndSettle();
 
@@ -749,12 +749,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Default subtab is Perfil Docente
+        // A subaba padrão é Perfil Docente
         expect(find.text('Configurações da Conta Docente'), findsOneWidget);
         expect(find.text('Perfil Docente'), findsWidgets);
         expect(find.text('Identidade Visual & Foto'), findsOneWidget);
 
-        // Switch to Notificações
+        // Alterna para Notificações
         await tester.tap(find.text('Notificações Institucionais'));
         await tester.pumpAndSettle();
 
@@ -765,7 +765,7 @@ void main() {
         );
         expect(find.text('Salvar Preferências de Notificação'), findsOneWidget);
 
-        // Switch to Preferências do Sistema
+        // Alterna para Preferências do Sistema
         await tester.tap(find.text('Preferências do Sistema'));
         await tester.pumpAndSettle();
 
@@ -777,7 +777,7 @@ void main() {
         );
         expect(find.text('Salvar Preferências do Sistema'), findsOneWidget);
 
-        // Switch to Privacidade & LGPD
+        // Alterna para Privacidade & LGPD
         await tester.tap(find.text('Privacidade & LGPD'));
         await tester.pumpAndSettle();
 
@@ -793,7 +793,7 @@ void main() {
         expect(find.text('Arquivo JSON'), findsOneWidget);
         expect(find.text('Relatório (.txt)'), findsOneWidget);
 
-        // Security controls use the controller action to keep only this session.
+        // Os controles de segurança usam a ação do controlador para manter apenas esta sessão.
         await tester.tap(find.text('Segurança & Acessos'));
         await tester.pumpAndSettle();
         final sessionsBefore = controller.profile.activeSessions.length;
@@ -843,7 +843,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 1. Edge-to-edge row hit-test: tap with horizontal offset away from center
+        // 1. Teste de toque de ponta a ponta na linha: toca com deslocamento horizontal fora do centro
         final turmasTile = find.byKey(const Key('docente_sidebar_item_turmas'));
         expect(turmasTile, findsOneWidget);
         await tester.tapAt(tester.getCenter(turmasTile) + const Offset(-60, 0));
@@ -851,19 +851,19 @@ void main() {
         expect(controller.activeTab, DocenteNavTab.turmas);
         expect(find.text('Disciplinas'), findsOneWidget);
 
-        // 2. Floating toggle collapse button works seamlessly without getting swallowed
+        // 2. O botão flutuante de recolher/expandir funciona perfeitamente sem ser bloqueado
         final toggleBtn = find.byKey(const Key('sidebar_toggle_collapse_btn'));
         expect(toggleBtn, findsOneWidget);
         await tester.tap(toggleBtn);
         await tester.pumpAndSettle();
         expect(controller.isSidebarCollapsed, isTrue);
 
-        // Tap again to expand
+        // Toca novamente para expandir
         await tester.tap(toggleBtn);
         await tester.pumpAndSettle();
         expect(controller.isSidebarCollapsed, isFalse);
 
-        // 3. Narrow viewport: Drawer opens and auto-closes on item selection
+        // 3. Viewport estreita: a gaveta abre e fecha automaticamente ao selecionar um item
         tester.view.physicalSize = const Size(900, 900);
         await tester.pumpAndSettle();
 
@@ -872,7 +872,7 @@ void main() {
         await tester.tap(openDrawerBtn);
         await tester.pumpAndSettle();
 
-        // Verify drawer opened with sidebar items and tapping closes drawer
+        // Verifica se a gaveta abriu com os itens da barra lateral e se o toque fecha a gaveta
         final configTile = find.byKey(
           const Key('docente_sidebar_item_configuracoes'),
         );
@@ -880,7 +880,7 @@ void main() {
         await tester.tap(configTile);
         await tester.pumpAndSettle();
 
-        // Drawer must be closed and activeTab switched to configuracoes
+        // A gaveta deve estar fechada e activeTab alternada para configuracoes
         expect(controller.activeTab, DocenteNavTab.configuracoes);
         expect(find.text('Configurações da Conta Docente'), findsOneWidget);
         expect(tester.takeException(), isNull);
