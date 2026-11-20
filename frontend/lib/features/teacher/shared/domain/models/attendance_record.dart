@@ -1,12 +1,12 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Status of student attendance in a class session.
+/// Status de frequência do discente em uma sessão de aula.
 enum AttendanceStatus { presente, ausente, justificada }
 
-/// Risk level based on accumulated student absences.
+/// Nível de risco com base nas faltas acumuladas do discente.
 enum AttendanceRiskLevel { regular, atencao, critico }
 
-/// Represents a student's attendance record for a specific class session.
+/// Representa o registro de frequência de um discente em uma sessão de aula específica.
 class AttendanceStudent {
   final String studentId;
   final String ra;
@@ -59,7 +59,7 @@ class AttendanceStudent {
   }
 }
 
-/// Represents a formal class diary session complying with MEC regulations.
+/// Representa uma sessão formal do diário de classe em conformidade com as normas do MEC.
 class ClassSession {
   final String id;
   final String courseId;
