@@ -38,7 +38,7 @@ class _DocentePrivacyLgpdCardState extends State<DocentePrivacyLgpdCard> {
         _mostrarStatusPresenca = preferences['showPresenceStatus'] != false;
       });
     } catch (_) {
-      // Preferences remain at their neutral defaults when unavailable.
+      // As preferências permanecem em seus valores padrão neutros quando indisponíveis.
     }
   }
 
