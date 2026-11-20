@@ -13,9 +13,9 @@ class SystemPreferencesTab extends StatefulWidget {
 }
 
 class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
-  int _selectedThemeIndex = 0; // 0: Light, 1: Dark, 2: OS
-  int _typographyIndex = 0; // 0: Normal, 1: Medium (+10%), 2: Large (+20%)
-  int _densityIndex = 0; // 0: Comfortable, 1: Compact
+  int _selectedThemeIndex = 0; // 0: Claro, 1: Escuro, 2: SO
+  int _typographyIndex = 0; // 0: Normal, 1: Média (+10%), 2: Grande (+20%)
+  int _densityIndex = 0; // 0: Confortável, 1: Compacto
 
   bool _highContrast = false;
   bool _reduceMotion = false;
@@ -27,7 +27,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. Appearance & Theme
+        // 1. Aparência e Tema
         _buildSectionCard(
           title: 'Aparência & Tema',
           subtitle:
@@ -96,7 +96,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
 
         const SizedBox(height: 20),
 
-        // 2. Accessibility & Reading
+        // 2. Acessibilidade e Leitura
         _buildSectionCard(
           title: 'Acessibilidade & Leitura',
           subtitle:
@@ -131,7 +131,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
               const Divider(height: 1, color: InstColors.border),
               const SizedBox(height: 18),
 
-              // Accessibility Toggles
+              // Alternadores de Acessibilidade
               _buildToggleRow(
                 title: 'Modo de Alto Contraste',
                 subtitle:
@@ -153,7 +153,7 @@ class _SystemPreferencesTabState extends State<SystemPreferencesTab> {
 
         const SizedBox(height: 20),
 
-        // 3. Academic Calendar Preferences
+        // 3. Preferências do Calendário Acadêmico
         _buildSectionCard(
           title: 'Preferências do Calendário Acadêmico',
           subtitle:
