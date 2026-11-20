@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import { config } from "dotenv";
 import { setServers } from "node:dns";
 import { isIP } from "node:net";

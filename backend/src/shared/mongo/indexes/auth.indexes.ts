@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 import type { Db } from "mongodb";
 
 export async function ensureAuthIndexes(database: Db): Promise<void> {

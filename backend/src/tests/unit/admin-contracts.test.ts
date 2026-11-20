@@ -1,3 +1,4 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 // Testes unitários dos contratos das APIs Admin após correções da visão administrativa.
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";

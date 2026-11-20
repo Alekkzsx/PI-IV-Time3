@@ -1,4 +1,4 @@
-// Desenvolvido por: Rafael Henrique dos Santos Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 import type { Db } from "mongodb";
 
 export class StudentCalendarService {

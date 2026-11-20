@@ -1,3 +1,5 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+
 import 'package:flutter/material.dart';
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_notice.dart';

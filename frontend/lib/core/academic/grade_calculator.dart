@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 /// Espelho frontend dos parâmetros regimentais configurados em `admin_settings`.
 class AcademicThresholds {
   final double minimumGrade;

@@ -1,4 +1,4 @@
-// Desenvolvido por Alex Gabriel Soares Sousa, Marcelo Zarpelon e Guilherme Henrique Moreira
+// Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449, Marcelo Zarpelon - RA: 25015323 e Guilherme Henrique Moreira - RA: 25006702
 // Executor unificado das 17 suites de teste nativas em Java SE puro (sem JUnit)
 
 import auth.HandlerLifecycleTeste;

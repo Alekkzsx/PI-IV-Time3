@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 import 'authenticated_api_client.dart';
 import '../state/app_user_session.dart';
 

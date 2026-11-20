@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Export central da camada compartilhada do módulo Docente
 
 export 'controllers/docente_controller.dart';

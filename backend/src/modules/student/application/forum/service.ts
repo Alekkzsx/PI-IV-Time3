@@ -1,4 +1,4 @@
-// Desenvolvido por: Rafael Henrique dos Santos Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 import { randomUUID } from "node:crypto";
 import { ObjectId, type Db, type Document } from "mongodb";
 import { AuthError } from "../../../../shared/auth-error.js";

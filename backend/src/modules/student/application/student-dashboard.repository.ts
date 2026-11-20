@@ -1,4 +1,4 @@
-// Desenvolvido por: Rafael Henrique dos Santos Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 import { ObjectId, type Db, type Document } from "mongodb";
 import { isAnnouncementVisibleToRole } from "../../../shared/academic/grade-formula.js";
 

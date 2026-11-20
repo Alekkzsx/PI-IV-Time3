@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import type { ClientSession, Db } from "mongodb";
 
 export async function transaction<T>(database: Db, work: (session: ClientSession) => Promise<T>): Promise<T> {

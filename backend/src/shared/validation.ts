@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 import { AuthError } from "./auth-error.js";

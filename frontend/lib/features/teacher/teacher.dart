@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Export mestre do ecossistema docente para o frontend
 
 export 'shared/shared.dart';

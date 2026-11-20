@@ -1,3 +1,5 @@
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+
 package auth;
 
 import auth.model.UsuarioAutenticado;

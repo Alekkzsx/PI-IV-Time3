@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import { fileURLToPath } from "node:url";
 import type { Db } from "mongodb";
 import { withSeedDatabase, handleSeedError } from "./shared/seed.runner.js";

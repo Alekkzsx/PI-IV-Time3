@@ -1,4 +1,4 @@
-// Desenvolvido por Rafael Henrique dos Santos Inácio - RA: 25009719
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 
 import 'dart:convert';
 import '../../../../core/academic/grade_calculator.dart';

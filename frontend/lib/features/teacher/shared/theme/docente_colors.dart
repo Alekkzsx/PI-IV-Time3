@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 // Atualizado com fidelidade estrita aos tokens institucionais (InstColors)
 
 import 'package:flutter/material.dart';

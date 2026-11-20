@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 const WEEKDAY_NAMES = [
   "Domingo",
   "Segunda-feira",

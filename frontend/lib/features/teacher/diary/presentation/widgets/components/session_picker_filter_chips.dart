@@ -1,3 +1,4 @@
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 // Componente atômico para filtros de status de sessões de aula
 
 import 'package:flutter/material.dart';

@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Design system modular para o AVA Docente (alinhado ao ecossistema institucional AGMRM).
 
 import 'package:flutter/material.dart';

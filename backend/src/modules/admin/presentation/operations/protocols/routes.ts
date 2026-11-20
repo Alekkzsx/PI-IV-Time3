@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import { randomUUID } from "node:crypto";
 import type { Router } from "express";
 import { type Db, type Document } from "mongodb";

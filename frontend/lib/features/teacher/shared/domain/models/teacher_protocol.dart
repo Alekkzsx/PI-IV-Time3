@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Modelo de domínio para requerimentos acadêmicos das turmas do docente
 
 enum TeacherProtocolStatus { deferido, pendente, indeferido }

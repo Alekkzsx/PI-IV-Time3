@@ -1,4 +1,4 @@
-// Desenvolvido por Marcelo Zarpelon
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 package videocall.modules.hub;
 
 import utils.Json;

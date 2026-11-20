@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import 'package:flutter/material.dart';
 import '../../../../core/network/authenticated_api_client.dart';
 import '../../../../core/state/app_user_session.dart';

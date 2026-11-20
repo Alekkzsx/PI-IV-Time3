@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import { ObjectId, type Db } from "mongodb";
 import { createSeedHelpers, SEED_TAG } from "../shared/seed.runner.js";
 import type { SeedModule, SeedSummary } from "../shared/seed.types.js";

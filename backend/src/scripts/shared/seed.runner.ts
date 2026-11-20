@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import "../../config/local-environment.js";
 import { setServers } from "node:dns";
 import { isIP } from "node:net";

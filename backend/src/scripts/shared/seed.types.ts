@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import type { Db } from "mongodb";
 
 export type SeedStats = { created: number; reused: number };

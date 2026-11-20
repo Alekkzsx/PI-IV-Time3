@@ -1,4 +1,4 @@
-// Desenvolvido por: Rafael Henrique dos Santos Inácio
+// Desenvolvido por Rafael Henrique Inácio - RA: 25009719
 import { createHash } from "node:crypto";
 import type { Document } from "mongodb";
 import { sanitizeRoomCode } from "../../../shared/formatting/room-code.js";

@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import type { ClientSession, Db, Document } from "mongodb";
 import { ObjectId } from "mongodb";
 import { transaction } from "../../../shared/transaction.js";

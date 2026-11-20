@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 /// Resolvedor centralizado das URLs dos serviços HTTP/WebSocket do ecossistema AGMRM.
 ///
 /// Respeita `--dart-define` quando explícito e, na execução Web (`http`/`https`),

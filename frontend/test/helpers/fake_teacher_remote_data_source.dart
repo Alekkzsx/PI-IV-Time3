@@ -1,3 +1,5 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+
 import 'package:pi_iv_time3/core/network/auth_profile_remote_data_source.dart';
 import 'package:pi_iv_time3/features/teacher/shared/data/teacher_remote_data_source.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/academic_event.dart';

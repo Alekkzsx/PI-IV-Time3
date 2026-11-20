@@ -1,3 +1,4 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 // Modelos de domínio reais do Portal Administrativo (Coordenação & Secretaria).
 
 class AdminUserModel {

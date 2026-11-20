@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import bcrypt from "bcryptjs";
 import type { Db, Document } from "mongodb";
 import { createSeedHelpers, SEED_TAG } from "../shared/seed.runner.js";

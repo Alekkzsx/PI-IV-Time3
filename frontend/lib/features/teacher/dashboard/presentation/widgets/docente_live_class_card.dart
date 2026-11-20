@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 // Refatorado por Alex Gabriel Soares Sousa - RA: 24802449
 // Aula do Dia do Painel Geral - Padrão estético idêntico às referências
 // Dados 100% tratados no backend/MongoDB

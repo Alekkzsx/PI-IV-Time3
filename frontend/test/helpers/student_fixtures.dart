@@ -1,3 +1,5 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+
 import 'package:pi_iv_time3/features/student/shared/models/models.dart';
 
 class StudentFixtures {

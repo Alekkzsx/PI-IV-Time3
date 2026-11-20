@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 import type { Router } from "express";
 import type { Db, Document } from "mongodb";
 import { z } from "zod";

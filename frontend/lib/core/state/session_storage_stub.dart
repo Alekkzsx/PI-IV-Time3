@@ -1,3 +1,5 @@
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+
 final Map<String, String> _memoryStore = <String, String>{};
 
 class SessionStorage {

@@ -1,4 +1,5 @@
-// Desenvolvido por Marcelo Zarpelon e adaptado para Java SE puro (Java 8+)
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
+// Adaptado para Java SE puro (Java 8+)
 
 package utils;
 

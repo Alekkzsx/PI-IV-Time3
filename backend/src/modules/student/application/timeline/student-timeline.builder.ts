@@ -1,3 +1,5 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+
 import type { Document } from "mongodb";
 
 export type TimelineItemKind = "assignment" | "forum" | "material" | "reminder";

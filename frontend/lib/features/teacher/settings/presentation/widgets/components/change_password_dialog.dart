@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Componente atômico para diálogo de alteração de senha institucional
 
 import 'package:flutter/material.dart';

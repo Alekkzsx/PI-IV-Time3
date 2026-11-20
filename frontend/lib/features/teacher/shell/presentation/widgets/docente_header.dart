@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 // Atualizado com padronização institucional oficial (AGMRM AVA)
 
 import 'package:flutter/material.dart';

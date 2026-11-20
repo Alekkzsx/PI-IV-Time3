@@ -1,4 +1,4 @@
-// Desenvolvido por Guilherme Henrique Moreira e Alex Gabriel Soares Sousa - RA: 24802449
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702 e Alex Gabriel Soares Sousa - RA: 24802449
 // Aba de Turmas e Componentes Curriculares da Visão do Docente
 // Dados 100% tratados e entregues pelo backend/MongoDB
 

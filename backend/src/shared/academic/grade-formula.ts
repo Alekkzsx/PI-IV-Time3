@@ -1,3 +1,5 @@
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
+
 import type { Document } from "mongodb";
 
 export type GradeCalculationMode = "ponderada" | "equitativa" | "aritmetica";

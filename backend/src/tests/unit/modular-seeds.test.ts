@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Guilherme Henrique Moreira - RA: 25006702
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ObjectId, type Db, type Document } from "mongodb";

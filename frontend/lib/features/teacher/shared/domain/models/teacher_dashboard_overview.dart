@@ -1,4 +1,4 @@
-// Desenvolvido por Time 3 - PI IV
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Modelos imutáveis do Painel Geral do Portal Docente (dados 100% vindos do backend/MongoDB)
 
 class TeacherHeroInfo {

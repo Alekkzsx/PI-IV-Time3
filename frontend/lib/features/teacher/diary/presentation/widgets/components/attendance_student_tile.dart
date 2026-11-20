@@ -1,3 +1,4 @@
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 // Componente atômico para exibição da linha de presença discente
 
 import 'package:flutter/material.dart';

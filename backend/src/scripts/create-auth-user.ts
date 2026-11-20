@@ -1,3 +1,5 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
+
 import "../config/local-environment.js";
 import bcrypt from "bcryptjs";
 import { createInterface } from "node:readline/promises";

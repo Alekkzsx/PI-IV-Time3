@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Export central de todos os modelos de domínio do módulo Docente
 
 export 'academic_event.dart';

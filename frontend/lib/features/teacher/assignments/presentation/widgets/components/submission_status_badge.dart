@@ -1,3 +1,4 @@
+// Desenvolvido por Murillo Caravita - RA: 25014012
 // Componente atômico para exibição padronizada de status de submissão discente
 
 import 'package:flutter/material.dart';

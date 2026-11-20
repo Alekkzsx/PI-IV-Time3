@@ -1,3 +1,4 @@
+// Desenvolvido por Marcelo Zarpelon - RA: 25015323
 // Componente atômico para cabeçalho regulatório MEC do plano de aula docente
 
 import 'package:flutter/material.dart';
