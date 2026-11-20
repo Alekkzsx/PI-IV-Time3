@@ -3,16 +3,16 @@
 package security.policies;
 
 /**
- * Policy enforcing opaque, anti-enumeration user feedback across authentication,
- * credential recovery, input validation, and server error handling.
+ * Política que impõe feedback opaco e anti-enumeração ao usuário em autenticação,
+ * recuperação de credenciais, validação de entrada e tratamento de erros no servidor.
  */
 public final class GenericFeedbackPolicy {
 
     private GenericFeedbackPolicy() {
-        // Prevent instantiation
+        // Impedir instanciação
     }
 
-    // ─── VERBATIM STATIC MESSAGES ───
+    // ─── MENSAGENS ESTÁTICAS LITERAIS ───
 
     public static final String AUTH_FAILURE_MESSAGE =
         "Credenciais inválidas. Verifique seu identificador e senha.";
@@ -63,10 +63,10 @@ public final class GenericFeedbackPolicy {
     public static final String ACCOUNT_LOCKED_MESSAGE =
         "Acesso temporariamente bloqueado por excesso de tentativas.";
 
-    // ─── DYNAMIC FORMATTING HELPERS ───
+    // ─── AUXILIARES DE FORMATAÇÃO DINÂMICA ───
 
     /**
-     * Generates the standardized lockout message with the exact remaining seconds.
+     * Gera a mensagem padronizada de bloqueio com a quantidade exata de segundos restantes.
      */
     public static String getLockoutMessage(int remainingSeconds) {
         int sanitized = Math.max(0, remainingSeconds);
@@ -75,7 +75,7 @@ public final class GenericFeedbackPolicy {
     }
 
     /**
-     * Generates the standardized countdown message displayed during active lockout banner.
+     * Gera a mensagem padronizada de contagem regressiva exibida no banner de bloqueio ativo.
      */
     public static String getLockoutCountdownMessage(int remainingSeconds) {
         int sanitized = Math.max(0, remainingSeconds);
@@ -83,7 +83,7 @@ public final class GenericFeedbackPolicy {
     }
 
     /**
-     * Generates the standardized invalid OTP code message with remaining attempts.
+     * Gera a mensagem padronizada de código OTP inválido com as tentativas restantes.
      */
     public static String getInvalidOtpCodeMessage(int remainingAttempts) {
         int sanitized = Math.max(0, remainingAttempts);
@@ -91,8 +91,8 @@ public final class GenericFeedbackPolicy {
     }
 
     /**
-     * Sanitizes an incoming error or exception object to prevent leaking
-     * internal database errors, missing user exceptions, or JVM stack traces to the UI.
+     * Sanitiza um erro ou objeto de exceção recebido para evitar o vazamento de
+     * erros internos de banco de dados, exceções de usuário inexistente ou stack traces da JVM para a UI.
      */
     public static String sanitizeErrorMessage(Throwable error) {
         if (error == null) {
@@ -102,8 +102,8 @@ public final class GenericFeedbackPolicy {
     }
 
     /**
-     * Sanitizes an incoming error string to prevent leaking internal details.
-     * Standardizes output into opaque, anti-enumeration categories.
+     * Sanitiza uma string de erro recebida para evitar o vazamento de detalhes internos.
+     * Padroniza a saída em categorias opacas e anti-enumeração.
      */
     public static String sanitizeErrorMessage(String error) {
         if (error == null) {
@@ -115,7 +115,7 @@ public final class GenericFeedbackPolicy {
         }
         String message = raw.toLowerCase();
 
-        // 1. Account Lockout & Login Rate Limiting (Authentication Context)
+        // 1. Bloqueio de Conta e Limitação de Taxa de Login (Contexto de Autenticação)
         if (message.contains("bloque") ||
             message.contains("lockout") ||
             message.contains("temporariamente") ||
@@ -127,14 +127,14 @@ public final class GenericFeedbackPolicy {
             return ACCOUNT_LOCKED_MESSAGE;
         }
 
-        // 2. Ephemeral Token Expiration (Recovery Context)
+        // 2. Expiração de Token Efêmero (Contexto de Recuperação)
         if (message.contains("expir")) {
             return TOKEN_EXPIRED_MESSAGE;
         }
 
-        // 3. Verification Code / OTP Attempts & Session Revocation (Recovery Context)
-        // Context-scoped: requires verification/OTP keywords together with attempt/exhaustion keywords,
-        // or explicit revocation terms. Never leaks into pure authentication/login workflows.
+        // 3. Tentativas de Código de Verificação / OTP e Revogação de Sessão (Contexto de Recuperação)
+        // Com escopo de contexto: requer palavras-chave de verificação/OTP junto com palavras-chave de tentativa/esgotamento,
+        // ou termos explícitos de revogação. Nunca vaza para fluxos puros de autenticação/login.
         boolean hasOtpContext = message.contains("codigo") ||
             message.contains("código") ||
             message.contains("otp") ||
@@ -149,7 +149,7 @@ public final class GenericFeedbackPolicy {
             return TOKEN_REVOKED_MESSAGE;
         }
 
-        // 4. Password Entropy & Minimum Complexity (Password Context)
+        // 4. Entropia de Senha e Complexidade Mínima (Contexto de Senha)
         if (message.contains("senha") &&
             (message.contains("fraca") ||
              message.contains("fraco") ||
@@ -160,7 +160,7 @@ public final class GenericFeedbackPolicy {
             return PASSWORD_TOO_WEAK_MESSAGE;
         }
 
-        // 5. Payload Bounds & Size Limits (Transport / Middleware Context)
+        // 5. Limites de Payload e Tamanho (Contexto de Transporte / Middleware)
         if (message.contains("tamanho") ||
             message.contains("payload") ||
             message.contains("64") ||
@@ -169,7 +169,7 @@ public final class GenericFeedbackPolicy {
             return INVALID_PAYLOAD_MESSAGE;
         }
 
-        // 6. Default catch-all anti-enumeration fallback
+        // 6. Fallback genérico padrão anti-enumeração
         return AUTH_FAILURE_MESSAGE;
     }
 }
