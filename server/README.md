@@ -1,98 +1,98 @@
-# Server — Zero-Dependency Native Java HTTP & WebSocket Server (AGMRM)
+# Server — Servidor HTTP e WebSocket Nativo em Java sem Dependências (AGMRM)
 
-> **Core Server Module**: `.../PI-IV-Time3/server/`  
-> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
-> **Engineering Standards**: Pure Java SE standard library (Java 8+), Zero external dependencies, Deterministic TCP sockets & RFC 6455 WebSockets, Clean OO Architecture (`abstratas/` + `modules/` + `utils/`)
+> **Módulo Principal do Servidor**: `.../PI-IV-Time3/server/`  
+> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
+> **Padrões de Engenharia**: Biblioteca padrão Java SE pura (Java 8+), zero dependências externas, sockets TCP determinísticos e WebSockets RFC 6455, Arquitetura OO Limpa (`abstratas/` + `modules/` + `utils/`)
 
-The `server` module contains the native, autonomous, and high-performance HTTP & WebSocket server developed for the **Integrated Educational Platform AGMRM** (*PI-IV Team 3*).
+O módulo `server` contém o servidor HTTP e WebSocket nativo, autônomo e de alto desempenho desenvolvido para a **Plataforma Educacional Integrada AGMRM** (*PI-IV Time 3*).
 
-It operates 100% on the **Java SE standard library** (compiled with `--release 8`, compatible with Java 8 through 25) with zero heavy frameworks (no Spring, Quarkus, Maven, JUnit, or Tomcat).
+Ele opera 100% sobre a **biblioteca padrão do Java SE** (compilado com `--release 8`, compatível do Java 8 ao 25) sem frameworks pesados (sem Spring, Quarkus, Maven, JUnit ou Tomcat).
 
-**Primary Responsibilities (Bounded Context on Port `8080`)**:
-- **Authoritative Identity & Access Management**: Complete login system (PBKDF2/BCrypt verification, JWT HS256 access/refresh/recovery tokens, 2FA + backup codes, single-use OTP recovery, password change, profile/preferences/sessions/LGPD export, and admin user management + teacher provisioning)
-- **Video Conferencing & Real-Time Signaling**: Persisted rooms and single-use WebSocket tickets (`academic_live_sessions`, `video_call_ws_tickets`, `video_call_attendance_logs`) via `/api/video-call/rooms*`, RFC 6455 `/ws/video-call/{roomCode}`, chat sync, and legacy `/api/videocall/*` telemetry
-- **Internal Bridge Consumer**: Calls `backend/` (`:3001`) at `/api/internal/academic/*` with `X-Internal-Service-Secret` (`ClientePonteAcademica`) to authorize academic class membership, list allowed classrooms, and fetch LGPD/dossier academic summaries
+**Responsabilidades Principais (Contexto Delimitado na Porta `8080`)**:
+- **Gestão Autoritativa de Identidade e Acesso**: Sistema completo de login (verificação PBKDF2/BCrypt, tokens JWT HS256 de acesso/atualização/recuperação, 2FA + códigos de backup, recuperação com OTP de uso único, troca de senha, exportação de perfil/preferências/sessões/LGPD e gerenciamento administrativo de usuários + provisionamento de docentes)
+- **Videoconferência e Sinalização em Tempo Real**: Salas persistidas e tickets WebSocket de uso único (`academic_live_sessions`, `video_call_ws_tickets`, `video_call_attendance_logs`) via `/api/video-call/rooms*`, `/ws/video-call/{roomCode}` em RFC 6455, sincronização de chat e telemetria legada em `/api/videocall/*`
+- **Consumidor da Ponte Interna**: Chama `backend/` (`:3001`) em `/api/internal/academic/*` com `X-Internal-Service-Secret` (`ClientePonteAcademica`) para autorizar vínculo acadêmico em turmas, listar salas permitidas e buscar resumos acadêmicos para LGPD/dossiê
 
 ---
 
-## 🏛️ Modular OO Architecture (`abstratas/` + `modules/` + `utils/`)
+## 🏛️ Arquitetura OO Modular (`abstratas/` + `modules/` + `utils/`)
 
-Every major domain (`core`, `auth`, `videocall`) follows the same predictable, self-documenting structure:
-- **`abstratas/`** — Abstract base classes implementing *Template Method*, *Strategy/Chain of Responsibility* and polymorphic HTTP error handling.
-- **`modules/`** — Cohesive concrete modules grouped by feature (each file focused on a single responsibility).
-- **`utils/`** — Reusable helper functions and cryptographic primitives shared across modules.
+Cada domínio principal (`core`, `auth`, `videocall`) segue a mesma estrutura previsível e autodocumentada:
+- **`abstratas/`** — Classes base abstratas implementando *Template Method*, *Strategy/Chain of Responsibility* e tratamento polimórfico de erros HTTP.
+- **`modules/`** — Módulos concretos coesos agrupados por funcionalidade (cada arquivo focado em uma única responsabilidade).
+- **`utils/`** — Funções auxiliares reutilizáveis e primitivas criptográficas compartilhadas entre módulos.
 
 ```text
 .../PI-IV-Time3/server/
-├── bin/                                              # Compiled Java 8 bytecode (.class)
-├── lib/                                              # MongoDB Java Sync Driver JARs
+├── bin/                                              # Bytecode Java 8 compilado (.class)
+├── lib/                                              # JARs do MongoDB Java Sync Driver
 ├── src/
-│   ├── Main.java                                     # Central route index (Saude, Auth, Admin, VideoCall)
-│   ├── utils/                                        # Global reusable utilities
-│   │   ├── BsonUtils.java                            # Document <-> Map/List recursive conversion
-│   │   ├── ConfigEnv.java                            # Master root .env reader
-│   │   ├── Json.java                                 # Full RFC 8259 JSON parser/serializer
-│   │   ├── JsonSimples.java                          # String escaping & flat JSON helper
-│   │   └── RedeUtils.java                            # Stream UTF-8, URL encode, IP extraction, loopback
-│   ├── core/                                         # Native HTTP socket engine & MongoDB infrastructure
+│   ├── Main.java                                     # Índice central de rotas (Saude, Auth, Admin, VideoCall)
+│   ├── utils/                                        # Utilitários globais reutilizáveis
+│   │   ├── BsonUtils.java                            # Conversão recursiva Document <-> Map/List
+│   │   ├── ConfigEnv.java                            # Leitor mestre do .env da raiz
+│   │   ├── Json.java                                 # Parser/serializador JSON completo (RFC 8259)
+│   │   ├── JsonSimples.java                          # Escape de strings e auxiliar JSON plano
+│   │   └── RedeUtils.java                            # Stream UTF-8, codificação URL, extração de IP, loopback
+│   ├── core/                                         # Motor de sockets HTTP nativo e infraestrutura MongoDB
 │   │   ├── abstratas/
-│   │   │   ├── ExcecaoHttpAbstrata.java              # Polymorphic HTTP exception base (statusHttp + codigo)
+│   │   │   ├── ExcecaoHttpAbstrata.java              # Base polimórfica de exceções HTTP (statusHttp + codigo)
 │   │   │   ├── HandlerHttpAbstrato.java              # Template Method HTTP (CORS, OPTIONS, 405, catch)
-│   │   │   └── RepositorioMongoAbstrato.java         # Template Method MongoDB (indexes, failover, errors)
-│   │   ├── ConexaoMongo.java                         # MongoClient, SRV->Direct failover & health cache
-│   │   ├── DatabaseUnavailableException.java         # 503 exception for DNS/network blocked MongoDB
-│   │   ├── HealthHandler.java                        # GET /health and /health/ready
-│   │   ├── HttpUtils.java                            # CORS & defensive security headers
-│   │   ├── ManipuladorHttp.java                      # HTTP handler contract interface
-│   │   ├── RequisicaoHttp.java                       # TCP socket HTTP/1.1 request parser
-│   │   ├── ResilientDnsClient.java                   # JNDI + DNS-over-HTTPS (DoH) resolver
-│   │   ├── RespostaHttp.java                         # Native HTTP/1.1 response writer
-│   │   └── ServidorHttpNativo.java                   # ServerSocket, ThreadPool, routing & WS upgrade
-│   ├── auth/                                         # Identity, sessions, account, admin & resilient e-mail
+│   │   │   └── RepositorioMongoAbstrato.java         # Template Method MongoDB (índices, failover, erros)
+│   │   ├── ConexaoMongo.java                         # MongoClient, failover SRV->Direct e cache de saúde
+│   │   ├── DatabaseUnavailableException.java         # Exceção 503 para MongoDB bloqueado por DNS/rede
+│   │   ├── HealthHandler.java                        # GET /health e /health/ready
+│   │   ├── HttpUtils.java                            # CORS e cabeçalhos defensivos de segurança
+│   │   ├── ManipuladorHttp.java                      # Interface de contrato do handler HTTP
+│   │   ├── RequisicaoHttp.java                       # Parser de requisições HTTP/1.1 em socket TCP
+│   │   ├── ResilientDnsClient.java                   # Resolvedor JNDI + DNS-over-HTTPS (DoH)
+│   │   ├── RespostaHttp.java                         # Escritor nativo de respostas HTTP/1.1
+│   │   └── ServidorHttpNativo.java                   # ServerSocket, ThreadPool, roteamento e upgrade WS
+│   ├── auth/                                         # Identidade, sessões, conta, admin e e-mail resiliente
 │   │   ├── abstratas/
-│   │   │   ├── HandlerAutenticadoAbstrato.java       # Mandatory JWT + MongoDB session guard
-│   │   │   ├── HandlerAuthPublicoAbstrato.java       # Shared token/session issuance for public auth flows
-│   │   │   ├── AdminHandlerAbstrato.java             # Mandatory admin RBAC + bridge + write-guard
-│   │   │   ├── CanalEnvioEmailAbstrato.java          # Resilient e-mail channel contract (Tier 1/2/3)
-│   │   │   ├── CanalHttpsEmailAbstrato.java          # Shared HTTPS POST JSON transport (Tier 2)
-│   │   │   └── TemplateEmailAbstrato.java            # Single institutional HTML layout + XSS escaping
+│   │   │   ├── HandlerAutenticadoAbstrato.java       # Guarda obrigatória de JWT + sessão no MongoDB
+│   │   │   ├── HandlerAuthPublicoAbstrato.java       # Emissão compartilhada de token/sessão para fluxos públicos
+│   │   │   ├── AdminHandlerAbstrato.java             # RBAC admin obrigatório + ponte + guarda de escrita
+│   │   │   ├── CanalEnvioEmailAbstrato.java          # Contrato resiliente de canal de e-mail (Camadas 1/2/3)
+│   │   │   ├── CanalHttpsEmailAbstrato.java          # Transporte JSON HTTPS POST compartilhado (Camada 2)
+│   │   │   └── TemplateEmailAbstrato.java            # Layout HTML institucional único + escape contra XSS
 │   │   ├── model/
-│   │   │   └── UsuarioAutenticado.java               # Authenticated identity model
+│   │   │   └── UsuarioAutenticado.java               # Modelo de identidade autenticada
 │   │   ├── utils/
-│   │   │   ├── AuthHttpUtils.java                    # Email masking, constant latency, user/profile DTOs
-│   │   │   ├── BCrypt.java                           # Standard Blowfish/BCrypt implementation
-│   │   │   ├── JwtAuthValidator.java                 # HS256 JWT validation + MongoDB session check
-│   │   │   ├── JwtGerador.java                       # Unified HS256 token generator (access/refresh/recovery)
-│   │   │   ├── LimitadorTentativas.java              # Progressive anti-brute-force rate limiter
-│   │   │   ├── OtpService.java                       # 6-digit SecureRandom OTP + HMAC-SHA256 + SHA-256
-│   │   │   ├── RevogacaoTokens.java                  # In-memory JTI revocation blacklist
-│   │   │   └── SenhaHasher.java                      # PBKDF2WithHmacSHA256 (600k) + BCrypt verification
+│   │   │   ├── AuthHttpUtils.java                    # Mascaramento de e-mail, latência constante, DTOs de usuário/perfil
+│   │   │   ├── BCrypt.java                           # Implementação padrão Blowfish/BCrypt
+│   │   │   ├── JwtAuthValidator.java                 # Validação JWT HS256 + verificação de sessão no MongoDB
+│   │   │   ├── JwtGerador.java                       # Gerador unificado de tokens HS256 (acesso/atualização/recuperação)
+│   │   │   ├── LimitadorTentativas.java              # Limitador progressivo contra força bruta
+│   │   │   ├── OtpService.java                       # OTP de 6 dígitos SecureRandom + HMAC-SHA256 + SHA-256
+│   │   │   ├── RevogacaoTokens.java                  # Lista de revogação JTI em memória
+│   │   │   └── SenhaHasher.java                      # Verificação PBKDF2WithHmacSHA256 (600k) + BCrypt
 │   │   └── modules/
 │   │       ├── login/                                # LoginHandler, TwoFactorHandler, RefreshTokenHandler, LogoutHandler, AuthSessionHandler
 │   │       ├── conta/                                # ProfileAccountHandler, ProfileHandler, AccountSecurityHandler, ChangePasswordHandler, RecoveryHandler
 │   │       ├── admin/                                # AdminUsersHandler, AdminUserCrudHandler, AdminUserSecurityHandler, AdminUserDossierHandler, AdminTeacherHandler, EmailDiagnosticHandler
 │   │       ├── persistencia/                         # RepositorioUsuarios (Facade), RepositorioContas, RepositorioSessoes, RepositorioOtps, RepositorioAuditoria
 │   │       └── email/                                # SmtpCliente (Facade), MensagemEmail, CircuitBreakerSmtp, CanalSmtpNativo, CanalResendEmail, CanalBrevoEmail, CanalWebhookEmail, CanalOutboxLocal, TemplateEmail*
-│   ├── videocall/                                    # Video conferencing REST, persistence & WebRTC hub
+│   ├── videocall/                                    # REST de videoconferência, persistência e hub WebRTC
 │   │   ├── abstratas/
-│   │   │   └── HandlerVideoCallLegadoAbstrato.java   # Optional JWT + VideoCallService base handler
+│   │   │   └── HandlerVideoCallLegadoAbstrato.java   # Handler base com JWT opcional + VideoCallService
 │   │   ├── utils/
-│   │   │   └── VideoCallUtils.java                   # Room code sanitizer, participant resolution & attendance math
+│   │   │   └── VideoCallUtils.java                   # Sanitizador de código de sala, resolução de participante e cálculo de presença
 │   │   └── modules/
 │   │       ├── rooms/                                # VideoCallMongoHandler, RepositorioVideoCall, TicketWebSocketValidator
 │   │       ├── legado/                               # VideoCallService, VideoCallRoomHandler, VideoCallSignalingHandler, VideoCallInteractionHandler, VideoCallAttendanceHandler
 │   │       └── hub/                                  # SalaVideoHub, RegistradorChat, RegistradorEnvelope
-│   ├── bridge/                                       # Authenticated internal HTTP client (:3001)
+│   ├── bridge/                                       # Cliente HTTP interno autenticado (:3001)
 │   │   └── ClientePonteAcademica.java
-│   └── websocket/                                    # Pure RFC 6455 WebSocket engine
+│   └── websocket/                                    # Motor WebSocket RFC 6455 puro
 │       ├── AtendenteWebSocket.java
 │       ├── ConexaoWebSocket.java
 │       ├── HandshakeWebSocket.java
 │       ├── OuvinteWebSocket.java
 │       └── QuadroWebSocket.java
-└── tests/                                            # Zero-dependency Java test suites (17 suites)
+└── tests/                                            # Suítes de testes Java sem dependências (17 suítes)
     ├── SuiteTestesServidor.java
-    ├── auth/                                         # 9 auth/network/email suites
+    ├── auth/                                         # 9 suítes de auth/rede/e-mail
     ├── core/                                         # HttpUtilsCorsTeste + ArquiteturaAbstrataTeste
     ├── utils/                                        # ConfigEnvTeste + JsonTeste
     ├── videocall/hub/                                # HubTeste + RegistradorChatTeste
@@ -101,26 +101,26 @@ Every major domain (`core`, `auth`, `videocall`) follows the same predictable, s
 
 ---
 
-## 🧩 10 Abstract Classes (OO Pillars)
+## 🧩 10 Classes Abstratas (Pilares de OO)
 
-| Abstract Class | Package | Pattern | Responsibility |
+| Classe Abstrata | Pacote | Padrão | Responsabilidade |
 |---|---|---|---|
-| `ExcecaoHttpAbstrata` | `core.abstratas` | Polymorphism | Unifies HTTP status + error code across `DatabaseUnavailableException`, `HttpSecurityException` and `ExcecaoPonteAcademica` |
-| `HandlerHttpAbstrato` | `core.abstratas` | Template Method | Standardizes CORS, security headers, `OPTIONS 204`, `405` validation, JSON helpers and polymorphic error handling |
-| `RepositorioMongoAbstrato` | `core.abstratas` | Template Method | Centralizes MongoDB database access, async safe index creation (`85`/`86` conflict handling) and error translation |
-| `HandlerAutenticadoAbstrato` | `auth.abstratas` | Template Method | Enforces Bearer JWT + MongoDB active session validation before invoking subclasses |
-| `HandlerAuthPublicoAbstrato` | `auth.abstratas` | Template Method | Centralizes token pair issuance, session persistence and standard auth payload assembly |
-| `AdminHandlerAbstrato` | `auth.abstratas` | Template Method | Enforces `admin` profile, injects `ClientePonteAcademica`, validates write-guard and user IDs |
-| `CanalEnvioEmailAbstrato` | `auth.abstratas` | Strategy / Chain | Common delivery contract for Tier 1 (SMTP), Tier 2 (HTTPS) and Tier 3 (Outbox) |
-| `CanalHttpsEmailAbstrato` | `auth.abstratas` | Template Method | Shared HTTPS POST JSON transport with optional 302 redirect handling for Resend, Brevo and Webhook |
-| `TemplateEmailAbstrato` | `auth.abstratas` | Template Method | Single institutional HTML layout with built-in XSS escaping shared across all 4 e-mail templates |
-| `HandlerVideoCallLegadoAbstrato` | `videocall.abstratas` | Template Method | Optional JWT authentication and `VideoCallService` helpers for legacy `/api/videocall/*` routes |
+| `ExcecaoHttpAbstrata` | `core.abstratas` | Polimorfismo | Unifica status HTTP + código de erro entre `DatabaseUnavailableException`, `HttpSecurityException` e `ExcecaoPonteAcademica` |
+| `HandlerHttpAbstrato` | `core.abstratas` | Template Method | Padroniza CORS, cabeçalhos de segurança, `OPTIONS 204`, validação `405`, auxiliares JSON e tratamento polimórfico de erros |
+| `RepositorioMongoAbstrato` | `core.abstratas` | Template Method | Centraliza acesso ao banco MongoDB, criação segura e assíncrona de índices (tratamento de conflitos `85`/`86`) e tradução de erros |
+| `HandlerAutenticadoAbstrato` | `auth.abstratas` | Template Method | Impõe validação de Bearer JWT + sessão ativa no MongoDB antes de invocar subclasses |
+| `HandlerAuthPublicoAbstrato` | `auth.abstratas` | Template Method | Centraliza emissão de par de tokens, persistência de sessão e montagem padrão do payload de autenticação |
+| `AdminHandlerAbstrato` | `auth.abstratas` | Template Method | Impõe perfil `admin`, injeta `ClientePonteAcademica`, valida guarda de escrita e IDs de usuário |
+| `CanalEnvioEmailAbstrato` | `auth.abstratas` | Strategy / Chain | Contrato comum de entrega para Camada 1 (SMTP), Camada 2 (HTTPS) e Camada 3 (Outbox) |
+| `CanalHttpsEmailAbstrato` | `auth.abstratas` | Template Method | Transporte JSON HTTPS POST compartilhado com tratamento opcional de redirecionamento 302 para Resend, Brevo e Webhook |
+| `TemplateEmailAbstrato` | `auth.abstratas` | Template Method | Layout HTML institucional único com escape embutido contra XSS compartilhado entre os 4 templates de e-mail |
+| `HandlerVideoCallLegadoAbstrato` | `videocall.abstratas` | Template Method | Autenticação JWT opcional e auxiliares do `VideoCallService` para rotas legadas `/api/videocall/*` |
 
 ---
 
-## 🚀 Compiling & Running
+## 🚀 Compilação e Execução
 
-### Manual Execution (Linux / macOS)
+### Execução Manual (Linux / macOS)
 ```bash
 cd server
 find src -name "*.java" > /tmp/server_src.txt
@@ -128,7 +128,7 @@ javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin @/tmp/server_src.txt
 java -Dfile.encoding=UTF-8 -cp "bin:lib/*" Main
 ```
 
-### Automated Native Test Suite (17 Suites)
+### Suíte Automatizada de Testes Nativos (17 Suítes)
 ```bash
 cd server
 mkdir -p /tmp/server_test_bin
@@ -137,39 +137,39 @@ javac --release 8 -encoding UTF-8 -cp "lib/*" -d /tmp/server_test_bin @/tmp/serv
 java -Dfile.encoding=UTF-8 -cp "/tmp/server_test_bin:lib/*" SuiteTestesServidor
 ```
 
-**Test Suites (17/17)**:
-1. `ConfigEnvTeste` — Master `.env` loading and validation
-2. `JsonTeste` — Full JSON & JsonSimples parsing/serialization
-3. `HandshakeTeste` — RFC 6455 `Sec-WebSocket-Accept`
-4. `QuadroTeste` — RFC 6455 framing & masking
-5. `RegistradorChatTeste` — WebSocket chat recording & sync
-6. `HubTeste` — Live WebSocket hub routing & room isolation
-7. `JwtAuthValidatorTeste` — HS256 JWT validation, revocation, password-change guard & RBAC
-8. `SenhaHasherTeste` — PBKDF2WithHmacSHA256 & BCrypt verification + complexity rules
-9. `RevogacaoTokensTeste` — In-memory JTI blacklist & expiration cleanup
-10. `LimitadorTentativasTeste` — Progressive anti-brute-force lockout
-11. `OtpServiceTeste` — 6-digit OTP generation, HMAC storage & validation
-12. `RecoveryHandlerTeste` — Single-use recovery reset grant & anti-replay
-13. `HandlerLifecycleTeste` — Shared DB pool preservation across handlers
-14. `HttpUtilsCorsTeste` — Dynamic origin resolution & Private Network Access
-15. `ResilientNetworkTeste` — DNS-over-HTTPS (DoH) parsing & HTTP 503 network diagnostics
-16. `SmtpClienteTeste` — RFC 5321 CRLF/dot-stuffing, AUTH LOGIN/PLAIN, Webhook validation & Circuit Breaker
-17. `ArquiteturaAbstrataTeste` — Abstract classes (*Template Method*, HTTP exceptions, e-mail channels/templates) & shared utils
+**Suítes de Teste (17/17)**:
+1. `ConfigEnvTeste` — Carregamento e validação do `.env` mestre
+2. `JsonTeste` — Parsing/serialização completa de JSON e JsonSimples
+3. `HandshakeTeste` — `Sec-WebSocket-Accept` conforme RFC 6455
+4. `QuadroTeste` — Enquadramento e mascaramento conforme RFC 6455
+5. `RegistradorChatTeste` — Registro e sincronização de chat via WebSocket
+6. `HubTeste` — Roteamento do hub WebSocket ao vivo e isolamento de salas
+7. `JwtAuthValidatorTeste` — Validação JWT HS256, revogação, guarda de troca de senha e RBAC
+8. `SenhaHasherTeste` — Verificação PBKDF2WithHmacSHA256 e BCrypt + regras de complexidade
+9. `RevogacaoTokensTeste` — Lista de revogação JTI em memória e limpeza por expiração
+10. `LimitadorTentativasTeste` — Bloqueio progressivo contra força bruta
+11. `OtpServiceTeste` — Geração de OTP de 6 dígitos, armazenamento HMAC e validação
+12. `RecoveryHandlerTeste` — Concessão de redefinição de recuperação de uso único e proteção contra replay
+13. `HandlerLifecycleTeste` — Preservação de pool de banco de dados compartilhado entre handlers
+14. `HttpUtilsCorsTeste` — Resolução dinâmica de origem e Private Network Access
+15. `ResilientNetworkTeste` — Parsing de DNS-over-HTTPS (DoH) e diagnósticos de rede HTTP 503
+16. `SmtpClienteTeste` — CRLF/dot-stuffing conforme RFC 5321, AUTH LOGIN/PLAIN, validação de Webhook e Circuit Breaker
+17. `ArquiteturaAbstrataTeste` — Classes abstratas (*Template Method*, exceções HTTP, canais/templates de e-mail) e utilitários compartilhados
 
 ---
 
-## 📡 Registered API Endpoints Catalog
+## 📡 Catálogo de Endpoints de API Registrados
 
-Base URL: `http://localhost:8080`
+URL Base: `http://localhost:8080`
 
-| Group | Method | Endpoint | Handler |
+| Grupo | Método | Endpoint | Handler |
 |---|---|---|---|
-| **Health** | `GET` | `/health`, `/health/ready` | `HealthHandler` |
+| **Saúde** | `GET` | `/health`, `/health/ready` | `HealthHandler` |
 | **Login** | `POST` | `/api/auth/login`, `/logout`, `/refresh`, `/verify-two-factor` | `auth.modules.login.*` |
-| **Session** | `GET` / `POST` | `/api/auth/session`, `/api/auth/me` | `AuthSessionHandler` |
-| **Account** | `PATCH` / `GET` / `POST` / `DELETE` | `/api/auth/profile`, `/lgpd-export`, `/sessions*`, `/logout-others`, `/two-factor`, `/backup-codes`, `/security-logs` | `ProfileAccountHandler` (`ProfileHandler` + `AccountSecurityHandler`) |
-| **Password** | `POST` | `/api/auth/send-recovery-otp`, `/verify-recovery-otp`, `/reset-password`, `/change-password` | `RecoveryHandler`, `ChangePasswordHandler` |
+| **Sessão** | `GET` / `POST` | `/api/auth/session`, `/api/auth/me` | `AuthSessionHandler` |
+| **Conta** | `PATCH` / `GET` / `POST` / `DELETE` | `/api/auth/profile`, `/lgpd-export`, `/sessions*`, `/logout-others`, `/two-factor`, `/backup-codes`, `/security-logs` | `ProfileAccountHandler` (`ProfileHandler` + `AccountSecurityHandler`) |
+| **Senha** | `POST` | `/api/auth/send-recovery-otp`, `/verify-recovery-otp`, `/reset-password`, `/change-password` | `RecoveryHandler`, `ChangePasswordHandler` |
 | **Admin** | `GET` / `POST` / `PATCH` | `/api/admin/users*`, `/api/admin/teachers`, `/api/auth/email-diagnostic` | `AdminUsersHandler` (4 sub-handlers), `EmailDiagnosticHandler` |
 | **VideoCall (Mongo)** | `GET` / `POST` | `/api/video-call/rooms`, `/enter`, `/close`, `/attendance` | `VideoCallMongoHandler` |
-| **VideoCall (Legacy)** | `GET` / `POST` | `/api/videocall/rooms`, `/open`, `/close`, `/join`, `/leave`, `/signal`, `/hand-raise`, `/chat`, `/attendance` | `videocall.modules.legado.*` |
+| **VideoCall (Legado)** | `GET` / `POST` | `/api/videocall/rooms`, `/open`, `/close`, `/join`, `/leave`, `/signal`, `/hand-raise`, `/chat`, `/attendance` | `videocall.modules.legado.*` |
 | **WebSocket** | `WS` | `/ws/video-call/{roomCode}?ticket=...` | `ServidorHttpNativo` + `SalaVideoHub` |
