@@ -9,8 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Thread-safe server-side rate limiter and brute-force account lockout manager.
- * Tracks consecutive failed logins and locks the identity for 30 seconds after 5 failures.
+ * Limitador de taxa (rate limiter) thread-safe no lado do servidor e gerenciador de bloqueio de conta contra força bruta.
+ * Rastreia falhas consecutivas de login e bloqueia a identidade por 30 segundos após 5 falhas.
  */
 public class AccountLockoutManager {
 
@@ -54,8 +54,8 @@ public class AccountLockoutManager {
     }
 
     /**
-     * Retrieves the current lockout status for an identity.
-     * Automatically clears expired lockout cooldowns.
+     * Obtém o status atual de bloqueio para uma identidade.
+     * Limpa automaticamente os tempos de espera de bloqueio expirados.
      */
     public LockoutStatus getStatus(String identity) {
         Instant now = Instant.now();
@@ -70,7 +70,7 @@ public class AccountLockoutManager {
                     remaining > 0 ? remaining : 1
                 );
             } else {
-                // Expired - clean up
+                // Expirado - limpar
                 failureCounters.remove(identity);
                 lockoutExpirations.remove(identity);
                 return new LockoutStatus(0, false, 0);
@@ -82,21 +82,21 @@ public class AccountLockoutManager {
     }
 
     /**
-     * Checks if the identity is permitted to attempt authentication.
+     * Verifica se a identidade tem permissão para tentar autenticação.
      */
     public boolean checkAllowed(String identity) {
         return !getStatus(identity).isLockedOut();
     }
 
     /**
-     * Records a failed authentication attempt.
+     * Registra uma tentativa de autenticação malsucedida.
      */
     public void recordFailure(String identity) {
         Instant now = Instant.now();
         LockoutStatus current = getStatus(identity);
 
         if (current.isLockedOut()) {
-            return; // Already locked out; do not extend
+            return; // Já bloqueado; não estender
         }
 
         int newAttempts = failureCounters.compute(identity, (k, v) -> (v == null ? 1 : v + 1));
@@ -106,7 +106,7 @@ public class AccountLockoutManager {
     }
 
     /**
-     * Records a successful authentication, resetting attempts and lockouts.
+     * Registra uma autenticação bem-sucedida, reiniciando tentativas e bloqueios.
      */
     public void recordSuccess(String identity) {
         failureCounters.remove(identity);
@@ -114,7 +114,7 @@ public class AccountLockoutManager {
     }
 
     /**
-     * Clears all tracking state.
+     * Limpa todo o estado de rastreamento.
      */
     public void resetAll() {
         failureCounters.clear();
