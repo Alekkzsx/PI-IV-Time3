@@ -154,6 +154,34 @@ class _LoginPageState extends State<LoginPage> {
           '/api/auth/me',
         );
         if (account is Map) {
+          final serverProfile = account['profile']?.toString().trim().toLowerCase() ?? '';
+          if (serverProfile.isNotEmpty &&
+              serverProfile != profileName.toLowerCase()) {
+            AppUserSession.instance.signOut();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: const Color(0xFFDC2626),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                content: const Row(
+                  children: [
+                    Icon(Icons.error_outline_rounded, color: Colors.white),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Tipo de usuário inválido para o perfil selecionado.',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+            return;
+          }
           AppUserSession.instance.applyProfileMap(
             Map<String, dynamic>.from(account),
           );
