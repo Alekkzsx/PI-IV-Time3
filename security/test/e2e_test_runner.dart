@@ -1,7 +1,7 @@
 // Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449
 
-/// Master E2E Security Test Suite Runner
-/// Orchestrates execution across all Dart and Java test tiers and validates Feature 25.
+/// Executor Mestre da Suíte de Testes de Segurança E2E
+/// Orquestra a execução em todas as camadas de teste em Dart e Java e valida a Funcionalidade 25.
 
 import 'dart:io';
 import 'rate_limiter_test.dart' as rate_limiter;
@@ -13,7 +13,7 @@ import 'cross_feature_security_test.dart' as cross_feature;
 import 'real_world_attack_workload_test.dart' as workload;
 
 void main() async {
-  // Dynamically resolve testsDir and securityDir relative to Platform.script
+  // Resolve dinamicamente testsDir e securityDir em relação a Platform.script
   final Uri scriptUri = Platform.script;
   final Directory testsDir;
   final Directory securityDir;
@@ -23,7 +23,7 @@ void main() async {
     testsDir = scriptFile.parent;
     securityDir = testsDir.parent;
   } else {
-    // Fallback for compiled or snapshot environments
+    // Alternativa para ambientes compilados ou de snapshot
     final cwd = Directory.current;
     if (File('${cwd.path}/pubspec.yaml').existsSync() && cwd.path.endsWith('security')) {
       securityDir = cwd;
@@ -37,7 +37,7 @@ void main() async {
     }
   }
 
-  // Dynamic absolute path to SecurityServerTestSuite.java
+  // Caminho absoluto dinâmico para SecurityServerTestSuite.java
   final File javaSuiteFile = File('${securityDir.path}/server/test/SecurityServerTestSuite.java');
   final String javaSuitePath = javaSuiteFile.existsSync()
       ? javaSuiteFile.path
@@ -71,32 +71,32 @@ void main() async {
     }
   }
 
-  // Tier 1 & 2: Rate Limiting
+  // Camadas 1 e 2: Limitação de Taxa
   await runSuite('Rate Limiter & Brute-Force Suite (Features 12-15)', () async {
     rate_limiter.main();
   });
 
-  // Tier 1 & 2: Token Lifecycle
+  // Camadas 1 e 2: Ciclo de Vida do Token
   await runSuite('Token Lifecycle & OTP Revocation Suite (Features 19-21)', () async {
     token_lifecycle.main();
   });
 
-  // Tier 1 & 2: Input Sanitization
+  // Camadas 1 e 2: Sanitização de Entrada
   await runSuite('Input Sanitization & Attack Neutralization Suite (Features 6-9)', () async {
     input_sanitizer.main();
   });
 
-  // Tier 1 & 2: Password Entropy
+  // Camadas 1 e 2: Entropia de Senha
   await runSuite('Password Entropy & Complexity Suite (Features 10-11)', () async {
     password_entropy.main();
   });
 
-  // Tier 1 & 2: Side-Channel Timing Defense
+  // Camadas 1 e 2: Defesa contra Temporização por Canal Lateral
   await runSuite('Side-Channel Timing Mitigation Suite (Feature 17)', () async {
     await timing_attack.main();
   });
 
-  // Tier 1 & 2: Anti-Enumeration & Generic Feedback (Flutter Test Runner)
+  // Camadas 1 e 2: Anti-Enumeração e Feedback Genérico (Executor de Testes Flutter)
   await runSuite('Anti-Enumeration & Generic Feedback Suite (Features 16, 18)', () async {
     final res = await Process.run(
       'flutter',
@@ -109,7 +109,7 @@ void main() async {
     }
   });
 
-  // Tier 1 & 2: Institutional Security Constants (Flutter Test Runner)
+  // Camadas 1 e 2: Constantes e Invariantes de Segurança Institucional (Executor de Testes Flutter)
   await runSuite('Security Constants & Invariants Suite (Features 1-3)', () async {
     final res = await Process.run(
       'flutter',
@@ -122,17 +122,17 @@ void main() async {
     }
   });
 
-  // Tier 3: Pairwise Combinations
+  // Camada 3: Combinações em Pares
   await runSuite('Cross-Feature Pairwise Security Suite (Tier 3)', () async {
     await cross_feature.main();
   });
 
-  // Tier 4: Real-World Workloads & Governance
+  // Camada 4: Cargas de Trabalho do Mundo Real e Governança
   await runSuite('Real-World Adversarial Attack Workloads & Governance Suite (Tier 4)', () async {
     workload.main();
   });
 
-  // Server Middleware & Java Security Suite
+  // Middleware de Servidor e Suíte de Segurança Java
   await runSuite('Java Server Security Middleware & Governance Suite (Features 22-24, 3, 4)', () async {
     final tempDir = Directory.systemTemp.createTempSync('sectest');
     try {
