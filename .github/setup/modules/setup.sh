@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# AGMRM Educational Platform - Setup e Orquestrador Automatizado Ultra-Robusto
+# Plataforma Educacional AGMRM - Setup e Orquestrador Automatizado Ultra-Robusto
 # =============================================================================
 # Desenvolvido para o ecossistema AGMRM (PI-IV Time 3 - PUC-Campinas 2026)
 # Suporta auto-deteccao, auto-instalacao/reparo e orquestracao multi-terminal
