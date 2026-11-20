@@ -158,9 +158,19 @@ public class RecoveryHandlerTeste {
                             && repo.auditorias.contains("password_recovery_not_registered:desconhecido@gmail.com"),
                     "RecoveryHandler: e-mail nao cadastrado retorna 404 explicito e nao envia OTP");
 
-            // 0C. E-mail cadastrado gera OTP, audita e retorna 200 com maskedEmail
+            // 0B.1. E-mail de aluno com perfil 'admin' selecionado retorna 403 invalid_user_type e nao gera OTP
+            String respPerfilInvalido = postJson(handler, "/api/auth/send-recovery-otp",
+                    "{\"identity\":\"ALUNO@example.edu\",\"profile\":\"admin\"}");
+            esperar(respPerfilInvalido.startsWith("HTTP/1.1 403")
+                            && respPerfilInvalido.contains("invalid_user_type")
+                            && respPerfilInvalido.contains("Tipo de usu")
+                            && repo.otpsSalvos.isEmpty()
+                            && repo.auditorias.contains("password_recovery_invalid_profile:507f1f77bcf86cd799439011"),
+                    "RecoveryHandler: e-mail de aluno sob perfil admin rejeita com 403 invalid_user_type sem gerar OTP");
+
+            // 0C. E-mail cadastrado com perfil compativel gera OTP, audita e retorna 200 com maskedEmail
             String respCadastrado = postJson(handler, "/api/auth/send-recovery-otp",
-                    "{\"email\":\"ALUNO@example.edu\"}");
+                    "{\"email\":\"ALUNO@example.edu\",\"profile\":\"aluno\"}");
             Thread.sleep(150);
             esperar(respCadastrado.startsWith("HTTP/1.1 200")
                             && respCadastrado.contains("maskedEmail")
