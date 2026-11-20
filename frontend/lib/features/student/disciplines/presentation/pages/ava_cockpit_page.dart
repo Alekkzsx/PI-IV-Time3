@@ -351,7 +351,7 @@ class _AvaCockpitPageState extends State<AvaCockpitPage> {
           );
         }
 
-        // Mobile Layout
+        // Layout Mobile
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
