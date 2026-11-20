@@ -18,10 +18,16 @@ class FakeAuthRepository implements AuthRepository {
   int loginCalls = 0;
 
   @override
-  Future<void> recoverPassword({required String identity}) async {}
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {}
 
   @override
-  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async => {};
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async => {};
 
   @override
   Future<String> login({
@@ -85,21 +91,21 @@ void main() {
   });
 
   test('Estado inicial deve ser sem erros e sem loading', () {
-    // Assert
+    // Verificação
     expect(controller.isLoading, false);
     expect(controller.errorMessage, null);
     expect(controller.isSuccess, false);
   });
 
   test('Deve realizar login com sucesso para credenciais válidas', () async {
-    // Act
+    // Ação
     final result = await controller.login(
       identity: 'ADM-00123',
       password: 'password123',
       profile: 'admin',
     );
 
-    // Assert
+    // Verificação
     expect(result, true);
     expect(controller.isSuccess, true);
     expect(controller.isLoading, false);
@@ -110,14 +116,14 @@ void main() {
   });
 
   test('Deve capturar e expor erro quando usecase falhar', () async {
-    // Act
+    // Ação
     final result = await controller.login(
       identity: '   ',
       password: '123',
       profile: 'admin',
     );
 
-    // Assert
+    // Verificação
     expect(result, false);
     expect(controller.isSuccess, false);
     expect(controller.isLoading, false);
@@ -127,17 +133,17 @@ void main() {
   test(
     'Deve capturar e expor erro quando repositório lançar exceção',
     () async {
-      // Arrange
+      // Preparação
       repository.shouldThrow = true;
 
-      // Act
+      // Ação
       final result = await controller.login(
         identity: 'ADM-00123',
         password: 'password123',
         profile: 'admin',
       );
 
-      // Assert
+      // Verificação
       expect(result, false);
       expect(controller.isSuccess, false);
       expect(
@@ -174,14 +180,14 @@ void main() {
   );
 
   test('clearError deve resetar mensagem de erro', () async {
-    // Arrange
+    // Preparação
     await controller.login(identity: '', password: '', profile: 'admin');
     expect(controller.errorMessage, isNotNull);
 
-    // Act
+    // Ação
     controller.clearError();
 
-    // Assert
+    // Verificação
     expect(controller.errorMessage, null);
   });
 }
