@@ -11,11 +11,11 @@ import 'package:pi_iv_time3/features/teacher/shared/domain/models/rubric_model.d
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_dashboard_overview.dart';
 import 'package:pi_iv_time3/features/teacher/shared/domain/models/teacher_protocol.dart';
 
-/// Test data for the docente portal.
+/// Dados de teste para o portal do docente.
 class DocenteFixtures {
   static const String initialTeacherIdentity = 'DOC-88410';
 
-  /// Default courses taught by the professor.
+  /// Disciplinas padrão ministradas pelo docente.
   static List<DocenteCourse> get initialCourses => [
     const DocenteCourse(
       id: 'course-aps2',
@@ -205,7 +205,7 @@ class DocenteFixtures {
         .toList();
   }
 
-  /// Initial class session and attendance register for APS-II.
+  /// Sessão de aula inicial e registro de presença para APS-II.
   static ClassSession get initialClassSession => ClassSession(
     id: 'sess-27',
     courseId: 'course-aps2',
@@ -298,7 +298,7 @@ class DocenteFixtures {
     ],
   );
 
-  /// All registered class sessions for the professor across all courses.
+  /// Todas as sessões de aula registradas para o docente em todas as disciplinas.
   static List<ClassSession> get defaultSessions => [
     // Aula 25 - Quarta-feira, 23/09/2026 (APS-II)
     ClassSession(
@@ -449,7 +449,7 @@ class DocenteFixtures {
     ),
   ];
 
-  /// Initial assignments and student submissions.
+  /// Atividades iniciais e submissões dos alunos.
   static List<AssignmentItem> get initialAssignments => [
     const AssignmentItem(
       id: 'asg-1',
@@ -617,7 +617,7 @@ class DocenteFixtures {
     ),
   ];
 
-  /// Initial official gradebook records.
+  /// Registros iniciais oficiais do livro de notas.
   static List<StudentGrade> get initialGradebook => const [
     StudentGrade(
       studentId: 'st-1',
@@ -701,7 +701,7 @@ class DocenteFixtures {
     ),
   ];
 
-  /// Initial calendar events.
+  /// Eventos iniciais do calendário.
   static List<AcademicEvent> get initialEvents => const [
     AcademicEvent(
       id: 'ev-1',
@@ -753,7 +753,7 @@ class DocenteFixtures {
     ),
   ];
 
-  /// Initial notices.
+  /// Avisos iniciais.
   static List<AcademicNotice> get initialNotices => const [
     AcademicNotice(
       id: 'not-sec-1',
@@ -827,7 +827,7 @@ class DocenteFixtures {
     ),
   ];
 
-  /// Initial professor profile and security settings.
+  /// Perfil inicial do docente e configurações de segurança.
   static DocenteProfile get initialProfile => const DocenteProfile(
     fullName: 'Helena Bittencourt',
     socialName: 'Helena',
