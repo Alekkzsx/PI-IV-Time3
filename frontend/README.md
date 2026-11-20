@@ -1,47 +1,47 @@
-# Frontend — AGMRM Integrated Academic Portal
+# Frontend — Portal Acadêmico Integrado AGMRM
 
-> **Client Application Module**: `.../PI-IV-Time3/frontend/`  
-> **Ecosystem**: Integrated Educational Platform AGMRM (*PI-IV Team 3*)  
-> **Engineering Standards**: Feature-First Clean Architecture, Multi-Role Security, Automated Backend Startup  
+> **Módulo da Aplicação Cliente**: `.../PI-IV-Time3/frontend/`  
+> **Ecossistema**: Plataforma Educacional Integrada AGMRM (*PI-IV Time 3*)  
+> **Padrões de Engenharia**: Clean Architecture Feature-First, Segurança Multi-Perfil, Inicialização Automatizada de Backend  
 
-The `frontend` module houses the multi-platform client application of the **Integrated Educational Platform AGMRM** (*PI-IV Team 3*), built with **Flutter 3** and Dart. It provides a comprehensive, accessible, and responsive institutional interface for three user roles: **Discente (*Student*)**, **Docente (*Teacher*)**, and **Administrador (*Admin*)**.
-
----
-
-## 🏛️ Architecture (Feature-First Clean Architecture)
-
-The codebase strictly adheres to Feature-First Clean Architecture principles, decoupling domain business rules from UI presentation frameworks and external data sources:
-
-$$\text{Presentation Layer (Widgets \& Controllers)} \longleftrightarrow \text{Domain Layer (UseCases \& Entities)} \longleftrightarrow \text{Data Layer (Repositories \& DataSources)}$$
-
-### Core Functional Modules:
-1. **`auth`**: Secure authentication and credential recovery workflows:
-   - Multi-role login (Student, Teacher, Admin).
-   - Password recovery with side-channel timing attack mitigation.
-   - OTP code verification with ephemeral countdown timer.
-   - Password reset with a 4-factor entropy evaluation indicator.
-2. **`student`**: Student Portal with semester grades, attendance journal, class timetable, academic calendar, and virtual office requirements.
-3. **`teacher`**: Teacher Portal with grade submission, digital class roll call, attendance validation, and pedagogical material management.
-4. **`admin`**: Academic Administration Portal with user identity lifecycle management, audit cockpit, registry desk, and regimental CONSEPE grade lock.
-5. **`video_call`**: Institutional P2P WebRTC Video Call module featuring:
-   - Waiting lobby with hardware diagnostics (camera and microphone checks).
-   - Dynamic video grid with hysteresis-based active speaker detection.
-   - Ordered FIFO doubt queue (Raised Hands) and real-time session chat.
-   - Screen sharing and session recording with institutional audit logging.
-   - Regimental room opening access restricted strictly to Teacher or Admin.
-   - Room entry, single-use ticket issuance, and WebSocket signaling run on the Java server (`:8080`); audio/video media remain peer-to-peer via WebRTC.
-6. **`multiperfil`**: Academic interoperability bridge (*Academic Bridge*) orchestrating synchronized cross-role events between Student, Teacher, and Admin.
+O módulo `frontend` abriga a aplicação cliente multiplataforma da **Plataforma Educacional Integrada AGMRM** (*PI-IV Time 3*), construída com **Flutter 3** e Dart. Ele fornece uma interface institucional abrangente, acessível e responsiva para três perfis de usuário: **Discente (*Student*)**, **Docente (*Teacher*)** e **Administrador (*Admin*)**.
 
 ---
 
-## 📂 Directory Structure
+## 🏛️ Arquitetura (Clean Architecture Feature-First)
+
+A base de código segue estritamente os princípios da Clean Architecture Feature-First, desacoplando regras de negócio de domínio dos frameworks de apresentação de interface e das fontes de dados externas:
+
+$$\text{Camada de Apresentação (Widgets \& Controllers)} \longleftrightarrow \text{Camada de Domínio (UseCases \& Entities)} \longleftrightarrow \text{Camada de Dados (Repositories \& DataSources)}$$
+
+### Módulos Funcionais Principais:
+1. **`auth`**: Fluxos seguros de autenticação e recuperação de credenciais:
+   - Login multi-perfil (Discente, Docente, Administrador).
+   - Recuperação de senha com mitigação de ataques de temporização (side-channel timing).
+   - Verificação de código OTP com temporizador de contagem regressiva efêmero.
+   - Redefinição de senha com indicador de avaliação de entropia de 4 fatores.
+2. **`student`**: Portal do Discente com notas semestrais, diário de frequência, grade horária de aulas, calendário acadêmico e requerimentos da secretaria virtual.
+3. **`teacher`**: Portal do Docente com lançamento de notas, chamada digital em aula, validação de frequência e gestão de materiais pedagógicos.
+4. **`admin`**: Portal de Administração Acadêmica com gestão do ciclo de vida de identidades de usuários, cockpit de auditoria, balcão de secretaria e trava regimental de notas do CONSEPE.
+5. **`video_call`**: Módulo institucional de Videochamada WebRTC P2P com:
+   - Sala de espera com diagnósticos de hardware (verificações de câmera e microfone).
+   - Grade de vídeo dinâmica com detecção de orador ativo baseada em histerese.
+   - Fila ordenada FIFO de dúvidas (Mãos Levantadas) e chat da sessão em tempo real.
+   - Compartilhamento de tela e gravação de sessão com registro de auditoria institucional.
+   - Acesso regimental de abertura de sala restrito estritamente a Docente ou Administrador.
+   - Entrada na sala, emissão de tíquete de uso único e sinalização WebSocket executam no servidor Java (`:8080`); mídia de áudio/vídeo permanece peer-to-peer via WebRTC.
+6. **`multiperfil`**: Ponte de interoperabilidade acadêmica (*Academic Bridge*) orquestrando eventos sincronizados entre perfis de Discente, Docente e Administrador.
+
+---
+
+## 📂 Estrutura de Diretórios
 
 ```
 .../PI-IV-Time3/frontend/
 ├── lib/
 │   ├── core/
 │   │   ├── backend/
-│   │   │   └── backend_process_launcher.dart  # Transparent parent modules background launcher
+│   │   │   └── backend_process_launcher.dart  # Inicializador transparente em segundo plano dos módulos principais
 │   │   ├── errors/
 │   │   ├── router/
 │   │   ├── theme/
@@ -53,8 +53,8 @@ $$\text{Presentation Layer (Widgets \& Controllers)} \longleftrightarrow \text{D
 │   │   ├── student/
 │   │   ├── teacher/
 │   │   └── video_call/
-│   └── main.dart                             # Flutter application entry point
-├── test/                                     # Comprehensive automated test suite (396 tests)
+│   └── main.dart                             # Ponto de entrada da aplicação Flutter
+├── test/                                     # Suíte abrangente de testes automatizados (396 testes)
 │   ├── features/
 │   │   ├── admin/
 │   │   ├── auth/
@@ -63,45 +63,45 @@ $$\text{Presentation Layer (Widgets \& Controllers)} \longleftrightarrow \text{D
 │   │   ├── teacher/
 │   │   └── video_call/
 │   └── widget_test.dart
-├── pubspec.yaml                              # Application dependencies (including agmrm_security)
-└── README.md                                 # Frontend technical manual (this file)
+├── pubspec.yaml                              # Dependências da aplicação (incluindo agmrm_security)
+└── README.md                                 # Manual técnico do frontend (este arquivo)
 ```
 
 ---
 
-## 🚀 Running the Project
+## 🚀 Executando o Projeto
 
-Thanks to the integrated automation mechanism, **no separate initialization scripts or multiple terminal windows are required**:
+Graças ao mecanismo de automação integrado, **não são necessários scripts de inicialização separados nem múltiplas janelas de terminal**:
 
 ```bash
-# 1. Navigate to the frontend directory
+# 1. Navegue até o diretório frontend
 cd .../PI-IV-Time3/frontend
 
-# 2. Launch the application
+# 2. Inicie a aplicação
 flutter run
 ```
 
-When executing `flutter run`:
-- Flutter compiles and launches the desktop/web client.
-- The Java Identity, Admin Users & Video-Call WebSocket server in `server/` (`:8080`) is started automatically when needed.
-- The TypeScript Academic Core & File API in `backend/` (`:3001`) must be running (`npm run dev` or desktop auto-launcher).
-- The enterprise security package (`security/`) is declared as a local dependency in `pubspec.yaml`.
+Ao executar `flutter run`:
+- O Flutter compila e inicia o cliente desktop/web.
+- O servidor Java de Identidade, Usuários Administrativos e WebSocket de Videochamada em `server/` (`:8080`) é iniciado automaticamente quando necessário.
+- O Núcleo Acadêmico e API de Arquivos em TypeScript em `backend/` (`:3001`) deve estar em execução (`npm run dev` ou inicializador automático do desktop).
+- O pacote corporativo de segurança (`security/`) é declarado como dependência local em `pubspec.yaml`.
 
-For a non-local Web deployment, configure:
-- `AUTH_API_BASE_URL` for the Java Identity & Video-Call server (default `http://127.0.0.1:8080`)
-- `ACADEMIC_API_BASE_URL` (or fallback `API_BASE_URL`) for the TypeScript Academic Core (default `http://127.0.0.1:3001`)
-- `VIDEO_CALL_WS_BASE_URL` for the Java WebSocket endpoint (default `ws://127.0.0.1:8080`, use `wss://` in production)
+Para uma implantação Web não local, configure:
+- `AUTH_API_BASE_URL` para o servidor Java de Identidade e Videochamada (padrão `http://127.0.0.1:8080`)
+- `ACADEMIC_API_BASE_URL` (ou fallback `API_BASE_URL`) para o Núcleo Acadêmico em TypeScript (padrão `http://127.0.0.1:3001`)
+- `VIDEO_CALL_WS_BASE_URL` para o endpoint WebSocket em Java (padrão `ws://127.0.0.1:8080`, utilize `wss://` em produção)
 
 ---
 
-## 🧪 Code Quality & Testing
+## 🧪 Qualidade de Código e Testes
 
-The codebase maintains strict corporate engineering standards:
+A base de código mantém padrões rigorosos de engenharia corporativa:
 
 ```bash
-# Static code analysis (0 issues / 0 warnings)
+# Análise estática de código (0 problemas / 0 avisos)
 flutter analyze
 
-# Comprehensive automated test suite execution (396 tests passed)
+# Execução da suíte abrangente de testes automatizados (396 testes aprovados)
 flutter test
 ```
