@@ -31,7 +31,7 @@ part 'parts/docente_controller_grades.dart';
 part 'parts/docente_controller_agenda_notices.dart';
 part 'parts/docente_controller_settings.dart';
 
-/// Available tabs in the Docente Portal sidebar navigation.
+/// Abas disponíveis na navegação lateral do Portal Docente.
 enum DocenteNavTab {
   painel,
   turmas,
@@ -433,7 +433,7 @@ abstract class _DocenteControllerBase extends ChangeNotifier {
   }
 }
 
-/// Reactive controller managing all frontend state for the Docente Portal.
+/// Controlador reativo que gerencia todo o estado de frontend do Portal Docente.
 class DocenteController extends _DocenteControllerBase
     with
         _DocenteCoursesMixin,
