@@ -19,7 +19,7 @@ class AppColors {
   /// Cor de borda em estado de foco ativo ou seleção.
   static const Color borderFocused = Color(0xFF0F172A);
 
-  // Slate Palette
+  // Paleta Slate
   /// Cor de texto primária com alto contraste para títulos e corpo principal (Slate 900).
   static const Color textPrimary = Color(0xFF0F172A); // slate-900
 
@@ -29,9 +29,9 @@ class AppColors {
   /// Cor de texto atenuada para dicas e elementos desabilitados (Slate 400).
   static const Color textMuted = Color(0xFF94A3B8); // slate-400
 
-  // Primary Action Button
-  /// Cor de fundo padrão de botões escuros da interface (Dark Navy / Slate).
-  static const Color buttonDark = Color(0xFF0B132B); // Dark Navy / Slate
+  // Botão de Ação Principal
+  /// Cor de fundo padrão de botões escuros da interface (Azul Marinho Escuro / Slate).
+  static const Color buttonDark = Color(0xFF0B132B); // Azul Marinho Escuro / Slate
 
   /// Cor de estado 'hover' ou pressionado para botões escuros.
   static const Color buttonDarkHover = Color(0xFF1E293B);
@@ -39,11 +39,11 @@ class AppColors {
   /// Cor primária de destaque para botões de ação principal (Azul marinho ultra-escuro).
   static const Color buttonPrimary = Color(0xFF0B1325); // #0B1325 (Azul marinho ultra-escuro)
 
-  // Hero & Dark Canvas
+  // Seção Hero e Canvas Escuro
   /// Cor de fundo profundo cósmico para seções de destaque e hero.
   static const Color heroBackground = Color(0xFF05070B); // #05070B (Preto cósmico profundo)
 
-  // Slate Scale
+  // Escala Slate
   /// Tom escuro da escala Slate (Slate 800) para superfícies elevadas.
   static const Color slate800 = Color(0xFF1E293B);
 
@@ -53,7 +53,7 @@ class AppColors {
   /// Tom claro da escala Slate (Slate 300) para bordas e separadores.
   static const Color slate300 = Color(0xFFCBD5E1);
 
-  // Rose Error Alert (bg-rose-50, border-rose-200, text-rose-700)
+  // Alerta de Erro Rose (bg-rose-50, border-rose-200, text-rose-700)
   /// Fundo para banners e alertas de erro ou falha de autenticação (Rose 50).
   static const Color roseBackground = Color(0xFFFFF1F2); // bg-rose-50
 
@@ -66,7 +66,7 @@ class AppColors {
   /// Cor de ícones em alertas e mensagens de erro (Rose 600).
   static const Color roseIcon = Color(0xFFE11D48); // rose-600
 
-  // Amber Security Alert
+  // Alerta de Segurança Âmbar
   /// Fundo para caixas de alerta de segurança e avisos operacionais (Amber 50).
   static const Color alertBackground = Color(0xFFFFFBEB); // amber-50
 
@@ -79,7 +79,7 @@ class AppColors {
   /// Cor de ícones de alerta de atenção (Amber 600).
   static const Color alertIcon = Color(0xFFD97706); // amber-600
 
-  // Segmented Control Tabs
+  // Abas de Controle Segmentado
   /// Fundo do controle de abas segmentadas (Segmented Control / Slate 100).
   static const Color tabBackground = Color(0xFFF1F5F9); // slate-100
 
