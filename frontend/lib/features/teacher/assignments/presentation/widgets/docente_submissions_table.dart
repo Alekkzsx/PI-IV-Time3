@@ -50,13 +50,13 @@ class DocenteSubmissionsTable extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header box of selected assignment
+                // Caixa de cabeçalho da atividade selecionada
                 SubmissionHeaderMetadata(
                   assignment: assignment,
                   selectedCourse: selectedCourse,
                 ),
                 const Divider(height: 1, color: Color(0xFFF4F4F5)),
-                // Table of submissions
+                // Tabela de submissões
                 _buildSubmissionsTable(context),
               ],
             ),
@@ -69,7 +69,7 @@ class DocenteSubmissionsTable extends StatelessWidget {
   Widget _buildSubmissionsTable(BuildContext context) {
     return Column(
       children: [
-        // Table Header
+        // Cabeçalho da Tabela
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: const BoxDecoration(
@@ -166,7 +166,7 @@ class DocenteSubmissionsTable extends StatelessWidget {
             ],
           ),
         ),
-        // Table Rows
+        // Linhas da Tabela
         if (assignment.submissions.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 36),
