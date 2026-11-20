@@ -13,10 +13,10 @@ import '../widgets/rbac_matrix_tab.dart';
 import '../widgets/security_credentials_tab.dart';
 import '../widgets/system_preferences_tab.dart';
 
-/// Main Administration Account Configuration page.
+/// Página principal de Configurações da Conta de Administração.
 ///
-/// Coordinates the 7 managerial navigation tabs with responsive desktop layout
-/// supporting academic guidelines, profile, security, campus alerts, preferences, LGPD, and RBAC matrix.
+/// Coordena as 7 abas gerenciais de navegação com layout desktop responsivo
+/// oferecendo suporte a diretrizes acadêmicas, perfil, segurança, alertas do campus, preferências, LGPD e matriz RBAC.
 class AdminConfigurePage extends StatefulWidget {
   const AdminConfigurePage({super.key});
 
@@ -98,7 +98,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Main Section Header
+                  // 1. Cabeçalho da Seção Principal
                   Text(
                     'Configurações da Conta de Administração',
                     style: jakarta(
@@ -115,7 +115,7 @@ class _AdminConfigurePageState extends State<AdminConfigurePage> {
                   ),
                   const SizedBox(height: 28),
 
-                  // 2. Two-Column Layout (Sidebar Navigation + Active Tab Content)
+                  // 2. Layout em Duas Colunas (Menu Lateral de Navegação + Conteúdo da Aba Ativa)
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isStacked = constraints.maxWidth < 980;
