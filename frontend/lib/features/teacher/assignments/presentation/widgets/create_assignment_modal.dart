@@ -259,7 +259,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
+              // Cabeçalho
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 24, 20, 20),
                 child: Row(
@@ -289,7 +289,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
               ),
               const Divider(height: 1, color: Color(0xFFF4F4F5)),
 
-              // Form Scrollable Body
+              // Corpo Rolável do Formulário
               Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
@@ -341,7 +341,7 @@ class _CreateAssignmentModalState extends State<CreateAssignmentModal> {
 
               const Divider(height: 1, color: Color(0xFFF4F4F5)),
 
-              // Footer Actions
+              // Ações do Rodapé
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
