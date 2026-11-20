@@ -148,12 +148,12 @@ abstract final class StudentGitRepositoryValidator {
       return true;
     }
 
-    // Cloud Metadata Endpoints (AWS, GCP, Azure, DigitalOcean)
+    // Endpoints de metadados na nuvem (AWS, GCP, Azure, DigitalOcean)
     if (lower == '169.254.169.254' || lower == 'metadata.google.internal') {
       return true;
     }
 
-    // RFC 1918 Private Ranges
+    // Faixas privadas RFC 1918
     // 10.0.0.0/8
     if (lower.startsWith('10.')) return true;
 
