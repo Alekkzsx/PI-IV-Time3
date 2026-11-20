@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Presentation widget displaying a synchronized countdown timer for ephemeral recovery tokens.
-/// Visualizes the 5-minute (300 seconds) Time-To-Live in MM:SS format with warning states.
+/// Widget de apresentação que exibe um temporizador de contagem regressiva sincronizado para tokens efêmeros de recuperação.
+/// Visualiza o tempo de vida (TTL) de 5 minutos (300 segundos) no formato MM:SS com estados de alerta.
 class TokenTimerWidget extends StatelessWidget {
-  /// Remaining time in seconds before the recovery token expires.
+  /// Tempo restante em segundos antes que o token de recuperação expire.
   final int remainingSeconds;
 
   const TokenTimerWidget({
@@ -13,7 +13,7 @@ class TokenTimerWidget extends StatelessWidget {
     required this.remainingSeconds,
   });
 
-  /// Formats seconds into MM:SS representation.
+  /// Formata os segundos na representação MM:SS.
   String _formatDuration(int seconds) {
     final clamped = seconds > 0 ? seconds : 0;
     final minutes = clamped ~/ 60;
