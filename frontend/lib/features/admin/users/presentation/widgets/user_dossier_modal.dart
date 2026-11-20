@@ -59,7 +59,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Bar: Identificação e Fechar
+            // Barra Superior: Identificação e Fechar
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,7 +124,7 @@ class _UserDossierModalState extends State<UserDossierModal> {
             ),
             const SizedBox(height: 20),
 
-            // Tab Switcher
+            // Seletor de Abas
             Container(
               decoration: const BoxDecoration(
                 border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
@@ -148,14 +148,14 @@ class _UserDossierModalState extends State<UserDossierModal> {
             ),
             const SizedBox(height: 20),
 
-            // Tab Content
+            // Conteúdo da Aba
             Expanded(
               child: _selectedTab == 0
                   ? _buildCadastralTab(context)
                   : _buildAuditTab(context, userLogs),
             ),
 
-            // Footer com Ações LGPD
+            // Rodapé com Ações LGPD
             const SizedBox(height: 16),
             const Divider(height: 1, color: Color(0xFFE2E8F0)),
             const SizedBox(height: 16),
