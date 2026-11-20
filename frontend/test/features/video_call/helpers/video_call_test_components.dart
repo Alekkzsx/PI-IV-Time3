@@ -4,10 +4,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'video_call_contracts.dart';
 
-/// Concrete controller implementing the VideoCallController contract from PROJECT.md.
+/// Controlador concreto que implementa o contrato VideoCallController de PROJECT.md.
 ///
-/// Handles real-time synchronization, zero-bot enforcement, active speaker detection,
-/// chat, reactions, hand raises, and recording state.
+/// Gerencia sincronização em tempo real, garantia de zero bots, detecção de orador ativo,
+/// chat, reações, mãos levantadas e estado de gravação.
 class VideoCallTestController extends ChangeNotifier {
   final VideoCallRepository repository;
   final MeetingRoom room;
@@ -45,8 +45,8 @@ class VideoCallTestController extends ChangeNotifier {
   List<Participant> get remoteParticipants =>
       List.unmodifiable(_remoteParticipants.values);
 
-  /// Invariant: strictly real participants.
-  /// Alone = exactly 1. Two connected = exactly 2. Zero bots.
+  /// Invariante: estritamente participantes reais.
+  /// Sozinho = exatamente 1. Dois conectados = exatamente 2. Zero bots.
   List<Participant> get allParticipants =>
       List.unmodifiable([_localParticipant, ..._remoteParticipants.values]);
 
@@ -86,7 +86,7 @@ class VideoCallTestController extends ChangeNotifier {
       repository.recordingStateStream.listen(_onRecordingStateReceived),
     );
 
-    // Join room over signaling bus
+    // Entra na sala pelo barramento de sinalização
     repository.joinRoom(room, _localParticipant);
   }
 
@@ -120,7 +120,7 @@ class VideoCallTestController extends ChangeNotifier {
   void _onEmojiReactionReceived(EmojiReaction reaction) {
     _activeReactions.add(reaction);
     notifyListeners();
-    // Auto-remove reaction after 2500ms ascent duration
+    // Remove automaticamente a reação após a duração de subida de 2500ms
     final timer = Timer(const Duration(milliseconds: 2500), () {
       if (!_isDisposed) {
         _activeReactions.remove(reaction);
@@ -402,12 +402,12 @@ class VideoCallTestController extends ChangeNotifier {
 }
 
 // ============================================================================
-// MODULAR PRESENTATION WIDGETS
+// WIDGETS MODULARES DE APRESENTAÇÃO
 // ============================================================================
 
-/// Visual meter indicating RMS audio level.
+/// Medidor visual que indica o nível de áudio RMS.
 class AudioLevelMeter extends StatelessWidget {
-  final double level; // 0.0 to 1.0
+  final double level; // 0.0 a 1.0
 
   const AudioLevelMeter({super.key, required this.level});
 
@@ -435,7 +435,7 @@ class AudioLevelMeter extends StatelessWidget {
   }
 }
 
-/// Participant video tile widget rendering webcam or avatar fallback.
+/// Widget de bloco de vídeo do participante que renderiza webcam ou avatar alternativo.
 class ParticipantVideoTile extends StatelessWidget {
   final Participant participant;
 
@@ -484,7 +484,7 @@ class ParticipantVideoTile extends StatelessWidget {
                     ),
                   ),
           ),
-          // Name and RA badge
+          // Emblema de Nome e RA
           Positioned(
             left: 12,
             bottom: 12,
@@ -512,7 +512,7 @@ class ParticipantVideoTile extends StatelessWidget {
               ),
             ),
           ),
-          // Hand raised indicator
+          // Indicador de mão levantada
           if (participant.isHandRaised)
             Positioned(
               top: 12,
@@ -533,7 +533,7 @@ class ParticipantVideoTile extends StatelessWidget {
   }
 }
 
-/// Dynamic video grid displaying 1, 2, or N participant tiles.
+/// Grade dinâmica de vídeo exibindo 1, 2 ou N blocos de participantes.
 class DynamicVideoGrid extends StatelessWidget {
   final List<Participant> participants;
   final bool isScreenSharing;
@@ -598,7 +598,7 @@ class DynamicVideoGrid extends StatelessWidget {
   }
 }
 
-/// Screen sharing presentation viewport.
+/// Área de visualização da apresentação de compartilhamento de tela.
 class ScreenShareView extends StatelessWidget {
   const ScreenShareView({super.key});
 
@@ -633,7 +633,7 @@ class ScreenShareView extends StatelessWidget {
   }
 }
 
-/// Sliding in-call chat drawer with synchronized messages.
+/// Gaveta deslizante de chat na chamada com mensagens sincronizadas.
 class InCallChatDrawer extends StatefulWidget {
   final VideoCallTestController controller;
 
@@ -741,7 +741,7 @@ class _InCallChatDrawerState extends State<InCallChatDrawer> {
   }
 }
 
-/// Overlay rendering floating animated emoji reactions.
+/// Sobreposição que renderiza reações animadas flutuantes de emoji.
 class FloatingReactionsOverlay extends StatelessWidget {
   final List<EmojiReaction> reactions;
 
@@ -768,7 +768,7 @@ class FloatingReactionsOverlay extends StatelessWidget {
   }
 }
 
-/// Raised hands banner displaying the queue of attendees waiting to speak.
+/// Faixa de mãos levantadas exibindo a fila de participantes aguardando para falar.
 class RaisedHandsBanner extends StatelessWidget {
   final List<HandRaiseItem> queue;
 
@@ -808,7 +808,7 @@ class RaisedHandsBanner extends StatelessWidget {
   }
 }
 
-/// Bottom floating controls toolbar.
+/// Barra de ferramentas inferior flutuante de controles.
 class MeetingControlsToolbar extends StatelessWidget {
   final VideoCallTestController controller;
 
@@ -923,7 +923,7 @@ class MeetingControlsToolbar extends StatelessWidget {
   }
 }
 
-/// Complete meeting room page assembling all controls and sub-views.
+/// Página completa da sala de reunião reunindo todos os controles e subvisualizações.
 class VideoCallRoomPage extends StatelessWidget {
   final VideoCallTestController controller;
 
@@ -940,7 +940,7 @@ class VideoCallRoomPage extends StatelessWidget {
             children: [
               Column(
                 children: [
-                  // Institutional recording compliance banner
+                  // Faixa institucional de conformidade de gravação
                   if (controller.recordingState.isRecording)
                     Container(
                       key: const Key('institutional_recording_banner'),
@@ -954,9 +954,9 @@ class VideoCallRoomPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                  // Raised hands queue banner
+                  // Faixa da fila de mãos levantadas
                   RaisedHandsBanner(queue: controller.raisedHandsQueue),
-                  // Main dynamic video grid
+                  // Grade dinâmica principal de vídeo
                   Expanded(
                     child: DynamicVideoGrid(
                       participants: controller.allParticipants,
@@ -965,9 +965,9 @@ class VideoCallRoomPage extends StatelessWidget {
                   ),
                 ],
               ),
-              // Floating reaction particles overlay
+              // Sobreposição de partículas flutuantes de reação
               FloatingReactionsOverlay(reactions: controller.activeReactions),
-              // Top room information header
+              // Cabeçalho superior de informações da sala
               Positioned(
                 top: 16,
                 left: 16,
@@ -984,7 +984,7 @@ class VideoCallRoomPage extends StatelessWidget {
                   ),
                 ),
               ),
-              // Top recording timer badge
+              // Emblema superior de temporizador de gravação
               if (controller.recordingState.isRecording)
                 Positioned(
                   top: 16,
@@ -1006,7 +1006,7 @@ class VideoCallRoomPage extends StatelessWidget {
                     ),
                   ),
                 ),
-              // Bottom floating toolbar
+              // Barra de ferramentas flutuante inferior
               Positioned(
                 bottom: 24,
                 left: 0,
@@ -1015,7 +1015,7 @@ class VideoCallRoomPage extends StatelessWidget {
                   child: MeetingControlsToolbar(controller: controller),
                 ),
               ),
-              // Sliding chat drawer
+              // Gaveta deslizante de chat
               if (controller.isChatDrawerOpen)
                 Positioned(
                   top: 0,
@@ -1038,7 +1038,7 @@ class VideoCallRoomPage extends StatelessWidget {
   }
 }
 
-/// Pre-join lobby page for input validation, mic/cam preview, and room entry.
+/// Página de lobby pré-entrada para validação de dados, prévia de microfone/câmera e entrada na sala.
 class VideoCallLobbyPage extends StatefulWidget {
   final Function(String name, String ra, String roomCode, bool isAudioMuted, bool isVideoOff)?
       onJoin;
@@ -1096,7 +1096,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Camera preview box
+                  // Caixa de prévia da câmera
                   Container(
                     key: const Key('lobby_camera_preview'),
                     height: 200,
@@ -1116,7 +1116,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Mic level meter preview
+                  // Prévia do medidor de nível do microfone
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1131,7 +1131,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Hardware toggles
+                  // Alternadores de hardware
                   Wrap(
                     alignment: WrapAlignment.center,
                     spacing: 12,
@@ -1166,7 +1166,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Name input
+                  // Campo de nome
                   TextFormField(
                     key: const Key('lobby_name_field'),
                     controller: _nameController,
@@ -1184,7 +1184,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  // RA input
+                  // Campo de RA
                   TextFormField(
                     key: const Key('lobby_ra_field'),
                     controller: _raController,
@@ -1205,7 +1205,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  // Room Code input
+                  // Campo de Código da Sala
                   TextFormField(
                     key: const Key('lobby_room_code_field'),
                     controller: _roomCodeController,
@@ -1227,7 +1227,7 @@ class _VideoCallLobbyPageState extends State<VideoCallLobbyPage> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  // Join room button
+                  // Botão de entrar na sala
                   SizedBox(
                     width: double.infinity,
                     height: 48,
