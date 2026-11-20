@@ -10,8 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Server-side ephemeral recovery token and OTP session manager.
- * Enforces a strict 300-second (5-minute) TTL and revokes sessions after 3 invalid code attempts.
+ * Gerenciador de tokens efêmeros de recuperação e sessões OTP no lado do servidor.
+ * Impõe um TTL estrito de 300 segundos (5 minutos) e revoga sessões após 3 tentativas de código inválidas.
  */
 public class EphemeralRecoveryTokenManager {
 
@@ -94,7 +94,7 @@ public class EphemeralRecoveryTokenManager {
     }
 
     /**
-     * Creates and registers a new recovery session with 300s TTL.
+     * Cria e registra uma nova sessão de recuperação com TTL de 300s.
      */
     public RecoverySession createSession(String identifier, String otpCode) {
         String sessionId = UUID.randomUUID().toString();
@@ -104,7 +104,7 @@ public class EphemeralRecoveryTokenManager {
     }
 
     /**
-     * Checks if a session is currently active and within its TTL.
+     * Verifica se uma sessão está atualmente ativa e dentro do seu TTL.
      */
     public boolean isSessionValid(String sessionId) {
         RecoverySession session = sessions.get(sessionId);
@@ -118,7 +118,7 @@ public class EphemeralRecoveryTokenManager {
     }
 
     /**
-     * Verifies the submitted OTP code using constant-time comparison.
+     * Verifica o código OTP enviado utilizando comparação em tempo constante.
      */
     public VerificationResult verifyCode(String sessionId, String submittedCode) {
         RecoverySession session = sessions.get(sessionId);
