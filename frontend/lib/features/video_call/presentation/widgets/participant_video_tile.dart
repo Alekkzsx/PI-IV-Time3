@@ -6,22 +6,22 @@ import '../theme/video_call_theme.dart';
 import 'audio_level_meter.dart';
 import 'real_video_renderer.dart';
 
-/// Individual video/avatar display tile for a real conference participant.
+/// Bloco individual de exibição de vídeo/avatar para um participante real da conferência.
 ///
-/// Renders real HTML5 camera stream via [RealVideoRenderer] or fallback avatar with
-/// monochromatic gradient and initials, institutional name and RA badge, mute indicators,
-/// screen sharing badge, hand-raise icon, and active speaker spotlight border.
+/// Renderiza o stream real de câmera HTML5 via [RealVideoRenderer] ou avatar alternativo com
+/// gradiente monocromático e iniciais, emblema de nome institucional e RA, indicadores de mudo,
+/// emblema de compartilhamento de tela, ícone de mão levantada e borda de destaque para quem está falando.
 class ParticipantVideoTile extends StatelessWidget {
-  /// Real participant entity to be rendered.
+  /// Entidade de participante real a ser renderizada.
   final Participant participant;
 
-  /// Optional identifier of the HTML5 `<video>` view registered in `platformViewRegistry`.
+  /// Identificador opcional da visualização HTML5 `<video>` registrada em `platformViewRegistry`.
   final String? videoViewType;
 
-  /// Indicates whether this participant is pinned (spotlight) in the grid.
+  /// Indica se este participante está fixado (em destaque) na grade.
   final bool isPinned;
 
-  /// Optional callback when clicking/tapping the participant tile (for spotlight/pin).
+  /// Callback opcional ao clicar/tocar no bloco do participante (para destacar/fixar).
   final VoidCallback? onTap;
 
   const ParticipantVideoTile({
