@@ -16,10 +16,16 @@ class FakeAuthRepository implements AuthRepository {
   Object? customError;
   Completer<void>? recoveryCompleter;
   String? lastIdentity;
+  String? lastProfile;
+  String? responseProfile;
 
   @override
-  Future<void> recoverPassword({required String identity}) async {
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {
     lastIdentity = identity;
+    lastProfile = profile;
     await recoveryCompleter?.future;
     if (customError != null) {
       throw customError!;
@@ -30,9 +36,16 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async {
-    await recoverPassword(identity: identity);
-    return {'status': 200, 'maskedEmail': 't***t@example.com'};
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async {
+    await recoverPassword(identity: identity, profile: profile);
+    return {
+      'status': 200,
+      'maskedEmail': 't***t@example.com',
+      if (responseProfile != null) 'profile': responseProfile,
+    };
   }
 
   @override
@@ -164,4 +177,22 @@ void main() {
     );
     expect(controller.isSuccess, false);
   });
+
+  test(
+    'Rejeita com erro de tipo de usuário inválido quando perfil selecionado diverge da conta',
+    () async {
+      repository.responseProfile = 'aluno';
+      controller.setIdentity('alex@puccampinas.edu.br');
+
+      final result = await controller.submit(profile: 'admin');
+
+      expect(result, isFalse);
+      expect(controller.isSuccess, isFalse);
+      expect(repository.lastProfile, 'admin');
+      expect(
+        controller.errorMessage,
+        'Tipo de usuário inválido: esta conta pertence ao perfil de Aluno, não ao perfil selecionado (Admin).',
+      );
+    },
+  );
 }
