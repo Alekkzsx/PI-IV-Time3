@@ -74,7 +74,7 @@ class AssignmentBasicInfoForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Course Selector
+        // Seletor de Turma
         _buildFieldLabel('Componente Curricular / Turma'),
         DropdownButtonFormField<String>(
           initialValue: selectedCourseId,
@@ -100,7 +100,7 @@ class AssignmentBasicInfoForm extends StatelessWidget {
         ),
         const SizedBox(height: 18),
 
-        // Title
+        // Título
         _buildFieldLabel('Título da Atividade Avaliativa'),
         TextFormField(
           controller: titleController,
@@ -118,7 +118,7 @@ class AssignmentBasicInfoForm extends StatelessWidget {
         ),
         const SizedBox(height: 18),
 
-        // Description
+        // Descrição
         _buildFieldLabel('Descrição e Enunciado Pedagógico'),
         TextFormField(
           controller: descriptionController,
@@ -135,7 +135,7 @@ class AssignmentBasicInfoForm extends StatelessWidget {
         ),
         const SizedBox(height: 18),
 
-        // Weight & Stage
+        // Peso e Etapa
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
