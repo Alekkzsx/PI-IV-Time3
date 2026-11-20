@@ -32,7 +32,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Fill in valid fields
+      // Preenche os campos com valores válidos
       await tester.enterText(
         find.byKey(const Key('lobby_name_field')),
         'Alex Sousa',
@@ -46,11 +46,11 @@ void main() {
         'SALA-101',
       );
 
-      // Toggle camera off
+      // Desativa a câmera
       await tester.tap(find.byKey(const Key('lobby_toggle_cam_button')));
       await tester.pumpAndSettle();
 
-      // Click "Entrar na Reunião"
+      // Clica em "Entrar na Reunião"
       await tester.tap(find.byKey(const Key('lobby_join_button')));
       await tester.pumpAndSettle();
 
@@ -77,7 +77,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Enter empty name and submit
+      // Informa nome vazio e envia
       await tester.enterText(
         find.byKey(const Key('lobby_name_field')),
         '   ',
@@ -148,7 +148,7 @@ void main() {
         find.byKey(const Key('lobby_ra_field')),
         '24802449',
       );
-      // Malformed room code with invalid symbols
+      // Código de sala malformado com símbolos inválidos
       await tester.enterText(
         find.byKey(const Key('lobby_room_code_field')),
         'SALA*#@!',
@@ -172,7 +172,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Initial state: Camera Active inside preview box
+      // Estado inicial: câmera ativa dentro da caixa de pré-visualização
       expect(
         find.descendant(
           of: find.byKey(const Key('lobby_camera_preview')),
@@ -182,14 +182,14 @@ void main() {
       );
       expect(find.text('Câmera Ligada'), findsOneWidget);
 
-      // Toggle camera off
+      // Desativa a câmera
       await tester.tap(find.byKey(const Key('lobby_toggle_cam_button')));
       await tester.pumpAndSettle();
 
       expect(find.text('Câmera Desativada'), findsOneWidget);
       expect(find.text('Câmera Desligada'), findsOneWidget);
 
-      // Toggle mic muted
+      // Silencia o microfone
       expect(find.text('Microfone Ativo'), findsOneWidget);
       await tester.tap(find.byKey(const Key('lobby_toggle_mic_button')));
       await tester.pumpAndSettle();
