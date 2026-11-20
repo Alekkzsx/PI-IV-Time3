@@ -327,14 +327,14 @@ class SubmissionStudentRow extends StatelessWidget {
               ),
             ),
           ),
-          // Status Badge
+          // Emblema de Status
           SizedBox(
             width: 150,
             child: Center(
               child: SubmissionStatusBadge(status: sub.status),
             ),
           ),
-          // Ação Button
+          // Botão de Ação
           SizedBox(
             width: 130,
             child: Center(child: _buildActionButton(context)),
