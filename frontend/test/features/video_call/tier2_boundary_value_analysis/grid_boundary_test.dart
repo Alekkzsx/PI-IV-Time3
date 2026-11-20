@@ -40,7 +40,7 @@ void main() {
 
       expect(find.byKey(const Key('participant_tile_user_1')), findsOneWidget);
       expect(find.text('Alex Sousa (24802449)'), findsOneWidget);
-      // Strictly no other tiles exist
+      // Estritamente nenhum outro bloco existe
       expect(find.byType(ParticipantVideoTile), findsOneWidget);
     });
 
@@ -106,11 +106,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Spotlight presentation stage is visible
+      // O palco de apresentação em destaque está visível
       expect(find.byKey(const Key('screen_share_view')), findsOneWidget);
       expect(find.text('Apresentação de Tela Ativa'), findsOneWidget);
 
-      // Horizontal filmstrip displays both participants
+      // A faixa horizontal exibe ambos os participantes
       expect(find.byType(ListView), findsOneWidget);
       expect(find.byType(ParticipantVideoTile), findsNWidgets(2));
     });
