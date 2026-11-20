@@ -70,10 +70,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> sendPasswordResetInstructions({required String identity}) async {
-    final response = await _post('/api/auth/send-recovery-otp', {
-      'identity': identity,
-    });
+  Future<Map<String, dynamic>> sendPasswordResetInstructions({
+    required String identity,
+    String? profile,
+  }) async {
+    final payload = <String, Object?>{'identity': identity};
+    if (profile != null && profile.trim().isNotEmpty) {
+      payload['profile'] = profile.trim().toLowerCase();
+    }
+    final response = await _post('/api/auth/send-recovery-otp', payload);
     return _decodeResponse(response);
   }
 
@@ -93,11 +98,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<RecoveryVerificationResult> verifyRecoverySessionRemote({
     required String identity,
     required String code,
+    String? profile,
   }) async {
-    final response = await _post('/api/auth/verify-recovery-otp', {
+    final requestBody = <String, Object?>{
       'identity': identity,
       'code': code,
-    });
+    };
+    if (profile != null && profile.trim().isNotEmpty) {
+      requestBody['profile'] = profile.trim().toLowerCase();
+    }
+    final response = await _post('/api/auth/verify-recovery-otp', requestBody);
     final payload = _decodeResponse(response);
     final resetToken = payload['resetToken'] ?? payload['recoveryToken'];
 
