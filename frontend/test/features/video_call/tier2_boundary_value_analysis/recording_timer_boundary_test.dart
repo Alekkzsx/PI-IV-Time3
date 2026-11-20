@@ -27,29 +27,29 @@ void main() {
       harness.peerA.toggleRecording();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      // Peer A state
+      // Estado do Peer A
       expect(harness.peerA.recordingState.isRecording, isTrue);
       expect(harness.peerA.recordingState.startedByPeerId, 'peer_a_id');
       expect(harness.peerA.recordingState.startedAt, isNotNull);
 
-      // Peer B synchronized state
+      // Estado sincronizado do Peer B
       expect(harness.peerB.recordingState.isRecording, isTrue);
       expect(harness.peerB.recordingState.startedByPeerId, 'peer_a_id');
     });
 
     test('Stopping recording creates SessionExport ledger with accurate session metrics',
         () async {
-      // 1. Send chat message during session
+      // 1. Envia mensagem no chat durante a sessão
       harness.peerA.sendChatMessage('Mensagem da aula gravada');
-      // 2. Send reaction during session
+      // 2. Envia reação durante a sessão
       harness.peerB.sendReaction('🎉');
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      // 3. Start recording
+      // 3. Inicia a gravação
       harness.peerA.toggleRecording();
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      // 4. Stop recording
+      // 4. Para a gravação
       harness.peerA.toggleRecording();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -76,15 +76,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Initially, no recording banner or badge
+      // Inicialmente, não há banner nem emblema de gravação
       expect(find.byKey(const Key('institutional_recording_banner')), findsNothing);
       expect(find.byKey(const Key('recording_timer_badge')), findsNothing);
 
-      // Start recording
+      // Inicia a gravação
       harness.peerA.toggleRecording();
       await tester.pump();
 
-      // Now both institutional banner and timer badge are rendered
+      // Agora tanto o banner institucional quanto o emblema do temporizador são renderizados
       expect(find.byKey(const Key('institutional_recording_banner')), findsOneWidget);
       expect(
         find.text('● REC — Esta reunião está sendo gravada para fins acadêmicos e pedagógicos.'),
@@ -93,7 +93,7 @@ void main() {
       expect(find.byKey(const Key('recording_timer_badge')), findsOneWidget);
       expect(find.textContaining('● REC 00:00'), findsOneWidget);
 
-      // Stop recording to cleanly cancel timer before widget tree teardown
+      // Para a gravação para cancelar o temporizador de forma limpa antes da desmontagem da árvore de widgets
       harness.peerA.toggleRecording();
       await tester.pumpAndSettle();
     });
