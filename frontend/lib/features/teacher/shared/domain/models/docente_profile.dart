@@ -1,6 +1,6 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323
 
-/// An active login session on a user's device.
+/// Uma sessão de login ativa no dispositivo do usuário.
 class ActiveSession {
   final String id;
   final String device;
@@ -19,7 +19,7 @@ class ActiveSession {
   });
 }
 
-/// A security audit entry for login attempts.
+/// Um registro de auditoria de segurança para tentativas de login.
 class LoginAudit {
   final String date;
   final String time;
@@ -37,16 +37,16 @@ class LoginAudit {
     required this.status,
   });
 
-  /// Formatted date and time.
+  /// Data e hora formatadas.
   String get timestamp => '$date às $time';
 
-  /// Whether authentication was granted.
+  /// Indica se a autenticação foi concedida.
   bool get success =>
       status.toLowerCase().contains('autorizado') ||
       status.toLowerCase().contains('sucesso');
 }
 
-/// Represents the professor's account and security profile.
+/// Representa a conta e o perfil de segurança do docente.
 class DocenteProfile {
   final String fullName;
   final String socialName;
@@ -91,19 +91,19 @@ class DocenteProfile {
     required this.loginAudits,
   });
 
-  /// Institutional registration number alias.
+  /// Alias para o número de matrícula institucional.
   String get registrationNumber => registrationId;
 
-  /// Institutional email alias.
+  /// Alias para o e-mail institucional.
   String get institutionalEmail => academicEmail;
 
-  /// Institutional title / degree.
+  /// Titulação / grau institucional.
   String get title => 'Doutorado em Ciência da Computação - USP';
 
-  /// Work contract regime.
+  /// Regime de contrato de trabalho.
   String get workRegime => '40h Dedicação Exclusiva (DE)';
 
-  /// Lattes CV URL.
+  /// URL do Currículo Lattes.
   String get lattesUrl => 'http://lattes.cnpq.br/4928172938471928';
 
   DocenteProfile copyWith({
