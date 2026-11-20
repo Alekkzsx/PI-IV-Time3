@@ -22,6 +22,11 @@ public class HealthHandler extends HandlerHttpAbstrato {
     }
 
     @Override
+    protected boolean exigirBackendAcademicoOnline() {
+        return false;
+    }
+
+    @Override
     protected void processar(RequisicaoHttp requisicao, RespostaHttp resposta) throws IOException {
         boolean readiness = "/health/ready".equalsIgnoreCase(requisicao.getCaminho());
         ConexaoMongo.EstadoSaudeBanco saude = conexao != null

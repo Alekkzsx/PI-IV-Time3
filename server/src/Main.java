@@ -15,6 +15,7 @@ import auth.modules.login.TwoFactorHandler;
 import auth.modules.persistencia.RepositorioUsuarios;
 import bridge.ClientePonteAcademica;
 import core.HealthHandler;
+import core.MonitorBackendAcademico;
 import core.ServidorHttpNativo;
 import utils.ConfigEnv;
 import videocall.modules.legado.VideoCallAttendanceHandler;
@@ -44,6 +45,7 @@ public class Main {
         final RepositorioVideoCall repositorioVideoCall = RepositorioVideoCall.getInstance();
         final ClientePonteAcademica ponte = new ClientePonteAcademica();
 
+        MonitorBackendAcademico.ativarSeConfigurado();
         registrarShutdownHook(repositorio);
 
         ServidorHttpNativo servidor = new ServidorHttpNativo(porta);

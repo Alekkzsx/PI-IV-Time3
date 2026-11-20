@@ -169,4 +169,23 @@ abstract final class SecurityConstants {
 
   /// Header name for HTTP 1.0 pragma cache control.
   static const String headerPragma = 'no-cache';
+
+  // ─── FAIL-CLOSED SERVER AVAILABILITY CONTROLS ───
+
+  /// Intervalo entre verificações periódicas de saúde dos servidores (segundos).
+  static const int serverHealthCheckIntervalSeconds = 5;
+
+  /// Timeout máximo de cada probe /health antes de considerar o servidor offline (segundos).
+  static const int serverHealthCheckTimeoutSeconds = 3;
+
+  /// Número de falhas consecutivas necessárias para acionar o bloqueio imediato.
+  static const int serverHealthMaxConsecutiveFailures = 1;
+
+  /// Intervalo de heartbeat como Duration.
+  static const Duration serverHealthCheckInterval =
+      Duration(seconds: serverHealthCheckIntervalSeconds);
+
+  /// Timeout de probe /health como Duration.
+  static const Duration serverHealthCheckTimeout =
+      Duration(seconds: serverHealthCheckTimeoutSeconds);
 }

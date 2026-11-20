@@ -3,9 +3,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../network/resilient_http_client.dart';
+import '../network/server_health_monitor.dart';
 import '../network/service_endpoints.dart';
 import 'role_permission_policy.dart';
 import 'session_storage.dart';
+
+/// Resultado explícito da validação da sessão contra `GET /api/auth/me`.
+enum SessionRefreshResult { valid, unauthorized, unreachable }
 
 /// Sessão autenticada global do usuário conectada à API real e persistida no navegador/dispositivo.
 class AppUserSession extends ChangeNotifier {
@@ -258,10 +262,14 @@ class AppUserSession extends ChangeNotifier {
     }
   }
 
-  /// Sincroniza a sessão atual com `GET /api/auth/me`.
-  Future<bool> refreshProfileFromServer({http.Client? client}) async {
+  /// Valida a sessão atual contra `GET /api/auth/me` em modo Fail-Closed.
+  Future<SessionRefreshResult> verifySessionWithServer({
+    http.Client? client,
+  }) async {
     final token = _accessToken;
-    if (token == null || token.isEmpty) return false;
+    if (token == null || token.isEmpty) {
+      return SessionRefreshResult.unauthorized;
+    }
     final baseUrl = ServiceEndpoints.authBaseUrl;
     final httpClient = client ?? createResilientHttpClient();
     try {
@@ -275,19 +283,50 @@ class AppUserSession extends ChangeNotifier {
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) {
           applyProfileMap(decoded);
-          return true;
+          return SessionRefreshResult.valid;
         }
       } else if (response.statusCode == 401 && _accessToken == token) {
         expire();
+        return SessionRefreshResult.unauthorized;
+      } else if (response.statusCode >= 500) {
+        var isAuthServer = true;
+        String? detail;
+        if (response.body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(response.body);
+            if (decoded is Map) {
+              if (decoded['code'] == 'academic_service_unavailable') {
+                isAuthServer = false;
+              }
+              if (decoded['message'] is String) {
+                detail = decoded['message'] as String;
+              }
+            }
+          } on FormatException {
+            // Mantém notificação de indisponibilidade do servidor de identidade.
+          }
+        }
+        ServerHealthMonitor.instance.reportTransportFailure(
+          isAuthServer: isAuthServer,
+          detail: detail,
+        );
+        return SessionRefreshResult.unreachable;
       }
+      return SessionRefreshResult.unreachable;
     } catch (_) {
-      // Se offline momentaneamente, preserva dados locais até próxima chamada autenticada
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
+      return SessionRefreshResult.unreachable;
     } finally {
       if (client == null) {
         httpClient.close();
       }
     }
-    return false;
+  }
+
+  /// Sincroniza a sessão atual com `GET /api/auth/me`.
+  Future<bool> refreshProfileFromServer({http.Client? client}) async {
+    final result = await verifySessionWithServer(client: client);
+    return result == SessionRefreshResult.valid;
   }
 
   String get defaultHomeRoute {

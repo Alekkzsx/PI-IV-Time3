@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../state/app_user_session.dart';
 import 'resilient_http_client.dart';
+import 'server_health_monitor.dart';
 import 'service_endpoints.dart';
 
 class ApiException implements Exception {
@@ -50,6 +51,7 @@ class AuthenticatedApiClient {
         'Authorization': 'Bearer $token',
       });
     if (body != null) request.body = jsonEncode(body);
+    final isAuthTarget = _baseUrl == authBaseUrl;
     try {
       final response = await http.Response.fromStream(
         await _client.send(request),
@@ -67,6 +69,20 @@ class AuthenticatedApiClient {
           !(data is Map && data['code'] == 'invalid_password')) {
         AppUserSession.instance.expire();
       }
+      if (response.statusCode == 503 && data is Map) {
+        final code = data['code']?.toString();
+        if (code == 'identity_service_unavailable') {
+          ServerHealthMonitor.instance.reportTransportFailure(
+            isAuthServer: true,
+            detail: data['message']?.toString(),
+          );
+        } else if (code == 'academic_service_unavailable') {
+          ServerHealthMonitor.instance.reportTransportFailure(
+            isAuthServer: false,
+            detail: data['message']?.toString(),
+          );
+        }
+      }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final remoteMessage = data is Map
             ? (data['message'] is String
@@ -83,10 +99,16 @@ class AuthenticatedApiClient {
       }
       return data;
     } on TimeoutException {
+      ServerHealthMonitor.instance.reportTransportFailure(
+        isAuthServer: isAuthTarget,
+      );
       throw const ApiException(
         'A API demorou para responder. Tente novamente.',
       );
     } on http.ClientException {
+      ServerHealthMonitor.instance.reportTransportFailure(
+        isAuthServer: isAuthTarget,
+      );
       throw const ApiException('Não foi possível conectar à API.');
     }
   }
@@ -164,13 +186,23 @@ class JavaServerApiClient {
             },
           )
           .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 503) {
+        _reportJavaServiceUnavailable(response.body);
+        return null;
+      }
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           response.body.isNotEmpty) {
         final decoded = jsonDecode(response.body);
         if (decoded is Map) return Map<String, dynamic>.from(decoded);
       }
-    } catch (_) {}
+    } on TimeoutException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
+    } on http.ClientException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
+    } on FormatException {
+      return null;
+    }
     return null;
   }
 
@@ -191,13 +223,47 @@ class JavaServerApiClient {
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 5));
+      if (response.statusCode == 503) {
+        _reportJavaServiceUnavailable(response.body);
+        return null;
+      }
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           response.body.isNotEmpty) {
         final decoded = jsonDecode(response.body);
         if (decoded is Map) return Map<String, dynamic>.from(decoded);
       }
-    } catch (_) {}
+    } on TimeoutException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
+    } on http.ClientException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
+    } on FormatException {
+      return null;
+    }
     return null;
+  }
+
+  void _reportJavaServiceUnavailable(String body) {
+    var isAuthServer = true;
+    String? detail;
+    if (body.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is Map) {
+          if (decoded['code'] == 'academic_service_unavailable') {
+            isAuthServer = false;
+          }
+          if (decoded['message'] is String) {
+            detail = decoded['message'] as String;
+          }
+        }
+      } on FormatException {
+        // Segue bloqueio padrão indicando indisponibilidade do Servidor Java.
+      }
+    }
+    ServerHealthMonitor.instance.reportTransportFailure(
+      isAuthServer: isAuthServer,
+      detail: detail,
+    );
   }
 }

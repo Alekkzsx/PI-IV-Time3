@@ -3,6 +3,7 @@ package core.abstratas;
 
 import core.HttpUtils;
 import core.ManipuladorHttp;
+import core.MonitorBackendAcademico;
 import core.RequisicaoHttp;
 import core.RespostaHttp;
 import utils.Json;
@@ -42,6 +43,9 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
         }
 
         try {
+            if (exigirBackendAcademicoOnline()) {
+                MonitorBackendAcademico.garantirOnlineSeAtivo();
+            }
             processar(requisicao, resposta);
         } catch (ExcecaoHttpAbstrata e) {
             responderErro(resposta, e.getStatusHttp(), e.getCodigo(), e.getMessage());
@@ -67,6 +71,14 @@ public abstract class HandlerHttpAbstrato implements ManipuladorHttp {
 
     protected boolean deveAplicarHeadersAuth() {
         return false;
+    }
+
+    /**
+     * Define se a rota exige que o Backend Academico (:3001) esteja online (politica Fail-Closed).
+     * Sobrescrito para false apenas em rotas de diagnostico como HealthHandler.
+     */
+    protected boolean exigirBackendAcademicoOnline() {
+        return true;
     }
 
     protected String metodoPermitido() {

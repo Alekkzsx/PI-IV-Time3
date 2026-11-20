@@ -91,12 +91,14 @@ public class ArquiteturaAbstrataTeste {
 
             testarPolimorfismoExcecoes();
             testarTemplateMethodHandler();
+            testarGuardaFailClosedBackendAcademico();
             testarTemplatesEmail();
             testarCanaisECircuitBreaker();
             testarUtilitariosCompartilhados();
         } catch (Exception e) {
             esperar(false, "ArquiteturaAbstrataTeste sem excecoes: " + e.getMessage());
         } finally {
+            MonitorBackendAcademico.desativar();
             if (anteriorJwt == null) System.clearProperty("AUTH_JWT_SECRET");
             else System.setProperty("AUTH_JWT_SECRET", anteriorJwt);
         }
@@ -136,6 +138,30 @@ public class ArquiteturaAbstrataTeste {
                 + "Content-Type: application/json\r\nContent-Length: 13\r\n\r\n{\"acao\":\"ok\"}");
         esperar(rOk.startsWith("HTTP/1.1 200") && rOk.contains("\"ip\":\"10.0.0.5\""),
                 "HandlerHttpAbstrato: executa fluxo normal e extrai IP real via RedeUtils");
+    }
+
+    private static void testarGuardaFailClosedBackendAcademico() throws Exception {
+        java.net.ServerSocket portaLivre = new java.net.ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"));
+        int portaFechada = portaLivre.getLocalPort();
+        portaLivre.close();
+
+        try {
+            MonitorBackendAcademico.configurar(true, "http://127.0.0.1:" + portaFechada);
+
+            HandlerExemplo handler = new HandlerExemplo();
+            String respBloqueada = postJson(handler, "{\"acao\":\"ok\"}");
+            esperar(respBloqueada.startsWith("HTTP/1.1 503")
+                            && respBloqueada.contains("\"code\":\"academic_service_unavailable\""),
+                    "MonitorBackendAcademico: bloqueia handlers com HTTP 503 quando backend (:3001) esta offline");
+
+            HealthHandler health = new HealthHandler(null);
+            String respHealth = enviarRaw(health, "GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n");
+            esperar(respHealth.startsWith("HTTP/1.1 200")
+                            && respHealth.contains("\"service\":\"agmrm-identity-videocall\""),
+                    "HealthHandler: permanece acessivel (200) para diagnostico mesmo com backend (:3001) offline");
+        } finally {
+            MonitorBackendAcademico.desativar();
+        }
     }
 
     private static void testarTemplatesEmail() {

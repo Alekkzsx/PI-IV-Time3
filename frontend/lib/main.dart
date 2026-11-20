@@ -3,9 +3,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'core/backend/backend_process_launcher.dart';
+import 'core/network/server_health_monitor.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/state/app_user_session.dart';
+import 'core/widgets/server_unavailable_guard.dart';
 import 'features/auth/forgot_password/domain/usecases/recover_password_usecase.dart';
 import 'features/auth/forgot_password/presentation/controllers/recover_password_controller.dart';
 import 'features/auth/login/domain/usecases/login_usecase.dart';
@@ -13,16 +15,28 @@ import 'features/auth/login/presentation/controllers/login_controller.dart';
 import 'features/auth/shared/data/auth_repository_impl.dart';
 import 'features/auth/shared/external/auth_remote_datasource_impl.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Garante inicialização automática dos serviços locais em execução Desktop
-  unawaited(BackendProcessLauncher.ensureBackendRunning());
+  const autoStartBackend = bool.fromEnvironment(
+    'AUTO_START_LOCAL_BACKEND',
+    defaultValue: true,
+  );
+  if (autoStartBackend) {
+    // Garante inicialização automática dos serviços locais em execução Desktop
+    unawaited(BackendProcessLauncher.ensureBackendRunning());
+  }
 
-  // Restaura sessão autenticada persistida e valida contra GET /api/auth/me
-  final restored = AppUserSession.instance.restoreFromStorage();
-  if (restored) {
-    unawaited(AppUserSession.instance.refreshProfileFromServer());
+  // Inicia o monitoramento Fail-Closed (Servidor Java :8080 + Backend :3001)
+  ServerHealthMonitor.instance.start();
+  final serversOnline = await ServerHealthMonitor.instance.checkNow();
+
+  // Só libera entrada direta em rotas internas se ambos servidores estiverem online
+  // e a sessão salva for confirmada por GET /api/auth/me.
+  var validRestoredSession = false;
+  if (serversOnline && AppUserSession.instance.restoreFromStorage()) {
+    final result = await AppUserSession.instance.verifySessionWithServer();
+    validRestoredSession = result == SessionRefreshResult.valid;
   }
 
   const configuredRoute = String.fromEnvironment(
@@ -31,7 +45,9 @@ void main() {
   );
   final initialRoute = configuredRoute.isNotEmpty
       ? configuredRoute
-      : (restored ? AppUserSession.instance.defaultHomeRoute : AppRoutes.login);
+      : (validRestoredSession
+            ? AppUserSession.instance.defaultHomeRoute
+            : AppRoutes.login);
 
   final remoteDataSource = AuthRemoteDataSourceImpl();
   final repository = AuthRepositoryImpl(remoteDataSource);
@@ -49,6 +65,7 @@ void main() {
       controller: recoverController,
       loginController: loginController,
       initialRoute: initialRoute,
+      enableServerGuard: true,
     ),
   );
 }
@@ -59,12 +76,14 @@ class PortalAvaApp extends StatelessWidget {
   final RecoverPasswordController controller;
   final LoginController? loginController;
   final String initialRoute;
+  final bool enableServerGuard;
 
   const PortalAvaApp({
     super.key,
     required this.controller,
     this.loginController,
     this.initialRoute = AppRoutes.login,
+    this.enableServerGuard = false,
   });
 
   @override
@@ -90,6 +109,10 @@ class PortalAvaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: initialRoute,
+      builder: (context, child) => ServerUnavailableGuard(
+        enabled: enableServerGuard,
+        child: child ?? const SizedBox.shrink(),
+      ),
       routes: const {},
       onGenerateRoute: (settings) => AppRouter.onGenerateRoute(
         settings: settings,

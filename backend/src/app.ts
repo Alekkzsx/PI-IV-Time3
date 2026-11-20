@@ -3,6 +3,7 @@ import cors from "cors";
 import express, {
   type ErrorRequestHandler,
   type Express,
+  type RequestHandler,
 } from "express";
 import helmet from "helmet";
 import type { Db } from "mongodb";
@@ -46,6 +47,7 @@ export function createApp(
     jwtSecret: string;
     internalServiceSecret?: string;
     emailSender?: UnifiedEmailService;
+    identityServerHealthGuard?: RequestHandler;
   },
 ): Express {
   const app = express();
@@ -91,11 +93,14 @@ export function createApp(
 
   app.use("/api/admin/users", notFoundHandler);
   app.post("/api/admin/teachers", notFoundHandler);
-  app.use("/api/admin", createAdminOperationsRouter(options.database, options.jwtSecret, options.emailSender));
-  app.use("/api/admin", createAdminAcademicRouter(options.database, options.jwtSecret));
-  app.use("/api/student", createStudentDashboardRouter(options.database, options.jwtSecret, options.emailSender));
-  app.use("/api/teacher", createTeacherRouter(options.database, options.jwtSecret, options.emailSender));
-  app.use("/api/files", createFilesRouter(options.database, options.jwtSecret));
+  const guardHandlers: RequestHandler[] = options.identityServerHealthGuard
+    ? [options.identityServerHealthGuard]
+    : [];
+  app.use("/api/admin", ...guardHandlers, createAdminOperationsRouter(options.database, options.jwtSecret, options.emailSender));
+  app.use("/api/admin", ...guardHandlers, createAdminAcademicRouter(options.database, options.jwtSecret));
+  app.use("/api/student", ...guardHandlers, createStudentDashboardRouter(options.database, options.jwtSecret, options.emailSender));
+  app.use("/api/teacher", ...guardHandlers, createTeacherRouter(options.database, options.jwtSecret, options.emailSender));
+  app.use("/api/files", ...guardHandlers, createFilesRouter(options.database, options.jwtSecret));
 
   app.use(notFoundHandler);
   app.use(errorHandler(environment.nodeEnv));

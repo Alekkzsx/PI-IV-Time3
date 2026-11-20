@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../../../../core/network/resilient_http_client.dart';
+import '../../../../core/network/server_health_monitor.dart';
 import '../../../../core/network/service_endpoints.dart';
 import '../data/auth_remote_datasource.dart';
 
@@ -163,11 +164,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           )
           .timeout(_requestTimeout);
     } on TimeoutException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
       throw const AuthApiException(
         'O serviço de autenticação demorou para responder. Verifique se a rede atual não está bloqueando o acesso.',
         statusCode: 504,
       );
     } on http.ClientException {
+      ServerHealthMonitor.instance.reportTransportFailure(isAuthServer: true);
       throw AuthApiException(
         'Não foi possível conectar ao serviço de autenticação ($targetBase). Verifique se o servidor (porta 8080) está ativo e se não há bloqueio de rede/CORS.',
       );
@@ -199,9 +202,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (response.statusCode >= 200 && response.statusCode < 300) return;
 
     var message = 'O serviço de autenticação não concluiu a solicitação.';
+    String? errorCode;
     try {
       final decoded = jsonDecode(response.body);
       if (decoded is Map<String, dynamic>) {
+        if (decoded['code'] is String) {
+          errorCode = decoded['code'] as String;
+        }
         if (decoded['message'] is String) {
           message = decoded['message'] as String;
         } else if (decoded['erro'] is String) {
@@ -210,6 +217,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
     } on FormatException {
       // O erro de status continua sendo explícito mesmo se o corpo não for JSON.
+    }
+
+    if (response.statusCode == 503) {
+      if (errorCode == 'academic_service_unavailable') {
+        ServerHealthMonitor.instance.reportTransportFailure(
+          isAuthServer: false,
+          detail: message,
+        );
+      } else if (errorCode == 'identity_service_unavailable') {
+        ServerHealthMonitor.instance.reportTransportFailure(
+          isAuthServer: true,
+          detail: message,
+        );
+      }
     }
 
     throw AuthApiException(message, statusCode: response.statusCode);

@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { createApp } from "./app.js";
 import { loadEnvironment } from "./config/environment.js";
 import { ResilientEmailSender } from "./modules/notifications/index.js";
+import { createIdentityServerHealthMiddleware } from "./shared/auth/identity-server-health.middleware.js";
 import { MongoAcademicDatabase } from "./shared/mongo/database.js";
 
 async function start(): Promise<void> {
@@ -21,12 +22,23 @@ async function start(): Promise<void> {
     database.databaseForModules(),
   );
 
+  const requireIdentityServer =
+    (process.env.REQUIRE_IDENTITY_SERVER_ONLINE ?? "true").trim().toLowerCase() !== "false";
+  const identityServerBaseUrl =
+    process.env.AUTH_API_BASE_URL?.trim() ||
+    process.env.JAVA_SERVER_BASE_URL?.trim() ||
+    `http://127.0.0.1:${process.env.SERVER_PORT?.trim() || "8080"}`;
+  const identityServerHealthGuard = requireIdentityServer
+    ? createIdentityServerHealthMiddleware({ baseUrl: identityServerBaseUrl })
+    : undefined;
+
   const server = createServer(
     createApp(environment, {
       database: database.databaseForModules(),
       jwtSecret: environment.jwtSecret,
       internalServiceSecret: environment.internalServiceSecret,
       emailSender,
+      identityServerHealthGuard,
     }),
   );
   server.listen(environment.port, () => {
