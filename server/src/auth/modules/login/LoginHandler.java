@@ -3,6 +3,7 @@ package auth.modules.login;
 
 import auth.abstratas.HandlerAuthPublicoAbstrato;
 import auth.model.UsuarioAutenticado;
+import auth.modules.conta.RecoveryHandler;
 import auth.modules.email.SmtpCliente;
 import auth.modules.persistencia.RepositorioUsuarios;
 import auth.utils.AuthHttpUtils;
@@ -71,11 +72,23 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
         // 2. Autenticar no MongoDB (com dummy hash para usuarios inexistentes)
         UsuarioAutenticado usuario = repositorio.autenticar(identidade, senha);
         if (usuario == null) {
+            if (perfilSolicitado != null && !perfilSolicitado.isEmpty()) {
+                UsuarioAutenticado contaExistente = repositorio.buscarPorIdentidade(identidade);
+                if (contaExistente == null && identidade.contains("@")) {
+                    contaExistente = repositorio.buscarPorEmail(identidade);
+                }
+                if (contaExistente != null
+                        && !RecoveryHandler.perfisCompativeis(perfilSolicitado, contaExistente.getProfile())) {
+                    tratarPerfilInvalido(
+                            resposta, limitador, contaExistente, identidade, perfilSolicitado, ipCliente, inicio);
+                    return;
+                }
+            }
             tratarCredenciaisInvalidas(resposta, limitador, identidade, ipCliente, inicio);
             return;
         }
 
-        if (perfilSolicitado != null && !perfilSolicitado.equalsIgnoreCase(usuario.getProfile())) {
+        if (perfilSolicitado != null && !RecoveryHandler.perfisCompativeis(perfilSolicitado, usuario.getProfile())) {
             tratarPerfilInvalido(resposta, limitador, usuario, identidade, perfilSolicitado, ipCliente, inicio);
             return;
         }
@@ -139,11 +152,15 @@ public class LoginHandler extends HandlerAuthPublicoAbstrato {
             long inicio) throws IOException {
         limitador.registrarFalha(identidade, ipCliente);
         Map<String, Object> det = new LinkedHashMap<String, Object>();
-        det.put("requestedProfile", perfilSolicitado);
-        det.put("actualProfile", usuario.getProfile());
+        det.put("requestedProfile", RecoveryHandler.normalizarPerfil(perfilSolicitado));
+        det.put("actualProfile", RecoveryHandler.normalizarPerfil(usuario.getProfile()));
         repositorio.registrarAuditoria(usuario.getUserId(), "login_failed", usuario.getUserId(), det, ipCliente);
         AuthHttpUtils.aplicarLatenciaPadronizada(inicio, true);
-        responderErro(resposta, 401, "invalid_profile", "Credenciais invalidas para o perfil selecionado.");
+        responderErro(
+                resposta,
+                403,
+                "invalid_user_type",
+                RecoveryHandler.construirMensagemPerfilIncompativel(perfilSolicitado, usuario.getProfile()));
     }
 
     private void enviarDesafioDoisFatores(
