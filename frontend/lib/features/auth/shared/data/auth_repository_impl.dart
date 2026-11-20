@@ -1,7 +1,7 @@
 // Desenvolvido por Marcelo Zarpelon - RA: 25015323 e Alex Gabriel Soares Sousa - RA: 24802449
 
-import '../domain/models/recovery_session.dart';
 import '../domain/auth_repository.dart';
+import '../external/auth_remote_datasource_impl.dart';
 import 'auth_remote_datasource.dart';
 
 /// Implementação concreta de [AuthRepository] que gerencia e delega chamadas para [AuthRemoteDataSource].
@@ -21,13 +21,25 @@ class AuthRepositoryImpl implements AuthRepository {
   );
 
   @override
-  Future<void> recoverPassword({required String identity}) async {
-    await remoteDataSource.sendPasswordResetInstructions(identity: identity);
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {
+    await remoteDataSource.sendPasswordResetInstructions(
+      identity: identity,
+      profile: profile,
+    );
   }
 
   @override
-  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async {
-    return await remoteDataSource.sendPasswordResetInstructions(identity: identity);
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async {
+    return await remoteDataSource.sendPasswordResetInstructions(
+      identity: identity,
+      profile: profile,
+    );
   }
 
   @override
@@ -73,8 +85,17 @@ class AuthRepositoryImpl implements AuthRepository {
     final result = await remoteDataSource.verifyRecoverySessionRemote(
       identity: currentSession.identity,
       code: code,
+      profile: currentSession.profile.name,
     );
-    final profile = switch (result.profile.toLowerCase()) {
+    final resultProfileRaw = result.profile.trim().toLowerCase();
+    if (resultProfileRaw.isNotEmpty &&
+        resultProfileRaw != currentSession.profile.name.toLowerCase()) {
+      throw const AuthApiException(
+        'Tipo de usuário inválido para o perfil selecionado.',
+        statusCode: 403,
+      );
+    }
+    final profile = switch (resultProfileRaw) {
       'admin' => UserProfile.admin,
       'docente' => UserProfile.docente,
       'aluno' => UserProfile.aluno,
