@@ -112,7 +112,7 @@ class SessionPickerCardTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
 
-            // Status Badge
+            // Emblema de Status
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
