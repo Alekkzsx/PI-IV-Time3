@@ -5,7 +5,7 @@ import 'mock_video_call_repository.dart';
 import 'video_call_contracts.dart';
 import 'video_call_test_components.dart';
 
-/// Test harness for orchestrating multi-peer P2P video call scenarios.
+/// Estrutura de testes para orquestrar cenários de videochamada P2P com múltiplos pares.
 class VideoCallTestHarness {
   final String roomCode;
   final MeetingRoom room;
@@ -23,7 +23,7 @@ class VideoCallTestHarness {
     required this.peerB,
   });
 
-  /// Provisions two connected peers in the same meeting room.
+  /// Provisiona dois pares conectados na mesma sala de reunião.
   static Future<VideoCallTestHarness> createDualPeer({
     String roomCode = 'SALA-101',
     String peerAName = 'Alex Sousa',
@@ -62,7 +62,7 @@ class VideoCallTestHarness {
       localParticipant: participantB,
     );
 
-    // Register initial participants directly so both peers are immediately aware of each other
+    // Registra os participantes iniciais diretamente para que ambos os pares fiquem cientes um do outro imediatamente
     controllerA.registerRemoteParticipant(participantB);
     controllerB.registerRemoteParticipant(participantA);
 
@@ -76,7 +76,7 @@ class VideoCallTestHarness {
     );
   }
 
-  /// Disposes both peers, repositories, and signaling bus.
+  /// Descarta ambos os pares, os repositórios e o barramento de sinalização.
   void dispose() {
     peerA.dispose();
     peerB.dispose();
