@@ -8,10 +8,16 @@ import 'package:pi_iv_time3/features/auth/shared/domain/models/recovery_session.
 
 class _FakeAuthRepo implements AuthRepository {
   @override
-  Future<void> recoverPassword({required String identity}) async {}
+  Future<void> recoverPassword({
+    required String identity,
+    String? profile,
+  }) async {}
 
   @override
-  Future<Map<String, dynamic>> recoverPasswordDetails({required String identity}) async => {};
+  Future<Map<String, dynamic>> recoverPasswordDetails({
+    required String identity,
+    String? profile,
+  }) async => {};
 
   @override
   Future<String> login({required String identity, required String password, required String profile}) async => '';
