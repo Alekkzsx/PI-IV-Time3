@@ -17,9 +17,9 @@ import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controll
 import '../widgets/docente_header.dart';
 import '../widgets/docente_sidebar.dart';
 
-/// Main navigation shell for the Docente Portal providing sidebar, header, and reactive tab rendering.
+/// Shell de navegação principal do Portal Docente, fornecendo barra lateral, cabeçalho e renderização reativa de abas.
 class DocenteShellPage extends StatefulWidget {
-  /// Optional initial tab.
+  /// Aba inicial opcional.
   final DocenteNavTab initialTab;
   final DocenteController? controller;
 
