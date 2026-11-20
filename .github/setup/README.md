@@ -17,9 +17,11 @@ Para conveniência dos desenvolvedores, a pasta raiz de setup contém exclusivam
 ├── setup.bat                        # DISPARADOR WINDOWS: 1-clique ou terminal (Windows 11 / 10)
 ├── setup.sh                         # DISPARADOR POSIX: 1-clique ou terminal (Linux / WSL2 / macOS)
 ├── README.md                        # Documentação completa de uso e arquitetura
-└── modules/                         # Módulos executores de setup e consoles
+└── modules/                         # Módulos executores de setup, supervisores e consoles
     ├── setup.ps1                    # Motor de verificação e orquestrador Windows (PowerShell)
     ├── setup.sh                     # Motor de verificação e orquestrador Linux/macOS (Bash)
+    ├── service-runner.ps1           # Supervisor de execução contínua com hot-relaunch (PowerShell)
+    ├── service-runner.sh            # Supervisor de execução contínua com hot-relaunch (Bash)
     ├── java-server-console.bat      # Launcher do console Java interativo (Windows CMD)
     ├── java-server-console.ps1      # Painel de controle interativo do Servidor Java SE (PowerShell)
     └── java-server-console.sh       # Painel de controle interativo do Servidor Java SE (Bash)
@@ -99,7 +101,7 @@ Verifica se cada uma das seguintes ferramentas está instalada e configurada:
 - **População de Banco de Dados (`npm run seed`)**: Oferece a execução das 6 seeds modulares (usuários, cursos, turmas, docentes, discentes e institucional — 30+ registros por entidade) para deixar o sistema 100% navegável no primeiro login.
 - **Módulo de Ciberdefesa (`security/`)**: Executa `flutter pub get` no pacote `agmrm_security`.
 - **Frontend App Multiplataforma (`frontend/`)**: Executa `flutter pub get` no aplicativo Flutter.
-- **Servidor Java Nativo (`server/`)**: Compila todos os 41 fontes Java nativos de `server/src/` para bytecode em `server/bin/` com codificação UTF-8 e inclusão automática de dependências MongoDB em `server/lib/`.
+- **Servidor Java Nativo (`server/`)**: Compila todos os 86 fontes Java nativos de `server/src/` (104 arquivos `.java` no módulo incluindo `server/tests/`) para bytecode em `server/bin/` com codificação UTF-8 e inclusão automática dos drivers MongoDB em `server/lib/`.
 
 ---
 
@@ -131,10 +133,11 @@ O console da Janela 1 disponibiliza um menu de comandos em tempo real:
 - **`[3]` Status e Diagnóstico em Tempo Real**: Executa requisições de teste em múltiplos endpoints medindo a latência em ms.
 - **`[4]` Visualizar Logs do Servidor**: Exibe as últimas 30 linhas de saída de `server.log` e erros recentes em `server-error.log`.
 - **`[5]` Recompilar Fontes Java**: Recompila `server/src/` para `server/bin/` sem interromper o processo em execução.
-- **`[6]` Executar Suíte de Testes Nativos**: Executa as 11 suítes de testes automatizados do servidor sem necessidade de JUnit (`SuiteTestesServidor`).
+- **`[6]` Executar Suíte de Testes Nativos**: Executa as 17 suítes de testes automatizados do servidor sem necessidade de JUnit (`SuiteTestesServidor`).
 - **`[7]` Exibir Variáveis Carregadas do `.env` Mestre**: Mostra todas as variáveis carregadas da raiz (mascarando segredos por segurança).
 - **`[8]` Abrir Endpoint no Navegador**: Abre o healthcheck no navegador padrão (`open` no macOS, `xdg-open` no Linux, `Start-Process` no Windows).
 - **`[9]` Limpar Tela do Console**: Limpa a tela mantendo o status no topo.
+- **`[10]` Alternar Trava Fail-Closed do Frontend (`ATIVA` / `DESATIVADA`)**: Ativa ou desativa em tempo real a guarda `ServerUnavailableGuard` (`--dart-define=ENABLE_SERVER_GUARD=false`) e reinicia automaticamente o processo do Flutter na mesma janela (`service-runner`), sem alterar o arquivo `.env`.
 - **`[0]` Encerrar Servidor e Fechar Console**: Finaliza o servidor Java e fecha o painel.
 
 ---
@@ -147,6 +150,7 @@ O console da Janela 1 disponibiliza um menu de comandos em tempo real:
 | `-Seed` | Executa automaticamente as seeds modulares do banco MongoDB sem prompt. | `setup.bat -Seed` |
 | `-SkipInstall` | Pula a etapa de instalação de dependências e vai direto para a execução. | `setup.bat -SkipInstall` |
 | `-NoLaunch` | Apenas valida dependências e compila os módulos, sem abrir as janelas. | `setup.bat -NoLaunch` |
+| `-NoGuard` | Desativa de forma forçada a trava Fail-Closed (`ENABLE_SERVER_GUARD=false`) no frontend. | `setup.bat -NoGuard` |
 | `-FlutterDevice <nome>` | Força o dispositivo Flutter (ex: `windows`, `chrome`, `edge`). | `setup.bat -FlutterDevice chrome` |
 
 ### No Linux & macOS (`setup.sh` ou `modules/setup.sh`):
@@ -155,5 +159,6 @@ O console da Janela 1 disponibiliza um menu de comandos em tempo real:
 | `--seed` | Executa automaticamente as seeds modulares do banco MongoDB sem prompt. | `./setup.sh --seed` |
 | `--skip-install` / `-s` | Pula a instalação e atualização de dependências. | `./setup.sh --skip-install` |
 | `--no-launch` / `-n` | Executa diagnóstico e compilação sem abrir janelas. | `./setup.sh --no-launch` |
+| `--no-guard` | Desativa de forma forçada a trava Fail-Closed (`ENABLE_SERVER_GUARD=false`) no frontend. | `./setup.sh --no-guard` |
 | `--auto-install` / `-y` | Responde "sim" automaticamente a prompts de instalação. | `./setup.sh -y` |
 | `--device=<nome>` | Força o dispositivo de execução Flutter (ex: `macos`, `linux`, `chrome`). | `./setup.sh --device=chrome` |

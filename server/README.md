@@ -9,9 +9,9 @@ O módulo `server` contém o servidor HTTP e WebSocket nativo, autônomo e de al
 Ele opera 100% sobre a **biblioteca padrão do Java SE** (compilado com `--release 8`, compatível do Java 8 ao 25) sem frameworks pesados (sem Spring, Quarkus, Maven, JUnit ou Tomcat).
 
 **Responsabilidades Principais (Contexto Delimitado na Porta `8080`)**:
-- **Gestão Autoritativa de Identidade e Acesso**: Sistema completo de login (verificação PBKDF2/BCrypt, tokens JWT HS256 de acesso/atualização/recuperação, 2FA + códigos de backup, recuperação com OTP de uso único, troca de senha, exportação de perfil/preferências/sessões/LGPD e gerenciamento administrativo de usuários + provisionamento de docentes)
+- **Gestão Autoritativa de Identidade e Acesso**: Sistema completo de login com validação estrita de compatibilidade de perfil (`aluno`, `docente`, `admin` — rejeitando divergências com HTTP `403 invalid_user_type`), verificação PBKDF2/BCrypt, tokens JWT HS256 de acesso/atualização/recuperação, 2FA + códigos de backup, recuperação com OTP de uso único, troca de senha, exportação de perfil/preferências/sessões/LGPD e gerenciamento administrativo de usuários + provisionamento de docentes
 - **Videoconferência e Sinalização em Tempo Real**: Salas persistidas e tickets WebSocket de uso único (`academic_live_sessions`, `video_call_ws_tickets`, `video_call_attendance_logs`) via `/api/video-call/rooms*`, `/ws/video-call/{roomCode}` em RFC 6455, sincronização de chat e telemetria legada em `/api/videocall/*`
-- **Consumidor da Ponte Interna**: Chama `backend/` (`:3001`) em `/api/internal/academic/*` com `X-Internal-Service-Secret` (`ClientePonteAcademica`) para autorizar vínculo acadêmico em turmas, listar salas permitidas e buscar resumos acadêmicos para LGPD/dossiê
+- **Monitoramento Fail-Closed e Ponte Interna**: Monitora proativamente a disponibilidade do `backend/` (`:3001/health`) via `MonitorBackendAcademico` (bloqueando requisições dependentes com HTTP `503 backend_unavailable` caso o núcleo acadêmico caia, mantendo `/health` acessível para diagnóstico) e consome `/api/internal/academic/*` com `X-Internal-Service-Secret` (`ClientePonteAcademica`) para autorizar vínculo acadêmico em turmas, listar salas permitidas e buscar resumos acadêmicos para LGPD/dossiê
 
 ---
 
@@ -44,6 +44,7 @@ Cada domínio principal (`core`, `auth`, `videocall`) segue a mesma estrutura pr
 │   │   ├── HealthHandler.java                        # GET /health e /health/ready
 │   │   ├── HttpUtils.java                            # CORS e cabeçalhos defensivos de segurança
 │   │   ├── ManipuladorHttp.java                      # Interface de contrato do handler HTTP
+│   │   ├── MonitorBackendAcademico.java              # Monitor proativo Fail-Closed do backend acadêmico (:3001)
 │   │   ├── RequisicaoHttp.java                       # Parser de requisições HTTP/1.1 em socket TCP
 │   │   ├── ResilientDnsClient.java                   # Resolvedor JNDI + DNS-over-HTTPS (DoH)
 │   │   ├── RespostaHttp.java                         # Escritor nativo de respostas HTTP/1.1

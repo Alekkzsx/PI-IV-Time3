@@ -1,5 +1,3 @@
-<!-- Desenvolvido por Alex Gabriel Soares Sousa - RA: 24802449 -->
-
 # Backend Acadêmico (TypeScript + Express + MongoDB)
 
 Serviço modular em TypeScript dedicado ao núcleo acadêmico (`student`, `teacher`, operações acadêmicas de `admin`, download de arquivos `/api/files/*`) e à ponte HTTP interna (`/api/internal/academic/*`).
@@ -91,10 +89,10 @@ npm run dev
 
 O arquivo mestre `.env` na raiz já contém as variáveis compartilhadas (`MONGODB_URI`, `AUTH_JWT_SECRET`, `AUTH_OTP_SECRET`, `SMTP_*`, etc.), lidas automaticamente por todos os serviços.
 
-Comandos de verificação e build:
+Comandos de verificação e build (suíte com **61 testes automatizados** distribuídos entre 10 arquivos unitários e 4 arquivos de integração):
 
 ```powershell
-npm test                  # Compila TypeScript e executa toda a suíte (unit + integration)
+npm test                  # Compila TypeScript e executa toda a suíte (61 testes: unit + integration)
 npm run test:unit         # Executa apenas src/tests/unit
 npm run test:integration  # Executa apenas src/tests/integration
 npm run build             # Gera build de produção em dist/

@@ -15,6 +15,11 @@ O diretório `.github` centraliza a governança do repositório, as regras de pr
 ├── .vscode/                      # Modelos compartilhados de configuração de IDE (VS Code)
 │   ├── launch.json               # Configurações de depuração e inicialização (Flutter Desktop/Web + Java)
 │   └── tasks.json                # Tarefas de build em segundo plano e execução não bloqueante do servidor
+├── setup/                        # Orquestrador multiplataforma de setup e inicialização (Windows, Linux e macOS)
+│   ├── setup.bat                 # Disparador 1-clique / terminal para Windows
+│   ├── setup.sh                  # Disparador POSIX para Linux, WSL2 e macOS
+│   ├── README.md                 # Documentação do orquestrador, parâmetros (-NoGuard / --no-guard) e console Java
+│   └── modules/                  # Scripts modulares (setup.*, service-runner.* e java-server-console.*)
 ├── workflows/
 │   └── restrict-main.yml         # Fluxo automatizado do GitHub Actions protegendo a branch main
 ├── CODEOWNERS                    # Atribuições formais de revisão de código da equipe de engenharia
@@ -132,18 +137,18 @@ As revisões de código e autorizações de merge são coordenadas formalmente p
 
 ### 1. Formato de Mensagem de Commit (Conventional Commits)
 Todas as mensagens de commit devem seguir as convenções padrão:
-- `feat:` Introduz uma nova funcionalidade (ex.: `feat(server): add real smtp email dispatch for otp recovery`).
-- `fix:` Corrige um defeito ou bug (ex.: `fix(security): resolve test suite path references`).
-- `docs:` Alterações na documentação (ex.: `docs(root): align readme with project presentation standards`).
+- `feat:` Introduz uma nova funcionalidade (ex.: `feat(server): adiciona envio real de e-mail smtp para recuperacao otp`).
+- `fix:` Corrige um defeito ou bug (ex.: `fix(auth): valida compatibilidade de perfil no login e recuperacao`).
+- `docs:` Alterações na documentação (ex.: `docs(readme): atualiza documentacao dos modulos em pt-br`).
 - `refactor:` Modificações de código que não corrigem bugs nem adicionam novas funcionalidades.
 - `test:` Adição ou atualização de suítes de testes automatizados.
 - `ci:` Ajustes de pipeline e fluxos de automação do repositório.
 
 ### 2. Checklist Pré-Submissão de Pull Request
 Antes de abrir um Pull Request para revisão:
-- [ ] O código segue estritamente as fronteiras arquiteturais (Clean Architecture Feature-First em `frontend/`, POJO nativo em `server/`).
+- [ ] O código segue estritamente as fronteiras arquiteturais (Clean Architecture Feature-First em `frontend/`, Java SE modular em `server/`, TypeScript modular em `backend/`).
 - [ ] A branch de origem está com rebase realizado ou atualizada com `develop`.
-- [ ] Todos os testes automatizados passam localmente (`cd frontend && flutter test`, `cd security && flutter test`).
+- [ ] Todos os testes automatizados passam localmente (`cd backend && npm test`, `SuiteTestesServidor` em `server/`, `cd security && flutter test`, `cd frontend && flutter test`).
 - [ ] A análise estática é concluída com 0 avisos (`flutter analyze`).
 - [ ] Nenhuma credencial local ou arquivo `.env` ativo está versionado (apenas `.env-example` como modelo).
 

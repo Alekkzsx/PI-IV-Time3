@@ -16,10 +16,11 @@ A plataforma resolve a fragmentação de ferramentas educacionais ao integrar co
 - **Portal do Discente**: Histórico acadêmico com médias ponderadas, faltas, grade de horários, avisos e secretaria virtual.
 - **Portal do Docente**: Lançamento de notas, diário de presença digital, homologação de frequência e gestão de sala de aula virtual.
 - **Portal Administrativo**: Gestão de identidade de usuários, cockpit de auditoria, secretaria acadêmica e trava regimental do CONSEPE.
-- **Videochamada Institucional (`video_call`)**: Videoconferência P2P WebRTC hospedada no servidor Java nativo (`server/` na porta `8080`) com salas e presenças persistidas (`academic_live_sessions`, `video_call_attendance_logs`), tíquetes WS de uso único (`video_call_ws_tickets`), detecção de orador ativo, fila FIFO de dúvidas (mãos levantadas) e chat em tempo real sincronizado com o hub WebSocket.
-- **Servidor Java SE Nativo (`server/` na porta `8080`)**: Fronteira autoritativa de Identidade e Comunicação em Tempo Real (Login, 2FA, recuperação via OTP, Perfil/Sessões/exportação LGPD, Gestão Administrativa de Usuários, `/api/video-call/rooms*` persistido + `/ws/video-call/{roomCode}`, `/health` e endpoints de cálculo acadêmico). Comunica-se com `backend/` via `/api/internal/academic/*` (`X-Internal-Service-Secret`).
+- **Videochamada Institucional (`video_call`)**: Videoconferência P2P WebRTC hospedada no servidor Java nativo (`server/` na porta `8080`) com lobby pré-chamada em tema monocromático de alto contraste (`VideoCallColors`), salas e presenças persistidas (`academic_live_sessions`, `video_call_attendance_logs`), tíquetes WS de uso único (`video_call_ws_tickets`), detecção de orador ativo, fila FIFO de dúvidas (mãos levantadas) e chat em tempo real sincronizado com o hub WebSocket.
+- **Servidor Java SE Nativo (`server/` na porta `8080`)**: Fronteira autoritativa de Identidade e Comunicação em Tempo Real (Login com validação estrita de compatibilidade de perfil `aluno`/`docente`/`admin`, 2FA, recuperação via OTP de uso único, Perfil/Sessões/exportação LGPD, Gestão Administrativa de Usuários, `/api/video-call/rooms*` persistido + `/ws/video-call/{roomCode}`, `/health` e monitor proativo `MonitorBackendAcademico`). Comunica-se com `backend/` via `/api/internal/academic/*` (`X-Internal-Service-Secret`).
 - **API do Núcleo Acadêmico (`backend/` na porta `3001`)**: Serviço acadêmico modular em TypeScript + Express + MongoDB responsável pelos portais Discente/Docente, operações acadêmicas administrativas, downloads de arquivos (`/api/files/*`), validação passiva de JWT HS256 + `auth_sessions` e ponte interna `/api/internal/academic/*`.
-- **Ciberdefesa em Profundidade (`security/`)**: Bloqueio contra força bruta (5 tentativas $\rightarrow$ bloqueio de 30s), mitigação de ataques de temporização (side-channel timing), respostas opacas anti-enumeração, sanitização de entradas contra XSS/SQLi e ciclo de vida de tokens OTP.
+- **Guarda Fail-Closed de Disponibilidade (`ServerUnavailableGuard`)**: Monitoramento contínuo dos serviços Java (`:8080/health`) e TypeScript (`:3001/health`) no cliente Flutter, bloqueando operações órfãs quando qualquer servidor estiver indisponível (com opção de desativação para desenvolvimento via `--dart-define=ENABLE_SERVER_GUARD=false` ou `.github/setup` `--no-guard` / `-NoGuard`).
+- **Ciberdefesa em Profundidade (`security/`)**: Bloqueio contra força bruta (5 tentativas $\rightarrow$ bloqueio de 30s), mitigação de ataques de temporização (side-channel timing), respostas opacas anti-enumeração, sanitização contra XSS/SQLi, ciclo de vida de tokens OTP e submódulo de proteção discente (verificação SHA-256 de entregas, inspeção de *magic bytes* de uploads, validador de repositórios Git e limitador de ações).
 
 ---
 
@@ -52,34 +53,33 @@ A plataforma resolve a fragmentação de ferramentas educacionais ao integrar co
 
 ```
 .../PI-IV-Time3/
-├── .github/          # Fluxos de CI/CD, CODEOWNERS, GOVERNANCE.md e configurações compartilhadas de IDE (.vscode)
-├── frontend/         # Aplicativo Flutter multiplataforma (Clean Architecture Feature-First, 396 testes)
+├── .github/          # Fluxos de CI/CD, CODEOWNERS, GOVERNANCE.md, perfis .vscode e orquestrador multiplataforma (setup/)
+├── frontend/         # Aplicativo Flutter multiplataforma (Clean Architecture Feature-First, 57 arquivos de teste)
 │   ├── lib/
-│   │   ├── core/     # Tema, tokens de design, rotas e inicializador transparente de backend
+│   │   ├── core/     # Tema, tokens de design, rotas, guarda Fail-Closed (ServerHealthMonitor) e launcher de backend
 │   │   ├── features/ # auth, student, teacher, admin, video_call, multiperfil
-│   │   └── main.dart # Ponto de entrada do app com inicialização automatizada dos módulos principais
-│   └── test/         # Suíte abrangente de testes (396 testes)
-├── server/           # Servidor Java SE na porta 8080 (Identidade, Usuários Admin, Videochamada REST + WS)
+│   │   └── main.dart # Ponto de entrada do app com inicialização automatizada e guarda de disponibilidade
+│   └── test/         # Suíte abrangente de testes de unidade, widget e integração
+├── server/           # Servidor Java SE na porta 8080 (104 arquivos Java: Identidade, Admin, Videochamada REST + WS)
 │   ├── src/
 │   │   ├── Main.java # Orquestrador central na porta 8080
-│   │   ├── core/     # Sockets TCP de baixo nível, manipuladores HTTP e CORS
-│   │   ├── academic/ # Notas, Frequência, Tarefas e Tipos de Dados
-│   │   ├── auth/     # Autenticação, 2FA, Recuperação, Perfil, Sessões, Usuários Admin e validação JWT
+│   │   ├── core/     # Sockets TCP HTTP/1.1, CORS, failover MongoDB/DoH e MonitorBackendAcademico
+│   │   ├── auth/     # Autenticação, 2FA, Recuperação OTP, Perfil, Sessões, Usuários Admin, E-mail e validação JWT
 │   │   ├── bridge/   # Cliente HTTP autenticado para /api/internal/academic/* do backend
-│   │   ├── utils/    # ConfigEnv, Json e JsonSimples
+│   │   ├── utils/    # BsonUtils, ConfigEnv, Json, JsonSimples e RedeUtils
 │   │   ├── websocket/# Handshake WebSocket RFC 6455, enquadramento (framing) e ciclo de vida
 │   │   └── videocall/# Salas persistidas (/api/video-call/rooms*), hub WebRTC e Frequência
-│   └── tests/        # Suíte de testes Java sem dependências externas (SuiteTestesServidor) e guia cURL
-├── security/         # Módulo corporativo de ciberdefesa (agmrm_security + testes Java)
-│   ├── lib/          # Defesas do lado do cliente (bloqueio, limitador de taxa, temporização, entropia)
-│   ├── test/         # Suíte de testes de segurança
-│   └── server/       # Filtros de segurança do lado do servidor (limitador de taxa, cabeçalhos, sanitizadores)
-├── backend/          # Núcleo Acadêmico em TypeScript + Express + MongoDB na porta 3001
+│   └── tests/        # Suíte nativa de testes Java sem dependências externas (SuiteTestesServidor - 17 suítes)
+├── security/         # Módulo corporativo de ciberdefesa (agmrm_security: 125 testes Dart + 20 cenários Java)
+│   ├── lib/          # Defesas de autenticação e proteção discente (SHA-256, magic bytes, rate-limit, entropia)
+│   ├── test/         # 21 suítes de testes automatizados em Dart/Flutter
+│   └── server/       # Filtros de segurança do lado do servidor Java (limitador de taxa, cabeçalhos, sanitizadores)
+├── backend/          # Núcleo Acadêmico em TypeScript + Express + MongoDB na porta 3001 (61 testes automatizados)
 │   ├── src/
 │   │   ├── config/   # Carregamento de ambiente e validação estrita
 │   │   ├── shared/   # Cliente MongoDB, middleware passivo JWT+sessão, índices e erros
 │   │   ├── modules/  # Módulos acadêmicos: admin/, student/, teacher/, notifications/, internal/
-│   │   ├── scripts/  # Provisionamento de usuários via CLI e seed idempotente de demonstração
+│   │   ├── scripts/  # Provisionamento de usuários via CLI e 6 seeds modulares idempotentes
 │   │   └── tests/    # Suítes centralizadas de testes unitários (unit/) e de integração (integration/)
 │   └── backend-config.json # Configuração declarativa para os módulos principais
 └── .env-example      # Modelo mestre unificado de variáveis de ambiente para todos os módulos
@@ -146,8 +146,28 @@ cd ..
 
 ---
 
-### 4. Iniciar os Serviços de Backend
+### 4. Iniciar os Serviços (Automático via `.github/setup` ou Manual)
 
+#### Opção A: Orquestrador Multiplataforma Automatizado (Recomendado)
+Inicia automaticamente o Servidor Java (`:8080`), o Backend TypeScript (`:3001`) e o Frontend Flutter em 3 terminais dedicados:
+
+```bash
+# Linux / macOS / WSL2:
+./.github/setup/setup.sh
+
+# Para iniciar com a trava Fail-Closed desativada:
+./.github/setup/setup.sh --no-guard
+```
+
+```powershell
+# Windows (CMD ou PowerShell):
+.\.github\setup\setup.bat
+
+# Para iniciar com a trava Fail-Closed desativada:
+.\.github\setup\setup.bat -NoGuard
+```
+
+#### Opção B: Inicialização Manual dos Serviços
 Inicie o Núcleo Acadêmico em TypeScript e a API de Ponte Interna na porta `3001`:
 
 ```bash
@@ -155,34 +175,30 @@ cd backend
 npm run dev
 ```
 
-O servidor Java nativo na porta `8080` é iniciado automaticamente ao executar `flutter run` no desktop, ou pode ser executado manualmente:
+Compile e inicie o servidor Java nativo na porta `8080`:
 
-#### No Windows:
-```powershell
-cd server
-.\run-server.bat
-```
-
-#### No Linux / macOS:
 ```bash
 cd server
+mkdir -p bin
 javac --release 8 -encoding UTF-8 -cp "lib/*" -d bin $(find src -name "*.java")
 java -Dfile.encoding=UTF-8 -cp "bin:lib/*" Main
 ```
 
 #### Build e Verificação Completa Automatizada:
-Para compilar e executar testes em todos os módulos:
+Para compilar e executar as suítes de testes em todos os módulos:
 
-##### No Windows / PowerShell:
-```powershell
-cd backend
-npm test
-cd ../server
-.\run-tests.bat
-cd ../frontend
-flutter test
-cd ../security
-flutter test
+```bash
+# 1. Backend Acadêmico (61 testes)
+cd backend && npm test
+
+# 2. Servidor Java Nativo (17 suítes nativas)
+cd ../server && mkdir -p /tmp/server_test_bin && javac --release 8 -encoding UTF-8 -cp "lib/*" -d /tmp/server_test_bin $(find src tests -name "*.java") && java -Dfile.encoding=UTF-8 -cp "/tmp/server_test_bin:lib/*" SuiteTestesServidor
+
+# 3. Módulo de Ciberdefesa (125 testes Dart)
+cd ../security && flutter test
+
+# 4. Frontend Flutter
+cd ../frontend && flutter test
 ```
 
 ---
@@ -226,7 +242,6 @@ Os serviços seguem uma separação estrita de contextos delimitados entre Ident
 | `GET` / `POST` / `PATCH` | `/api/admin/users*` & `POST /api/admin/teachers` | Java (`8080`) | Gestão administrativa do ciclo de vida de usuários, dossiê e provisionamento de docentes |
 | `GET` / `POST` | `/api/video-call/rooms*` | Java (`8080`) | Consulta de sala ao vivo persistida, emissão de tíquete WS de uso único, encerramento e frequência |
 | `GET` / `POST` | `/api/videocall/*` | Java (`8080`) | Endpoints legados de compatibilidade para sala ao vivo, sinalização e telemetria de chat |
-| `POST` | `/api/presenca`, `/api/notas/boletim`, `/api/tarefas/calcular-nota` | Java (`8080`) | Endpoints nativos de cálculo acadêmico |
 | `GET` | `/health` | TS (`3001`) | Verificação de integridade da API Acadêmica (`agmrm-academic-api`) |
 | `GET` / `POST` / `PATCH` | `/api/student/*`, `/api/teacher/*`, `/api/files/*` | TS (`3001`) | Portal AVA do Discente, cockpit do Docente e downloads de arquivos acadêmicos |
 | `GET` / `POST` / `PATCH` | `/api/admin/courses*`, `/classes*`, `GET /teachers`, `/protocols*`, `/settings`, `/announcements*`, `/calendar*`, `/audit-logs`, `/system/*` | TS (`3001`) | Gestão acadêmica administrativa e operações institucionais |
@@ -236,4 +251,4 @@ As rotas públicas `/api/auth/*`, `/api/admin/users*`, `POST /api/admin/teachers
 
 ---
 
-*Engenharia de Software • Arquitetura de Sistemas e Segurança • PUC-Campinas • 2026*
+*Engenharia de Software • PUC-Campinas • 2026*

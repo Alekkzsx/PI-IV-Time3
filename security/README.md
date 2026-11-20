@@ -34,6 +34,14 @@ A estrutura do módulo segue rigorosamente os padrões de pacotes Dart/Flutter e
 │   ├── policies/                 # Invariantes e políticas de respostas opacas
 │   │   ├── generic_feedback_policy.dart
 │   │   └── security_constants.dart
+│   ├── student/                  # Submódulo de proteção e integridade do portal discente
+│   │   ├── integrity/            # student_sha256_engine.dart, student_submission_integrity_verifier.dart
+│   │   ├── policies/             # student_security_limits.dart, student_security_policy.dart
+│   │   ├── rate_limiting/        # student_action_rate_limiter.dart, student_action_type.dart
+│   │   ├── sanitizers/           # student_forum_content_sanitizer.dart, student_text_input_sanitizer.dart
+│   │   ├── validators/           # student_file_upload_validator.dart, student_git_repository_validator.dart, student_magic_bytes_inspector.dart
+│   │   ├── widgets/              # student_integrity_badge.dart, student_password_entropy_meter.dart, student_rate_limit_cooldown_banner.dart
+│   │   └── student_security.dart # Exportação unificada das defesas discentes
 │   ├── validators/               # Sanitizadores de entrada e avaliadores de entropia de senha
 │   │   ├── input_sanitizer.dart
 │   │   └── password_entropy_validator.dart
@@ -41,7 +49,8 @@ A estrutura do módulo segue rigorosamente os padrões de pacotes Dart/Flutter e
 │   │   ├── lockout_countdown_banner.dart
 │   │   └── token_timer_widget.dart
 │   └── security.dart             # Exportação unificada (barrel) do pacote
-├── test/                         # 37 testes automatizados nativos (unidade e integração)
+├── test/                         # 125 testes automatizados em Dart (21 arquivos de teste)
+│   ├── student/                  # 10 suítes dedicadas à integridade, uploads, sanitização e rate-limit discente
 │   ├── cross_feature_security_test.dart
 │   ├── e2e_test_runner.dart
 │   ├── generic_feedback_test.dart
@@ -59,7 +68,7 @@ A estrutura do módulo segue rigorosamente os padrões de pacotes Dart/Flutter e
 │   │   ├── middleware/           # SecurityHeadersFilter, BoundedBodyReader, ServerErrorSanitizer
 │   │   ├── policies/             # GenericFeedbackPolicy, SecurityConstants
 │   │   └── validators/           # ServerInputSanitizer, ServerPasswordEntropyValidator
-│   └── test/                     # Testes adversariais e de estresse para o servidor Java
+│   └── test/                     # Testes adversariais e de estresse para o servidor Java (20 cenários)
 │       ├── M1AdversarialChallengeTest.java
 │       └── SecurityServerTestSuite.java
 ├── analysis_options.yaml         # Regras estritas de linter
@@ -115,7 +124,7 @@ A estrutura do módulo segue rigorosamente os padrões de pacotes Dart/Flutter e
 Graças ao layout padronizado do diretório `test/`, todos os testes automatizados são executados usando as ferramentas padrão do Flutter:
 
 ```bash
-# Executar a suíte de testes de segurança (37 testes automatizados)
+# Executar a suíte de testes de segurança em Dart (125 testes automatizados)
 cd .../PI-IV-Time3/security
 flutter test
 

@@ -16,15 +16,15 @@ $$\text{Camada de Apresentação (Widgets \& Controllers)} \longleftrightarrow \
 
 ### Módulos Funcionais Principais:
 1. **`auth`**: Fluxos seguros de autenticação e recuperação de credenciais:
-   - Login multi-perfil (Discente, Docente, Administrador).
-   - Recuperação de senha com mitigação de ataques de temporização (side-channel timing).
-   - Verificação de código OTP com temporizador de contagem regressiva efêmero.
-   - Redefinição de senha com indicador de avaliação de entropia de 4 fatores.
+   - Login multi-perfil (**Aluno**, **Docente**, **Admin**) com validação estrita de compatibilidade entre o perfil selecionado e o cadastro institucional (`invalid_user_type` HTTP `403`).
+   - Recuperação de senha com verificação prévia de perfil, mitigação de ataques de temporização (*side-channel timing*) e banner de orientação contextual.
+   - Verificação de código OTP de 6 dígitos (`OtpCodeInputSection`) com centralização óptica, agrupamento visual `3 - 3`, pílula de progresso, feedback inline de erro e temporizador regressivo efêmero.
+   - Redefinição de senha com indicador de avaliação de entropia em 4 fatores.
 2. **`student`**: Portal do Discente com notas semestrais, diário de frequência, grade horária de aulas, calendário acadêmico e requerimentos da secretaria virtual.
 3. **`teacher`**: Portal do Docente com lançamento de notas, chamada digital em aula, validação de frequência e gestão de materiais pedagógicos.
 4. **`admin`**: Portal de Administração Acadêmica com gestão do ciclo de vida de identidades de usuários, cockpit de auditoria, balcão de secretaria e trava regimental de notas do CONSEPE.
 5. **`video_call`**: Módulo institucional de Videochamada WebRTC P2P com:
-   - Sala de espera com diagnósticos de hardware (verificações de câmera e microfone).
+   - Lobby pré-chamada em paleta monocromática escura de alto contraste (`VideoCallColors`), isolada do tema claro global (`AppTheme.lightTheme`), com diagnósticos de hardware (câmera e microfone) e seletor de salas vinculadas.
    - Grade de vídeo dinâmica com detecção de orador ativo baseada em histerese.
    - Fila ordenada FIFO de dúvidas (Mãos Levantadas) e chat da sessão em tempo real.
    - Compartilhamento de tela e gravação de sessão com registro de auditoria institucional.
@@ -40,12 +40,16 @@ $$\text{Camada de Apresentação (Widgets \& Controllers)} \longleftrightarrow \
 .../PI-IV-Time3/frontend/
 ├── lib/
 │   ├── core/
+│   │   ├── academic/                         # Calculadora regimental de médias e frequência
 │   │   ├── backend/
-│   │   │   └── backend_process_launcher.dart  # Inicializador transparente em segundo plano dos módulos principais
-│   │   ├── errors/
-│   │   ├── router/
-│   │   ├── theme/
-│   │   └── utils/
+│   │   │   └── backend_process_launcher.dart # Inicializador transparente em segundo plano dos módulos principais
+│   │   ├── errors/                           # Falhas e exceções tipadas de domínio
+│   │   ├── network/                          # Cliente HTTP resiliente, endpoints e ServerHealthMonitor (:8080 e :3001)
+│   │   ├── router/                           # Roteamento centralizado da aplicação
+│   │   ├── state/                            # Sessão autenticada, armazenamento seguro e política de papéis
+│   │   ├── theme/                            # AppTheme, InstitutionalTokens e tipografia Plus Jakarta Sans
+│   │   ├── utils/                            # Validadores de entrada e utilitários de arquivos multiplataforma
+│   │   └── widgets/                          # AccessDeniedView e ServerUnavailableGuard (trava Fail-Closed)
 │   ├── features/
 │   │   ├── admin/
 │   │   ├── auth/
@@ -53,8 +57,9 @@ $$\text{Camada de Apresentação (Widgets \& Controllers)} \longleftrightarrow \
 │   │   ├── student/
 │   │   ├── teacher/
 │   │   └── video_call/
-│   └── main.dart                             # Ponto de entrada da aplicação Flutter
-├── test/                                     # Suíte abrangente de testes automatizados (396 testes)
+│   └── main.dart                             # Ponto de entrada com guarda Fail-Closed (ENABLE_SERVER_GUARD)
+├── test/                                     # Suíte abrangente de testes automatizados (57 arquivos de teste)
+│   ├── core/                                 # Testes do monitor de saúde e guarda Fail-Closed
 │   ├── features/
 │   │   ├── admin/
 │   │   ├── auth/
@@ -71,14 +76,15 @@ $$\text{Camada de Apresentação (Widgets \& Controllers)} \longleftrightarrow \
 
 ## 🚀 Executando o Projeto
 
-Graças ao mecanismo de automação integrado, **não são necessários scripts de inicialização separados nem múltiplas janelas de terminal**:
-
 ```bash
 # 1. Navegue até o diretório frontend
 cd .../PI-IV-Time3/frontend
 
-# 2. Inicie a aplicação
+# 2. Inicie a aplicação (com guarda Fail-Closed ativa por padrão)
 flutter run
+
+# Opcional: iniciar desativando a trava Fail-Closed de disponibilidade dos servidores
+flutter run --dart-define=ENABLE_SERVER_GUARD=false
 ```
 
 Ao executar `flutter run`:
