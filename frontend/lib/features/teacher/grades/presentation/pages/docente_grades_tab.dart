@@ -9,9 +9,9 @@ import 'package:pi_iv_time3/features/teacher/grades/presentation/widgets/docente
 import 'package:pi_iv_time3/features/teacher/shared/controllers/docente_controller.dart';
 import 'package:pi_iv_time3/features/teacher/shell/presentation/widgets/docente_footer.dart';
 
-/// Tab page for managing student official gradebook, PPC formula calculations, and issuing minutes.
+/// Página da aba para gerenciar a pauta oficial de notas dos discentes, cálculos da fórmula do PPC e emissão de atas.
 class DocenteGradesTab extends StatelessWidget {
-  /// Reactive controller for state access and mutations.
+  /// Controlador reativo para acesso e alterações de estado.
   final DocenteController controller;
 
   const DocenteGradesTab({super.key, required this.controller});
